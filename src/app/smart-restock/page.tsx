@@ -24,7 +24,7 @@ import { inventory, sales } from "@/lib/data";
 import { suggestRestock, type SuggestRestockOutput } from "@/ai/flows/smart-restock";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, Lightbulb, Package, BarChart } from "lucide-react";
+import { Bot, Lightbulb, Package } from "lucide-react";
 
 // Prepare mock data for the AI prompt
 const mockSalesData = sales.map(s => ({
@@ -70,8 +70,8 @@ export default function SmartRestockPage() {
     } catch (error) {
       console.error(error);
       toast({
-        title: "Error",
-        description: "Failed to get restock suggestions. Please try again.",
+        title: "خطأ",
+        description: "فشل الحصول على اقتراحات إعادة التخزين. يرجى المحاولة مرة أخرى.",
         variant: "destructive",
       });
     } finally {
@@ -86,47 +86,50 @@ export default function SmartRestockPage() {
       <Card>
         <form onSubmit={handleSubmit}>
           <CardHeader>
-            <CardTitle>Smart Restock Assistant</CardTitle>
+            <CardTitle>مساعد إعادة التخزين الذكي</CardTitle>
             <CardDescription>
-              Use AI to analyze your data and get smart restock suggestions. The fields below are pre-filled with your pharmacy's current data.
+              استخدم الذكاء الاصطناعي لتحليل بياناتك والحصول على اقتراحات ذكية لإعادة التخزين. الحقول أدناه مملوءة مسبقًا بالبيانات الحالية لصيدليتك.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="salesData">Historical Sales Data (JSON)</Label>
+              <Label htmlFor="salesData">بيانات المبيعات التاريخية (JSON)</Label>
               <Textarea
                 id="salesData"
                 value={salesData}
                 onChange={(e) => setSalesData(e.target.value)}
                 rows={6}
                 className="font-code text-xs"
+                dir="ltr"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="currentInventory">Current Inventory (JSON)</Label>
+              <Label htmlFor="currentInventory">المخزون الحالي (JSON)</Label>
               <Textarea
                 id="currentInventory"
                 value={currentInventory}
                 onChange={(e) => setCurrentInventory(e.target.value)}
                 rows={6}
                 className="font-code text-xs"
+                dir="ltr"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="expirationDates">Expiration Dates (JSON)</Label>
+              <Label htmlFor="expirationDates">تواريخ انتهاء الصلاحية (JSON)</Label>
               <Textarea
                 id="expirationDates"
                 value={expirationDates}
                 onChange={(e) => setExpirationDates(e.target.value)}
                 rows={6}
                 className="font-code text-xs"
+                dir="ltr"
               />
             </div>
           </CardContent>
           <CardFooter>
             <Button type="submit" disabled={isLoading}>
-              <Bot className="mr-2" />
-              {isLoading ? "Analyzing Data..." : "Generate Suggestions"}
+              <Bot className="me-2" />
+              {isLoading ? "جاري تحليل البيانات..." : "إنشاء اقتراحات"}
             </Button>
           </CardFooter>
         </form>
@@ -135,9 +138,9 @@ export default function SmartRestockPage() {
       <div className="space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Package className="text-primary"/> Suggested Purchase Order</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Package className="text-primary"/> طلب الشراء المقترح</CardTitle>
             <CardDescription>
-              The AI suggests ordering the following quantities to optimize stock levels.
+              يقترح الذكاء الاصطناعي طلب الكميات التالية لتحسين مستويات المخزون.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -152,9 +155,9 @@ export default function SmartRestockPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Medication ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead className="text-right">Suggested Quantity</TableHead>
+                    <TableHead>معرف الدواء</TableHead>
+                    <TableHead>الاسم</TableHead>
+                    <TableHead className="text-left">الكمية المقترحة</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -162,7 +165,7 @@ export default function SmartRestockPage() {
                     <TableRow key={order.medId}>
                       <TableCell>{order.medId}</TableCell>
                       <TableCell>{inventory.find(i => i.id === order.medId)?.name}</TableCell>
-                      <TableCell className="text-right font-bold">{order.quantity}</TableCell>
+                      <TableCell className="text-left font-bold">{order.quantity}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -170,7 +173,7 @@ export default function SmartRestockPage() {
             )}
             {!isLoading && !result && (
                 <div className="text-center text-muted-foreground p-8">
-                    <p>Your suggestions will appear here.</p>
+                    <p>ستظهر اقتراحاتك هنا.</p>
                 </div>
             )}
           </CardContent>
@@ -178,9 +181,9 @@ export default function SmartRestockPage() {
         
         <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Lightbulb className="text-primary"/> AI Analysis</CardTitle>
+                <CardTitle className="flex items-center gap-2"><Lightbulb className="text-primary"/> تحليل الذكاء الاصطناعي</CardTitle>
                 <CardDescription>
-                    The reasoning behind the suggested order quantities.
+                    الأساس المنطقي وراء كميات الطلب المقترحة.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -188,7 +191,7 @@ export default function SmartRestockPage() {
                 {result && <p className="text-sm leading-relaxed">{result.analysis}</p>}
                 {!isLoading && !result && (
                 <div className="text-center text-muted-foreground p-8">
-                    <p>The AI's analysis will appear here.</p>
+                    <p>سيظهر تحليل الذكاء الاصطناعي هنا.</p>
                 </div>
             )}
             </CardContent>

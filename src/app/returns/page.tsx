@@ -43,8 +43,8 @@ export default function ReturnsPage() {
 
     if (!medication) {
         toast({
-            title: "Error",
-            description: "Selected medication not found.",
+            title: "خطأ",
+            description: "الدواء المحدد غير موجود.",
             variant: "destructive"
         })
         return;
@@ -60,8 +60,8 @@ export default function ReturnsPage() {
     };
     setReturns([newReturn, ...returns]);
     toast({
-      title: "Return Processed",
-      description: `Return ${newReturn.id} has been successfully logged.`,
+      title: "تمت معالجة المرتجع",
+      description: `تم تسجيل المرتجع ${newReturn.id} بنجاح.`,
     });
     event.currentTarget.reset();
   };
@@ -71,29 +71,29 @@ export default function ReturnsPage() {
       <div className="lg:col-span-2">
         <Card>
           <CardHeader>
-            <CardTitle>Return History</CardTitle>
+            <CardTitle>سجل المرتجعات</CardTitle>
             <CardDescription>
-              View and manage all customer returns.
+              عرض وإدارة جميع مرتجعات العملاء.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Return ID</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Medication</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead>Reason</TableHead>
+                  <TableHead>معرف المرتجع</TableHead>
+                  <TableHead>التاريخ</TableHead>
+                  <TableHead>الدواء</TableHead>
+                  <TableHead className="text-left">الكمية</TableHead>
+                  <TableHead>السبب</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {returns.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.id}</TableCell>
-                    <TableCell>{new Date(item.date).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(item.date).toLocaleDateString('ar-EG')}</TableCell>
                     <TableCell>{item.medicationName}</TableCell>
-                    <TableCell className="text-right">{item.quantity}</TableCell>
+                    <TableCell className="text-left">{item.quantity}</TableCell>
                     <TableCell>{item.reason}</TableCell>
                   </TableRow>
                 ))}
@@ -106,18 +106,18 @@ export default function ReturnsPage() {
       <div>
         <Card>
           <CardHeader>
-            <CardTitle>Process a Return</CardTitle>
+            <CardTitle>معالجة مرتجع</CardTitle>
             <CardDescription>
-              Fill out the form to log a new customer return.
+              املأ النموذج لتسجيل مرتجع عميل جديد.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form className="space-y-4" onSubmit={handleCreateReturn}>
               <div className="space-y-2">
-                <Label htmlFor="medicationId">Medication</Label>
+                <Label htmlFor="medicationId">الدواء</Label>
                  <Select name="medicationId" required>
                   <SelectTrigger id="medicationId">
-                    <SelectValue placeholder="Select a medication" />
+                    <SelectValue placeholder="اختر دواء" />
                   </SelectTrigger>
                   <SelectContent>
                     {inventory.map(med => (
@@ -128,16 +128,16 @@ export default function ReturnsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="quantity">Quantity</Label>
-                <Input id="quantity" name="quantity" type="number" placeholder="Enter quantity" required min="1"/>
+                <Label htmlFor="quantity">الكمية</Label>
+                <Input id="quantity" name="quantity" type="number" placeholder="أدخل الكمية" required min="1"/>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="reason">Reason for Return</Label>
-                <Textarea id="reason" name="reason" placeholder="e.g., Incorrect purchase, allergic reaction" required />
+                <Label htmlFor="reason">سبب الإرجاع</Label>
+                <Textarea id="reason" name="reason" placeholder="مثال: شراء خاطئ، رد فعل تحسسي" required />
               </div>
 
-              <Button type="submit" className="w-full">Process Return</Button>
+              <Button type="submit" className="w-full">معالجة المرتجع</Button>
             </form>
           </CardContent>
         </Card>

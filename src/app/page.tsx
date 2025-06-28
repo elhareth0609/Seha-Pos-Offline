@@ -38,7 +38,7 @@ export default function Dashboard() {
   ).length;
 
   const salesDataForChart = sales.map(sale => ({
-    date: new Date(sale.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    date: new Date(sale.date).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' }),
     total: sale.total,
   })).slice(0, 7).reverse();
 
@@ -47,7 +47,7 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">إجمالي الإيرادات</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -55,43 +55,43 @@ export default function Dashboard() {
               ${totalRevenue.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
-              Based on all-time sales
+              بناءً على إجمالي المبيعات
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
+            <CardTitle className="text-sm font-medium">إجمالي المبيعات</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+{sales.length}</div>
             <p className="text-xs text-muted-foreground">
-              Number of transactions
+              عدد المعاملات
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
+            <CardTitle className="text-sm font-medium">أصناف منخفضة المخزون</CardTitle>
             <AlertTriangle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{lowStockItems}</div>
             <p className="text-xs text-muted-foreground">
-              Items needing reorder
+              أصناف تحتاج لإعادة طلب
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending POs</CardTitle>
+            <CardTitle className="text-sm font-medium">طلبات شراء معلقة</CardTitle>
             <Truck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pendingOrders}</div>
             <p className="text-xs text-muted-foreground">
-              Purchase orders awaiting delivery
+              طلبات شراء في انتظار التسليم
             </p>
           </CardContent>
         </Card>
@@ -100,27 +100,28 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4">
           <CardHeader>
-            <CardTitle>Sales Overview</CardTitle>
-            <CardDescription>A look at the last 7 sales transactions.</CardDescription>
+            <CardTitle>نظرة عامة على المبيعات</CardTitle>
+            <CardDescription>نظرة على آخر 7 معاملات بيع.</CardDescription>
           </CardHeader>
-          <CardContent className="pl-2">
+          <CardContent className="ps-2">
              <ChartContainer
                 config={{
                     total: {
-                        label: 'Total',
+                        label: 'الإجمالي',
                         color: 'hsl(var(--primary))',
                     },
                 }}
                 className="h-[300px] w-full"
             >
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={salesDataForChart}>
+                    <BarChart data={salesDataForChart} layout="horizontal">
                         <XAxis
                             dataKey="date"
                             stroke="#888888"
                             fontSize={12}
                             tickLine={false}
                             axisLine={false}
+                            reversed={true}
                         />
                         <YAxis
                             stroke="#888888"
@@ -128,6 +129,7 @@ export default function Dashboard() {
                             tickLine={false}
                             axisLine={false}
                             tickFormatter={(value) => `$${value}`}
+                            orientation="right"
                         />
                          <Tooltip
                             cursor={false}
@@ -141,26 +143,26 @@ export default function Dashboard() {
         </Card>
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Recent Sales</CardTitle>
+            <CardTitle>المبيعات الأخيرة</CardTitle>
             <CardDescription>
-              Your most recent sales transactions.
+              أحدث معاملات البيع الخاصة بك.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Sale ID</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>معرف البيع</TableHead>
+                  <TableHead>التاريخ</TableHead>
+                  <TableHead className="text-left">المبلغ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sales.slice(0, 5).map((sale) => (
                   <TableRow key={sale.id}>
                     <TableCell className="font-medium">{sale.id}</TableCell>
-                    <TableCell>{new Date(sale.date).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell>{new Date(sale.date).toLocaleDateString('ar-EG')}</TableCell>
+                    <TableCell className="text-left">
                       ${sale.total.toFixed(2)}
                     </TableCell>
                   </TableRow>

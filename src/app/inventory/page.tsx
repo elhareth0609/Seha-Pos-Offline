@@ -34,21 +34,21 @@ export default function InventoryPage() {
   }, [searchTerm])
   
   const getStockStatus = (stock: number, reorderPoint: number) => {
-    if (stock === 0) return <Badge variant="destructive">Out of Stock</Badge>
-    if (stock < reorderPoint) return <Badge variant="secondary" className="bg-yellow-400 text-yellow-900">Low Stock</Badge>
-    return <Badge variant="secondary" className="bg-green-300 text-green-900">In Stock</Badge>
+    if (stock === 0) return <Badge variant="destructive">نفد من المخزون</Badge>
+    if (stock < reorderPoint) return <Badge variant="secondary" className="bg-yellow-400 text-yellow-900">مخزون منخفض</Badge>
+    return <Badge variant="secondary" className="bg-green-300 text-green-900">متوفر</Badge>
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Inventory</CardTitle>
+        <CardTitle>المخزون</CardTitle>
         <CardDescription>
-          Manage and track your medication inventory.
+          إدارة وتتبع مخزون الأدوية الخاص بك.
         </CardDescription>
         <div className="pt-4">
           <Input 
-            placeholder="Search by name or ID..."
+            placeholder="ابحث بالاسم أو المعرف..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
@@ -59,14 +59,14 @@ export default function InventoryPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Supplier</TableHead>
-              <TableHead className="text-right">Stock</TableHead>
-              <TableHead className="text-right">Reorder Point</TableHead>
-              <TableHead className="text-right">Price</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>المعرف</TableHead>
+              <TableHead>الاسم</TableHead>
+              <TableHead>الفئة</TableHead>
+              <TableHead>المورد</TableHead>
+              <TableHead className="text-left">المخزون</TableHead>
+              <TableHead className="text-left">نقطة إعادة الطلب</TableHead>
+              <TableHead className="text-left">السعر</TableHead>
+              <TableHead>الحالة</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -76,9 +76,9 @@ export default function InventoryPage() {
                 <TableCell>{item.name}</TableCell>
                 <TableCell>{item.category}</TableCell>
                 <TableCell>{item.supplier}</TableCell>
-                <TableCell className="text-right">{item.stock}</TableCell>
-                <TableCell className="text-right">{item.reorderPoint}</TableCell>
-                <TableCell className="text-right">${item.price.toFixed(2)}</TableCell>
+                <TableCell className="text-left">{item.stock}</TableCell>
+                <TableCell className="text-left">{item.reorderPoint}</TableCell>
+                <TableCell className="text-left">${item.price.toFixed(2)}</TableCell>
                 <TableCell>{getStockStatus(item.stock, item.reorderPoint)}</TableCell>
               </TableRow>
             ))}

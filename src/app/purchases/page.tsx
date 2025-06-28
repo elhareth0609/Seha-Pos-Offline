@@ -51,8 +51,8 @@ export default function PurchasesPage() {
     };
     setPurchaseOrders([newOrder, ...purchaseOrders]);
     toast({
-      title: "Purchase Order Created",
-      description: `Order ${newOrder.id} has been successfully created.`,
+      title: "تم إنشاء طلب الشراء",
+      description: `تم إنشاء الطلب ${newOrder.id} بنجاح.`,
     });
     event.currentTarget.reset();
   };
@@ -60,11 +60,11 @@ export default function PurchasesPage() {
   const getStatusBadge = (status: PurchaseOrder['status']) => {
     switch (status) {
       case "Pending":
-        return <Badge variant="secondary" className="bg-yellow-400 text-yellow-900">{status}</Badge>;
+        return <Badge variant="secondary" className="bg-yellow-400 text-yellow-900">قيد الانتظار</Badge>;
       case "Received":
-        return <Badge variant="secondary" className="bg-green-300 text-green-900">{status}</Badge>;
+        return <Badge variant="secondary" className="bg-green-300 text-green-900">تم الاستلام</Badge>;
       case "Cancelled":
-        return <Badge variant="destructive">{status}</Badge>;
+        return <Badge variant="destructive">ملغي</Badge>;
     }
   }
 
@@ -73,20 +73,20 @@ export default function PurchasesPage() {
       <div className="lg:col-span-2">
         <Card>
           <CardHeader>
-            <CardTitle>Purchase Orders</CardTitle>
+            <CardTitle>طلبات الشراء</CardTitle>
             <CardDescription>
-              View and manage all purchase orders.
+              عرض وإدارة جميع طلبات الشراء.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>PO ID</TableHead>
-                  <TableHead>Supplier</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Items</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>معرف الطلب</TableHead>
+                  <TableHead>المورد</TableHead>
+                  <TableHead>التاريخ</TableHead>
+                  <TableHead>الأصناف</TableHead>
+                  <TableHead>الحالة</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -94,7 +94,7 @@ export default function PurchasesPage() {
                   <TableRow key={order.id}>
                     <TableCell className="font-medium">{order.id}</TableCell>
                     <TableCell>{order.supplier}</TableCell>
-                    <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(order.date).toLocaleDateString('ar-EG')}</TableCell>
                     <TableCell>{order.items.reduce((acc, item) => acc + item.quantity, 0)}</TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
                   </TableRow>
@@ -108,18 +108,18 @@ export default function PurchasesPage() {
       <div>
         <Card>
           <CardHeader>
-            <CardTitle>Create New Order</CardTitle>
+            <CardTitle>إنشاء طلب جديد</CardTitle>
             <CardDescription>
-              Fill out the form to create a new purchase order.
+              املأ النموذج لإنشاء طلب شراء جديد.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form className="space-y-4" onSubmit={handleCreateOrder}>
               <div className="space-y-2">
-                <Label htmlFor="supplier">Supplier</Label>
+                <Label htmlFor="supplier">المورد</Label>
                 <Select name="supplier" required>
                   <SelectTrigger id="supplier">
-                    <SelectValue placeholder="Select a supplier" />
+                    <SelectValue placeholder="اختر موردًا" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Pharma Inc.">Pharma Inc.</SelectItem>
@@ -130,10 +130,10 @@ export default function PurchasesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="medicationId">Medication</Label>
+                <Label htmlFor="medicationId">الدواء</Label>
                  <Select name="medicationId" required>
                   <SelectTrigger id="medicationId">
-                    <SelectValue placeholder="Select a medication" />
+                    <SelectValue placeholder="اختر دواء" />
                   </SelectTrigger>
                   <SelectContent>
                     {inventory.map(med => (
@@ -144,11 +144,11 @@ export default function PurchasesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="quantity">Quantity</Label>
-                <Input id="quantity" name="quantity" type="number" placeholder="Enter quantity" required min="1" />
+                <Label htmlFor="quantity">الكمية</Label>
+                <Input id="quantity" name="quantity" type="number" placeholder="أدخل الكمية" required min="1" />
               </div>
 
-              <Button type="submit" className="w-full">Create Order</Button>
+              <Button type="submit" className="w-full">إنشاء طلب</Button>
             </form>
           </CardContent>
         </Card>
