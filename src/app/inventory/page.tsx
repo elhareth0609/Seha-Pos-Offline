@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -45,37 +46,46 @@ import type { Medication } from "@/lib/types"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { MoreHorizontal, ListFilter, Trash2, Pencil, X } from "lucide-react"
 import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
 
 
 export default function InventoryPage() {
   const [allInventory, setAllInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
-  const [filteredInventory, setFilteredInventory] = React.useState<Medication[]>(allInventory);
+  const [filteredInventory, setFilteredInventory] = React.useState<Medication[]>([]);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [categoryFilter, setCategoryFilter] = React.useState("all");
   
   const [editingMed, setEditingMed] = React.useState<Medication | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+  const [isClient, setIsClient] = React.useState(false)
 
   const { toast } = useToast();
+
+  React.useEffect(() => {
+    setIsClient(true)
+  }, [])
+
 
   const categories = React.useMemo(() => ["all", ...Array.from(new Set(allInventory.map(item => item.category)))], [allInventory]);
 
   React.useEffect(() => {
-    let tempInventory = allInventory;
+    if (isClient) {
+        let tempInventory = allInventory;
 
-    if (searchTerm) {
-      tempInventory = tempInventory.filter((item) =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.id.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    if (categoryFilter !== "all") {
-        tempInventory = tempInventory.filter(item => item.category === categoryFilter);
-    }
+        if (searchTerm) {
+        tempInventory = tempInventory.filter((item) =>
+            item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.id.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        }
+        
+        if (categoryFilter !== "all") {
+            tempInventory = tempInventory.filter(item => item.category === categoryFilter);
+        }
 
-    setFilteredInventory(tempInventory);
-  }, [searchTerm, allInventory, categoryFilter]);
+        setFilteredInventory(tempInventory);
+    }
+  }, [searchTerm, allInventory, categoryFilter, isClient]);
 
   const getStockStatus = (stock: number, reorderPoint: number) => {
     if (stock <= 0) return <Badge variant="destructive">نفد من المخزون</Badge>
@@ -110,6 +120,59 @@ export default function InventoryPage() {
       toast({ title: "تم تحديث الدواء", description: `تم تحديث بيانات ${updatedMed.name} بنجاح.` });
       setIsEditModalOpen(false);
       setEditingMed(null);
+  }
+
+  if (!isClient) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle><Skeleton className="h-8 w-48" /></CardTitle>
+                <CardDescription>
+                    <Skeleton className="h-5 w-72" />
+                </CardDescription>
+                <div className="pt-4 flex gap-2">
+                    <Skeleton className="h-10 max-w-sm flex-1" />
+                    <Skeleton className="h-10 w-28" />
+                </div>
+            </CardHeader>
+            <CardContent>
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>المعرف</TableHead>
+                                <TableHead>الاسم</TableHead>
+                                <TableHead>الفئة</TableHead>
+                                <TableHead>المورد</TableHead>
+                                <TableHead className="text-center">المخزون</TableHead>
+                                <TableHead className="text-center">نقطة إعادة الطلب</TableHead>
+                                <TableHead>تاريخ الانتهاء</TableHead>
+                                <TableHead className="text-center">سعر البيع</TableHead>
+                                <TableHead>الحالة</TableHead>
+                                <TableHead><span className="sr-only">الإجراءات</span></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {Array.from({ length: 8 }).map((_, i) => (
+                                <TableRow key={i}>
+                                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-6 w-28" /></TableCell>
+                                    <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            </CardContent>
+        </Card>
+    );
   }
   
   return (
@@ -260,3 +323,5 @@ export default function InventoryPage() {
     </Card>
   )
 }
+
+    
