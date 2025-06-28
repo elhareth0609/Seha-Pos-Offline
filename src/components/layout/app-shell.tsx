@@ -13,7 +13,6 @@ import {
   Settings,
   ShoppingCart,
   Truck,
-  Undo2,
   UserCircle,
   Users,
   FileDown
@@ -28,7 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { Card } from "../ui/card";
-import { inventory, sales, purchaseOrders, returns, patients } from "@/lib/data";
+import { inventory, sales, purchaseOrders, patients, users, suppliers, supplierReturns } from "@/lib/data";
 
 
 const navItems = [
@@ -36,9 +35,9 @@ const navItems = [
   { href: "/sales", icon: ShoppingCart, label: "المبيعات", color: "hover:bg-green-100 dark:hover:bg-green-900/50 hover:text-green-700 dark:hover:text-green-300", activeColor: "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300" },
   { href: "/inventory", icon: Boxes, label: "المخزون", color: "hover:bg-orange-100 dark:hover:bg-orange-900/50 hover:text-orange-700 dark:hover:text-orange-300", activeColor: "bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300" },
   { href: "/purchases", icon: Truck, label: "المشتريات", color: "hover:bg-purple-100 dark:hover:bg-purple-900/50 hover:text-purple-700 dark:hover:text-purple-300", activeColor: "bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300" },
-  { href: "/returns", icon: Undo2, label: "المرتجعات", color: "hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-700 dark:hover:text-red-300", activeColor: "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300" },
   { href: "/expiring-soon", icon: CalendarX2, label: "قارب على الانتهاء", color: "hover:bg-amber-100 dark:hover:bg-amber-900/50 hover:text-amber-700 dark:hover:text-amber-300", activeColor: "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300" },
   { href: "/patients", icon: Users, label: "أصدقاء الصيدلية", color: "hover:bg-blue-100 dark:hover:bg-blue-900/50 hover:text-blue-700 dark:hover:text-blue-300", activeColor: "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300" },
+  { href: "/settings", icon: Settings, label: "الإعدادات", color: "hover:bg-slate-100 dark:hover:bg-slate-900/50 hover:text-slate-700 dark:hover:text-slate-300", activeColor: "bg-slate-100 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300" },
 ];
 
 function MedStockLogo() {
@@ -61,8 +60,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         inventory,
         sales,
         purchaseOrders,
-        returns,
-        patients
+        patients,
+        users,
+        suppliers,
+        supplierReturns,
       };
       const jsonString = JSON.stringify(backupData, null, 2);
       const blob = new Blob([jsonString], { type: "application/json" });
@@ -97,7 +98,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       <Users className="me-2" />
                       إدارة المستخدمين
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => router.push('/settings')}>
                       <Settings className="me-2" />
                       الإعدادات
                       </DropdownMenuItem>

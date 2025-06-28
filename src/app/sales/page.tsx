@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -36,9 +35,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import { inventory as allInventory, sales, returns } from "@/lib/data"
 import type { Medication, SaleItem } from "@/lib/types"
-import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowRightLeft } from "lucide-react"
+import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
-import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 
@@ -114,7 +112,7 @@ export default function SalesPage() {
 
   const addToCart = React.useCallback((medication: Medication) => {
     setCart((prevCart) => {
-      const existingItem = prevCart.find(item => item.medicationId === medication.id && !item.isReturn)
+      const existingItem = prevCart.find(item => item.medicationId === medication.id)
       if (existingItem) {
         return prevCart.map(item =>
           item.medicationId === medication.id
@@ -122,7 +120,7 @@ export default function SalesPage() {
             : item
         )
       }
-      return [...prevCart, { medicationId: medication.id, name: medication.name, quantity: 1, price: medication.price, isReturn: false }]
+      return [...prevCart, { medicationId: medication.id, name: medication.name, quantity: 1, price: medication.price }]
     })
     setSearchTerm("")
   }, [])
@@ -167,14 +165,6 @@ export default function SalesPage() {
   const removeFromCart = (medicationId: string) => {
     setCart(cart => cart.filter(item => item.medicationId !== medicationId))
   }
-
-  const handleToggleReturn = (medicationId: string) => {
-    setCart(cart.map(item =>
-        item.medicationId === medicationId
-            ? { ...item, isReturn: !item.isReturn }
-            : item
-    ));
-  };
   
   const handleDiscountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -183,10 +173,7 @@ export default function SalesPage() {
     setDiscount(isNaN(numericValue) || numericValue < 0 ? 0 : numericValue);
   }
 
-  const subtotal = cart.reduce((total, item) => {
-    const itemTotal = item.price * item.quantity;
-    return item.isReturn ? total - itemTotal : total + itemTotal;
-  }, 0);
+  const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 
   const finalTotal = subtotal - discount;
 
@@ -201,43 +188,27 @@ export default function SalesPage() {
       return
     }
 
-    const saleItems = cart.filter(item => !item.isReturn);
-    const returnItems = cart.filter(item => item.isReturn);
-    
-    if (saleItems.length > 0) {
-        const newSaleId = `SALE${(sales.length + 1).toString().padStart(3, '0')}`;
-        sales.unshift({
-            id: newSaleId,
-            date: new Date().toISOString(),
-            items: saleItems,
-            total: finalTotal,
-            discount: discount,
-        });
-        saleItems.forEach(item => {
-            const medInInventory = allInventory.find(med => med.id === item.medicationId);
-            if (medInInventory) {
-                medInInventory.stock -= item.quantity;
-            }
-        });
-    }
+    const newSaleId = `SALE${(sales.length + 1).toString().padStart(3, '0')}`;
+    sales.unshift({
+        id: newSaleId,
+        date: new Date().toISOString(),
+        items: cart,
+        total: finalTotal,
+        discount: discount,
+        userId: "USR001", // Mock user ID
+    });
 
-    if (returnItems.length > 0) {
-        returnItems.forEach(item => {
-            const newReturnId = `RET${(returns.length + 1).toString().padStart(3, '0')}`;
-            returns.unshift({
-                id: newReturnId,
-                date: new Date().toISOString(),
-                medicationId: item.medicationId,
-                medicationName: item.name,
-                quantity: item.quantity,
-                reason: "Return processed via POS"
-            });
-            const medInInventory = allInventory.find(med => med.id === item.medicationId);
-            if (medInInventory) {
-                medInInventory.stock += item.quantity;
+    cart.forEach(item => {
+        const medInInventory = allInventory.find(med => med.id === item.medicationId);
+        if (medInInventory) {
+            if (medInInventory.stock < item.quantity) {
+                 toast({ variant: 'destructive', title: `كمية غير كافية من ${medInInventory.name}`, description: `الكمية المطلوبة ${item.quantity}, المتوفر ${medInInventory.stock}` });
+                 // This is a simple check. In a real app, this logic would be more robust.
+                 return;
             }
-        });
-    }
+            medInInventory.stock -= item.quantity;
+        }
+    });
     
     toast({
       title: "تمت العملية بنجاح",
@@ -284,30 +255,36 @@ export default function SalesPage() {
                             <TableHead>المنتج</TableHead>
                             <TableHead className="w-[120px] text-center">الكمية</TableHead>
                             <TableHead className="text-left">الإجمالي</TableHead>
-                            <TableHead className="w-12 p-0 text-center"><ArrowRightLeft className="h-4 w-4 mx-auto" title="إرجاع؟" /></TableHead>
                             <TableHead className="w-12"></TableHead>
                         </TableRow>
                     </TableHeader>
                   <TableBody>
-                    {cart.map((item) => (
-                      <TableRow key={item.medicationId} className={item.isReturn ? "bg-red-50 dark:bg-red-900/20" : ""}>
-                        <TableCell className="font-medium">{item.name}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-center gap-2">
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity - 1)}><MinusCircle className="h-4 w-4" /></Button>
-                            <span>{item.quantity}</span>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity + 1)}><PlusCircle className="h-4 w-4" /></Button>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-left">${(item.price * item.quantity).toFixed(2)}</TableCell>
-                        <TableCell className="text-center">
-                            <Checkbox checked={item.isReturn} onCheckedChange={() => handleToggleReturn(item.medicationId)} />
-                        </TableCell>
-                        <TableCell className="text-left">
-                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)}><X className="h-4 w-4" /></Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {cart.map((item) => {
+                      const medInInventory = allInventory.find(med => med.id === item.medicationId);
+                      const stock = medInInventory?.stock ?? 0;
+                      const remainingStock = stock - item.quantity;
+                      return (
+                        <TableRow key={item.medicationId}>
+                            <TableCell>
+                                <div className="font-medium">{item.name}</div>
+                                <div className="text-xs text-muted-foreground">
+                                    الرصيد: {stock} | المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span>
+                                </div>
+                            </TableCell>
+                            <TableCell>
+                            <div className="flex items-center justify-center gap-2">
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity - 1)}><MinusCircle className="h-4 w-4" /></Button>
+                                <span>{item.quantity}</span>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity + 1)}><PlusCircle className="h-4 w-4" /></Button>
+                            </div>
+                            </TableCell>
+                            <TableCell className="text-left">${(item.price * item.quantity).toFixed(2)}</TableCell>
+                            <TableCell className="text-left">
+                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)}><X className="h-4 w-4" /></Button>
+                            </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               ) : (

@@ -4,7 +4,8 @@ export type Medication = {
   stock: number;
   reorderPoint: number;
   category: string;
-  supplier: string;
+  supplierId: string;
+  supplierName: string;
   price: number; // Selling price
   purchasePrice: number;
   expirationDate: string;
@@ -15,7 +16,6 @@ export type SaleItem = {
   name: string;
   quantity: number;
   price: number;
-  isReturn?: boolean;
 };
 
 export type Sale = {
@@ -24,6 +24,7 @@ export type Sale = {
   items: SaleItem[];
   total: number;
   discount?: number;
+  userId: string;
 };
 
 export type PurchaseOrderItem = {
@@ -34,7 +35,8 @@ export type PurchaseOrderItem = {
 
 export type PurchaseOrder = {
   id: string;
-  supplier: string;
+  supplierId: string;
+  supplierName: string;
   date: string;
   items: PurchaseOrderItem[];
   status: "Pending" | "Received" | "Cancelled";
@@ -47,6 +49,7 @@ export type Return = {
   medicationName: string;
   quantity: number;
   reason: string;
+  supplierId: string;
 };
 
 export type Patient = {
@@ -56,4 +59,26 @@ export type Patient = {
     medicationId: string;
     name: string;
   }[];
+};
+
+export type Supplier = {
+  id: string;
+  name: string;
+  contactPerson?: string;
+  phone?: string;
+};
+
+export type User = {
+  id: string;
+  name: string;
+  role: "Admin" | "Employee";
+  hourlyRate: number;
+  pin: string; // Simulate login with a PIN
+};
+
+export type TimeLog = {
+  id: string;
+  userId: string;
+  clockIn: string; // ISO string
+  clockOut?: string; // ISO string
 };

@@ -65,7 +65,8 @@ export default function InventoryPage() {
               <TableHead>المورد</TableHead>
               <TableHead className="text-left">المخزون</TableHead>
               <TableHead className="text-left">نقطة إعادة الطلب</TableHead>
-              <TableHead className="text-left">السعر</TableHead>
+              <TableHead>تاريخ الانتهاء</TableHead>
+              <TableHead className="text-left">سعر البيع</TableHead>
               <TableHead>الحالة</TableHead>
             </TableRow>
           </TableHeader>
@@ -75,9 +76,10 @@ export default function InventoryPage() {
                 <TableCell className="font-medium">{item.id}</TableCell>
                 <TableCell>{item.name}</TableCell>
                 <TableCell>{item.category}</TableCell>
-                <TableCell>{item.supplier}</TableCell>
+                <TableCell>{item.supplierName}</TableCell>
                 <TableCell className="text-left">{item.stock}</TableCell>
                 <TableCell className="text-left">{item.reorderPoint}</TableCell>
+                <TableCell>{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
                 <TableCell className="text-left">${item.price.toFixed(2)}</TableCell>
                 <TableCell>{getStockStatus(item.stock, item.reorderPoint)}</TableCell>
               </TableRow>
