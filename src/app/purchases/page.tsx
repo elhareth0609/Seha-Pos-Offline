@@ -182,13 +182,16 @@ export default function PurchasesPage() {
       event.preventDefault();
       const formData = new FormData(event.currentTarget);
       const medicationId = formData.get("medicationId") as string;
+      const supplierId = formData.get("supplierId") as string;
+      const purchaseId = formData.get("purchaseId") as string;
       const quantity = parseInt(formData.get("quantity") as string, 10);
       const reason = formData.get("reason") as string;
 
       const medicationIndex = inventory.findIndex(m => m.id === medicationId);
+      const supplier = suppliers.find(s => s.id === supplierId);
 
-      if (medicationIndex === -1 || !quantity || !reason) {
-          toast({ variant: "destructive", title: "حقول ناقصة", description: "الرجاء ملء جميع الحقول" });
+      if (medicationIndex === -1 || !supplier || !quantity || !reason) {
+          toast({ variant: "destructive", title: "حقول ناقصة", description: "الرجاء ملء جميع الحقول المطلوبة." });
           return;
       }
       
@@ -211,7 +214,8 @@ export default function PurchasesPage() {
         medicationName: medication.name,
         quantity: quantity,
         reason: reason,
-        supplierId: medication.supplierId,
+        supplierId: supplier.id,
+        purchaseId: purchaseId || undefined,
       };
 
       const newSupplierReturns = [newReturn, ...supplierReturns];
@@ -266,7 +270,7 @@ export default function PurchasesPage() {
                         </Dialog>
                     </div>
                     <Select name="supplierId" required>
-                        <SelectTrigger><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
+                        <SelectTrigger id="supplierId"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
                         <SelectContent>
                             {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                         </SelectContent>
@@ -312,13 +316,26 @@ export default function PurchasesPage() {
             <CardContent>
                 <form className="space-y-4" onSubmit={handleReturnToSupplier}>
                     <div className="space-y-2">
-                        <Label htmlFor="medicationId">الدواء المُراد إرجاعه</Label>
+                        <Label htmlFor="return-medicationId">الدواء المُراد إرجاعه</Label>
                         <Select name="medicationId" required>
-                            <SelectTrigger><SelectValue placeholder="اختر دواء" /></SelectTrigger>
+                            <SelectTrigger id="return-medicationId"><SelectValue placeholder="اختر دواء" /></SelectTrigger>
                             <SelectContent>
                                 {inventory.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="return-supplierId">المورد</Label>
+                        <Select name="supplierId" required>
+                            <SelectTrigger id="return-supplierId"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
+                            <SelectContent>
+                                {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="return-purchaseId">رقم قائمة الشراء (اختياري)</Label>
+                        <Input id="return-purchaseId" name="purchaseId" type="text" placeholder="مثال: INV-2024-001" />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="return-quantity">الكمية المرتجعة</Label>

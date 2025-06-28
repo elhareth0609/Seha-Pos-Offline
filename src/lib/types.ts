@@ -52,6 +52,7 @@ export type Return = {
   quantity: number;
   reason: string;
   supplierId: string;
+  purchaseId?: string;
 };
 
 export type Patient = {
