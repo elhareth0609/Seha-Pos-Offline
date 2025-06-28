@@ -21,12 +21,14 @@ export type SaleItem = {
 };
 
 export type Sale = {
-  id: string;
+  id:string;
   date: string;
   items: SaleItem[];
   total: number;
   discount?: number;
   userId: string;
+  patientId?: string;
+  patientName?: string;
 };
 
 export type PurchaseOrderItem = {
@@ -62,6 +64,7 @@ export type Patient = {
     medicationId: string;
     name: string;
   }[];
+  notes?: string;
 };
 
 export type Supplier = {
@@ -69,6 +72,7 @@ export type Supplier = {
   name: string;
   contactPerson?: string;
   phone?: string;
+  email?: string;
 };
 
 export type User = {
@@ -85,3 +89,11 @@ export type TimeLog = {
   clockIn: string; // ISO string
   clockOut?: string; // ISO string
 };
+
+export type AppSettings = {
+    pharmacyName: string;
+    pharmacyAddress: string;
+    pharmacyPhone: string;
+    pharmacyEmail: string;
+    expirationThresholdDays: number;
+}

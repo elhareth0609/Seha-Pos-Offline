@@ -24,10 +24,20 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
+import { useLocalStorage } from "@/hooks/use-local-storage"
 import { 
     purchaseOrders as fallbackPurchaseOrders, 
     inventory as fallbackInventory, 
@@ -38,26 +48,13 @@ import type { PurchaseOrder, Medication, Supplier, Return } from "@/lib/types"
 import { PlusCircle } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 
-function loadInitialData<T>(key: string, fallbackData: T): T {
-    if (typeof window === "undefined") {
-      return fallbackData;
-    }
-    try {
-      const savedData = window.localStorage.getItem(key);
-      return savedData ? JSON.parse(savedData) : fallbackData;
-    } catch (error) {
-      console.error(`Failed to load data for key "${key}" from localStorage.`, error);
-      return fallbackData;
-    }
-}
-
 export default function PurchasesPage() {
   const { toast } = useToast()
 
-  const [inventory, setInventory] = React.useState<Medication[]>(() => loadInitialData('inventory', fallbackInventory));
-  const [suppliers, setSuppliers] = React.useState<Supplier[]>(() => loadInitialData('suppliers', fallbackSuppliers));
-  const [purchaseOrders, setPurchaseOrders] = React.useState<PurchaseOrder[]>(() => loadInitialData('purchaseOrders', fallbackPurchaseOrders));
-  const [supplierReturns, setSupplierReturns] = React.useState<Return[]>(() => loadInitialData('supplierReturns', fallbackSupplierReturns));
+  const [inventory, setInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
+  const [suppliers, setSuppliers] = useLocalStorage<Supplier[]>('suppliers', fallbackSuppliers);
+  const [purchaseOrders, setPurchaseOrders] = useLocalStorage<PurchaseOrder[]>('purchaseOrders', fallbackPurchaseOrders);
+  const [supplierReturns, setSupplierReturns] = useLocalStorage<Return[]>('supplierReturns', fallbackSupplierReturns);
 
   const [isAddSupplierOpen, setIsAddSupplierOpen] = React.useState(false);
 
@@ -114,7 +111,6 @@ export default function PurchasesPage() {
     }
 
     setInventory(newInventory);
-    localStorage.setItem('inventory', JSON.stringify(newInventory));
     
     let newPurchaseOrders = [...purchaseOrders];
     let purchaseOrder = newPurchaseOrders.find(po => po.id === purchaseId);
@@ -145,7 +141,6 @@ export default function PurchasesPage() {
     }
 
     setPurchaseOrders(newPurchaseOrders);
-    localStorage.setItem('purchaseOrders', JSON.stringify(newPurchaseOrders));
     
     toast({
       title: "تم استلام البضاعة",
@@ -171,7 +166,6 @@ export default function PurchasesPage() {
     };
     const newSuppliers = [newSupplier, ...suppliers];
     setSuppliers(newSuppliers);
-    localStorage.setItem('suppliers', JSON.stringify(newSuppliers));
 
     setIsAddSupplierOpen(false);
     toast({ title: "تمت إضافة المورد بنجاح" });
@@ -205,7 +199,6 @@ export default function PurchasesPage() {
       const newInventory = [...inventory];
       newInventory[medicationIndex] = { ...medication, stock: medication.stock - quantity };
       setInventory(newInventory);
-      localStorage.setItem('inventory', JSON.stringify(newInventory));
 
       const newReturn: Return = {
         id: `S-RET${(supplierReturns.length + 1).toString().padStart(3, '0')}`,
@@ -218,21 +211,26 @@ export default function PurchasesPage() {
         purchaseId: purchaseId || undefined,
       };
 
-      const newSupplierReturns = [newReturn, ...supplierReturns];
-      setSupplierReturns(newSupplierReturns);
-      localStorage.setItem('supplierReturns', JSON.stringify(newSupplierReturns));
+      setSupplierReturns(prev => [newReturn, ...prev]);
 
       toast({ title: "تم تسجيل المرتجع", description: `تم إرجاع ${quantity} من ${medication.name} للمورد.`});
       event.currentTarget.reset();
   }
   
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
-      <Card>
+     <Tabs defaultValue="new-purchase" className="w-full">
+      <TabsList className="grid w-full grid-cols-4">
+        <TabsTrigger value="new-purchase">استلام بضاعة</TabsTrigger>
+        <TabsTrigger value="purchase-history">سجل المشتريات</TabsTrigger>
+        <TabsTrigger value="new-return">إرجاع للمورد</TabsTrigger>
+        <TabsTrigger value="return-history">سجل المرتجعات</TabsTrigger>
+      </TabsList>
+      <TabsContent value="new-purchase">
+        <Card>
           <CardHeader>
             <CardTitle>استلام بضاعة جديدة</CardTitle>
             <CardDescription>
-              استخدم هذا النموذج لتسجيل الأدوية المستلمة من الموردين.
+              استخدم هذا النموذج لتسجيل الأدوية المستلمة من الموردين وتحديث المخزون.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -303,10 +301,40 @@ export default function PurchasesPage() {
               <Button type="submit" className="w-full">إضافة للمخزون</Button>
             </form>
           </CardContent>
-      </Card>
-      
-      <div className="space-y-8">
+        </Card>
+      </TabsContent>
+       <TabsContent value="purchase-history">
         <Card>
+          <CardHeader>
+            <CardTitle>سجل المشتريات</CardTitle>
+            <CardDescription>قائمة بجميع طلبات الشراء المستلمة.</CardDescription>
+          </CardHeader>
+          <CardContent>
+             <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>رقم القائمة</TableHead>
+                        <TableHead>المورد</TableHead>
+                        <TableHead>التاريخ</TableHead>
+                        <TableHead>الحالة</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {purchaseOrders.map(po => (
+                        <TableRow key={po.id}>
+                            <TableCell>{po.id}</TableCell>
+                            <TableCell>{po.supplierName}</TableCell>
+                            <TableCell>{new Date(po.date).toLocaleDateString('ar-EG')}</TableCell>
+                            <TableCell>{po.status}</TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </TabsContent>
+       <TabsContent value="new-return">
+         <Card>
             <CardHeader>
                 <CardTitle>إرجاع بضاعة للمورد</CardTitle>
                 <CardDescription>
@@ -349,7 +377,39 @@ export default function PurchasesPage() {
                 </form>
             </CardContent>
         </Card>
-      </div>
-    </div>
+      </TabsContent>
+       <TabsContent value="return-history">
+        <Card>
+          <CardHeader>
+            <CardTitle>سجل المرتجعات</CardTitle>
+            <CardDescription>قائمة بجميع المرتجعات للموردين.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>معرف المرتجع</TableHead>
+                        <TableHead>الدواء</TableHead>
+                        <TableHead>الكمية</TableHead>
+                        <TableHead>السبب</TableHead>
+                        <TableHead>التاريخ</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {supplierReturns.map(ret => (
+                        <TableRow key={ret.id}>
+                            <TableCell>{ret.id}</TableCell>
+                            <TableCell>{ret.medicationName}</TableCell>
+                            <TableCell>{ret.quantity}</TableCell>
+                            <TableCell>{ret.reason}</TableCell>
+                            <TableCell>{new Date(ret.date).toLocaleDateString('ar-EG')}</TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
   )
 }

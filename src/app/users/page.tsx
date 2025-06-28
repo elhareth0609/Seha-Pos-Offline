@@ -31,28 +31,16 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
+import { useLocalStorage } from "@/hooks/use-local-storage"
 import { users as fallbackUsers, timeLogs as fallbackTimeLogs, sales as fallbackSales } from "@/lib/data"
 import type { User, TimeLog, Sale } from "@/lib/types"
 import { UserPlus, Clock, DollarSign, LineChart } from "lucide-react"
 import { differenceInHours } from 'date-fns'
 
-function loadInitialData<T>(key: string, fallbackData: T): T {
-    if (typeof window === "undefined") {
-      return fallbackData;
-    }
-    try {
-      const savedData = window.localStorage.getItem(key);
-      return savedData ? JSON.parse(savedData) : fallbackData;
-    } catch (error) {
-      console.error(`Failed to load data for key "${key}" from localStorage.`, error);
-      return fallbackData;
-    }
-}
-
 export default function UsersPage() {
-  const [users, setUsers] = React.useState<User[]>(() => loadInitialData('users', fallbackUsers));
-  const [timeLogs, setTimeLogs] = React.useState<TimeLog[]>(() => loadInitialData('timeLogs', fallbackTimeLogs));
-  const [sales, setSales] = React.useState<Sale[]>(() => loadInitialData('sales', fallbackSales));
+  const [users, setUsers] = useLocalStorage<User[]>('users', fallbackUsers);
+  const [timeLogs, setTimeLogs] = useLocalStorage<TimeLog[]>('timeLogs', fallbackTimeLogs);
+  const [sales, setSales] = useLocalStorage<Sale[]>('sales', fallbackSales);
 
   const { toast } = useToast()
 
@@ -77,9 +65,7 @@ export default function UsersPage() {
           pin
       };
       
-      const newUsers = [newUser, ...users];
-      setUsers(newUsers);
-      localStorage.setItem('users', JSON.stringify(newUsers));
+      setUsers(prev => [newUser, ...prev]);
 
       toast({ title: "تمت إضافة الموظف بنجاح" });
       (e.target as HTMLFormElement).reset();

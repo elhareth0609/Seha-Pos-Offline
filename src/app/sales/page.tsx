@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -29,6 +28,13 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Alert,
   AlertDescription,
   AlertTitle,
@@ -37,28 +43,15 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import { inventory as fallbackInventory, sales as fallbackSales } from "@/lib/data"
-import type { Medication, SaleItem, Sale } from "@/lib/types"
-import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Settings } from "lucide-react"
+import { inventory as fallbackInventory, sales as fallbackSales, patients as fallbackPatients } from "@/lib/data"
+import type { Medication, SaleItem, Sale, Patient } from "@/lib/types"
+import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Settings, UserSearch } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
-
-function loadInitialData<T>(key: string, fallbackData: T): T {
-    if (typeof window === "undefined") {
-      return fallbackData;
-    }
-    try {
-      const savedData = window.localStorage.getItem(key);
-      return savedData ? JSON.parse(savedData) : fallbackData;
-    } catch (error) {
-      console.error(`Failed to load data for key "${key}" from localStorage.`, error);
-      return fallbackData;
-    }
-}
-
+import { useLocalStorage } from "@/hooks/use-local-storage"
 
 function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => void; onOpenChange: (isOpen: boolean) => void }) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -123,8 +116,9 @@ function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => 
 
 
 export default function SalesPage() {
-  const [allInventory, setAllInventory] = React.useState<Medication[]>(() => loadInitialData('inventory', fallbackInventory));
-  const [sales, setSales] = React.useState<Sale[]>(() => loadInitialData('sales', fallbackSales));
+  const [allInventory, setAllInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
+  const [sales, setSales] = useLocalStorage<Sale[]>('sales', fallbackSales);
+  const [patients, setPatients] = useLocalStorage<Patient[]>('patients', fallbackPatients);
   
   const [searchTerm, setSearchTerm] = React.useState("")
   const [suggestions, setSuggestions] = React.useState<Medication[]>([])
@@ -135,22 +129,14 @@ export default function SalesPage() {
   const [discountInput, setDiscountInput] = React.useState("0");
   const { toast } = useToast()
 
-  const [quickItems, setQuickItems] = React.useState<string[]>([]);
+  const [quickItems, setQuickItems] = useLocalStorage<string[]>('quickItems', []);
   const [isManageQuickItemsOpen, setIsManageQuickItemsOpen] = React.useState(false);
   const [tempSelectedQuickItems, setTempSelectedQuickItems] = React.useState<string[]>(quickItems);
-
-  React.useEffect(() => {
-    const savedQuickItems = localStorage.getItem('quickItems');
-    if (savedQuickItems) {
-      const parsedItems = JSON.parse(savedQuickItems);
-      setQuickItems(parsedItems);
-      setTempSelectedQuickItems(parsedItems);
-    }
-  }, []);
+  
+  const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
 
   const handleSaveQuickItems = () => {
     setQuickItems(tempSelectedQuickItems);
-    localStorage.setItem('quickItems', JSON.stringify(tempSelectedQuickItems));
     setIsManageQuickItemsOpen(false);
     toast({ title: "تم حفظ قائمة الوصول السريع." });
   };
@@ -304,7 +290,6 @@ export default function SalesPage() {
     });
     
     setAllInventory(updatedInventory);
-    localStorage.setItem('inventory', JSON.stringify(updatedInventory));
     
     const newSaleId = `SALE${(sales.length + 1).toString().padStart(3, '0')}`;
     const newSale: Sale = {
@@ -314,11 +299,11 @@ export default function SalesPage() {
         total: finalTotal,
         discount: discount,
         userId: "USR001", // Mock user ID
+        patientId: selectedPatient?.id,
+        patientName: selectedPatient?.name
     };
     
-    const newSales = [newSale, ...sales];
-    setSales(newSales);
-    localStorage.setItem('sales', JSON.stringify(newSales));
+    setSales(prev => [newSale, ...prev]);
     
     toast({
       title: "تمت العملية بنجاح",
@@ -330,6 +315,12 @@ export default function SalesPage() {
     setDiscountInput("0");
     setSearchTerm("");
     setIsCheckoutOpen(false);
+    setSelectedPatient(null);
+  }
+  
+  const handlePatientSelect = (patientId: string) => {
+    const patient = patients.find(p => p.id === patientId);
+    setSelectedPatient(patient || null);
   }
 
   return (
@@ -446,13 +437,27 @@ export default function SalesPage() {
         <div className="lg:col-span-2">
             <Card className="h-full flex flex-col">
                 <CardHeader className="py-4">
-                    <CardTitle>الفاتورة الحالية</CardTitle>
+                     <div className="flex justify-between items-center">
+                        <CardTitle>الفاتورة الحالية</CardTitle>
+                        <Select onValueChange={handlePatientSelect} value={selectedPatient?.id || ""}>
+                            <SelectTrigger className="w-[200px]">
+                                <UserSearch className="me-2 h-4 w-4" />
+                                <SelectValue placeholder="اختيار مريض..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">بدون مريض</SelectItem>
+                                {patients.map(p => (
+                                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </CardHeader>
                 <CardContent className="flex-1 p-0 overflow-hidden">
                     <ScrollArea className="h-full">
                     {cart.length > 0 ? (
                         <Table>
-                            <TableHeader className="sticky top-0 bg-background">
+                            <TableHeader className="sticky top-0 bg-background z-10">
                                 <TableRow>
                                     <TableHead className="w-12 text-center"><ArrowLeftRight className="h-4 w-4 mx-auto"/></TableHead>
                                     <TableHead>المنتج</TableHead>
@@ -469,7 +474,7 @@ export default function SalesPage() {
                             const remainingStock = stock - item.quantity;
                             const itemTotal = (item.isReturn ? -1 : 1) * item.price * item.quantity;
                             return (
-                                <TableRow key={item.medicationId} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
+                                <TableRow key={`${item.medicationId}-${item.isReturn}`} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
                                     <TableCell className="text-center">
                                         <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" />
                                     </TableCell>
@@ -489,7 +494,7 @@ export default function SalesPage() {
                                     </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Input type="number" value={item.price} onChange={(e) => updatePrice(item.medicationId, parseFloat(e.target.value))} className="w-24 h-9 text-center" step="0.01" min="0" />
+                                        <Input type="number" value={item.price.toFixed(2)} onChange={(e) => updatePrice(item.medicationId, parseFloat(e.target.value))} className="w-24 h-9 text-center" step="0.01" min="0" />
                                     </TableCell>
                                     <TableCell className="text-left font-mono">{itemTotal.toFixed(2)}$</TableCell>
                                     <TableCell className="text-left">
@@ -548,7 +553,7 @@ export default function SalesPage() {
                                                 <TableRow key={item.medicationId} className={cn(item.isReturn && "text-destructive")}>
                                                     <TableCell>{item.name} {item.isReturn && "(مرتجع)"}</TableCell>
                                                     <TableCell className="text-center">{item.quantity}</TableCell>
-                                                    <TableCell className="text-left">${(item.isReturn ? -1 : 1) * item.price * item.quantity}</TableCell>
+                                                    <TableCell className="text-left">${((item.isReturn ? -1 : 1) * item.price * item.quantity).toFixed(2)}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
@@ -556,6 +561,7 @@ export default function SalesPage() {
                                 </div>
                                 <Separator/>
                                 <div className="space-y-2 text-sm">
+                                    {selectedPatient && <div className="flex justify-between"><span>المريض:</span><span>{selectedPatient.name}</span></div>}
                                     <div className="flex justify-between"><span>المجموع الفرعي:</span><span>${subtotal.toFixed(2)}</span></div>
                                     <div className="flex justify-between"><span>الخصم:</span><span>-${discount.toFixed(2)}</span></div>
                                     <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>${finalTotal.toFixed(2)}</span></div>
@@ -573,5 +579,3 @@ export default function SalesPage() {
     </div>
   )
 }
-
-    

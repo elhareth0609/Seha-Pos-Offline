@@ -17,29 +17,17 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { inventory as fallbackInventory } from "@/lib/data"
-import type { Medication } from "@/lib/types"
+import { inventory as fallbackInventory, appSettings as fallbackSettings } from "@/lib/data"
+import type { Medication, AppSettings } from "@/lib/types"
 import { differenceInDays, parseISO } from 'date-fns'
-
-const EXPIRATION_THRESHOLD_DAYS = 90;
-
-function loadInitialData<T>(key: string, fallbackData: T): T {
-    if (typeof window === "undefined") {
-      return fallbackData;
-    }
-    try {
-      const savedData = window.localStorage.getItem(key);
-      return savedData ? JSON.parse(savedData) : fallbackData;
-    } catch (error) {
-      console.error(`Failed to load data for key "${key}" from localStorage.`, error);
-      return fallbackData;
-    }
-}
-
+import { useLocalStorage } from "@/hooks/use-local-storage"
 
 export default function ExpiringSoonPage() {
-  const [allInventory, setAllInventory] = React.useState<Medication[]>(() => loadInitialData('inventory', fallbackInventory));
+  const [allInventory, setAllInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
+  const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
   const [expiringMedications, setExpiringMedications] = React.useState<Medication[]>([]);
+
+  const expirationThreshold = settings.expirationThresholdDays || 90;
 
   React.useEffect(() => {
     const today = new Date();
@@ -47,16 +35,19 @@ export default function ExpiringSoonPage() {
         if (!item.expirationDate) return false;
         const expirationDate = parseISO(item.expirationDate);
         const daysUntilExpiration = differenceInDays(expirationDate, today);
-        return daysUntilExpiration > 0 && daysUntilExpiration <= EXPIRATION_THRESHOLD_DAYS;
+        return daysUntilExpiration >= 0 && daysUntilExpiration <= expirationThreshold;
     }).sort((a, b) => differenceInDays(parseISO(a.expirationDate), today) - differenceInDays(parseISO(b.expirationDate), today));
     setExpiringMedications(filtered);
-  }, [allInventory]);
+  }, [allInventory, expirationThreshold]);
 
   const getExpirationBadge = (expirationDate: string) => {
     const today = new Date();
     const expDate = parseISO(expirationDate);
     const daysLeft = differenceInDays(expDate, today);
 
+    if (daysLeft < 0) {
+        return <Badge variant="destructive">منتهي الصلاحية</Badge>
+    }
     if (daysLeft <= 30) {
       return <Badge variant="destructive">ينتهي قريبًا جدًا</Badge>
     }
@@ -70,6 +61,9 @@ export default function ExpiringSoonPage() {
       const today = new Date();
       const expDate = parseISO(expirationDate);
       const daysLeft = differenceInDays(expDate, today);
+       if (daysLeft < 0) {
+        return "منتهي";
+      }
       return `${daysLeft} يوم`;
   }
 
@@ -78,7 +72,7 @@ export default function ExpiringSoonPage() {
       <CardHeader>
         <CardTitle>الأدوية التي قاربت على الانتهاء</CardTitle>
         <CardDescription>
-          قائمة بالأدوية التي ستنتهي صلاحيتها خلال {EXPIRATION_THRESHOLD_DAYS} يومًا القادمة.
+          قائمة بالأدوية التي ستنتهي صلاحيتها خلال {expirationThreshold} يومًا القادمة.
         </CardDescription>
       </CardHeader>
       <CardContent>
