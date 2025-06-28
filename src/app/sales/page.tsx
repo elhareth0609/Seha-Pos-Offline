@@ -23,6 +23,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
+  DialogFooter,
+  DialogClose
 } from "@/components/ui/dialog"
 import {
   Alert,
@@ -124,6 +127,7 @@ export default function SalesPage() {
   const [suggestions, setSuggestions] = React.useState<Medication[]>([])
   const [cart, setCart] = React.useState<SaleItem[]>([])
   const [isScannerOpen, setIsScannerOpen] = React.useState(false);
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = React.useState(false);
   const [discount, setDiscount] = React.useState(0);
   const [discountInput, setDiscountInput] = React.useState("0");
   const { toast } = useToast()
@@ -222,40 +226,38 @@ export default function SalesPage() {
   }
 
   const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-
   const finalTotal = subtotal - discount;
 
-  const handleCheckout = () => {
+  const handleCheckoutReview = () => {
     if (cart.length === 0) {
       toast({ title: "السلة فارغة", description: "أضف منتجات إلى السلة قبل إتمام العملية.", variant: "destructive" })
-      return
+      return;
     }
 
     if (discount > subtotal) {
       toast({ title: "خطأ في الخصم", description: "لا يمكن أن يكون الخصم أكبر من المجموع الفرعي.", variant: "destructive" })
-      return
+      return;
     }
 
-    let inventoryUpdated = false;
+    // Check for stock for all items before opening review dialog
+    for (const itemInCart of cart) {
+        const med = allInventory.find(m => m.id === itemInCart.medicationId);
+        if (!med || med.stock < itemInCart.quantity) {
+             toast({ variant: 'destructive', title: `كمية غير كافية من ${itemInCart.name}`, description: `الكمية المطلوبة ${itemInCart.quantity}, المتوفر ${med?.stock ?? 0}` });
+             return;
+        }
+    }
+    setIsReviewDialogOpen(true);
+  }
+  
+  const handleFinalizeSale = () => {
     const updatedInventory = allInventory.map(med => {
         const itemInCart = cart.find(cartItem => cartItem.medicationId === med.id);
         if (itemInCart) {
-            if (med.stock < itemInCart.quantity) {
-                 toast({ variant: 'destructive', title: `كمية غير كافية من ${med.name}`, description: `الكمية المطلوبة ${itemInCart.quantity}, المتوفر ${med.stock}` });
-                 inventoryUpdated = false;
-                 throw new Error("Insufficient stock");
-            }
-            inventoryUpdated = true;
             return { ...med, stock: med.stock - itemInCart.quantity };
         }
         return med;
     });
-
-    if(!inventoryUpdated && cart.length > 0) {
-       // This check is to handle cases where an item in cart is not in main inventory for some reason.
-       // Although current logic should prevent this.
-       return;
-    }
     
     setAllInventory(updatedInventory);
     localStorage.setItem('inventory', JSON.stringify(updatedInventory));
@@ -283,6 +285,7 @@ export default function SalesPage() {
     setDiscount(0);
     setDiscountInput("0");
     setSearchTerm("");
+    setIsReviewDialogOpen(false);
   }
 
   return (
@@ -420,11 +423,71 @@ export default function SalesPage() {
                 <span>الإجمالي</span>
                 <span className={finalTotal < 0 ? 'text-destructive' : ''}>${finalTotal.toFixed(2)}</span>
             </div>
-            <Button size="lg" className="w-full" onClick={handleCheckout} disabled={cart.length === 0}>
-                إتمام العملية
+            <Button size="lg" className="w-full" onClick={handleCheckoutReview} disabled={cart.length === 0}>
+                مراجعة وإتمام العملية
             </Button>
           </CardFooter>
         </Card>
+
+        <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
+            <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>مراجعة الفاتورة</DialogTitle>
+                    <DialogDescription>
+                        يرجى مراجعة تفاصيل الفاتورة قبل التأكيد النهائي.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="max-h-[50vh] overflow-y-auto p-1">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>المنتج</TableHead>
+                                <TableHead>الكمية</TableHead>
+                                <TableHead>سعر الوحدة</TableHead>
+                                <TableHead>الإجمالي</TableHead>
+                                <TableHead>الرصيد بالمخزن</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {cart.map((item) => {
+                                const medInInventory = allInventory.find(med => med.id === item.medicationId);
+                                return (
+                                    <TableRow key={item.medicationId}>
+                                        <TableCell className="font-medium">{item.name}</TableCell>
+                                        <TableCell>{item.quantity}</TableCell>
+                                        <TableCell>${item.price.toFixed(2)}</TableCell>
+                                        <TableCell>${(item.price * item.quantity).toFixed(2)}</TableCell>
+                                        <TableCell>{medInInventory?.stock ?? 'N/A'}</TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </div>
+                <div className="space-y-2 pt-4 border-t mt-4">
+                    <div className="flex justify-between w-full text-md">
+                        <span>المجموع الفرعي</span>
+                        <span>${subtotal.toFixed(2)}</span>
+                    </div>
+                     <div className="flex justify-between w-full text-md">
+                        <span>خصم</span>
+                        <span className="text-destructive">-${discount.toFixed(2)}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between w-full text-lg font-semibold">
+                        <span>الإجمالي النهائي</span>
+                        <span className={finalTotal < 0 ? 'text-destructive' : ''}>${finalTotal.toFixed(2)}</span>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">إلغاء</Button>
+                    </DialogClose>
+                    <Button onClick={handleFinalizeSale}>تأكيد وإتمام البيع</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
     </div>
   )
 }

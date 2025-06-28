@@ -36,8 +36,8 @@ const navItems = [
   { href: "/sales", icon: ShoppingCart, label: "المبيعات", color: "hover:bg-green-100 dark:hover:bg-green-900/50 hover:text-green-700 dark:hover:text-green-300", activeColor: "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300" },
   { href: "/inventory", icon: Boxes, label: "المخزون", color: "hover:bg-orange-100 dark:hover:bg-orange-900/50 hover:text-orange-700 dark:hover:text-orange-300", activeColor: "bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300" },
   { href: "/purchases", icon: Truck, label: "المشتريات", color: "hover:bg-purple-100 dark:hover:bg-purple-900/50 hover:text-purple-700 dark:hover:text-purple-300", activeColor: "bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300" },
-  { href: "/expiring-soon", icon: CalendarX2, label: "قارب على الانتهاء", color: "hover:bg-amber-100 dark:hover:bg-amber-900/50 hover:text-amber-700 dark:hover:text-amber-300", activeColor: "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300" },
-  { href: "/patients", icon: Users, label: "أصدقاء الصيدلية", color: "hover:bg-blue-100 dark:hover:bg-blue-900/50 hover:text-blue-700 dark:hover:text-blue-300", activeColor: "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300" },
+  { href: "/expiring-soon", icon: CalendarX2, label: "قريب الانتهاء", color: "hover:bg-amber-100 dark:hover:bg-amber-900/50 hover:text-amber-700 dark:hover:text-amber-300", activeColor: "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300" },
+  { href: "/patients", icon: Users, label: "الأصدقاء", color: "hover:bg-blue-100 dark:hover:bg-blue-900/50 hover:text-blue-700 dark:hover:text-blue-300", activeColor: "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300" },
 ];
 
 function MedStockLogo() {
@@ -177,6 +177,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </Card>
                 </Link>
                 ))}
+                 <Link href="/settings">
+                    <Card className={cn(
+                        "p-3 md:p-4 rounded-lg transition-colors flex flex-col items-center justify-center text-center gap-2",
+                        pathname === "/settings" ? "bg-slate-100 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300" : "bg-card",
+                        "hover:bg-slate-100 dark:hover:bg-slate-900/50 hover:text-slate-700 dark:hover:text-slate-300"
+                    )}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 md:h-7 md:w-7"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <span className="text-xs md:text-sm font-semibold">الإعدادات</span>
+                    </Card>
+                </Link>
             </nav>
         </div>
       </header>
