@@ -10,7 +10,6 @@ import {
   ChevronDown,
   LayoutDashboard,
   PackagePlus,
-  Settings,
   ShoppingCart,
   Truck,
   UserCircle,
@@ -37,7 +36,6 @@ const navItems = [
   { href: "/purchases", icon: Truck, label: "المشتريات", color: "hover:bg-purple-100 dark:hover:bg-purple-900/50 hover:text-purple-700 dark:hover:text-purple-300", activeColor: "bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300" },
   { href: "/expiring-soon", icon: CalendarX2, label: "قارب على الانتهاء", color: "hover:bg-amber-100 dark:hover:bg-amber-900/50 hover:text-amber-700 dark:hover:text-amber-300", activeColor: "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300" },
   { href: "/patients", icon: Users, label: "أصدقاء الصيدلية", color: "hover:bg-blue-100 dark:hover:bg-blue-900/50 hover:text-blue-700 dark:hover:text-blue-300", activeColor: "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300" },
-  { href: "/settings", icon: Settings, label: "الإعدادات", color: "hover:bg-slate-100 dark:hover:bg-slate-900/50 hover:text-slate-700 dark:hover:text-slate-300", activeColor: "bg-slate-100 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300" },
 ];
 
 function MedStockLogo() {
@@ -98,10 +96,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       <Users className="me-2" />
                       إدارة المستخدمين
                     </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => router.push('/settings')}>
-                      <Settings className="me-2" />
-                      الإعدادات
-                      </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>تسجيل الخروج</DropdownMenuItem>
                   </DropdownMenuContent>

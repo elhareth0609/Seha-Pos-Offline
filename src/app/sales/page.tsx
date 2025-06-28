@@ -33,7 +33,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import { inventory as allInventory, sales, returns } from "@/lib/data"
+import { inventory as allInventory, sales } from "@/lib/data"
 import type { Medication, SaleItem } from "@/lib/types"
 import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
@@ -104,6 +104,7 @@ function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => 
 
 export default function SalesPage() {
   const [searchTerm, setSearchTerm] = React.useState("")
+  const [suggestions, setSuggestions] = React.useState<Medication[]>([])
   const [cart, setCart] = React.useState<SaleItem[]>([])
   const [isScannerOpen, setIsScannerOpen] = React.useState(false);
   const [discount, setDiscount] = React.useState(0);
@@ -120,10 +121,27 @@ export default function SalesPage() {
             : item
         )
       }
-      return [...prevCart, { medicationId: medication.id, name: medication.name, quantity: 1, price: medication.price }]
+      return [...prevCart, { medicationId: medication.id, name: medication.name, quantity: 1, price: medication.price, expirationDate: medication.expirationDate }]
     })
     setSearchTerm("")
+    setSuggestions([])
   }, [])
+  
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+
+    if (value.length >= 2) {
+        const filtered = allInventory.filter((item) =>
+            item.name.toLowerCase().includes(value.toLowerCase()) ||
+            item.id.toLowerCase().includes(value.toLowerCase())
+        );
+        setSuggestions(filtered.slice(0, 5));
+    } else {
+        setSuggestions([]);
+    }
+  }
+
 
   const handleScan = React.useCallback((result: string) => {
     const scannedMedication = allInventory.find(med => med.id === result);
@@ -139,16 +157,19 @@ export default function SalesPage() {
   const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
         event.preventDefault();
+
+        if (suggestions.length > 0) {
+            addToCart(suggestions[0]);
+            return;
+        }
+
         const medicationById = allInventory.find(med => med.id.toLowerCase() === searchTerm.toLowerCase());
         if (medicationById) {
             addToCart(medicationById);
             return;
         }
 
-        const medicationByName = allInventory.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
-        if(medicationByName.length === 1) {
-            addToCart(medicationByName[0]);
-        } else {
+        if (searchTerm) {
             toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'يرجى التأكد من المعرف أو البحث بالاسم.' });
         }
     }
@@ -161,6 +182,16 @@ export default function SalesPage() {
       setCart(cart => cart.map(item => item.medicationId === medicationId ? { ...item, quantity } : item))
     }
   }
+  
+  const updatePrice = (medicationId: string, newPrice: number) => {
+    if (newPrice < 0) return;
+    setCart(cart => cart.map(item => 
+      item.medicationId === medicationId 
+        ? { ...item, price: isNaN(newPrice) ? 0 : newPrice } 
+        : item
+    ));
+  };
+
 
   const removeFromCart = (medicationId: string) => {
     setCart(cart => cart.filter(item => item.medicationId !== medicationId))
@@ -227,12 +258,34 @@ export default function SalesPage() {
             <CardTitle>الفاتورة</CardTitle>
             <CardDescription>أضف المنتجات باستخدام البحث أو الماسح الضوئي.</CardDescription>
             <div className="flex gap-2 pt-4">
-              <Input 
-                placeholder="ابحث بالاسم/المعرف أو امسح الباركود..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-              />
+               <div className="relative flex-1">
+                 <Input 
+                  placeholder="ابحث بالاسم/المعرف أو امسح الباركود..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  onKeyDown={handleSearchKeyDown}
+                 />
+                 {suggestions.length > 0 && (
+                    <Card className="absolute z-10 w-full mt-1 bg-background shadow-lg border">
+                        <CardContent className="p-0">
+                            <ul className="divide-y divide-border">
+                                {suggestions.map(med => (
+                                    <li key={med.id} 
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            addToCart(med)
+                                        }}
+                                        className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
+                                    >
+                                        <span>{med.name}</span>
+                                        <span className="text-sm text-muted-foreground">${med.price.toFixed(2)}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </CardContent>
+                    </Card>
+                 )}
+               </div>
               <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
                   <DialogTrigger asChild>
                       <Button variant="outline" className="shrink-0"><ScanLine className="me-2"/> مسح</Button>
@@ -254,7 +307,8 @@ export default function SalesPage() {
                         <TableRow>
                             <TableHead>المنتج</TableHead>
                             <TableHead className="w-[120px] text-center">الكمية</TableHead>
-                            <TableHead className="text-left">الإجمالي</TableHead>
+                            <TableHead className="w-[120px] text-center">سعر الوحدة</TableHead>
+                            <TableHead className="text-left w-[100px]">الإجمالي</TableHead>
                             <TableHead className="w-12"></TableHead>
                         </TableRow>
                     </TableHeader>
@@ -270,6 +324,11 @@ export default function SalesPage() {
                                 <div className="text-xs text-muted-foreground">
                                     الرصيد: {stock} | المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span>
                                 </div>
+                                {item.expirationDate && (
+                                    <div className="text-xs text-muted-foreground">
+                                        انتهاء الصلاحية: {new Date(item.expirationDate).toLocaleDateString('ar-EG')}
+                                    </div>
+                                )}
                             </TableCell>
                             <TableCell>
                             <div className="flex items-center justify-center gap-2">
@@ -278,7 +337,17 @@ export default function SalesPage() {
                                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity + 1)}><PlusCircle className="h-4 w-4" /></Button>
                             </div>
                             </TableCell>
-                            <TableCell className="text-left">${(item.price * item.quantity).toFixed(2)}</TableCell>
+                            <TableCell>
+                                <Input 
+                                    type="number" 
+                                    value={item.price}
+                                    onChange={(e) => updatePrice(item.medicationId, parseFloat(e.target.value))}
+                                    className="w-24 h-9 text-center"
+                                    step="0.01"
+                                    min="0"
+                                />
+                            </TableCell>
+                            <TableCell className="text-left font-mono">${(item.price * item.quantity).toFixed(2)}</TableCell>
                             <TableCell className="text-left">
                                 <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)}><X className="h-4 w-4" /></Button>
                             </TableCell>

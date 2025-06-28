@@ -16,6 +16,7 @@ export type SaleItem = {
   name: string;
   quantity: number;
   price: number;
+  expirationDate?: string;
 };
 
 export type Sale = {
