@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -27,16 +28,22 @@ import {
 } from "recharts";
 import { inventory as fallbackInventory, sales as fallbackSales } from "@/lib/data";
 import type { Medication, Sale } from "@/lib/types";
-import { DollarSign, Package, AlertTriangle, Clock, TrendingDown } from "lucide-react";
+import { DollarSign, Package, Clock, TrendingDown } from "lucide-react";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { differenceInDays, parseISO } from 'date-fns';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Dashboard() {
   const [inventory, setInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
   const [sales, setSales] = useLocalStorage<Sale[]>('sales', fallbackSales);
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const totalRevenue = sales.reduce((acc, sale) => acc + (sale.total || 0), 0);
   
@@ -54,6 +61,63 @@ export default function Dashboard() {
     date: new Date(sale.date).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' }),
     total: sale.total,
   })).slice(-10);
+
+  if (!isClient) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Skeleton className="h-5 w-2/3" />
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-1/2 mb-2" />
+              <Skeleton className="h-4 w-full" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Skeleton className="h-5 w-2/3" />
+              <Package className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-1/2 mb-2" />
+              <Skeleton className="h-4 w-full" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Skeleton className="h-5 w-2/3" />
+              <TrendingDown className="h-4 w-4 text-destructive" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-1/2 mb-2" />
+              <Skeleton className="h-4 w-full" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Skeleton className="h-5 w-2/3" />
+              <Clock className="h-4 w-4 text-amber-600" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-1/2 mb-2" />
+              <Skeleton className="h-4 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+        <div className="grid gap-6 lg:grid-cols-5">
+            <Card className="lg:col-span-3 h-[380px]"><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-full w-full" /></CardContent></Card>
+            <Card className="lg:col-span-2"><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-48 w-full" /></CardContent></Card>
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+            <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-48 w-full" /></CardContent></Card>
+            <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-48 w-full" /></CardContent></Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -237,3 +301,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
