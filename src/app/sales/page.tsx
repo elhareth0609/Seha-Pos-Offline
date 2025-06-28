@@ -44,8 +44,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import { inventory as fallbackInventory, sales as fallbackSales, patients as fallbackPatients, suppliers as fallbackSuppliers } from "@/lib/data"
-import type { Medication, SaleItem, Sale, Patient, Supplier } from "@/lib/types"
+import { inventory as fallbackInventory, sales as fallbackSales, patients as fallbackPatients } from "@/lib/data"
+import type { Medication, SaleItem, Sale, Patient } from "@/lib/types"
 import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, UserSearch } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
@@ -310,14 +310,14 @@ export default function SalesPage() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* LEFT COLUMN */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
-            {/* Panel 1: Product Selection */}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-10rem)]">
+        {/* Main Content */}
+        <div className="lg:col-span-2 flex flex-col gap-4">
+            {/* Product Selection */}
             <Card>
-                <CardHeader>
+                <CardHeader className="pb-4">
                     <CardTitle>اختيار المنتج</CardTitle>
-                    <div className="flex gap-2 pt-4">
+                    <div className="flex gap-2 pt-2">
                         <div className="relative flex-1">
                             <Input 
                             placeholder="ابحث بالاسم/المعرف أو امسح الباركود..."
@@ -326,7 +326,7 @@ export default function SalesPage() {
                             onKeyDown={handleSearchKeyDown}
                             />
                             {suggestions.length > 0 && (
-                                <Card className="absolute z-10 w-full mt-1 bg-background shadow-lg border">
+                                <Card className="absolute z-50 w-full mt-1 bg-background shadow-lg border">
                                     <CardContent className="p-0">
                                         <ul className="divide-y divide-border">
                                             {suggestions.map(med => (
@@ -361,12 +361,12 @@ export default function SalesPage() {
                 </CardHeader>
             </Card>
 
-            {/* Panel 2: Invoice */}
-            <Card>
-                <CardHeader className="py-4">
+            {/* Invoice Table */}
+            <Card className="flex-1 flex flex-col">
+                 <CardHeader className="py-4">
                     <div className="flex justify-between items-center">
                         <CardTitle>الفاتورة الحالية</CardTitle>
-                        <Select onValueChange={handlePatientSelect} value={selectedPatient?.id || ""}>
+                         <Select onValueChange={handlePatientSelect} value={selectedPatient?.id || ""}>
                             <SelectTrigger className="w-[200px]">
                                 <UserSearch className="me-2 h-4 w-4" />
                                 <SelectValue placeholder="اختيار مريض..." />
@@ -380,8 +380,8 @@ export default function SalesPage() {
                         </Select>
                     </div>
                 </CardHeader>
-                <CardContent className="p-0">
-                    <ScrollArea className="h-[60vh] min-h-[300px]">
+                <CardContent className="p-0 flex-1">
+                    <ScrollArea className="h-full">
                     {cart.length > 0 ? (
                         <Table>
                             <TableHeader className="sticky top-0 bg-background z-10">
@@ -394,46 +394,46 @@ export default function SalesPage() {
                                     <TableHead className="w-12"></TableHead>
                                 </TableRow>
                             </TableHeader>
-                        <TableBody>
-                            {cart.map((item) => {
-                            const medInInventory = allInventory.find(med => med.id === item.medicationId);
-                            const stock = medInInventory?.stock ?? 0;
-                            const remainingStock = stock - item.quantity;
-                            const itemTotal = (item.isReturn ? -1 : 1) * item.price * item.quantity;
-                            return (
-                                <TableRow key={`${item.medicationId}-${item.isReturn}`} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
-                                    <TableCell className="text-center">
-                                        <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" />
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="font-medium">{item.name}</div>
-                                        <div className="text-xs text-muted-foreground">
-                                            الرصيد: {stock} 
-                                            {!item.isReturn && ` | المتبقي: `}
-                                            {!item.isReturn && <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span>}
+                            <TableBody>
+                                {cart.map((item) => {
+                                const medInInventory = allInventory.find(med => med.id === item.medicationId);
+                                const stock = medInInventory?.stock ?? 0;
+                                const remainingStock = stock - item.quantity;
+                                const itemTotal = (item.isReturn ? -1 : 1) * item.price * item.quantity;
+                                return (
+                                    <TableRow key={`${item.medicationId}-${item.isReturn}`} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
+                                        <TableCell className="text-center">
+                                            <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" />
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="font-medium">{item.name}</div>
+                                            <div className="text-xs text-muted-foreground">
+                                                الرصيد: {stock} 
+                                                {!item.isReturn && ` | المتبقي: `}
+                                                {!item.isReturn && <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span>}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                        <div className="flex items-center justify-center gap-2">
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity - 1)}><MinusCircle className="h-4 w-4" /></Button>
+                                            <span>{item.quantity}</span>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity + 1)}><PlusCircle className="h-4 w-4" /></Button>
                                         </div>
-                                    </TableCell>
-                                    <TableCell>
-                                    <div className="flex items-center justify-center gap-2">
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity - 1)}><MinusCircle className="h-4 w-4" /></Button>
-                                        <span>{item.quantity}</span>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity + 1)}><PlusCircle className="h-4 w-4" /></Button>
-                                    </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Input type="number" value={item.price.toFixed(2)} onChange={(e) => updatePrice(item.medicationId, parseFloat(e.target.value))} className="w-24 h-9 text-center" step="0.01" min="0" />
-                                    </TableCell>
-                                    <TableCell className="text-left font-mono">{itemTotal.toFixed(2)}$</TableCell>
-                                    <TableCell className="text-left">
-                                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)}><X className="h-4 w-4" /></Button>
-                                    </TableCell>
-                                </TableRow>
-                            );
-                            })}
-                        </TableBody>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Input type="number" value={item.price.toFixed(2)} onChange={(e) => updatePrice(item.medicationId, parseFloat(e.target.value))} className="w-24 h-9 text-center" step="0.01" min="0" />
+                                        </TableCell>
+                                        <TableCell className="text-left font-mono">{itemTotal.toFixed(2)}$</TableCell>
+                                        <TableCell className="text-left">
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)}><X className="h-4 w-4" /></Button>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                                })}
+                            </TableBody>
                         </Table>
                     ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
                             <PackageSearch className="h-16 w-16 mb-4" />
                             <p>الفاتورة فارغة.</p>
                             <p className="text-sm">أضف منتجات لبدء عملية البيع.</p>
@@ -444,9 +444,9 @@ export default function SalesPage() {
             </Card>
         </div>
 
-        {/* RIGHT COLUMN */}
-        <div className="lg:col-span-1 flex flex-col gap-6">
-            <Card className="sticky top-24">
+        {/* Checkout Summary */}
+        <div className="lg:col-span-1">
+             <Card className="sticky top-6">
                 <CardHeader>
                     <CardTitle>ملخص الفاتورة</CardTitle>
                 </CardHeader>
@@ -466,9 +466,9 @@ export default function SalesPage() {
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
+                     <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
                         <DialogTrigger asChild>
-                            <Button size="default" className="w-full" onClick={handleCheckout} disabled={cart.length === 0}>
+                            <Button size="lg" className="w-full text-lg" onClick={handleCheckout} disabled={cart.length === 0}>
                                 إتمام العملية
                             </Button>
                         </DialogTrigger>
@@ -517,5 +517,3 @@ export default function SalesPage() {
     </div>
   )
 }
-
-    

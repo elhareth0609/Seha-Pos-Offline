@@ -17,6 +17,7 @@ import {
   FileDown,
   Upload,
   Settings,
+  PanelLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,9 +28,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { Card } from "../ui/card";
 import { useToast } from "@/hooks/use-toast";
-
+import {
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarFooter,
+  useSidebar,
+  SidebarProvider,
+} from "@/components/ui/sidebar";
 
 const navItems = [
   { href: "/", icon: LayoutDashboard, label: "لوحة التحكم" },
@@ -42,23 +52,29 @@ const navItems = [
 ];
 
 function MedStockLogo() {
+  const { state } = useSidebar();
   return (
-    <div className="flex items-center gap-2">
-      <PackagePlus className="w-7 h-7 text-primary" />
-      <h1 className="text-xl font-bold text-primary">
+    <div className="flex items-center gap-2 p-2">
+      <PackagePlus className="w-8 h-8 text-primary" />
+      <h1
+        className={cn(
+          "text-xl font-bold text-primary transition-opacity duration-200",
+          state === "collapsed" ? "opacity-0" : "opacity-100"
+        )}
+      >
         مدستوك
       </h1>
     </div>
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+function MainContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const importFileRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-
-  const handleBackup = () => {
+  const { toggleSidebar } = useSidebar();
+  
+    const handleBackup = () => {
       if(typeof window === 'undefined') return;
 
       const dataToBackup: { [key: string]: any } = {};
@@ -129,53 +145,76 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         reader.readAsText(file);
     };
 
+
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center">
-          <MedStockLogo />
+    <div className="flex flex-col flex-1">
+      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center">
+            <Button variant="ghost" size="icon" className="md:hidden" onClick={toggleSidebar}>
+                <PanelLeft />
+                <span className="sr-only">Toggle Sidebar</span>
+            </Button>
           <div className="flex flex-1 items-center justify-end space-x-2">
             <input type="file" ref={importFileRef} onChange={handleFileChange} accept=".json" className="hidden" />
             <Button variant="outline" onClick={handleImportClick}><Upload className="me-2 h-4 w-4"/> استيراد</Button>
             <Button variant="outline" onClick={handleBackup}><FileDown className="me-2 h-4 w-4"/> نسخ احتياطي</Button>
-             <nav className="flex items-center space-x-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="w-full justify-start gap-2 p-2">
-                        <UserCircle />
-                        <span className="truncate">المدير</span>
-                        <ChevronDown className="ms-auto" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56" side="bottom" align="end">
-                    <DropdownMenuItem onSelect={() => router.push('/users')}>
-                      <Users className="me-2" />
-                      إدارة المستخدمين
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>تسجيل الخروج</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-             </nav>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <UserCircle />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuItem onSelect={() => router.push('/users')}>
+                  <Users className="me-2 h-4 w-4" />
+                  <span>إدارة المستخدمين</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <span>تسجيل الخروج</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
-        <div className="container py-2">
-            <nav className="grid grid-cols-4 md:grid-cols-7 gap-2 md:gap-4">
-                {navItems.map((item) => (
-                <Link key={item.href} href={item.href}>
-                    <Card className={cn(
-                        "p-3 md:p-4 rounded-lg transition-colors flex flex-col items-center justify-center text-center gap-2 hover:bg-primary/5 hover:text-primary",
-                        pathname === item.href ? "bg-primary/10 text-primary" : "bg-card"
-                    )}>
-                        <item.icon className="h-6 w-6 md:h-7 md:w-7" />
-                        <span className="text-xs md:text-sm font-semibold">{item.label}</span>
-                    </Card>
-                </Link>
-                ))}
-            </nav>
-        </div>
       </header>
-      <main className="flex-1 container py-6">{children}</main>
+      <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
     </div>
+  );
+}
+
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  return (
+    <SidebarProvider>
+      <div className="flex min-h-screen">
+          <Sidebar side="right">
+              <SidebarHeader>
+                  <MedStockLogo />
+              </SidebarHeader>
+              <SidebarContent>
+                  <SidebarMenu>
+                      {navItems.map((item) => (
+                      <SidebarMenuItem key={item.href}>
+                          <Link href={item.href} legacyBehavior passHref>
+                              <SidebarMenuButton 
+                                isActive={pathname === item.href}
+                                tooltip={{children: item.label, side: "left"}}
+                              >
+                                  <item.icon />
+                                  <span>{item.label}</span>
+                              </SidebarMenuButton>
+                          </Link>
+                      </SidebarMenuItem>
+                      ))}
+                  </SidebarMenu>
+              </SidebarContent>
+              <SidebarFooter>
+              </SidebarFooter>
+          </Sidebar>
+          <MainContent>{children}</MainContent>
+      </div>
+    </SidebarProvider>
   );
 }
