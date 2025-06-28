@@ -23,6 +23,7 @@ export type Sale = {
   date: string;
   items: SaleItem[];
   total: number;
+  discount?: number;
 };
 
 export type PurchaseOrderItem = {

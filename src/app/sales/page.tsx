@@ -41,6 +41,7 @@ import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, Star, ArrowRightLe
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
 
 function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => void; onOpenChange: (isOpen: boolean) => void }) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -146,13 +147,14 @@ function QuickAccessManager({ currentIds, onSave }: { currentIds: string[], onSa
 }
 
 export default function SalesPage() {
-  const [inventory, setInventory] = React.useState<Medication[]>([])
   const [searchTerm, setSearchTerm] = React.useState("")
   const [cart, setCart] = React.useState<SaleItem[]>([])
   const [isScannerOpen, setIsScannerOpen] = React.useState(false);
   const [isManageQuickAccessOpen, setIsManageQuickAccessOpen] = React.useState(false);
   const [quickAccessIds, setQuickAccessIds] = React.useState<string[]>([]);
   const [quickAccessItems, setQuickAccessItems] = React.useState<Medication[]>([]);
+  const [discount, setDiscount] = React.useState(0);
+  const [discountInput, setDiscountInput] = React.useState("0");
   const { toast } = useToast()
 
   React.useEffect(() => {
@@ -178,13 +180,6 @@ export default function SalesPage() {
     setIsManageQuickAccessOpen(false);
     toast({ title: 'تم الحفظ', description: 'تم تحديث قائمة الوصول السريع بنجاح.' });
   }
-
-  React.useEffect(() => {
-    const filtered = searchTerm ? allInventory.filter((item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
-    ) : [];
-    setInventory(filtered)
-  }, [searchTerm])
 
   const addToCart = React.useCallback((medication: Medication) => {
     setCart((prevCart) => {
@@ -215,16 +210,17 @@ export default function SalesPage() {
   const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
         event.preventDefault();
-        const medication = allInventory.find(med => med.id.toLowerCase() === searchTerm.toLowerCase());
-        if (medication) {
-            addToCart(medication);
+        const medicationById = allInventory.find(med => med.id.toLowerCase() === searchTerm.toLowerCase());
+        if (medicationById) {
+            addToCart(medicationById);
+            return;
+        }
+
+        const medicationByName = allInventory.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
+        if(medicationByName.length === 1) {
+            addToCart(medicationByName[0]);
         } else {
-            const nameMatch = allInventory.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
-            if(nameMatch.length === 1) {
-              addToCart(nameMatch[0]);
-            } else {
-              toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'يرجى التأكد من المعرف أو البحث بالاسم.' });
-            }
+            toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'يرجى التأكد من المعرف أو البحث بالاسم.' });
         }
     }
   };
@@ -248,11 +244,20 @@ export default function SalesPage() {
             : item
     ));
   };
+  
+  const handleDiscountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setDiscountInput(value);
+    const numericValue = parseFloat(value);
+    setDiscount(isNaN(numericValue) || numericValue < 0 ? 0 : numericValue);
+  }
 
-  const cartTotal = cart.reduce((total, item) => {
+  const subtotal = cart.reduce((total, item) => {
     const itemTotal = item.price * item.quantity;
     return item.isReturn ? total - itemTotal : total + itemTotal;
   }, 0);
+
+  const finalTotal = subtotal - discount;
 
   const handleCheckout = () => {
     if (cart.length === 0) {
@@ -260,18 +265,22 @@ export default function SalesPage() {
       return
     }
 
+    if (discount > subtotal) {
+      toast({ title: "خطأ في الخصم", description: "لا يمكن أن يكون الخصم أكبر من المجموع الفرعي.", variant: "destructive" })
+      return
+    }
+
     const saleItems = cart.filter(item => !item.isReturn);
     const returnItems = cart.filter(item => item.isReturn);
     
-    // Process Sales
     if (saleItems.length > 0) {
         const newSaleId = `SALE${(sales.length + 1).toString().padStart(3, '0')}`;
-        const saleTotal = saleItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
         sales.unshift({
             id: newSaleId,
             date: new Date().toISOString(),
             items: saleItems,
-            total: saleTotal,
+            total: finalTotal,
+            discount: discount,
         });
         saleItems.forEach(item => {
             const medInInventory = allInventory.find(med => med.id === item.medicationId);
@@ -281,7 +290,6 @@ export default function SalesPage() {
         });
     }
 
-    // Process Returns
     if (returnItems.length > 0) {
         returnItems.forEach(item => {
             const newReturnId = `RET${(returns.length + 1).toString().padStart(3, '0')}`;
@@ -302,15 +310,18 @@ export default function SalesPage() {
     
     toast({
       title: "تمت العملية بنجاح",
-      description: `تم تسجيل عملية جديدة بقيمة إجمالية ${cartTotal.toFixed(2)}$`
+      description: `تم تسجيل عملية جديدة بقيمة إجمالية ${finalTotal.toFixed(2)}$`
     })
     setCart([])
+    setDiscount(0);
+    setDiscountInput("0");
+    setSearchTerm("");
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-5 h-[calc(100vh-theme(spacing.48))]">
-      <div className="lg:col-span-3 flex flex-col gap-4">
-        <Card>
+    <div className="grid gap-8 lg:grid-cols-2 h-[calc(100vh-theme(spacing.48))]">
+      <div className="lg:col-span-1">
+        <Card className="h-full flex flex-col">
            <CardHeader>
                 <div className="flex justify-between items-center">
                     <CardTitle>الوصول السريع</CardTitle>
@@ -346,80 +357,32 @@ export default function SalesPage() {
                )}
            </CardContent>
         </Card>
+      </div>
 
-        <Card className="flex-1 flex flex-col">
+      <div className="lg:col-span-1">
+        <Card className="h-full flex flex-col">
           <CardHeader>
-            <div className="flex justify-between items-center">
-                <div>
-                    <CardTitle>بحث عن دواء</CardTitle>
-                    <CardDescription>ابحث بالاسم أو المعرف، أو استخدم الماسح.</CardDescription>
-                </div>
-                <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
-                    <DialogTrigger asChild>
-                        <Button variant="outline"><ScanLine className="me-2"/> مسح</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                        <DialogTitle>مسح باركود المنتج</DialogTitle>
-                        </DialogHeader>
-                        <BarcodeScanner onScan={handleScan} onOpenChange={setIsScannerOpen}/>
-                    </DialogContent>
-                </Dialog>
-            </div>
-            <div className="pt-4">
+            <CardTitle>الفاتورة</CardTitle>
+            <CardDescription>أضف المنتجات باستخدام البحث أو الماسح الضوئي.</CardDescription>
+            <div className="flex gap-2 pt-4">
               <Input 
-                placeholder="ابحث عن الأدوية بالاسم أو المعرف..."
+                placeholder="ابحث بالاسم/المعرف أو امسح الباركود..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
               />
+              <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
+                  <DialogTrigger asChild>
+                      <Button variant="outline" className="shrink-0"><ScanLine className="me-2"/> مسح</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                      <DialogHeader>
+                      <DialogTitle>مسح باركود المنتج</DialogTitle>
+                      </DialogHeader>
+                      <BarcodeScanner onScan={handleScan} onOpenChange={setIsScannerOpen}/>
+                  </DialogContent>
+              </Dialog>
             </div>
-          </CardHeader>
-          <CardContent className="flex-1 p-0 overflow-hidden">
-            {searchTerm ? (
-                inventory.length > 0 ? (
-                    <ScrollArea className="h-full">
-                        <Table>
-                            <TableHeader className="sticky top-0 bg-background">
-                            <TableRow>
-                                <TableHead>الاسم</TableHead>
-                                <TableHead className="text-left">المخزون</TableHead>
-                                <TableHead className="text-left">السعر</TableHead>
-                                <TableHead></TableHead>
-                            </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                            {inventory.map((item) => (
-                                <TableRow key={item.id}>
-                                <TableCell className="font-medium">{item.name}</TableCell>
-                                <TableCell className="text-left">{item.stock}</TableCell>
-                                <TableCell className="text-left">${item.price.toFixed(2)}</TableCell>
-                                <TableCell className="text-left">
-                                    <Button size="sm" onClick={() => addToCart(item)}>أضف إلى السلة</Button>
-                                </TableCell>
-                                </TableRow>
-                            ))}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
-                ) : (
-                     <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                        <p>لم يتم العثور على نتائج.</p>
-                    </div>
-                )
-            ) : (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                    <p>ابدأ البحث لعرض النتائج هنا.</p>
-                </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-      <div className="lg:col-span-2">
-        <Card className="h-full flex flex-col">
-          <CardHeader>
-            <CardTitle>العملية الحالية</CardTitle>
-            <CardDescription>المنتجات في السلة الحالية.</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 p-0 overflow-hidden">
             <ScrollArea className="h-full">
@@ -465,10 +428,26 @@ export default function SalesPage() {
               )}
             </ScrollArea>
           </CardContent>
-          <CardFooter className="flex flex-col gap-4 mt-auto border-t pt-6">
+          <CardFooter className="flex flex-col gap-4 mt-auto border-t pt-6 bg-slate-50 dark:bg-slate-900/50">
+            <div className="flex justify-between w-full text-md">
+                <span>المجموع الفرعي</span>
+                <span>${subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center justify-between w-full">
+                <Label htmlFor="discount" className="text-md">خصم</Label>
+                <Input 
+                    id="discount"
+                    type="text"
+                    value={discountInput}
+                    onChange={handleDiscountChange}
+                    className="h-9 w-32 bg-background ltr:text-left rtl:text-right"
+                    placeholder="0.00"
+                />
+            </div>
+            <Separator />
             <div className="flex justify-between w-full text-lg font-semibold">
                 <span>الإجمالي</span>
-                <span className={cartTotal < 0 ? 'text-destructive' : ''}>${cartTotal.toFixed(2)}</span>
+                <span className={finalTotal < 0 ? 'text-destructive' : ''}>${finalTotal.toFixed(2)}</span>
             </div>
             <Button size="lg" className="w-full" onClick={handleCheckout} disabled={cart.length === 0}>
                 إتمام العملية
