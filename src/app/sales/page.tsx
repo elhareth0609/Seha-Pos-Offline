@@ -23,6 +23,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
+  DialogFooter
 } from "@/components/ui/dialog"
 import {
   Alert,
@@ -35,8 +37,10 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import { inventory as allInventory } from "@/lib/data"
 import type { Medication, SaleItem } from "@/lib/types"
-import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine } from "lucide-react"
+import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, Star } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 
 function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => void; onOpenChange: (isOpen: boolean) => void }) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -99,18 +103,86 @@ function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => 
   );
 }
 
+function QuickAccessManager({ currentIds, onSave }: { currentIds: string[], onSave: (ids: string[]) => void }) {
+    const [selectedIds, setSelectedIds] = React.useState<string[]>(currentIds);
+    const [searchTerm, setSearchTerm] = React.useState("");
+
+    const handleToggle = (id: string) => {
+        setSelectedIds(prev => 
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
+    
+    const filteredInventory = allInventory.filter(item => 
+        item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return (
+        <div className="flex flex-col gap-4">
+            <Input 
+                placeholder="ابحث عن دواء..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <ScrollArea className="h-[400px] border rounded-md">
+                <div className="p-4 space-y-4">
+                    {filteredInventory.map(med => (
+                        <div key={med.id} className="flex items-center justify-between">
+                            <Label htmlFor={`qa-${med.id}`} className="flex-1 cursor-pointer">{med.name}</Label>
+                            <Checkbox 
+                                id={`qa-${med.id}`}
+                                checked={selectedIds.includes(med.id)} 
+                                onCheckedChange={() => handleToggle(med.id)}
+                            />
+                        </div>
+                    ))}
+                </div>
+            </ScrollArea>
+            <DialogFooter>
+                <Button onClick={() => onSave(selectedIds)}>حفظ التغييرات</Button>
+            </DialogFooter>
+        </div>
+    );
+}
 
 export default function SalesPage() {
-  const [inventory, setInventory] = React.useState<Medication[]>(allInventory)
+  const [inventory, setInventory] = React.useState<Medication[]>([])
   const [searchTerm, setSearchTerm] = React.useState("")
   const [cart, setCart] = React.useState<SaleItem[]>([])
   const [isScannerOpen, setIsScannerOpen] = React.useState(false);
+  const [isManageQuickAccessOpen, setIsManageQuickAccessOpen] = React.useState(false);
+  const [quickAccessIds, setQuickAccessIds] = React.useState<string[]>([]);
+  const [quickAccessItems, setQuickAccessItems] = React.useState<Medication[]>([]);
   const { toast } = useToast()
 
   React.useEffect(() => {
-    const filtered = allInventory.filter((item) =>
+    try {
+        const savedIds = localStorage.getItem("quickAccessIds");
+        if (savedIds) {
+            setQuickAccessIds(JSON.parse(savedIds));
+        }
+    } catch (error) {
+        console.error("Failed to parse quick access items from localStorage", error);
+        setQuickAccessIds([]);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    const items = allInventory.filter(med => quickAccessIds.includes(med.id));
+    setQuickAccessItems(items);
+  }, [quickAccessIds]);
+
+  const handleSaveQuickAccess = (selectedIds: string[]) => {
+    setQuickAccessIds(selectedIds);
+    localStorage.setItem("quickAccessIds", JSON.stringify(selectedIds));
+    setIsManageQuickAccessOpen(false);
+    toast({ title: 'تم الحفظ', description: 'تم تحديث قائمة الوصول السريع بنجاح.' });
+  }
+
+  React.useEffect(() => {
+    const filtered = searchTerm ? allInventory.filter((item) =>
       item.name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    ) : [];
     setInventory(filtered)
   }, [searchTerm])
 
@@ -158,6 +230,7 @@ export default function SalesPage() {
       toast({ title: "السلة فارغة", description: "أضف منتجات إلى السلة قبل إتمام عملية البيع.", variant: "destructive" })
       return
     }
+    // Here you would typically process the sale (e.g., save to a database, update inventory)
     console.log("Checkout complete:", cart)
     toast({
       title: "تم تسجيل البيع",
@@ -168,13 +241,50 @@ export default function SalesPage() {
 
   return (
     <div className="grid gap-8 lg:grid-cols-5 h-[calc(100vh-theme(spacing.48))]">
-      <div className="lg:col-span-3">
-        <Card className="h-full flex flex-col">
+      <div className="lg:col-span-3 flex flex-col gap-4">
+        <Card>
+           <CardHeader>
+                <div className="flex justify-between items-center">
+                    <CardTitle>الوصول السريع</CardTitle>
+                    <Dialog open={isManageQuickAccessOpen} onOpenChange={setIsManageQuickAccessOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline"><Star className="me-2 h-4 w-4"/> إدارة الوصول السريع</Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-xl">
+                            <DialogHeader>
+                                <DialogTitle>إدارة الوصول السريع</DialogTitle>
+                                <DialogDescription>اختر الأدوية التي تظهر في قائمة الوصول السريع في صفحة المبيعات.</DialogDescription>
+                            </DialogHeader>
+                            <QuickAccessManager currentIds={quickAccessIds} onSave={handleSaveQuickAccess}/>
+                        </DialogContent>
+                    </Dialog>
+                </div>
+           </CardHeader>
+           <CardContent>
+               {quickAccessItems.length > 0 ? (
+                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                       {quickAccessItems.map(item => (
+                           <Button key={item.id} variant="outline" className="h-auto p-3 flex flex-col gap-1.5 justify-between" onClick={() => addToCart(item)}>
+                               <span className="text-center text-sm leading-tight">{item.name}</span>
+                               <span className="text-xs text-muted-foreground">${item.price.toFixed(2)}</span>
+                           </Button>
+                       ))}
+                   </div>
+               ) : (
+                   <div className="text-center text-muted-foreground py-8">
+                       <p>لم يتم إضافة أي أدوية للوصول السريع.</p>
+                       <p className="text-sm">انقر على "إدارة الوصول السريع" للبدء.</p>
+                   </div>
+               )}
+           </CardContent>
+        </Card>
+
+        <Card className="flex-1 flex flex-col">
           <CardHeader>
             <div className="flex justify-between items-center">
                 <div>
-                    <CardTitle>قائمة الأدوية</CardTitle>
-                    <CardDescription>ابحث عن الأدوية لإضافتها إلى البيع.</CardDescription>
+                    <CardTitle>بحث عن دواء</CardTitle>
+                    <CardDescription>ابحث بالاسم أو استخدم ماسح الباركود.</CardDescription>
                 </div>
                 <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
                     <DialogTrigger asChild>
@@ -197,30 +307,42 @@ export default function SalesPage() {
             </div>
           </CardHeader>
           <CardContent className="flex-1 p-0 overflow-hidden">
-            <ScrollArea className="h-full">
-              <Table>
-                <TableHeader className="sticky top-0 bg-background">
-                  <TableRow>
-                    <TableHead>الاسم</TableHead>
-                    <TableHead className="text-left">المخزون</TableHead>
-                    <TableHead className="text-left">السعر</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {inventory.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell className="text-left">{item.stock}</TableCell>
-                      <TableCell className="text-left">${item.price.toFixed(2)}</TableCell>
-                      <TableCell className="text-left">
-                        <Button size="sm" onClick={() => addToCart(item)}>أضف إلى السلة</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </ScrollArea>
+            {searchTerm ? (
+                inventory.length > 0 ? (
+                    <ScrollArea className="h-full">
+                        <Table>
+                            <TableHeader className="sticky top-0 bg-background">
+                            <TableRow>
+                                <TableHead>الاسم</TableHead>
+                                <TableHead className="text-left">المخزون</TableHead>
+                                <TableHead className="text-left">السعر</TableHead>
+                                <TableHead></TableHead>
+                            </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                            {inventory.map((item) => (
+                                <TableRow key={item.id}>
+                                <TableCell className="font-medium">{item.name}</TableCell>
+                                <TableCell className="text-left">{item.stock}</TableCell>
+                                <TableCell className="text-left">${item.price.toFixed(2)}</TableCell>
+                                <TableCell className="text-left">
+                                    <Button size="sm" onClick={() => addToCart(item)}>أضف إلى السلة</Button>
+                                </TableCell>
+                                </TableRow>
+                            ))}
+                            </TableBody>
+                        </Table>
+                    </ScrollArea>
+                ) : (
+                     <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                        <p>لم يتم العثور على نتائج.</p>
+                    </div>
+                )
+            ) : (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                    <p>ابدأ البحث لعرض النتائج هنا.</p>
+                </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -265,7 +387,7 @@ export default function SalesPage() {
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                     <PackageSearch className="h-16 w-16 mb-4" />
                     <p>سلتك فارغة.</p>
-                    <p className="text-sm">أضف منتجات من القائمة للبدء.</p>
+                    <p className="text-sm">أضف منتجات للبدء.</p>
                 </div>
               )}
             </ScrollArea>
