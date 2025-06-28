@@ -31,13 +31,29 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { users as allUsers, timeLogs as allTimeLogs, sales as allSales } from "@/lib/data"
-import type { User, TimeLog } from "@/lib/types"
+import { users as fallbackUsers, timeLogs as fallbackTimeLogs, sales as fallbackSales } from "@/lib/data"
+import type { User, TimeLog, Sale } from "@/lib/types"
 import { UserPlus, Clock, DollarSign, LineChart } from "lucide-react"
 import { differenceInHours } from 'date-fns'
 
+function loadInitialData<T>(key: string, fallbackData: T): T {
+    if (typeof window === "undefined") {
+      return fallbackData;
+    }
+    try {
+      const savedData = window.localStorage.getItem(key);
+      return savedData ? JSON.parse(savedData) : fallbackData;
+    } catch (error) {
+      console.error(`Failed to load data for key "${key}" from localStorage.`, error);
+      return fallbackData;
+    }
+}
+
 export default function UsersPage() {
-  const [users, setUsers] = React.useState<User[]>(allUsers)
+  const [users, setUsers] = React.useState<User[]>(() => loadInitialData('users', fallbackUsers));
+  const [timeLogs, setTimeLogs] = React.useState<TimeLog[]>(() => loadInitialData('timeLogs', fallbackTimeLogs));
+  const [sales, setSales] = React.useState<Sale[]>(() => loadInitialData('sales', fallbackSales));
+
   const { toast } = useToast()
 
   const handleAddUser = (e: React.FormEvent<HTMLFormElement>) => {
@@ -61,14 +77,17 @@ export default function UsersPage() {
           pin
       };
       
-      setUsers(prev => [newUser, ...prev]);
+      const newUsers = [newUser, ...users];
+      setUsers(newUsers);
+      localStorage.setItem('users', JSON.stringify(newUsers));
+
       toast({ title: "تمت إضافة الموظف بنجاح" });
       (e.target as HTMLFormElement).reset();
       document.getElementById('close-add-user-dialog')?.click();
   }
 
   const calculateSalary = (userId: string, hourlyRate: number) => {
-      const userTimeLogs = allTimeLogs.filter(log => log.userId === userId && log.clockOut);
+      const userTimeLogs = timeLogs.filter(log => log.userId === userId && log.clockOut);
       const totalHours = userTimeLogs.reduce((acc, log) => {
           return acc + differenceInHours(new Date(log.clockOut!), new Date(log.clockIn));
       }, 0);
@@ -76,7 +95,7 @@ export default function UsersPage() {
   }
 
   const getUserSales = (userId: string) => {
-      const userSales = allSales.filter(sale => sale.userId === userId);
+      const userSales = sales.filter(sale => sale.userId === userId);
       const totalRevenue = userSales.reduce((acc, sale) => acc + sale.total, 0);
       return { salesCount: userSales.length, totalRevenue };
   }

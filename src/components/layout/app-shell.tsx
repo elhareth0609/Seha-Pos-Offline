@@ -14,7 +14,8 @@ import {
   Truck,
   UserCircle,
   Users,
-  FileDown
+  FileDown,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Card } from "../ui/card";
 import { inventory, sales, purchaseOrders, patients, users, suppliers, supplierReturns } from "@/lib/data";
+import { useToast } from "@/hooks/use-toast";
 
 
 const navItems = [
@@ -52,16 +54,29 @@ function MedStockLogo() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const importFileRef = React.useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const getDataFromLocalStorageOrFallback = (key: string, fallback: any) => {
+    if (typeof window === 'undefined') return fallback;
+    const data = localStorage.getItem(key);
+    try {
+      return data ? JSON.parse(data) : fallback;
+    } catch (e) {
+      console.error(`Failed to parse ${key} from localStorage`, e);
+      return fallback;
+    }
+  };
 
   const handleBackup = () => {
       const backupData = {
-        inventory,
-        sales,
-        purchaseOrders,
-        patients,
-        users,
-        suppliers,
-        supplierReturns,
+        inventory: getDataFromLocalStorageOrFallback('inventory', inventory),
+        sales: getDataFromLocalStorageOrFallback('sales', sales),
+        purchaseOrders: getDataFromLocalStorageOrFallback('purchaseOrders', purchaseOrders),
+        patients: getDataFromLocalStorageOrFallback('patients', patients),
+        users: getDataFromLocalStorageOrFallback('users', users),
+        suppliers: getDataFromLocalStorageOrFallback('suppliers', suppliers),
+        supplierReturns: getDataFromLocalStorageOrFallback('supplierReturns', supplierReturns),
       };
       const jsonString = JSON.stringify(backupData, null, 2);
       const blob = new Blob([jsonString], { type: "application/json" });
@@ -73,6 +88,49 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      toast({ title: "تم بدء تنزيل النسخة الاحتياطية." });
+    };
+
+    const handleImportClick = () => {
+        importFileRef.current?.click();
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+        try {
+            const text = e.target?.result as string;
+            const data = JSON.parse(text);
+            
+            const dataKeys = ['inventory', 'sales', 'purchaseOrders', 'patients', 'users', 'suppliers', 'supplierReturns'];
+            let imported = false;
+            for (const key of dataKeys) {
+            if (data[key] && Array.isArray(data[key])) {
+                localStorage.setItem(key, JSON.stringify(data[key]));
+                imported = true;
+            }
+            }
+
+            if (imported) {
+                alert('تم استيراد البيانات بنجاح! سيتم إعادة تحميل الصفحة لتطبيق التغييرات.');
+                window.location.reload();
+            } else {
+                alert('ملف النسخ الاحتياطي غير صالح أو فارغ.');
+            }
+
+        } catch (error) {
+            console.error("Error importing backup:", error);
+            alert('حدث خطأ أثناء استيراد الملف. الرجاء التأكد من أن الملف صحيح.');
+        } finally {
+            if(importFileRef.current) {
+                importFileRef.current.value = "";
+            }
+        }
+        };
+        reader.readAsText(file);
     };
 
   return (
@@ -81,7 +139,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="container flex h-16 items-center">
           <MedStockLogo />
           <div className="flex flex-1 items-center justify-end space-x-2">
-             <Button variant="outline" onClick={handleBackup}><FileDown className="me-2 h-4 w-4"/> نسخ احتياطي</Button>
+            <input type="file" ref={importFileRef} onChange={handleFileChange} accept=".json" className="hidden" />
+            <Button variant="outline" onClick={handleImportClick}><Upload className="me-2 h-4 w-4"/> استيراد</Button>
+            <Button variant="outline" onClick={handleBackup}><FileDown className="me-2 h-4 w-4"/> نسخ احتياطي</Button>
              <nav className="flex items-center space-x-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

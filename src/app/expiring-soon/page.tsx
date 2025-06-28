@@ -17,13 +17,28 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { inventory as allInventory } from "@/lib/data"
+import { inventory as fallbackInventory } from "@/lib/data"
 import type { Medication } from "@/lib/types"
 import { differenceInDays, parseISO } from 'date-fns'
 
 const EXPIRATION_THRESHOLD_DAYS = 90;
 
+function loadInitialData<T>(key: string, fallbackData: T): T {
+    if (typeof window === "undefined") {
+      return fallbackData;
+    }
+    try {
+      const savedData = window.localStorage.getItem(key);
+      return savedData ? JSON.parse(savedData) : fallbackData;
+    } catch (error) {
+      console.error(`Failed to load data for key "${key}" from localStorage.`, error);
+      return fallbackData;
+    }
+}
+
+
 export default function ExpiringSoonPage() {
+  const [allInventory, setAllInventory] = React.useState<Medication[]>(() => loadInitialData('inventory', fallbackInventory));
   const [expiringMedications, setExpiringMedications] = React.useState<Medication[]>([]);
 
   React.useEffect(() => {
@@ -35,7 +50,7 @@ export default function ExpiringSoonPage() {
         return daysUntilExpiration > 0 && daysUntilExpiration <= EXPIRATION_THRESHOLD_DAYS;
     }).sort((a, b) => differenceInDays(parseISO(a.expirationDate), today) - differenceInDays(parseISO(b.expirationDate), today));
     setExpiringMedications(filtered);
-  }, []);
+  }, [allInventory]);
 
   const getExpirationBadge = (expirationDate: string) => {
     const today = new Date();

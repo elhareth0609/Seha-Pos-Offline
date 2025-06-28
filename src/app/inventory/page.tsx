@@ -18,10 +18,24 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { inventory as allInventory } from "@/lib/data"
+import { inventory as fallbackInventory } from "@/lib/data"
 import type { Medication } from "@/lib/types"
 
+function loadInitialData<T>(key: string, fallbackData: T): T {
+    if (typeof window === "undefined") {
+      return fallbackData;
+    }
+    try {
+      const savedData = window.localStorage.getItem(key);
+      return savedData ? JSON.parse(savedData) : fallbackData;
+    } catch (error) {
+      console.error(`Failed to load data for key "${key}" from localStorage.`, error);
+      return fallbackData;
+    }
+}
+
 export default function InventoryPage() {
+  const [allInventory, setAllInventory] = React.useState<Medication[]>(() => loadInitialData('inventory', fallbackInventory));
   const [inventory, setInventory] = React.useState<Medication[]>(allInventory)
   const [searchTerm, setSearchTerm] = React.useState("")
 
@@ -31,7 +45,7 @@ export default function InventoryPage() {
       item.id.toLowerCase().includes(searchTerm.toLowerCase())
     )
     setInventory(filtered)
-  }, [searchTerm])
+  }, [searchTerm, allInventory])
   
   const getStockStatus = (stock: number, reorderPoint: number) => {
     if (stock === 0) return <Badge variant="destructive">نفد من المخزون</Badge>

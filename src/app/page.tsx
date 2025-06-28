@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import {
   Card,
   CardContent,
@@ -24,11 +25,28 @@ import {
   YAxis,
   Tooltip,
 } from "recharts";
-import { inventory, sales } from "@/lib/data";
+import { inventory as fallbackInventory, sales as fallbackSales } from "@/lib/data";
+import type { Medication, Sale } from "@/lib/types";
 import { DollarSign, Package, AlertTriangle } from "lucide-react";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 
+function loadInitialData<T>(key: string, fallbackData: T): T {
+    if (typeof window === "undefined") {
+      return fallbackData;
+    }
+    try {
+      const savedData = window.localStorage.getItem(key);
+      return savedData ? JSON.parse(savedData) : fallbackData;
+    } catch (error) {
+      console.error(`Failed to load data for key "${key}" from localStorage.`, error);
+      return fallbackData;
+    }
+}
+
 export default function Dashboard() {
+  const [inventory, setInventory] = React.useState<Medication[]>(() => loadInitialData('inventory', fallbackInventory));
+  const [sales, setSales] = React.useState<Sale[]>(() => loadInitialData('sales', fallbackSales));
+
   const totalRevenue = sales.reduce((acc, sale) => acc + (sale.total || 0), 0);
   const lowStockItems = inventory.filter(
     (item) => item.stock < item.reorderPoint

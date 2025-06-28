@@ -33,12 +33,26 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import { inventory as allInventory, sales } from "@/lib/data"
-import type { Medication, SaleItem } from "@/lib/types"
+import { inventory as fallbackInventory, sales as fallbackSales } from "@/lib/data"
+import type { Medication, SaleItem, Sale } from "@/lib/types"
 import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+
+function loadInitialData<T>(key: string, fallbackData: T): T {
+    if (typeof window === "undefined") {
+      return fallbackData;
+    }
+    try {
+      const savedData = window.localStorage.getItem(key);
+      return savedData ? JSON.parse(savedData) : fallbackData;
+    } catch (error) {
+      console.error(`Failed to load data for key "${key}" from localStorage.`, error);
+      return fallbackData;
+    }
+}
+
 
 function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => void; onOpenChange: (isOpen: boolean) => void }) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -103,6 +117,9 @@ function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => 
 
 
 export default function SalesPage() {
+  const [allInventory, setAllInventory] = React.useState<Medication[]>(() => loadInitialData('inventory', fallbackInventory));
+  const [sales, setSales] = React.useState<Sale[]>(() => loadInitialData('sales', fallbackSales));
+  
   const [searchTerm, setSearchTerm] = React.useState("")
   const [suggestions, setSuggestions] = React.useState<Medication[]>([])
   const [cart, setCart] = React.useState<SaleItem[]>([])
@@ -152,7 +169,7 @@ export default function SalesPage() {
       toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'الباركود الممسوح ضوئيًا لا يتطابق مع أي منتج.' });
     }
     setIsScannerOpen(false);
-  }, [addToCart, toast]);
+  }, [addToCart, toast, allInventory]);
 
   const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
@@ -219,32 +236,49 @@ export default function SalesPage() {
       return
     }
 
+    let inventoryUpdated = false;
+    const updatedInventory = allInventory.map(med => {
+        const itemInCart = cart.find(cartItem => cartItem.medicationId === med.id);
+        if (itemInCart) {
+            if (med.stock < itemInCart.quantity) {
+                 toast({ variant: 'destructive', title: `كمية غير كافية من ${med.name}`, description: `الكمية المطلوبة ${itemInCart.quantity}, المتوفر ${med.stock}` });
+                 inventoryUpdated = false;
+                 throw new Error("Insufficient stock");
+            }
+            inventoryUpdated = true;
+            return { ...med, stock: med.stock - itemInCart.quantity };
+        }
+        return med;
+    });
+
+    if(!inventoryUpdated && cart.length > 0) {
+       // This check is to handle cases where an item in cart is not in main inventory for some reason.
+       // Although current logic should prevent this.
+       return;
+    }
+    
+    setAllInventory(updatedInventory);
+    localStorage.setItem('inventory', JSON.stringify(updatedInventory));
+    
     const newSaleId = `SALE${(sales.length + 1).toString().padStart(3, '0')}`;
-    sales.unshift({
+    const newSale: Sale = {
         id: newSaleId,
         date: new Date().toISOString(),
         items: cart,
         total: finalTotal,
         discount: discount,
         userId: "USR001", // Mock user ID
-    });
-
-    cart.forEach(item => {
-        const medInInventory = allInventory.find(med => med.id === item.medicationId);
-        if (medInInventory) {
-            if (medInInventory.stock < item.quantity) {
-                 toast({ variant: 'destructive', title: `كمية غير كافية من ${medInInventory.name}`, description: `الكمية المطلوبة ${item.quantity}, المتوفر ${medInInventory.stock}` });
-                 // This is a simple check. In a real app, this logic would be more robust.
-                 return;
-            }
-            medInInventory.stock -= item.quantity;
-        }
-    });
+    };
+    
+    const newSales = [newSale, ...sales];
+    setSales(newSales);
+    localStorage.setItem('sales', JSON.stringify(newSales));
     
     toast({
       title: "تمت العملية بنجاح",
       description: `تم تسجيل عملية جديدة بقيمة إجمالية ${finalTotal.toFixed(2)}$`
     })
+
     setCart([])
     setDiscount(0);
     setDiscountInput("0");

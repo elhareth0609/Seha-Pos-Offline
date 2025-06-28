@@ -28,14 +28,37 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { purchaseOrders as allPurchaseOrders, inventory, suppliers as allSuppliers, supplierReturns } from "@/lib/data"
+import { 
+    purchaseOrders as fallbackPurchaseOrders, 
+    inventory as fallbackInventory, 
+    suppliers as fallbackSuppliers, 
+    supplierReturns as fallbackSupplierReturns 
+} from "@/lib/data"
 import type { PurchaseOrder, Medication, Supplier, Return } from "@/lib/types"
 import { PlusCircle } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 
+function loadInitialData<T>(key: string, fallbackData: T): T {
+    if (typeof window === "undefined") {
+      return fallbackData;
+    }
+    try {
+      const savedData = window.localStorage.getItem(key);
+      return savedData ? JSON.parse(savedData) : fallbackData;
+    } catch (error) {
+      console.error(`Failed to load data for key "${key}" from localStorage.`, error);
+      return fallbackData;
+    }
+}
+
 export default function PurchasesPage() {
   const { toast } = useToast()
-  const [suppliers, setSuppliers] = React.useState<Supplier[]>(allSuppliers);
+
+  const [inventory, setInventory] = React.useState<Medication[]>(() => loadInitialData('inventory', fallbackInventory));
+  const [suppliers, setSuppliers] = React.useState<Supplier[]>(() => loadInitialData('suppliers', fallbackSuppliers));
+  const [purchaseOrders, setPurchaseOrders] = React.useState<PurchaseOrder[]>(() => loadInitialData('purchaseOrders', fallbackPurchaseOrders));
+  const [supplierReturns, setSupplierReturns] = React.useState<Return[]>(() => loadInitialData('supplierReturns', fallbackSupplierReturns));
+
   const [isAddSupplierOpen, setIsAddSupplierOpen] = React.useState(false);
 
   const handleAddPurchase = (event: React.FormEvent<HTMLFormElement>) => {
@@ -60,8 +83,9 @@ export default function PurchasesPage() {
         });
         return;
     }
-
-    let medication = inventory.find(m => m.name.toLowerCase() === medicationName.toLowerCase());
+    
+    let newInventory = [...inventory];
+    let medication = newInventory.find(m => m.name.toLowerCase() === medicationName.toLowerCase());
     let medicationId: string;
 
     if (medication) {
@@ -86,10 +110,14 @@ export default function PurchasesPage() {
           purchasePrice: purchasePrice,
           expirationDate: expirationDate,
       };
-      inventory.unshift(newMedication);
+      newInventory.unshift(newMedication);
     }
+
+    setInventory(newInventory);
+    localStorage.setItem('inventory', JSON.stringify(newInventory));
     
-    let purchaseOrder = allPurchaseOrders.find(po => po.id === purchaseId);
+    let newPurchaseOrders = [...purchaseOrders];
+    let purchaseOrder = newPurchaseOrders.find(po => po.id === purchaseId);
     
     if (purchaseOrder) {
         purchaseOrder.items.push({
@@ -113,8 +141,11 @@ export default function PurchasesPage() {
           }],
           status: "Received",
         };
-        allPurchaseOrders.unshift(newOrder);
+        newPurchaseOrders.unshift(newOrder);
     }
+
+    setPurchaseOrders(newPurchaseOrders);
+    localStorage.setItem('purchaseOrders', JSON.stringify(newPurchaseOrders));
     
     toast({
       title: "تم استلام البضاعة",
@@ -138,9 +169,13 @@ export default function PurchasesPage() {
         name,
         contactPerson: contact,
     };
-    setSuppliers(prev => [newSupplier, ...prev]);
+    const newSuppliers = [newSupplier, ...suppliers];
+    setSuppliers(newSuppliers);
+    localStorage.setItem('suppliers', JSON.stringify(newSuppliers));
+
     setIsAddSupplierOpen(false);
     toast({ title: "تمت إضافة المورد بنجاح" });
+    (event.target as HTMLFormElement).reset();
   };
 
   const handleReturnToSupplier = (event: React.FormEvent<HTMLFormElement>) => {
@@ -150,19 +185,24 @@ export default function PurchasesPage() {
       const quantity = parseInt(formData.get("quantity") as string, 10);
       const reason = formData.get("reason") as string;
 
-      const medication = inventory.find(m => m.id === medicationId);
+      const medicationIndex = inventory.findIndex(m => m.id === medicationId);
 
-      if (!medication || !quantity || !reason) {
+      if (medicationIndex === -1 || !quantity || !reason) {
           toast({ variant: "destructive", title: "حقول ناقصة", description: "الرجاء ملء جميع الحقول" });
           return;
       }
       
+      const medication = inventory[medicationIndex];
+
       if(medication.stock < quantity) {
           toast({ variant: "destructive", title: "كمية غير كافية", description: `الرصيد المتوفر من ${medication.name} هو ${medication.stock} فقط.`});
           return;
       }
 
-      medication.stock -= quantity;
+      const newInventory = [...inventory];
+      newInventory[medicationIndex] = { ...medication, stock: medication.stock - quantity };
+      setInventory(newInventory);
+      localStorage.setItem('inventory', JSON.stringify(newInventory));
 
       const newReturn: Return = {
         id: `S-RET${(supplierReturns.length + 1).toString().padStart(3, '0')}`,
@@ -174,7 +214,9 @@ export default function PurchasesPage() {
         supplierId: medication.supplierId,
       };
 
-      supplierReturns.unshift(newReturn);
+      const newSupplierReturns = [newReturn, ...supplierReturns];
+      setSupplierReturns(newSupplierReturns);
+      localStorage.setItem('supplierReturns', JSON.stringify(newSupplierReturns));
 
       toast({ title: "تم تسجيل المرتجع", description: `تم إرجاع ${quantity} من ${medication.name} للمورد.`});
       event.currentTarget.reset();

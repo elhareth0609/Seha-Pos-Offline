@@ -13,8 +13,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { patients as allPatients, inventory } from "@/lib/data"
-import type { Patient } from "@/lib/types"
+import { patients as fallbackPatients, inventory as fallbackInventory } from "@/lib/data"
+import type { Patient, Medication } from "@/lib/types"
 import { PlusCircle, UserPlus, Users } from "lucide-react"
 import {
   Dialog,
@@ -29,8 +29,22 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
 
+function loadInitialData<T>(key: string, fallbackData: T): T {
+    if (typeof window === "undefined") {
+      return fallbackData;
+    }
+    try {
+      const savedData = window.localStorage.getItem(key);
+      return savedData ? JSON.parse(savedData) : fallbackData;
+    } catch (error) {
+      console.error(`Failed to load data for key "${key}" from localStorage.`, error);
+      return fallbackData;
+    }
+}
+
 export default function PatientsPage() {
-  const [patients, setPatients] = React.useState<Patient[]>(allPatients);
+  const [patients, setPatients] = React.useState<Patient[]>(() => loadInitialData('patients', fallbackPatients));
+  const [inventory, setInventory] = React.useState<Medication[]>(() => loadInitialData('inventory', fallbackInventory));
   const [searchTerm, setSearchTerm] = React.useState("");
   const { toast } = useToast()
   
@@ -54,8 +68,11 @@ export default function PatientsPage() {
             return { medicationId: med.id, name: med.name };
         })
     };
+    
+    const newPatients = [newPatient, ...patients];
+    setPatients(newPatients);
+    localStorage.setItem('patients', JSON.stringify(newPatients));
 
-    setPatients(prev => [newPatient, ...prev]);
     toast({ title: "نجاح", description: `تمت إضافة المريض ${newPatient.name} بنجاح.` });
     
     // Reset form and close dialog
