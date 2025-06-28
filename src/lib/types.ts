@@ -5,7 +5,9 @@ export type Medication = {
   reorderPoint: number;
   category: string;
   supplier: string;
-  price: number;
+  price: number; // Selling price
+  purchasePrice: number;
+  expirationDate: string;
 };
 
 export type SaleItem = {

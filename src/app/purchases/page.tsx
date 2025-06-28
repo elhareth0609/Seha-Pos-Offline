@@ -20,68 +20,97 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { purchaseOrders as allPurchaseOrders, inventory } from "@/lib/data"
-import type { PurchaseOrder } from "@/lib/types"
+import type { PurchaseOrder, Medication } from "@/lib/types"
 
 export default function PurchasesPage() {
   const [purchaseOrders, setPurchaseOrders] = React.useState<PurchaseOrder[]>(allPurchaseOrders);
+  const [searchTerm, setSearchTerm] = React.useState("");
   const { toast } = useToast()
 
-  const handleReceiveStock = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAddPurchase = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const medicationId = formData.get("medicationId") as string;
-    const quantity = parseInt(formData.get("quantity") as string, 10);
+    
+    // Extract form data
+    const purchaseId = formData.get("purchaseId") as string;
     const supplier = formData.get("supplier") as string;
-
-    if (!medicationId || !quantity || !supplier) {
+    const medicationName = formData.get("medicationName") as string;
+    const quantity = parseInt(formData.get("quantity") as string, 10);
+    const expirationDate = formData.get("expirationDate") as string;
+    const purchasePrice = parseFloat(formData.get("purchasePrice") as string);
+    const sellingPrice = parseFloat(formData.get("sellingPrice") as string);
+    
+    if (!purchaseId || !supplier || !medicationName || !quantity || !expirationDate || isNaN(purchasePrice) || isNaN(sellingPrice)) {
         toast({
             variant: "destructive",
             title: "حقول ناقصة",
-            description: "الرجاء ملء جميع الحقول.",
+            description: "الرجاء ملء جميع الحقول بشكل صحيح.",
         });
         return;
     }
-    
-    // Find medication in global inventory and update stock
-    const medicationIndex = inventory.findIndex(m => m.id === medicationId);
-    if (medicationIndex === -1) {
-        toast({
-            variant: "destructive",
-            title: "خطأ",
-            description: "لم يتم العثور على الدواء المحدد.",
-        });
-        return;
+
+    // Find if medication exists, or create a new one
+    let medication = inventory.find(m => m.name.toLowerCase() === medicationName.toLowerCase());
+    let medicationId: string;
+
+    if (medication) {
+      // Update existing medication
+      medication.stock += quantity;
+      medication.price = sellingPrice;
+      medication.purchasePrice = purchasePrice;
+      medication.expirationDate = expirationDate;
+      medication.supplier = supplier;
+      medicationId = medication.id;
+    } else {
+      // Create new medication
+      medicationId = `MED${(inventory.length + 1).toString().padStart(3, '0')}`;
+      const newMedication: Medication = {
+          id: medicationId,
+          name: medicationName,
+          stock: quantity,
+          reorderPoint: 20, // Default reorder point
+          category: "Uncategorized", // Default category
+          supplier: supplier,
+          price: sellingPrice,
+          purchasePrice: purchasePrice,
+          expirationDate: expirationDate,
+      };
+      inventory.unshift(newMedication);
     }
     
-    inventory[medicationIndex].stock += quantity;
-    const medicationName = inventory[medicationIndex].name;
-
-    // Create a new purchase order record with status "Received"
-    const newOrder: PurchaseOrder = {
-      id: `PO${(purchaseOrders.length + 1).toString().padStart(3, '0')}`,
-      supplier: supplier,
-      date: new Date().toISOString().split("T")[0],
-      items: [{
-        medicationId: medicationId,
-        name: medicationName,
-        quantity: quantity,
-      }],
-      status: "Received",
-    };
-
-    setPurchaseOrders(prevOrders => [newOrder, ...prevOrders]);
+    // Find if purchase order exists, or create a new one
+    let purchaseOrder = purchaseOrders.find(po => po.id === purchaseId);
+    
+    if (purchaseOrder) {
+        // Add item to existing PO
+        purchaseOrder.items.push({
+            medicationId: medicationId,
+            name: medicationName,
+            quantity: quantity,
+        });
+        purchaseOrder.supplier = supplier; // Update supplier in case it's different
+        purchaseOrder.date = new Date().toISOString().split("T")[0];
+        setPurchaseOrders([...purchaseOrders]);
+    } else {
+        // Create new PO
+        const newOrder: PurchaseOrder = {
+          id: purchaseId,
+          supplier: supplier,
+          date: new Date().toISOString().split("T")[0],
+          items: [{
+            medicationId: medicationId,
+            name: medicationName,
+            quantity: quantity,
+          }],
+          status: "Received",
+        };
+        setPurchaseOrders(prevOrders => [newOrder, ...prevOrders]);
+    }
     
     toast({
-      title: "تم استلام المخزون",
+      title: "تمت إضافة المشتريات",
       description: `تمت إضافة ${quantity} من ${medicationName} إلى المخزون.`,
     });
 
@@ -99,6 +128,10 @@ export default function PurchasesPage() {
     }
   }
 
+  const filteredPurchaseOrders = purchaseOrders.filter(order => 
+      order.id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="grid gap-8 lg:grid-cols-3">
       <div className="lg:col-span-2">
@@ -108,12 +141,20 @@ export default function PurchasesPage() {
             <CardDescription>
               عرض جميع عمليات شراء واستلام المخزون.
             </CardDescription>
+             <div className="pt-4">
+              <Input 
+                placeholder="ابحث برقم قائمة الشراء..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-sm"
+              />
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>معرف الطلب</TableHead>
+                  <TableHead>رقم القائمة</TableHead>
                   <TableHead>المورد</TableHead>
                   <TableHead>التاريخ</TableHead>
                   <TableHead>الأصناف</TableHead>
@@ -121,7 +162,7 @@ export default function PurchasesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {purchaseOrders.map((order) => (
+                {filteredPurchaseOrders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell className="font-medium">{order.id}</TableCell>
                     <TableCell>{order.supplier}</TableCell>
@@ -139,46 +180,45 @@ export default function PurchasesPage() {
       <div>
         <Card>
           <CardHeader>
-            <CardTitle>إضافة عملية شراء</CardTitle>
+            <CardTitle>إضافة مشتريات للمخزون</CardTitle>
             <CardDescription>
-              استخدم هذا النموذج لتسجيل الأدوية المستلمة وإضافتها إلى المخزون.
+              استخدم هذا النموذج لتسجيل الأدوية المستلمة.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-4" onSubmit={handleReceiveStock}>
-              <div className="space-y-2">
-                <Label htmlFor="supplier">المورد</Label>
-                <Select name="supplier" required>
-                  <SelectTrigger id="supplier">
-                    <SelectValue placeholder="اختر موردًا" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Pharma Inc.">Pharma Inc.</SelectItem>
-                    <SelectItem value="HealthCare Supplies">HealthCare Supplies</SelectItem>
-                    <SelectItem value="Allergy Relief Co.">Allergy Relief Co.</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="medicationId">الدواء</Label>
-                 <Select name="medicationId" required>
-                  <SelectTrigger id="medicationId">
-                    <SelectValue placeholder="اختر دواء" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {inventory.map(med => (
-                      <SelectItem key={med.id} value={med.id}>{med.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="quantity">الكمية</Label>
-                <Input id="quantity" name="quantity" type="number" placeholder="أدخل الكمية" required min="1" />
-              </div>
-
+            <form className="space-y-4" onSubmit={handleAddPurchase}>
+                <div className="space-y-2">
+                    <Label htmlFor="purchaseId">رقم قائمة الشراء</Label>
+                    <Input id="purchaseId" name="purchaseId" type="text" placeholder="مثال: INV-2024-001" required />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="supplier">اسم المورد / الشركة</Label>
+                    <Input id="supplier" name="supplier" type="text" placeholder="مثال: Pharma Inc." required />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="medicationName">اسم الدواء</Label>
+                    <Input id="medicationName" name="medicationName" type="text" placeholder="مثال: Paracetamol 500mg" required />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="quantity">الكمية</Label>
+                        <Input id="quantity" name="quantity" type="number" placeholder="0" required min="1" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="expirationDate">تاريخ الانتهاء</Label>
+                        <Input id="expirationDate" name="expirationDate" type="date" required />
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="purchasePrice">سعر الشراء</Label>
+                        <Input id="purchasePrice" name="purchasePrice" type="number" placeholder="0.00" required step="0.01" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="sellingPrice">سعر البيع</Label>
+                        <Input id="sellingPrice" name="sellingPrice" type="number" placeholder="0.00" required step="0.01" />
+                    </div>
+                </div>
               <Button type="submit" className="w-full">إضافة للمخزون</Button>
             </form>
           </CardContent>

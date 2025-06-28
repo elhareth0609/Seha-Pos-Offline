@@ -1,16 +1,16 @@
 import { Medication, Sale, PurchaseOrder, Return } from "./types";
 
 export const inventory: Medication[] = [
-  { id: "MED001", name: "Paracetamol 500mg", stock: 150, reorderPoint: 50, category: "Painkiller", supplier: "Pharma Inc.", price: 5.99 },
-  { id: "MED002", name: "Amoxicillin 250mg", stock: 80, reorderPoint: 30, category: "Antibiotic", supplier: "HealthCare Supplies", price: 12.50 },
-  { id: "MED003", name: "Ibuprofen 200mg", stock: 200, reorderPoint: 75, category: "Painkiller", supplier: "Pharma Inc.", price: 7.25 },
-  { id: "MED004", name: "Loratadine 10mg", stock: 45, reorderPoint: 20, category: "Antihistamine", supplier: "Allergy Relief Co.", price: 15.00 },
-  { id: "MED005", name: "Omeprazole 20mg", stock: 60, reorderPoint: 25, category: "Acid Reflux", supplier: "HealthCare Supplies", price: 22.75 },
-  { id: "MED006", name: "Simvastatin 40mg", stock: 90, reorderPoint: 40, category: "Cholesterol", supplier: "Pharma Inc.", price: 30.00 },
-  { id: "MED007", name: "Metformin 500mg", stock: 120, reorderPoint: 50, category: "Diabetes", supplier: "HealthCare Supplies", price: 18.90 },
-  { id: "MED008", name: "Amlodipine 5mg", stock: 25, reorderPoint: 15, category: "Blood Pressure", supplier: "Allergy Relief Co.", price: 14.50 },
-  { id: "MED009", name: "Cetirizine 10mg", stock: 70, reorderPoint: 30, category: "Antihistamine", supplier: "Allergy Relief Co.", price: 11.20 },
-  { id: "MED010", name: "Aspirin 81mg", stock: 300, reorderPoint: 100, category: "Painkiller", supplier: "Pharma Inc.", price: 4.50 },
+  { id: "MED001", name: "Paracetamol 500mg", stock: 150, reorderPoint: 50, category: "Painkiller", supplier: "Pharma Inc.", price: 5.99, purchasePrice: 3.50, expirationDate: "2025-12-31" },
+  { id: "MED002", name: "Amoxicillin 250mg", stock: 80, reorderPoint: 30, category: "Antibiotic", supplier: "HealthCare Supplies", price: 12.50, purchasePrice: 8.00, expirationDate: "2025-08-31" },
+  { id: "MED003", name: "Ibuprofen 200mg", stock: 200, reorderPoint: 75, category: "Painkiller", supplier: "Pharma Inc.", price: 7.25, purchasePrice: 4.50, expirationDate: "2026-01-31" },
+  { id: "MED004", name: "Loratadine 10mg", stock: 45, reorderPoint: 20, category: "Antihistamine", supplier: "Allergy Relief Co.", price: 15.00, purchasePrice: 9.75, expirationDate: "2024-10-31" },
+  { id: "MED005", name: "Omeprazole 20mg", stock: 60, reorderPoint: 25, category: "Acid Reflux", supplier: "HealthCare Supplies", price: 22.75, purchasePrice: 15.00, expirationDate: "2025-05-31" },
+  { id: "MED006", name: "Simvastatin 40mg", stock: 90, reorderPoint: 40, category: "Cholesterol", supplier: "Pharma Inc.", price: 30.00, purchasePrice: 20.25, expirationDate: "2024-09-30" },
+  { id: "MED007", name: "Metformin 500mg", stock: 120, reorderPoint: 50, category: "Diabetes", supplier: "HealthCare Supplies", price: 18.90, purchasePrice: 12.00, expirationDate: "2025-11-30" },
+  { id: "MED008", name: "Amlodipine 5mg", stock: 25, reorderPoint: 15, category: "Blood Pressure", supplier: "Allergy Relief Co.", price: 14.50, purchasePrice: 9.00, expirationDate: "2024-08-15" },
+  { id: "MED009", name: "Cetirizine 10mg", stock: 70, reorderPoint: 30, category: "Antihistamine", supplier: "Allergy Relief Co.", price: 11.20, purchasePrice: 7.00, expirationDate: "2026-03-31" },
+  { id: "MED010", name: "Aspirin 81mg", stock: 300, reorderPoint: 100, category: "Painkiller", supplier: "Pharma Inc.", price: 4.50, purchasePrice: 2.50, expirationDate: "2025-07-31" },
 ];
 
 export const sales: Sale[] = [
