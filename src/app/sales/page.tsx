@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -43,8 +44,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import { inventory as fallbackInventory, sales as fallbackSales, patients as fallbackPatients } from "@/lib/data"
-import type { Medication, SaleItem, Sale, Patient } from "@/lib/types"
+import { inventory as fallbackInventory, sales as fallbackSales, patients as fallbackPatients, suppliers as fallbackSuppliers } from "@/lib/data"
+import type { Medication, SaleItem, Sale, Patient, Supplier } from "@/lib/types"
 import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, UserSearch } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
@@ -309,196 +310,212 @@ export default function SalesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-        {/* Panel 1: Product Selection */}
-        <Card>
-            <CardHeader>
-                <CardTitle>اختيار المنتج</CardTitle>
-                <div className="flex gap-2 pt-4">
-                    <div className="relative flex-1">
-                        <Input 
-                        placeholder="ابحث بالاسم/المعرف أو امسح الباركود..."
-                        value={searchTerm}
-                        onChange={handleSearchChange}
-                        onKeyDown={handleSearchKeyDown}
-                        />
-                        {suggestions.length > 0 && (
-                            <Card className="absolute z-10 w-full mt-1 bg-background shadow-lg border">
-                                <CardContent className="p-0">
-                                    <ul className="divide-y divide-border">
-                                        {suggestions.map(med => (
-                                            <li key={med.id} 
-                                                onMouseDown={(e) => {
-                                                    e.preventDefault();
-                                                    addToCart(med)
-                                                }}
-                                                className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
-                                            >
-                                                <span>{med.name}</span>
-                                                <span className="text-sm text-muted-foreground">${med.price.toFixed(2)}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </CardContent>
-                            </Card>
-                        )}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* LEFT COLUMN */}
+        <div className="lg:col-span-2 flex flex-col gap-6">
+            {/* Panel 1: Product Selection */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>اختيار المنتج</CardTitle>
+                    <div className="flex gap-2 pt-4">
+                        <div className="relative flex-1">
+                            <Input 
+                            placeholder="ابحث بالاسم/المعرف أو امسح الباركود..."
+                            value={searchTerm}
+                            onChange={handleSearchChange}
+                            onKeyDown={handleSearchKeyDown}
+                            />
+                            {suggestions.length > 0 && (
+                                <Card className="absolute z-10 w-full mt-1 bg-background shadow-lg border">
+                                    <CardContent className="p-0">
+                                        <ul className="divide-y divide-border">
+                                            {suggestions.map(med => (
+                                                <li key={med.id} 
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        addToCart(med)
+                                                    }}
+                                                    className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
+                                                >
+                                                    <span>{med.name}</span>
+                                                    <span className="text-sm text-muted-foreground">${med.price.toFixed(2)}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
+                        <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" className="shrink-0"><ScanLine className="me-2"/> مسح</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                <DialogTitle>مسح باركود المنتج</DialogTitle>
+                                </DialogHeader>
+                                <BarcodeScanner onScan={handleScan} onOpenChange={setIsScannerOpen}/>
+                            </DialogContent>
+                        </Dialog>
                     </div>
-                    <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
+                </CardHeader>
+            </Card>
+
+            {/* Panel 2: Invoice */}
+            <Card>
+                <CardHeader className="py-4">
+                    <div className="flex justify-between items-center">
+                        <CardTitle>الفاتورة الحالية</CardTitle>
+                        <Select onValueChange={handlePatientSelect} value={selectedPatient?.id || ""}>
+                            <SelectTrigger className="w-[200px]">
+                                <UserSearch className="me-2 h-4 w-4" />
+                                <SelectValue placeholder="اختيار مريض..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">بدون مريض</SelectItem>
+                                {patients.map(p => (
+                                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <ScrollArea className="h-[60vh] min-h-[300px]">
+                    {cart.length > 0 ? (
+                        <Table>
+                            <TableHeader className="sticky top-0 bg-background z-10">
+                                <TableRow>
+                                    <TableHead className="w-12 text-center"><ArrowLeftRight className="h-4 w-4 mx-auto"/></TableHead>
+                                    <TableHead>المنتج</TableHead>
+                                    <TableHead className="w-[120px] text-center">الكمية</TableHead>
+                                    <TableHead className="w-[120px] text-center">السعر</TableHead>
+                                    <TableHead className="text-left w-[100px]">الإجمالي</TableHead>
+                                    <TableHead className="w-12"></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                        <TableBody>
+                            {cart.map((item) => {
+                            const medInInventory = allInventory.find(med => med.id === item.medicationId);
+                            const stock = medInInventory?.stock ?? 0;
+                            const remainingStock = stock - item.quantity;
+                            const itemTotal = (item.isReturn ? -1 : 1) * item.price * item.quantity;
+                            return (
+                                <TableRow key={`${item.medicationId}-${item.isReturn}`} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
+                                    <TableCell className="text-center">
+                                        <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" />
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="font-medium">{item.name}</div>
+                                        <div className="text-xs text-muted-foreground">
+                                            الرصيد: {stock} 
+                                            {!item.isReturn && ` | المتبقي: `}
+                                            {!item.isReturn && <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span>}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                    <div className="flex items-center justify-center gap-2">
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity - 1)}><MinusCircle className="h-4 w-4" /></Button>
+                                        <span>{item.quantity}</span>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity + 1)}><PlusCircle className="h-4 w-4" /></Button>
+                                    </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Input type="number" value={item.price.toFixed(2)} onChange={(e) => updatePrice(item.medicationId, parseFloat(e.target.value))} className="w-24 h-9 text-center" step="0.01" min="0" />
+                                    </TableCell>
+                                    <TableCell className="text-left font-mono">{itemTotal.toFixed(2)}$</TableCell>
+                                    <TableCell className="text-left">
+                                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)}><X className="h-4 w-4" /></Button>
+                                    </TableCell>
+                                </TableRow>
+                            );
+                            })}
+                        </TableBody>
+                        </Table>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                            <PackageSearch className="h-16 w-16 mb-4" />
+                            <p>الفاتورة فارغة.</p>
+                            <p className="text-sm">أضف منتجات لبدء عملية البيع.</p>
+                        </div>
+                    )}
+                    </ScrollArea>
+                </CardContent>
+            </Card>
+        </div>
+
+        {/* RIGHT COLUMN */}
+        <div className="lg:col-span-1 flex flex-col gap-6">
+            <Card className="sticky top-24">
+                <CardHeader>
+                    <CardTitle>ملخص الفاتورة</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                    <div className="flex justify-between w-full text-md">
+                        <span>المجموع الفرعي</span>
+                        <span>${subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center justify-between w-full">
+                        <Label htmlFor="discount" className="text-md shrink-0 me-2">خصم</Label>
+                        <Input id="discount" type="text" value={discountInput} onChange={handleDiscountChange} className="h-9 w-full bg-background ltr:text-left rtl:text-right" placeholder="0.00" />
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between w-full text-lg font-semibold">
+                        <span>الإجمالي</span>
+                        <span className={finalTotal < 0 ? 'text-destructive' : ''}>${finalTotal.toFixed(2)}</span>
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
                         <DialogTrigger asChild>
-                            <Button variant="outline" className="shrink-0"><ScanLine className="me-2"/> مسح</Button>
+                            <Button size="default" className="w-full" onClick={handleCheckout} disabled={cart.length === 0}>
+                                إتمام العملية
+                            </Button>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
-                            <DialogTitle>مسح باركود المنتج</DialogTitle>
+                                <DialogTitle>تأكيد الفاتورة</DialogTitle>
                             </DialogHeader>
-                            <BarcodeScanner onScan={handleScan} onOpenChange={setIsScannerOpen}/>
+                            <div className="space-y-4">
+                                <div className="max-h-64 overflow-y-auto p-1">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>المنتج</TableHead>
+                                                <TableHead className="text-center">الكمية</TableHead>
+                                                <TableHead className="text-left">السعر</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {cart.map(item => (
+                                                <TableRow key={item.medicationId} className={cn(item.isReturn && "text-destructive")}>
+                                                    <TableCell>{item.name} {item.isReturn && "(مرتجع)"}</TableCell>
+                                                    <TableCell className="text-center">{item.quantity}</TableCell>
+                                                    <TableCell className="text-left">${((item.isReturn ? -1 : 1) * item.price * item.quantity).toFixed(2)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                                <Separator/>
+                                <div className="space-y-2 text-sm">
+                                    {selectedPatient && <div className="flex justify-between"><span>المريض:</span><span>{selectedPatient.name}</span></div>}
+                                    <div className="flex justify-between"><span>المجموع الفرعي:</span><span>${subtotal.toFixed(2)}</span></div>
+                                    <div className="flex justify-between"><span>الخصم:</span><span>-${discount.toFixed(2)}</span></div>
+                                    <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>${finalTotal.toFixed(2)}</span></div>
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
+                                <Button onClick={handleFinalizeSale}>تأكيد البيع وتحديث المخزون</Button>
+                            </DialogFooter>
                         </DialogContent>
                     </Dialog>
-                </div>
-            </CardHeader>
-        </Card>
-
-        {/* Panel 2: Invoice */}
-        <Card className="flex flex-col">
-            <CardHeader className="py-4">
-                 <div className="flex justify-between items-center">
-                    <CardTitle>الفاتورة الحالية</CardTitle>
-                    <Select onValueChange={handlePatientSelect} value={selectedPatient?.id || ""}>
-                        <SelectTrigger className="w-[200px]">
-                            <UserSearch className="me-2 h-4 w-4" />
-                            <SelectValue placeholder="اختيار مريض..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="none">بدون مريض</SelectItem>
-                            {patients.map(p => (
-                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </CardHeader>
-            <CardContent className="flex-1 p-0">
-                <ScrollArea className="h-96">
-                {cart.length > 0 ? (
-                    <Table>
-                        <TableHeader className="sticky top-0 bg-background z-10">
-                            <TableRow>
-                                <TableHead className="w-12 text-center"><ArrowLeftRight className="h-4 w-4 mx-auto"/></TableHead>
-                                <TableHead>المنتج</TableHead>
-                                <TableHead className="w-[120px] text-center">الكمية</TableHead>
-                                <TableHead className="w-[120px] text-center">السعر</TableHead>
-                                <TableHead className="text-left w-[100px]">الإجمالي</TableHead>
-                                <TableHead className="w-12"></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                    <TableBody>
-                        {cart.map((item) => {
-                        const medInInventory = allInventory.find(med => med.id === item.medicationId);
-                        const stock = medInInventory?.stock ?? 0;
-                        const remainingStock = stock - item.quantity;
-                        const itemTotal = (item.isReturn ? -1 : 1) * item.price * item.quantity;
-                        return (
-                            <TableRow key={`${item.medicationId}-${item.isReturn}`} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
-                                <TableCell className="text-center">
-                                    <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" />
-                                </TableCell>
-                                <TableCell>
-                                    <div className="font-medium">{item.name}</div>
-                                    <div className="text-xs text-muted-foreground">
-                                        الرصيد: {stock} 
-                                        {!item.isReturn && ` | المتبقي: `}
-                                        {!item.isReturn && <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span>}
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                <div className="flex items-center justify-center gap-2">
-                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity - 1)}><MinusCircle className="h-4 w-4" /></Button>
-                                    <span>{item.quantity}</span>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity + 1)}><PlusCircle className="h-4 w-4" /></Button>
-                                </div>
-                                </TableCell>
-                                <TableCell>
-                                    <Input type="number" value={item.price.toFixed(2)} onChange={(e) => updatePrice(item.medicationId, parseFloat(e.target.value))} className="w-24 h-9 text-center" step="0.01" min="0" />
-                                </TableCell>
-                                <TableCell className="text-left font-mono">{itemTotal.toFixed(2)}$</TableCell>
-                                <TableCell className="text-left">
-                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)}><X className="h-4 w-4" /></Button>
-                                </TableCell>
-                            </TableRow>
-                        );
-                        })}
-                    </TableBody>
-                    </Table>
-                ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                        <PackageSearch className="h-16 w-16 mb-4" />
-                        <p>الفاتورة فارغة.</p>
-                        <p className="text-sm">أضف منتجات لبدء عملية البيع.</p>
-                    </div>
-                )}
-                </ScrollArea>
-            </CardContent>
-            <CardFooter className="flex flex-col gap-4 mt-auto border-t pt-6 bg-slate-50 dark:bg-slate-900/50">
-                <div className="flex justify-between w-full text-md">
-                    <span>المجموع الفرعي</span>
-                    <span>${subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center justify-between w-full">
-                    <Label htmlFor="discount" className="text-md">خصم</Label>
-                    <Input id="discount" type="text" value={discountInput} onChange={handleDiscountChange} className="h-9 w-32 bg-background ltr:text-left rtl:text-right" placeholder="0.00" />
-                </div>
-                <Separator />
-                <div className="flex justify-between w-full text-lg font-semibold">
-                    <span>الإجمالي</span>
-                    <span className={finalTotal < 0 ? 'text-destructive' : ''}>${finalTotal.toFixed(2)}</span>
-                </div>
-                <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-                    <DialogTrigger asChild>
-                        <Button size="lg" className="w-full" onClick={handleCheckout} disabled={cart.length === 0}>
-                            إتمام العملية
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>تأكيد الفاتورة</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                            <div className="max-h-64 overflow-y-auto p-1">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>المنتج</TableHead>
-                                            <TableHead className="text-center">الكمية</TableHead>
-                                            <TableHead className="text-left">السعر</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {cart.map(item => (
-                                            <TableRow key={item.medicationId} className={cn(item.isReturn && "text-destructive")}>
-                                                <TableCell>{item.name} {item.isReturn && "(مرتجع)"}</TableCell>
-                                                <TableCell className="text-center">{item.quantity}</TableCell>
-                                                <TableCell className="text-left">${((item.isReturn ? -1 : 1) * item.price * item.quantity).toFixed(2)}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                            <Separator/>
-                            <div className="space-y-2 text-sm">
-                                {selectedPatient && <div className="flex justify-between"><span>المريض:</span><span>{selectedPatient.name}</span></div>}
-                                <div className="flex justify-between"><span>المجموع الفرعي:</span><span>${subtotal.toFixed(2)}</span></div>
-                                <div className="flex justify-between"><span>الخصم:</span><span>-${discount.toFixed(2)}</span></div>
-                                <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>${finalTotal.toFixed(2)}</span></div>
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
-                            <Button onClick={handleFinalizeSale}>تأكيد البيع وتحديث المخزون</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </CardFooter>
-        </Card>
+                </CardFooter>
+            </Card>
+        </div>
     </div>
   )
 }
+
+    
