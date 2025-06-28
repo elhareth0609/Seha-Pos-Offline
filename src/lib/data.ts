@@ -1,4 +1,4 @@
-import { Medication, Sale, PurchaseOrder, Return } from "./types";
+import { Medication, Sale, PurchaseOrder, Return, Patient } from "./types";
 
 export const inventory: Medication[] = [
   { id: "MED001", name: "Paracetamol 500mg", stock: 150, reorderPoint: 50, category: "Painkiller", supplier: "Pharma Inc.", price: 5.99, purchasePrice: 3.50, expirationDate: "2025-12-31" },
@@ -34,4 +34,22 @@ export const purchaseOrders: PurchaseOrder[] = [
 export const returns: Return[] = [
     { id: "RET001", date: "2024-07-21", medicationId: "MED001", medicationName: "Paracetamol 500mg", quantity: 1, reason: "Incorrect purchase" },
     { id: "RET002", date: "2024-07-23", medicationId: "MED004", medicationName: "Loratadine 10mg", quantity: 1, reason: "Allergic reaction" },
+];
+
+export const patients: Patient[] = [
+    { 
+        id: "PAT001", 
+        name: "أحمد محمود", 
+        medications: [
+            { medicationId: "MED007", name: "Metformin 500mg" },
+            { medicationId: "MED008", name: "Amlodipine 5mg" }
+        ] 
+    },
+    { 
+        id: "PAT002", 
+        name: "فاطمة علي", 
+        medications: [
+            { medicationId: "MED004", name: "Loratadine 10mg" }
+        ] 
+    },
 ];

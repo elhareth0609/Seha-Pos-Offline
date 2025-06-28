@@ -35,9 +35,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import { inventory as allInventory } from "@/lib/data"
-import type { Medication, SaleItem } from "@/lib/types"
-import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, Star } from "lucide-react"
+import { inventory as allInventory, sales, returns } from "@/lib/data"
+import type { Medication, SaleItem, Return } from "@/lib/types"
+import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, Star, ArrowRightLeft } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
@@ -188,7 +188,7 @@ export default function SalesPage() {
 
   const addToCart = React.useCallback((medication: Medication) => {
     setCart((prevCart) => {
-      const existingItem = prevCart.find(item => item.medicationId === medication.id)
+      const existingItem = prevCart.find(item => item.medicationId === medication.id && !item.isReturn)
       if (existingItem) {
         return prevCart.map(item =>
           item.medicationId === medication.id
@@ -196,8 +196,9 @@ export default function SalesPage() {
             : item
         )
       }
-      return [...prevCart, { medicationId: medication.id, name: medication.name, quantity: 1, price: medication.price }]
+      return [...prevCart, { medicationId: medication.id, name: medication.name, quantity: 1, price: medication.price, isReturn: false }]
     })
+    setSearchTerm("")
   }, [])
 
   const handleScan = React.useCallback((result: string) => {
@@ -211,6 +212,23 @@ export default function SalesPage() {
     setIsScannerOpen(false);
   }, [addToCart, toast]);
 
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        const medication = allInventory.find(med => med.id.toLowerCase() === searchTerm.toLowerCase());
+        if (medication) {
+            addToCart(medication);
+        } else {
+            const nameMatch = allInventory.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
+            if(nameMatch.length === 1) {
+              addToCart(nameMatch[0]);
+            } else {
+              toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'يرجى التأكد من المعرف أو البحث بالاسم.' });
+            }
+        }
+    }
+  };
+
   const updateQuantity = (medicationId: string, quantity: number) => {
     if (quantity <= 0) {
       removeFromCart(medicationId)
@@ -223,18 +241,68 @@ export default function SalesPage() {
     setCart(cart => cart.filter(item => item.medicationId !== medicationId))
   }
 
-  const cartTotal = cart.reduce((total, item) => total + item.price * item.quantity, 0)
+  const handleToggleReturn = (medicationId: string) => {
+    setCart(cart.map(item =>
+        item.medicationId === medicationId
+            ? { ...item, isReturn: !item.isReturn }
+            : item
+    ));
+  };
+
+  const cartTotal = cart.reduce((total, item) => {
+    const itemTotal = item.price * item.quantity;
+    return item.isReturn ? total - itemTotal : total + itemTotal;
+  }, 0);
 
   const handleCheckout = () => {
     if (cart.length === 0) {
-      toast({ title: "السلة فارغة", description: "أضف منتجات إلى السلة قبل إتمام عملية البيع.", variant: "destructive" })
+      toast({ title: "السلة فارغة", description: "أضف منتجات إلى السلة قبل إتمام العملية.", variant: "destructive" })
       return
     }
-    // Here you would typically process the sale (e.g., save to a database, update inventory)
-    console.log("Checkout complete:", cart)
+
+    const saleItems = cart.filter(item => !item.isReturn);
+    const returnItems = cart.filter(item => item.isReturn);
+    
+    // Process Sales
+    if (saleItems.length > 0) {
+        const newSaleId = `SALE${(sales.length + 1).toString().padStart(3, '0')}`;
+        const saleTotal = saleItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+        sales.unshift({
+            id: newSaleId,
+            date: new Date().toISOString(),
+            items: saleItems,
+            total: saleTotal,
+        });
+        saleItems.forEach(item => {
+            const medInInventory = allInventory.find(med => med.id === item.medicationId);
+            if (medInInventory) {
+                medInInventory.stock -= item.quantity;
+            }
+        });
+    }
+
+    // Process Returns
+    if (returnItems.length > 0) {
+        returnItems.forEach(item => {
+            const newReturnId = `RET${(returns.length + 1).toString().padStart(3, '0')}`;
+            returns.unshift({
+                id: newReturnId,
+                date: new Date().toISOString(),
+                medicationId: item.medicationId,
+                medicationName: item.name,
+                quantity: item.quantity,
+                reason: "Return processed via POS"
+            });
+            const medInInventory = allInventory.find(med => med.id === item.medicationId);
+            if (medInInventory) {
+                medInInventory.stock += item.quantity;
+            }
+        });
+    }
+    
     toast({
-      title: "تم تسجيل البيع",
-      description: `تم تسجيل عملية بيع جديدة بقيمة ${cartTotal.toFixed(2)}$`
+      title: "تمت العملية بنجاح",
+      description: `تم تسجيل عملية جديدة بقيمة إجمالية ${cartTotal.toFixed(2)}$`
     })
     setCart([])
   }
@@ -248,7 +316,7 @@ export default function SalesPage() {
                     <CardTitle>الوصول السريع</CardTitle>
                     <Dialog open={isManageQuickAccessOpen} onOpenChange={setIsManageQuickAccessOpen}>
                         <DialogTrigger asChild>
-                            <Button variant="outline"><Star className="me-2 h-4 w-4"/> إدارة الوصول السريع</Button>
+                            <Button variant="outline"><Star className="me-2 h-4 w-4"/> إدارة</Button>
                         </DialogTrigger>
                         <DialogContent className="max-w-xl">
                             <DialogHeader>
@@ -273,7 +341,7 @@ export default function SalesPage() {
                ) : (
                    <div className="text-center text-muted-foreground py-8">
                        <p>لم يتم إضافة أي أدوية للوصول السريع.</p>
-                       <p className="text-sm">انقر على "إدارة الوصول السريع" للبدء.</p>
+                       <p className="text-sm">انقر على "إدارة" للبدء.</p>
                    </div>
                )}
            </CardContent>
@@ -284,11 +352,11 @@ export default function SalesPage() {
             <div className="flex justify-between items-center">
                 <div>
                     <CardTitle>بحث عن دواء</CardTitle>
-                    <CardDescription>ابحث بالاسم أو استخدم ماسح الباركود.</CardDescription>
+                    <CardDescription>ابحث بالاسم أو المعرف، أو استخدم الماسح.</CardDescription>
                 </div>
                 <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
                     <DialogTrigger asChild>
-                        <Button variant="outline"><ScanLine className="me-2"/> مسح الباركود</Button>
+                        <Button variant="outline"><ScanLine className="me-2"/> مسح</Button>
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>
@@ -300,9 +368,10 @@ export default function SalesPage() {
             </div>
             <div className="pt-4">
               <Input 
-                placeholder="ابحث عن الأدوية..."
+                placeholder="ابحث عن الأدوية بالاسم أو المعرف..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
               />
             </div>
           </CardHeader>
@@ -349,8 +418,8 @@ export default function SalesPage() {
       <div className="lg:col-span-2">
         <Card className="h-full flex flex-col">
           <CardHeader>
-            <CardTitle>البيع الحالي</CardTitle>
-            <CardDescription>المنتجات في العملية الحالية.</CardDescription>
+            <CardTitle>العملية الحالية</CardTitle>
+            <CardDescription>المنتجات في السلة الحالية.</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 p-0 overflow-hidden">
             <ScrollArea className="h-full">
@@ -361,12 +430,13 @@ export default function SalesPage() {
                             <TableHead>المنتج</TableHead>
                             <TableHead className="w-[120px] text-center">الكمية</TableHead>
                             <TableHead className="text-left">الإجمالي</TableHead>
-                            <TableHead></TableHead>
+                            <TableHead className="w-12 p-0 text-center"><ArrowRightLeft className="h-4 w-4 mx-auto" title="إرجاع؟" /></TableHead>
+                            <TableHead className="w-12"></TableHead>
                         </TableRow>
                     </TableHeader>
                   <TableBody>
                     {cart.map((item) => (
-                      <TableRow key={item.medicationId}>
+                      <TableRow key={item.medicationId} className={item.isReturn ? "bg-red-50 dark:bg-red-900/20" : ""}>
                         <TableCell className="font-medium">{item.name}</TableCell>
                         <TableCell>
                           <div className="flex items-center justify-center gap-2">
@@ -376,6 +446,9 @@ export default function SalesPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-left">${(item.price * item.quantity).toFixed(2)}</TableCell>
+                        <TableCell className="text-center">
+                            <Checkbox checked={item.isReturn} onCheckedChange={() => handleToggleReturn(item.medicationId)} />
+                        </TableCell>
                         <TableCell className="text-left">
                             <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)}><X className="h-4 w-4" /></Button>
                         </TableCell>
@@ -395,10 +468,10 @@ export default function SalesPage() {
           <CardFooter className="flex flex-col gap-4 mt-auto border-t pt-6">
             <div className="flex justify-between w-full text-lg font-semibold">
                 <span>الإجمالي</span>
-                <span>${cartTotal.toFixed(2)}</span>
+                <span className={cartTotal < 0 ? 'text-destructive' : ''}>${cartTotal.toFixed(2)}</span>
             </div>
             <Button size="lg" className="w-full" onClick={handleCheckout} disabled={cart.length === 0}>
-                تسجيل البيع
+                إتمام العملية
             </Button>
           </CardFooter>
         </Card>

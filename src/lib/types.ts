@@ -15,6 +15,7 @@ export type SaleItem = {
   name: string;
   quantity: number;
   price: number;
+  isReturn?: boolean;
 };
 
 export type Sale = {
@@ -45,4 +46,13 @@ export type Return = {
   medicationName: string;
   quantity: number;
   reason: string;
+};
+
+export type Patient = {
+  id: string;
+  name: string;
+  medications: {
+    medicationId: string;
+    name: string;
+  }[];
 };
