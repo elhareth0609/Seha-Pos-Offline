@@ -17,6 +17,7 @@ export type SaleItem = {
   quantity: number;
   price: number;
   expirationDate?: string;
+  isReturn?: boolean;
 };
 
 export type Sale = {

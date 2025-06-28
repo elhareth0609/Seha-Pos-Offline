@@ -23,6 +23,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog"
 import {
   Alert,
@@ -35,10 +37,12 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import { inventory as fallbackInventory, sales as fallbackSales } from "@/lib/data"
 import type { Medication, SaleItem, Sale } from "@/lib/types"
-import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine } from "lucide-react"
+import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { Checkbox } from "@/components/ui/checkbox"
+import { cn } from "@/lib/utils"
 
 function loadInitialData<T>(key: string, fallbackData: T): T {
     if (typeof window === "undefined") {
@@ -124,21 +128,22 @@ export default function SalesPage() {
   const [suggestions, setSuggestions] = React.useState<Medication[]>([])
   const [cart, setCart] = React.useState<SaleItem[]>([])
   const [isScannerOpen, setIsScannerOpen] = React.useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = React.useState(false);
   const [discount, setDiscount] = React.useState(0);
   const [discountInput, setDiscountInput] = React.useState("0");
   const { toast } = useToast()
 
   const addToCart = React.useCallback((medication: Medication) => {
     setCart((prevCart) => {
-      const existingItem = prevCart.find(item => item.medicationId === medication.id)
+      const existingItem = prevCart.find(item => item.medicationId === medication.id && !item.isReturn)
       if (existingItem) {
         return prevCart.map(item =>
-          item.medicationId === medication.id
+          item.medicationId === medication.id && !item.isReturn
             ? { ...item, quantity: item.quantity + 1 }
             : item
         )
       }
-      return [...prevCart, { medicationId: medication.id, name: medication.name, quantity: 1, price: medication.price, expirationDate: medication.expirationDate }]
+      return [...prevCart, { medicationId: medication.id, name: medication.name, quantity: 1, price: medication.price, expirationDate: medication.expirationDate, isReturn: false }]
     })
     setSearchTerm("")
     setSuggestions([])
@@ -213,6 +218,14 @@ export default function SalesPage() {
   const removeFromCart = (medicationId: string) => {
     setCart(cart => cart.filter(item => item.medicationId !== medicationId))
   }
+
+  const toggleReturn = (medicationId: string) => {
+    setCart(cart => cart.map(item => 
+      item.medicationId === medicationId 
+        ? { ...item, isReturn: !item.isReturn } 
+        : item
+    ));
+  };
   
   const handleDiscountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -221,7 +234,10 @@ export default function SalesPage() {
     setDiscount(isNaN(numericValue) || numericValue < 0 ? 0 : numericValue);
   }
 
-  const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  const subtotal = cart.reduce((total, item) => {
+      const itemTotal = item.price * item.quantity;
+      return item.isReturn ? total - itemTotal : total + itemTotal;
+  }, 0);
   const finalTotal = subtotal - discount;
 
   const handleCheckout = () => {
@@ -230,27 +246,32 @@ export default function SalesPage() {
       return;
     }
 
-    if (discount > subtotal) {
-      toast({ title: "خطأ في الخصم", description: "لا يمكن أن يكون الخصم أكبر من المجموع الفرعي.", variant: "destructive" })
+    if (finalTotal < 0) {
+      toast({ title: "خطأ في الإجمالي", description: "لا يمكن أن يكون المبلغ الإجمالي سالبًا.", variant: "destructive" })
       return;
     }
 
     for (const itemInCart of cart) {
-        const med = allInventory.find(m => m.id === itemInCart.medicationId);
-        if (!med || med.stock < itemInCart.quantity) {
-             toast({ variant: 'destructive', title: `كمية غير كافية من ${itemInCart.name}`, description: `الكمية المطلوبة ${itemInCart.quantity}, المتوفر ${med?.stock ?? 0}` });
-             return;
+        if (!itemInCart.isReturn) {
+            const med = allInventory.find(m => m.id === itemInCart.medicationId);
+            if (!med || med.stock < itemInCart.quantity) {
+                toast({ variant: 'destructive', title: `كمية غير كافية من ${itemInCart.name}`, description: `الكمية المطلوبة ${itemInCart.quantity}, المتوفر ${med?.stock ?? 0}` });
+                return;
+            }
         }
     }
     
-    handleFinalizeSale();
+    setIsCheckoutOpen(true);
   }
   
   const handleFinalizeSale = () => {
     const updatedInventory = allInventory.map(med => {
         const itemInCart = cart.find(cartItem => cartItem.medicationId === med.id);
         if (itemInCart) {
-            return { ...med, stock: med.stock - itemInCart.quantity };
+            const newStock = itemInCart.isReturn 
+                ? med.stock + itemInCart.quantity
+                : med.stock - itemInCart.quantity;
+            return { ...med, stock: newStock };
         }
         return med;
     });
@@ -281,6 +302,7 @@ export default function SalesPage() {
     setDiscount(0);
     setDiscountInput("0");
     setSearchTerm("");
+    setIsCheckoutOpen(false);
   }
 
   return (
@@ -337,6 +359,7 @@ export default function SalesPage() {
                 <Table>
                     <TableHeader className="sticky top-0 bg-background">
                         <TableRow>
+                            <TableHead className="w-12 text-center"><ArrowLeftRight className="h-4 w-4 mx-auto"/></TableHead>
                             <TableHead>المنتج</TableHead>
                             <TableHead className="w-[120px] text-center">الكمية</TableHead>
                             <TableHead className="w-[120px] text-center">سعر الوحدة</TableHead>
@@ -349,12 +372,22 @@ export default function SalesPage() {
                       const medInInventory = allInventory.find(med => med.id === item.medicationId);
                       const stock = medInInventory?.stock ?? 0;
                       const remainingStock = stock - item.quantity;
+                      const itemTotal = (item.isReturn ? -1 : 1) * item.price * item.quantity;
                       return (
-                        <TableRow key={item.medicationId}>
+                        <TableRow key={item.medicationId} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
+                            <TableCell className="text-center">
+                                <Checkbox
+                                    checked={!!item.isReturn}
+                                    onCheckedChange={() => toggleReturn(item.medicationId)}
+                                    aria-label="Mark as return"
+                                />
+                            </TableCell>
                             <TableCell>
                                 <div className="font-medium">{item.name}</div>
                                 <div className="text-xs text-muted-foreground">
-                                    الرصيد: {stock} | المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span>
+                                    الرصيد: {stock} 
+                                    {!item.isReturn && ` | المتبقي: `}
+                                    {!item.isReturn && <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span>}
                                 </div>
                                 {item.expirationDate && (
                                     <div className="text-xs text-muted-foreground">
@@ -379,7 +412,7 @@ export default function SalesPage() {
                                     min="0"
                                 />
                             </TableCell>
-                            <TableCell className="text-left font-mono">${(item.price * item.quantity).toFixed(2)}</TableCell>
+                            <TableCell className="text-left font-mono">{itemTotal.toFixed(2)}$</TableCell>
                             <TableCell className="text-left">
                                 <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)}><X className="h-4 w-4" /></Button>
                             </TableCell>
@@ -418,9 +451,50 @@ export default function SalesPage() {
                 <span>الإجمالي</span>
                 <span className={finalTotal < 0 ? 'text-destructive' : ''}>${finalTotal.toFixed(2)}</span>
             </div>
-            <Button size="lg" className="w-full" onClick={handleCheckout} disabled={cart.length === 0}>
-                إتمام العملية وتحديث المخزون
-            </Button>
+            <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
+                <DialogTrigger asChild>
+                    <Button size="lg" className="w-full" onClick={handleCheckout} disabled={cart.length === 0}>
+                        إتمام العملية
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>تأكيد الفاتورة</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="max-h-64 overflow-y-auto p-1">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>المنتج</TableHead>
+                                        <TableHead className="text-center">الكمية</TableHead>
+                                        <TableHead className="text-left">السعر</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {cart.map(item => (
+                                        <TableRow key={item.medicationId} className={cn(item.isReturn && "text-destructive")}>
+                                            <TableCell>{item.name} {item.isReturn && "(مرتجع)"}</TableCell>
+                                            <TableCell className="text-center">{item.quantity}</TableCell>
+                                            <TableCell className="text-left">${(item.isReturn ? -1 : 1) * item.price * item.quantity}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        <Separator/>
+                        <div className="space-y-2 text-sm">
+                            <div className="flex justify-between"><span>المجموع الفرعي:</span><span>${subtotal.toFixed(2)}</span></div>
+                            <div className="flex justify-between"><span>الخصم:</span><span>-${discount.toFixed(2)}</span></div>
+                            <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>${finalTotal.toFixed(2)}</span></div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
+                        <Button onClick={handleFinalizeSale}>تأكيد البيع وتحديث المخزون</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
           </CardFooter>
         </Card>
     </div>
