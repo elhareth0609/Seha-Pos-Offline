@@ -346,7 +346,7 @@ export default function PurchasesPage() {
                             <TableCell>{po.id}</TableCell>
                             <TableCell>{po.supplierName}</TableCell>
                             <TableCell>{new Date(po.date).toLocaleDateString('ar-EG')}</TableCell>
-                            <TableCell className="font-mono">${po.totalAmount.toFixed(2)}</TableCell>
+                            <TableCell className="font-mono">${(po.totalAmount || 0).toFixed(2)}</TableCell>
                             <TableCell>{po.status}</TableCell>
                         </TableRow>
                     ))}
