@@ -33,10 +33,16 @@ import {
 export default function SettingsPage() {
     const { toast } = useToast()
     const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
-    const [currentSettings, setCurrentSettings] = React.useState<AppSettings>(settings);
+    
+    // Merge settings from localStorage with fallback defaults to ensure a complete object.
+    // This prevents errors if `settings` from localStorage is null or partial.
+    const [currentSettings, setCurrentSettings] = React.useState<AppSettings>(
+        () => ({ ...fallbackSettings, ...(settings || {}) })
+    );
 
+    // When the data from localStorage changes, update the form state.
     React.useEffect(() => {
-        setCurrentSettings(settings);
+        setCurrentSettings({ ...fallbackSettings, ...(settings || {}) });
     }, [settings]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -78,25 +84,25 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
                 <div className="space-y-2">
                     <Label htmlFor="pharmacyName">اسم الصيدلية</Label>
-                    <Input id="pharmacyName" value={currentSettings.pharmacyName} onChange={handleInputChange} />
+                    <Input id="pharmacyName" value={currentSettings.pharmacyName || ''} onChange={handleInputChange} />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="pharmacyAddress">العنوان</Label>
-                    <Textarea id="pharmacyAddress" value={currentSettings.pharmacyAddress} onChange={handleInputChange} />
+                    <Textarea id="pharmacyAddress" value={currentSettings.pharmacyAddress || ''} onChange={handleInputChange} />
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="pharmacyPhone">رقم الهاتف</Label>
-                        <Input id="pharmacyPhone" type="tel" value={currentSettings.pharmacyPhone} onChange={handleInputChange} />
+                        <Input id="pharmacyPhone" type="tel" value={currentSettings.pharmacyPhone || ''} onChange={handleInputChange} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="pharmacyEmail">البريد الإلكتروني</Label>
-                        <Input id="pharmacyEmail" type="email" value={currentSettings.pharmacyEmail} onChange={handleInputChange} />
+                        <Input id="pharmacyEmail" type="email" value={currentSettings.pharmacyEmail || ''} onChange={handleInputChange} />
                     </div>
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="expirationThresholdDays">تنبيه انتهاء الصلاحية (بالأيام)</Label>
-                    <Input id="expirationThresholdDays" type="number" value={currentSettings.expirationThresholdDays} onChange={handleInputChange}/>
+                    <Input id="expirationThresholdDays" type="number" value={currentSettings.expirationThresholdDays || 0} onChange={handleInputChange}/>
                 </div>
             </CardContent>
             <CardFooter>
