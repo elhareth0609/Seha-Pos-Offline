@@ -65,14 +65,19 @@ export default function InventoryPage() {
 
   const [printingMed, setPrintingMed] = React.useState<Medication | null>(null);
   const printComponentRef = React.useRef(null);
+  const medToPrintRef = React.useRef<Medication | null>(null);
 
   const handlePrint = useReactToPrint({
       content: () => printComponentRef.current,
-      documentTitle: `barcode-${printingMed?.id}`,
-      onAfterPrint: () => setPrintingMed(null)
+      documentTitle: `barcode-${medToPrintRef.current?.id || ''}`,
+      onAfterPrint: () => {
+        medToPrintRef.current = null;
+        setPrintingMed(null);
+      }
   });
 
-  const openPrintModal = (med: Medication) => {
+  const triggerPrint = (med: Medication) => {
+      medToPrintRef.current = med;
       setPrintingMed(med);
   }
   
@@ -283,7 +288,7 @@ export default function InventoryPage() {
                                 <Pencil className="me-2 h-4 w-4" />
                                 تعديل
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => openPrintModal(item)}>
+                            <DropdownMenuItem onSelect={() => triggerPrint(item)}>
                                 <Printer className="me-2 h-4 w-4" />
                                 طباعة الباركود
                             </DropdownMenuItem>
