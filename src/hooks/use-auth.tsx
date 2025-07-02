@@ -14,7 +14,7 @@ interface AuthContextType {
   setupAdmin: (name: string, email: string, pin: string) => void;
   login: (email: string, pin: string) => Promise<boolean>;
   logout: () => void;
-  registerUser: (name: string, email: string, pin: string) => Promise<boolean>;
+  registerUser: (name: string) => Promise<boolean>;
   resetPin: (email: string, newPin: string) => Promise<boolean>;
   checkUserExists: (email: string) => Promise<boolean>;
   deleteUser: (userId: string) => Promise<boolean>;
@@ -45,16 +45,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(adminUser);
   };
   
-  const registerUser = async (name: string, email: string, pin: string): Promise<boolean> => {
-      const userExists = users.some(u => u && u.email && u.email.toLowerCase() === email.toLowerCase());
-      if (userExists) {
-          return false; // Email already taken
-      }
+  const registerUser = async (name: string): Promise<boolean> => {
+      // Employees are just names, no need for email/pin.
       const newUser: User = {
-          id: `USR${(users.length + 1).toString().padStart(3, '0')}`,
+          id: `USR${Date.now()}`, // Use timestamp for a unique ID
           name,
-          email,
-          pin,
           role: 'Employee'
       };
       setUsers(prev => [...prev, newUser]);

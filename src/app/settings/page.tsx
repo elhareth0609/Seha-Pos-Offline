@@ -59,12 +59,6 @@ type SettingsFormValues = z.infer<typeof settingsSchema>
 
 const addUserSchema = z.object({
     name: z.string().min(3, { message: "الرجاء إدخال اسم مكون من 3 أحرف على الأقل." }),
-    email: z.string().email({ message: "الرجاء إدخال بريد إلكتروني صحيح." }),
-    pin: z.string().length(4, { message: "يجب أن يتكون رمز PIN من 4 أرقام." }).regex(/^\d{4}$/, { message: "يجب أن يتكون رمز PIN من أرقام فقط." }),
-    confirmPin: z.string()
-}).refine(data => data.pin === data.confirmPin, {
-    message: "رموز PIN غير متطابقة",
-    path: ["confirmPin"],
 });
 
 type AddUserFormValues = z.infer<typeof addUserSchema>;
@@ -84,7 +78,7 @@ export default function SettingsPage() {
     
     const addUserForm = useForm<AddUserFormValues>({
         resolver: zodResolver(addUserSchema),
-        defaultValues: { name: "", email: "", pin: "", confirmPin: "" }
+        defaultValues: { name: "" }
     });
 
     React.useEffect(() => {
@@ -102,13 +96,14 @@ export default function SettingsPage() {
     }
 
     const onAddUserSubmit = async (data: AddUserFormValues) => {
-        const success = await registerUser(data.name, data.email, data.pin);
+        const success = await registerUser(data.name);
         if (success) {
-            toast({ title: "تم إضافة المستخدم بنجاح!" });
+            toast({ title: "تم إضافة الموظف بنجاح!" });
             setIsAddUserOpen(false);
             addUserForm.reset();
         } else {
-            addUserForm.setError("email", { type: "manual", message: "هذا البريد الإلكتروني مستخدم بالفعل." });
+            // This case should not happen with the new simplified logic
+            toast({ variant: 'destructive', title: "حدث خطأ" });
         }
     }
 
@@ -124,7 +119,7 @@ export default function SettingsPage() {
     const handleDeleteUser = async (userId: string, userName: string) => {
         const success = await deleteUser(userId);
         if (success) {
-            toast({ title: "تم حذف المستخدم", description: `تم حذف ${userName} بنجاح.` });
+            toast({ title: "تم حذف الموظف", description: `تم حذف ${userName} بنجاح.` });
         } else {
             toast({ variant: 'destructive', title: 'خطأ', description: 'لا يمكن حذف حساب المدير.' });
         }
@@ -255,9 +250,9 @@ export default function SettingsPage() {
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                        <CardTitle>إدارة المستخدمين</CardTitle>
+                        <CardTitle>إدارة الموظفين</CardTitle>
                         <CardDescription>
-                            إضافة، عرض، وحذف حسابات الموظفين.
+                            إضافة، عرض، وحذف أسماء الموظفين لإسناد المبيعات.
                         </CardDescription>
                     </div>
                     <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
@@ -275,41 +270,8 @@ export default function SettingsPage() {
                                         name="name"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>الاسم الكامل</FormLabel>
-                                                <FormControl><Input placeholder="اسم الموظف" {...field} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={addUserForm.control}
-                                        name="email"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>البريد الإلكتروني</FormLabel>
-                                                <FormControl><Input type="email" placeholder="example@email.com" {...field} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={addUserForm.control}
-                                        name="pin"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>رمز PIN (4 أرقام)</FormLabel>
-                                                <FormControl><Input type="password" inputMode="numeric" maxLength={4} {...field} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                     <FormField
-                                        control={addUserForm.control}
-                                        name="confirmPin"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>تأكيد رمز PIN</FormLabel>
-                                                <FormControl><Input type="password" inputMode="numeric" maxLength={4} {...field} /></FormControl>
+                                                <FormLabel>اسم الموظف</FormLabel>
+                                                <FormControl><Input placeholder="اسم الموظف الكامل" {...field} /></FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -328,7 +290,6 @@ export default function SettingsPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>الاسم</TableHead>
-                                <TableHead>البريد الإلكتروني</TableHead>
                                 <TableHead>الدور</TableHead>
                                 <TableHead className="text-left">الإجراءات</TableHead>
                             </TableRow>
@@ -337,7 +298,6 @@ export default function SettingsPage() {
                             {users.map(user => (
                                 <TableRow key={user.id}>
                                     <TableCell className="font-medium">{user.name}</TableCell>
-                                    <TableCell>{user.email}</TableCell>
                                     <TableCell>
                                         <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'}>
                                             {user.role === 'Admin' ? 'مدير' : 'موظف'}
@@ -355,7 +315,7 @@ export default function SettingsPage() {
                                                     <AlertDialogHeader>
                                                         <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
                                                         <AlertDialogDescription>
-                                                            سيتم حذف حساب المستخدم {user.name} بشكل نهائي. لا يمكن التراجع عن هذا الإجراء.
+                                                            سيتم حذف الموظف {user.name} بشكل نهائي.
                                                         </AlertDialogDescription>
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>

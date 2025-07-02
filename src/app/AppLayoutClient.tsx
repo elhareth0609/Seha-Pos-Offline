@@ -7,15 +7,10 @@ import { AppShell } from '@/components/layout/app-shell';
 import { Loader2 } from 'lucide-react';
 import SetupPage from '@/components/auth/SetupPage';
 import LoginPage from '@/components/auth/LoginPage';
-import SignUpPage from '@/app/signup/page';
 
 export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
     const { loading, isSetup, isAuthenticated } = useAuth();
     const pathname = usePathname();
-
-    if (pathname === '/signup') {
-        return <SignUpPage />;
-    }
 
     if (loading) {
         return (

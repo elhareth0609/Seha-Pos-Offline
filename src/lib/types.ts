@@ -81,9 +81,9 @@ export type Supplier = {
 export type User = {
   id: string;
   name: string;
-  email: string;
   role: "Admin" | "Employee";
-  pin: string;
+  email?: string; // Optional: Only for Admin
+  pin?: string; // Optional: Only for Admin
 };
 
 export type Patient = {
