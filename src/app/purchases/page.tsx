@@ -424,7 +424,7 @@ export default function PurchasesPage() {
                             <TableCell>{ret.id}</TableCell>
                             <TableCell>{ret.medicationName}</TableCell>
                             <TableCell>{ret.quantity}</TableCell>
-                            <TableCell className="font-mono">${ret.totalAmount.toFixed(2)}</TableCell>
+                            <TableCell className="font-mono">${(ret.totalAmount || 0).toFixed(2)}</TableCell>
                             <TableCell>{ret.reason}</TableCell>
                             <TableCell>{new Date(ret.date).toLocaleDateString('ar-EG')}</TableCell>
                         </TableRow>
