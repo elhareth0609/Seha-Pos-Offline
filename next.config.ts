@@ -9,6 +9,8 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
+  assetPrefix: './',
+  trailingSlash: true,
   output: 'export',
   typescript: {
     ignoreBuildErrors: true,
