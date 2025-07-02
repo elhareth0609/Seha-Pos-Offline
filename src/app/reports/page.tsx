@@ -34,11 +34,18 @@ import { useReactToPrint } from 'react-to-print';
 import { InvoiceTemplate } from '@/components/ui/invoice';
 import { Printer } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ReportsPage() {
     const [sales] = useLocalStorage<Sale[]>('sales', fallbackSales);
     const [settings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
     const [searchTerm, setSearchTerm] = React.useState("");
+    const [isClient, setIsClient] = React.useState(false);
+
+    React.useEffect(() => {
+        setIsClient(true);
+    }, []);
+
 
     const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
     const [selectedSale, setSelectedSale] = React.useState<Sale | null>(null);
@@ -56,9 +63,48 @@ export default function ReportsPage() {
 
     const filteredSales = sales.filter(sale => 
         sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sale.patientName?.toLowerCase().includes(searchTerm.toLowerCase())
+        (sale.patientName || '').toLowerCase().includes(searchTerm.toLowerCase())
     ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+    if (!isClient) {
+        return (
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-5 w-72" />
+                    <div className="pt-4">
+                        <Skeleton className="h-10 max-w-sm" />
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>رقم الفاتورة</TableHead>
+                                <TableHead>التاريخ</TableHead>
+                                <TableHead>العميل</TableHead>
+                                <TableHead className="text-center">عدد الأصناف</TableHead>
+                                <TableHead className="text-left">الإجمالي</TableHead>
+                                <TableHead>الإجراءات</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {Array.from({ length: 8 }).map((_, i) => (
+                                <TableRow key={i}>
+                                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                                    <TableCell className="text-center"><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
+                                    <TableCell className="text-left"><Skeleton className="h-5 w-16" /></TableCell>
+                                    <TableCell><Skeleton className="h-9 w-24" /></TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
         <>
