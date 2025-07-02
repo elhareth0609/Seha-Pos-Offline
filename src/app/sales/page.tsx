@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -49,6 +48,13 @@ import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useReactToPrint } from "react-to-print"
 import { InvoiceTemplate } from "@/components/ui/invoice"
 import { useAuth } from "@/hooks/use-auth"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 
 function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => void; onOpenChange: (isOpen: boolean) => void }) {
@@ -117,7 +123,7 @@ export default function SalesPage() {
   const [allInventory, setAllInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
   const [sales, setSales] = useLocalStorage<Sale[]>('sales', fallbackSales);
   const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
-  const { currentUser } = useAuth();
+  const { currentUser, users } = useAuth();
   
   const [searchTerm, setSearchTerm] = React.useState("")
   const [suggestions, setSuggestions] = React.useState<Medication[]>([])
@@ -128,6 +134,8 @@ export default function SalesPage() {
   const [saleToPrint, setSaleToPrint] = React.useState<Sale | null>(null);
   const [discount, setDiscount] = React.useState(0);
   const [discountInput, setDiscountInput] = React.useState("0");
+  const [selectedEmployeeId, setSelectedEmployeeId] = React.useState<string | undefined>(currentUser?.id);
+
   const { toast } = useToast()
   
   const printComponentRef = React.useRef(null);
@@ -135,6 +143,12 @@ export default function SalesPage() {
     content: () => printComponentRef.current,
     documentTitle: `invoice-${saleToPrint?.id || ''}`,
   });
+
+  React.useEffect(() => {
+    if (currentUser && !selectedEmployeeId) {
+        setSelectedEmployeeId(currentUser.id);
+    }
+  }, [currentUser, selectedEmployeeId]);
 
   const addToCart = React.useCallback((medication: Medication) => {
     setCart((prevCart) => {
@@ -260,6 +274,11 @@ export default function SalesPage() {
       return;
     }
 
+    if (!selectedEmployeeId) {
+        toast({ title: "لم يتم تحديد الموظف", description: "الرجاء اختيار الموظف البائع من القائمة.", variant: "destructive" });
+        return;
+    }
+
     for (const itemInCart of cart) {
         if (!itemInCart.isReturn) {
             const med = allInventory.find(m => m.id === itemInCart.medicationId);
@@ -282,8 +301,9 @@ export default function SalesPage() {
   }
   
   const handleFinalizeSale = () => {
-    if (!currentUser) {
-        toast({ title: "خطأ", description: "لم يتم تحديد المستخدم الحالي.", variant: "destructive" });
+    const selectedEmployee = users.find(u => u.id === selectedEmployeeId);
+    if (!selectedEmployee) {
+        toast({ title: "خطأ", description: "الرجاء اختيار الموظف البائع.", variant: "destructive" });
         return;
     }
 
@@ -308,8 +328,8 @@ export default function SalesPage() {
         total: finalTotal,
         profit: totalProfit,
         discount: discount,
-        employeeId: currentUser.id,
-        employeeName: currentUser.name,
+        employeeId: selectedEmployee.id,
+        employeeName: selectedEmployee.name,
     };
     
     setSales(prev => [newSale, ...prev]);
@@ -476,11 +496,23 @@ export default function SalesPage() {
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                      <div className="space-y-2">
-                        <Label>الموظف البائع</Label>
-                        <div className="flex items-center p-2 border rounded-md bg-muted">
-                            <UserIcon className="me-2 h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{currentUser?.name}</span>
-                        </div>
+                        <Label htmlFor="employee-selector">الموظف البائع</Label>
+                        <Select
+                            value={selectedEmployeeId}
+                            onValueChange={setSelectedEmployeeId}
+                            required
+                        >
+                            <SelectTrigger id="employee-selector">
+                                <SelectValue placeholder="اختر الموظف" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {users.map(user => (
+                                    <SelectItem key={user.id} value={user.id}>
+                                        {user.name} ({user.role === 'Admin' ? 'مدير' : 'موظف'})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                      </div>
                     <Separator />
 
@@ -505,7 +537,7 @@ export default function SalesPage() {
                 <CardFooter>
                      <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
                         <DialogTrigger asChild>
-                            <Button size="lg" className="w-full text-lg" onClick={handleCheckout} disabled={cart.length === 0}>
+                            <Button size="lg" className="w-full text-lg" onClick={handleCheckout} disabled={cart.length === 0 || !selectedEmployeeId}>
                                 إتمام العملية
                             </Button>
                         </DialogTrigger>
@@ -536,7 +568,7 @@ export default function SalesPage() {
                                 </div>
                                 <Separator/>
                                 <div className="space-y-2 text-sm">
-                                    <div className="flex justify-between"><span>الموظف:</span><span>{currentUser?.name}</span></div>
+                                    <div className="flex justify-between"><span>الموظف:</span><span>{users.find(u => u.id === selectedEmployeeId)?.name}</span></div>
                                     <div className="flex justify-between"><span>المجموع الفرعي:</span><span>${subtotal.toFixed(2)}</span></div>
                                     <div className="flex justify-between"><span>الخصم:</span><span>-${discount.toFixed(2)}</span></div>
                                      <div className="flex justify-between text-green-600"><span>الربح الصافي:</span><span>${(totalProfit - discount).toFixed(2)}</span></div>

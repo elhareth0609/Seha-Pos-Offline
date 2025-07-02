@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { PackagePlus, LogIn, UserPlus } from 'lucide-react';
-import { Separator } from "@/components/ui/separator";
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -166,16 +165,6 @@ export default function LoginPage() {
                         </AlertDialog>
                     </CardFooter>
                 </form>
-                <Separator className="my-4" />
-                <CardFooter className="flex-col gap-4">
-                    <p className="text-sm text-muted-foreground">ليس لديك حساب؟</p>
-                    <Button variant="outline" className="w-full" asChild>
-                        <Link href="/signup">
-                            <UserPlus className="me-2 h-4 w-4" />
-                            إنشاء حساب جديد
-                        </Link>
-                    </Button>
-                </CardFooter>
             </Card>
         </div>
     );
