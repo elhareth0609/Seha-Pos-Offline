@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -60,10 +61,12 @@ export default function PurchasesPage() {
 
   const handleAddPurchase = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
     
     const purchaseId = formData.get("purchaseId") as string;
     const supplierId = formData.get("supplierId") as string;
+    let medicationId = formData.get("medicationId") as string; // This is the barcode
     const medicationName = formData.get("medicationName") as string;
     const quantity = parseInt(formData.get("quantity") as string, 10);
     const expirationDate = formData.get("expirationDate") as string;
@@ -81,26 +84,38 @@ export default function PurchasesPage() {
         return;
     }
     
+    const isNewGenerated = !medicationId;
+    if (isNewGenerated) {
+        medicationId = Date.now().toString(); // Generate a unique ID
+    }
+    
     let newInventory = [...inventory];
-    let medication = newInventory.find(m => m.name.toLowerCase() === medicationName.toLowerCase());
-    let medicationId: string;
+    let medicationIndex = newInventory.findIndex(m => m.id === medicationId);
 
-    if (medication) {
-      medication.stock += quantity;
-      medication.price = sellingPrice;
-      medication.purchasePrice = purchasePrice;
-      medication.expirationDate = expirationDate;
-      medication.supplierId = supplier.id;
-      medication.supplierName = supplier.name;
-      medicationId = medication.id;
+    if (medicationIndex !== -1) {
+      // Medication exists, update it
+      const existingMed = newInventory[medicationIndex];
+      existingMed.stock += quantity;
+      existingMed.price = sellingPrice;
+      existingMed.purchasePrice = purchasePrice;
+      existingMed.expirationDate = expirationDate;
+      existingMed.supplierId = supplier.id;
+      existingMed.supplierName = supplier.name;
+      existingMed.name = medicationName; // Also update the name
+      newInventory[medicationIndex] = existingMed;
+      toast({
+          title: "تم تحديث الرصيد",
+          description: `تمت إضافة ${quantity} إلى رصيد ${medicationName}. الرصيد الجديد: ${existingMed.stock}`,
+        });
+
     } else {
-      medicationId = `MED${(inventory.length + 1).toString().padStart(3, '0')}`;
+      // New medication, add it
       const newMedication: Medication = {
           id: medicationId,
           name: medicationName,
           stock: quantity,
-          reorderPoint: 20,
-          category: "Uncategorized",
+          reorderPoint: 20, // default
+          category: "Uncategorized", // default
           supplierId: supplier.id,
           supplierName: supplier.name,
           price: sellingPrice,
@@ -108,6 +123,10 @@ export default function PurchasesPage() {
           expirationDate: expirationDate,
       };
       newInventory.unshift(newMedication);
+      toast({
+          title: "تم استلام البضاعة",
+          description: `تمت إضافة ${quantity} من ${medicationName} إلى المخزون.`,
+        });
     }
 
     setInventory(newInventory);
@@ -142,12 +161,7 @@ export default function PurchasesPage() {
 
     setPurchaseOrders(newPurchaseOrders);
     
-    toast({
-      title: "تم استلام البضاعة",
-      description: `تمت إضافة ${quantity} من ${medicationName} إلى المخزون.`,
-    });
-
-    event.currentTarget.reset();
+    form.reset();
   };
 
   const handleAddSupplier = (event: React.FormEvent<HTMLFormElement>) => {
@@ -274,6 +288,10 @@ export default function PurchasesPage() {
                         </SelectContent>
                     </Select>
                 </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="medicationId">الباركود (المعرف) - يترك فارغاً للتوليد التلقائي</Label>
+                    <Input id="medicationId" name="medicationId" type="text" placeholder="امسح الباركود أو أدخله يدويًا" />
+                </div>
                 <div className="space-y-2">
                     <Label htmlFor="medicationName">اسم الدواء</Label>
                     <Input id="medicationName" name="medicationName" type="text" placeholder="مثال: Paracetamol 500mg" required />
@@ -348,7 +366,7 @@ export default function PurchasesPage() {
                         <Select name="medicationId" required>
                             <SelectTrigger id="return-medicationId"><SelectValue placeholder="اختر دواء" /></SelectTrigger>
                             <SelectContent>
-                                {inventory.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                                {inventory.map(m => <SelectItem key={m.id} value={m.id}>{m.name} ({m.id})</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>

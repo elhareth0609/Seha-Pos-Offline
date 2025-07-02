@@ -320,10 +320,11 @@ export default function SalesPage() {
                     <div className="flex gap-2 pt-2">
                         <div className="relative flex-1">
                             <Input 
-                            placeholder="ابحث بالاسم/المعرف أو امسح الباركود..."
+                            placeholder="امسح الباركود أو ابحث بالاسم..."
                             value={searchTerm}
                             onChange={handleSearchChange}
                             onKeyDown={handleSearchKeyDown}
+                            autoFocus
                             />
                             {suggestions.length > 0 && (
                                 <Card className="absolute z-50 w-full mt-1 bg-background shadow-lg border">
@@ -381,7 +382,7 @@ export default function SalesPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="p-0 flex-1">
-                    <ScrollArea className="h-full">
+                    <ScrollArea className="h-[calc(100vh-32rem)]">
                     {cart.length > 0 ? (
                         <Table>
                             <TableHeader className="sticky top-0 bg-background z-10">

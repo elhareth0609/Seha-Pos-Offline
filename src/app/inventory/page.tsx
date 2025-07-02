@@ -44,9 +44,11 @@ import { useToast } from "@/hooks/use-toast"
 import { inventory as fallbackInventory } from "@/lib/data"
 import type { Medication } from "@/lib/types"
 import { useLocalStorage } from "@/hooks/use-local-storage"
-import { MoreHorizontal, ListFilter, Trash2, Pencil, X } from "lucide-react"
+import { MoreHorizontal, ListFilter, Trash2, Pencil, X, Printer } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useReactToPrint } from 'react-to-print';
+import Barcode from '@/components/ui/barcode';
 
 
 export default function InventoryPage() {
@@ -60,6 +62,26 @@ export default function InventoryPage() {
   const [isClient, setIsClient] = React.useState(false)
 
   const { toast } = useToast();
+
+  const [printingMed, setPrintingMed] = React.useState<Medication | null>(null);
+  const printComponentRef = React.useRef(null);
+
+  const handlePrint = useReactToPrint({
+      content: () => printComponentRef.current,
+      documentTitle: `barcode-${printingMed?.id}`,
+      onAfterPrint: () => setPrintingMed(null)
+  });
+
+  const openPrintModal = (med: Medication) => {
+      setPrintingMed(med);
+  }
+  
+  React.useEffect(() => {
+    if (printingMed) {
+        handlePrint();
+    }
+  }, [printingMed, handlePrint]);
+
 
   React.useEffect(() => {
     setIsClient(true)
@@ -140,7 +162,7 @@ export default function InventoryPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>المعرف</TableHead>
+                                <TableHead>الباركود</TableHead>
                                 <TableHead>الاسم</TableHead>
                                 <TableHead>الفئة</TableHead>
                                 <TableHead>المورد</TableHead>
@@ -176,6 +198,16 @@ export default function InventoryPage() {
   }
   
   return (
+    <>
+    {printingMed && (
+        <div className="hidden">
+            <div ref={printComponentRef} className="p-8 text-center">
+                <h3 className="text-lg font-bold mb-4">{printingMed.name}</h3>
+                <Barcode value={printingMed.id} />
+                <p className="pt-2 text-xs">${printingMed.price.toFixed(2)}</p>
+            </div>
+        </div>
+    )}
     <Card>
       <CardHeader>
         <CardTitle>إدارة المخزون</CardTitle>
@@ -184,7 +216,7 @@ export default function InventoryPage() {
         </CardDescription>
         <div className="pt-4 flex gap-2">
           <Input 
-            placeholder="ابحث بالاسم أو المعرف..."
+            placeholder="ابحث بالاسم أو الباركود..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
@@ -215,7 +247,7 @@ export default function InventoryPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>المعرف</TableHead>
+              <TableHead>الباركود</TableHead>
               <TableHead>الاسم</TableHead>
               <TableHead>الفئة</TableHead>
               <TableHead>المورد</TableHead>
@@ -230,7 +262,7 @@ export default function InventoryPage() {
           <TableBody>
             {filteredInventory.map((item) => (
               <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.id}</TableCell>
+                <TableCell className="font-medium font-mono text-xs">{item.id}</TableCell>
                 <TableCell>{item.name}</TableCell>
                 <TableCell>{item.category}</TableCell>
                 <TableCell>{item.supplierName}</TableCell>
@@ -252,6 +284,10 @@ export default function InventoryPage() {
                             <DropdownMenuItem onSelect={() => openEditModal(item)}>
                                 <Pencil className="me-2 h-4 w-4" />
                                 تعديل
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => openPrintModal(item)}>
+                                <Printer className="me-2 h-4 w-4" />
+                                طباعة الباركود
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                              <Dialog>
@@ -321,7 +357,6 @@ export default function InventoryPage() {
             </DialogContent>
         </Dialog>
     </Card>
+    </>
   )
 }
-
-    
