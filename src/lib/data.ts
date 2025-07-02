@@ -64,4 +64,7 @@ export const appSettings: AppSettings = {
     pharmacyPhone: "964-7701234567",
     pharmacyEmail: "contact@medstock.com",
     expirationThresholdDays: 90,
+    invoiceFooterMessage: "شكرًا لزيارتكم!",
 }
+
+    

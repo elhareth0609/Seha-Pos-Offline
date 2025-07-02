@@ -1,3 +1,4 @@
+
 export type Medication = {
   id: string;
   name: string;
@@ -109,4 +110,7 @@ export type AppSettings = {
     pharmacyPhone: string;
     pharmacyEmail: string;
     expirationThresholdDays: number;
+    invoiceFooterMessage?: string;
 }
+
+    

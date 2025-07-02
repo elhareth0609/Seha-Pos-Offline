@@ -26,8 +26,8 @@ import {
   YAxis,
   Tooltip,
 } from "recharts";
-import { inventory as fallbackInventory, sales as fallbackSales, purchaseOrders as fallbackPurchaseOrders, supplierReturns as fallbackReturns } from "@/lib/data";
-import type { Medication, Sale, PurchaseOrder, Return } from "@/lib/types";
+import { inventory as fallbackInventory, sales as fallbackSales, purchaseOrders as fallbackPurchaseOrders, supplierReturns as fallbackReturns, appSettings as fallbackSettings } from "@/lib/data";
+import type { Medication, Sale, PurchaseOrder, Return, AppSettings } from "@/lib/types";
 import { DollarSign, Package, Clock, TrendingDown, Landmark } from "lucide-react";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -41,6 +41,7 @@ export default function Dashboard() {
   const [sales, setSales] = useLocalStorage<Sale[]>('sales', fallbackSales);
   const [purchaseOrders, setPurchaseOrders] = useLocalStorage<PurchaseOrder[]>('purchaseOrders', fallbackPurchaseOrders);
   const [supplierReturns, setSupplierReturns] = useLocalStorage<Return[]>('supplierReturns', fallbackReturns);
+  const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
   const [isClient, setIsClient] = React.useState(false);
 
   React.useEffect(() => {
@@ -56,11 +57,13 @@ export default function Dashboard() {
   const lowStockItems = inventory.filter(
     (item) => item.stock < item.reorderPoint
   );
+  
+  const expirationThreshold = settings.expirationThresholdDays || 90;
 
   const expiringSoonItems = inventory.filter(item => {
     if (!item.expirationDate) return false;
     const daysLeft = differenceInDays(parseISO(item.expirationDate), new Date());
-    return daysLeft > 0 && daysLeft <= 90;
+    return daysLeft > 0 && daysLeft <= expirationThreshold;
   }).sort((a,b) => differenceInDays(parseISO(a.expirationDate), new Date()) - differenceInDays(parseISO(b.expirationDate), new Date()));
 
   const salesDataForChart = sales.map(sale => ({
@@ -176,7 +179,7 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{expiringSoonItems.length}</div>
             <p className="text-xs text-muted-foreground">
-              ستنتهي صلاحيتها خلال 90 يومًا
+              ستنتهي صلاحيتها خلال {expirationThreshold} يومًا
             </p>
           </CardContent>
         </Card>
@@ -274,7 +277,7 @@ export default function Dashboard() {
               <CardHeader className="flex-row items-center justify-between">
                   <div>
                       <CardTitle>أصناف قريبة الانتهاء</CardTitle>
-                      <CardDescription>ستنتهي صلاحية هذه الأصناف خلال 90 يومًا.</CardDescription>
+                      <CardDescription>ستنتهي صلاحية هذه الأصناف خلال {expirationThreshold} يومًا.</CardDescription>
                   </div>
                    <Link href="/expiring-soon">
                       <Button variant="outline">عرض الكل</Button>
@@ -309,5 +312,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
 
     

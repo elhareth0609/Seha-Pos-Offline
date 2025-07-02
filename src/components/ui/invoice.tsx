@@ -74,10 +74,12 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
         </div>
       </div>
       <div className="text-center mt-8 text-sm text-gray-500">
-        <p>شكرًا لزيارتكم!</p>
+        <p>{settings.invoiceFooterMessage || "شكرًا لزيارتكم!"}</p>
       </div>
     </div>
   );
 });
 
 InvoiceTemplate.displayName = 'InvoiceTemplate';
+
+    

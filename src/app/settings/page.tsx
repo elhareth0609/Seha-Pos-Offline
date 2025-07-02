@@ -2,6 +2,9 @@
 "use client"
 
 import * as React from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import {
   Card,
   CardContent,
@@ -12,7 +15,6 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Textarea } from "@/components/ui/textarea"
 import { useLocalStorage } from '@/hooks/use-local-storage'
@@ -30,36 +32,38 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Skeleton } from '@/components/ui/skeleton'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+
+const settingsSchema = z.object({
+  pharmacyName: z.string().min(2, { message: "يجب أن يكون اسم الصيدلية حرفين على الأقل." }),
+  pharmacyAddress: z.string().optional(),
+  pharmacyPhone: z.string().optional(),
+  pharmacyEmail: z.string().email({ message: "بريد إلكتروني غير صالح." }).optional().or(z.literal('')),
+  expirationThresholdDays: z.coerce.number().int().positive({ message: "يجب أن يكون عدد الأيام رقمًا صحيحًا موجبًا." }),
+  invoiceFooterMessage: z.string().optional(),
+})
+
+type SettingsFormValues = z.infer<typeof settingsSchema>
 
 export default function SettingsPage() {
     const { toast } = useToast()
     const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
-    const [currentSettings, setCurrentSettings] = React.useState<AppSettings | null>(null);
+    const [isClient, setIsClient] = React.useState(false);
+
+    const form = useForm<SettingsFormValues>({
+        resolver: zodResolver(settingsSchema),
+        defaultValues: { ...fallbackSettings },
+    });
 
     React.useEffect(() => {
-        // This ensures that we have the latest settings from localStorage
-        // and safely merges them with defaults. This effect runs on the client after hydration.
-        setCurrentSettings({ ...fallbackSettings, ...(settings || {}) });
-    }, [settings]);
+        setIsClient(true);
+        if (settings) {
+            form.reset({ ...fallbackSettings, ...settings });
+        }
+    }, [settings, form]);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        if (!currentSettings) return;
-        const { id, value } = e.target;
-        const target = e.target as HTMLInputElement;
-
-        setCurrentSettings(prev => {
-            if (!prev) return null; // Should not happen but for type safety
-            return {
-                ...prev,
-                [id]: target.type === 'number' ? (parseInt(value, 10) || 0) : value
-            }
-        });
-    }
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!currentSettings) return;
-        setSettings(currentSettings);
+    const onSubmit = (data: SettingsFormValues) => {
+        setSettings(data);
         toast({
             title: "تم حفظ الإعدادات بنجاح!",
         })
@@ -73,8 +77,7 @@ export default function SettingsPage() {
         }
     }
 
-    // Render a loading state until the settings are loaded on the client
-    if (!currentSettings) {
+    if (!isClient) {
         return (
             <div className="grid gap-6">
                 <Card>
@@ -90,6 +93,7 @@ export default function SettingsPage() {
                             <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
                         </div>
                         <div className="space-y-2"><Skeleton className="h-4 w-48" /><Skeleton className="h-10 w-full" /></div>
+                        <div className="space-y-2"><Skeleton className="h-4 w-48" /><Skeleton className="h-20 w-full" /></div>
                     </CardContent>
                     <CardFooter>
                         <Skeleton className="h-10 w-32" />
@@ -101,43 +105,97 @@ export default function SettingsPage() {
 
   return (
     <div className="grid gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>الإعدادات العامة</CardTitle>
-            <CardDescription>
-              إدارة الإعدادات العامة للصيدلية.
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="pharmacyName">اسم الصيدلية</Label>
-                    <Input id="pharmacyName" value={currentSettings.pharmacyName || ''} onChange={handleInputChange} />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="pharmacyAddress">العنوان</Label>
-                    <Textarea id="pharmacyAddress" value={currentSettings.pharmacyAddress || ''} onChange={handleInputChange} />
-                </div>
-                <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="pharmacyPhone">رقم الهاتف</Label>
-                        <Input id="pharmacyPhone" type="tel" value={currentSettings.pharmacyPhone || ''} onChange={handleInputChange} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="pharmacyEmail">البريد الإلكتروني</Label>
-                        <Input id="pharmacyEmail" type="email" value={currentSettings.pharmacyEmail || ''} onChange={handleInputChange} />
-                    </div>
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="expirationThresholdDays">تنبيه انتهاء الصلاحية (بالأيام)</Label>
-                    <Input id="expirationThresholdDays" type="number" value={currentSettings.expirationThresholdDays || 0} onChange={handleInputChange}/>
-                </div>
-            </CardContent>
-            <CardFooter>
-                <Button type="submit">حفظ التغييرات</Button>
-            </CardFooter>
-          </form>
-        </Card>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>الإعدادات العامة</CardTitle>
+                    <CardDescription>
+                      إدارة الإعدادات العامة للصيدلية. تؤثر هذه الإعدادات على الفواتير والتقارير والتنبيهات.
+                    </CardDescription>
+                  </CardHeader>
+                    <CardContent className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="pharmacyName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>اسم الصيدلية</FormLabel>
+                              <FormControl><Input {...field} /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="pharmacyAddress"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>العنوان</FormLabel>
+                              <FormControl><Textarea {...field} /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="pharmacyPhone"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>رقم الهاتف</FormLabel>
+                                  <FormControl><Input {...field} /></FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="pharmacyEmail"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>البريد الإلكتروني</FormLabel>
+                                  <FormControl><Input type="email" {...field} /></FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                        </div>
+                         <FormField
+                           control={form.control}
+                           name="expirationThresholdDays"
+                           render={({ field }) => (
+                             <FormItem>
+                               <FormLabel>تنبيه انتهاء الصلاحية (بالأيام)</FormLabel>
+                               <FormControl><Input type="number" {...field} /></FormControl>
+                               <FormDescription>
+                                 سيتم إدراج الأدوية التي تنتهي صلاحيتها خلال هذه الفترة في صفحة "قريب الانتهاء".
+                               </FormDescription>
+                               <FormMessage />
+                             </FormItem>
+                           )}
+                         />
+                         <FormField
+                          control={form.control}
+                          name="invoiceFooterMessage"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>رسالة تذييل الفاتورة</FormLabel>
+                              <FormControl><Textarea {...field} placeholder="شكرًا لزيارتكم!" /></FormControl>
+                              <FormDescription>
+                                هذه الرسالة ستظهر في أسفل كل فاتورة مطبوعة.
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                    </CardContent>
+                    <CardFooter>
+                        <Button type="submit">حفظ التغييرات</Button>
+                    </CardFooter>
+                </Card>
+            </form>
+        </Form>
         <Card className="border-destructive">
             <CardHeader>
                 <CardTitle>منطقة الخطر</CardTitle>
@@ -168,3 +226,5 @@ export default function SettingsPage() {
     </div>
   )
 }
+
+    
