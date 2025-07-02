@@ -29,34 +29,36 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function SettingsPage() {
     const { toast } = useToast()
     const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
-    
-    // Merge settings from localStorage with fallback defaults to ensure a complete object.
-    // This prevents errors if `settings` from localStorage is null or partial.
-    const [currentSettings, setCurrentSettings] = React.useState<AppSettings>(
-        () => ({ ...fallbackSettings, ...(settings || {}) })
-    );
+    const [currentSettings, setCurrentSettings] = React.useState<AppSettings | null>(null);
 
-    // When the data from localStorage changes, update the form state.
     React.useEffect(() => {
+        // This ensures that we have the latest settings from localStorage
+        // and safely merges them with defaults. This effect runs on the client after hydration.
         setCurrentSettings({ ...fallbackSettings, ...(settings || {}) });
     }, [settings]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        if (!currentSettings) return;
         const { id, value } = e.target;
         const target = e.target as HTMLInputElement;
 
-        setCurrentSettings(prev => ({
-            ...prev,
-            [id]: target.type === 'number' ? (parseInt(value, 10) || 0) : value
-        }));
+        setCurrentSettings(prev => {
+            if (!prev) return null; // Should not happen but for type safety
+            return {
+                ...prev,
+                [id]: target.type === 'number' ? (parseInt(value, 10) || 0) : value
+            }
+        });
     }
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
+        if (!currentSettings) return;
         setSettings(currentSettings);
         toast({
             title: "تم حفظ الإعدادات بنجاح!",
@@ -69,6 +71,32 @@ export default function SettingsPage() {
             alert("تم مسح جميع البيانات بنجاح. سيتم إعادة تحميل الصفحة.");
             window.location.reload();
         }
+    }
+
+    // Render a loading state until the settings are loaded on the client
+    if (!currentSettings) {
+        return (
+            <div className="grid gap-6">
+                <Card>
+                    <CardHeader>
+                        <Skeleton className="h-8 w-48" />
+                        <Skeleton className="h-5 w-72" />
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
+                        <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-20 w-full" /></div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
+                            <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
+                        </div>
+                        <div className="space-y-2"><Skeleton className="h-4 w-48" /><Skeleton className="h-10 w-full" /></div>
+                    </CardContent>
+                    <CardFooter>
+                        <Skeleton className="h-10 w-32" />
+                    </CardFooter>
+                </Card>
+            </div>
+        )
     }
 
   return (
