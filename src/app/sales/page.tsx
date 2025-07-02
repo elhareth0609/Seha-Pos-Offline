@@ -55,6 +55,7 @@ import { cn } from "@/lib/utils"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useReactToPrint } from "react-to-print"
 import { InvoiceTemplate } from "@/components/ui/invoice"
+import { useAuth } from "@/hooks/use-auth"
 
 
 function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => void; onOpenChange: (isOpen: boolean) => void }) {
@@ -135,6 +136,7 @@ export default function SalesPage() {
   const [discount, setDiscount] = React.useState(0);
   const [discountInput, setDiscountInput] = React.useState("0");
   const { toast } = useToast()
+  const { currentUser } = useAuth()
   
   const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
 
@@ -305,7 +307,7 @@ export default function SalesPage() {
         items: cart,
         total: finalTotal,
         discount: discount,
-        userId: "USR001", // Mock user ID
+        userId: currentUser!.id,
         patientId: selectedPatient?.id,
         patientName: selectedPatient?.name
     };
@@ -332,7 +334,7 @@ export default function SalesPage() {
     <div className="hidden">
         <InvoiceTemplate ref={printComponentRef} sale={saleToPrint} settings={settings} />
     </div>
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-9rem)]">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-12rem)]">
         {/* Main Content */}
         <div className="lg:col-span-2 flex flex-col gap-4">
             {/* Product Selection */}
@@ -404,7 +406,7 @@ export default function SalesPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="p-0 flex-1">
-                    <ScrollArea className="h-[calc(100vh-32rem)]">
+                    <ScrollArea className="h-[calc(100vh-29rem)]">
                     {cart.length > 0 ? (
                         <Table>
                             <TableHeader className="sticky top-0 bg-background z-10">
@@ -446,7 +448,7 @@ export default function SalesPage() {
                                         <TableCell>
                                             <Input type="number" value={item.price.toFixed(2)} onChange={(e) => updatePrice(item.medicationId, parseFloat(e.target.value))} className="w-24 h-9 text-center" step="0.01" min="0" />
                                         </TableCell>
-                                        <TableCell className="text-left font-mono">{itemTotal.toFixed(2)}$</TableCell>
+                                        <TableCell className="text-left font-mono">${itemTotal.toFixed(2)}</TableCell>
                                         <TableCell className="text-left">
                                             <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)}><X className="h-4 w-4" /></Button>
                                         </TableCell>

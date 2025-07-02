@@ -18,6 +18,7 @@ import {
   Settings,
   Menu,
   FileText,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +30,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 const navItems = [
   { href: "/", icon: LayoutDashboard, label: "لوحة التحكم" },
@@ -38,6 +40,7 @@ const navItems = [
   { href: "/reports", icon: FileText, label: "التقارير" },
   { href: "/expiring-soon", icon: CalendarX2, label: "قريب الانتهاء" },
   { href: "/patients", icon: Users, label: "الأصدقاء" },
+  { href: "/users", icon: Users, label: "الموظفين" },
   { href: "/settings", icon: Settings, label: "الإعدادات" },
 ];
 
@@ -45,12 +48,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const importFileRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { currentUser, logout } = useAuth();
 
   const handleBackup = () => {
     if(typeof window === 'undefined') return;
 
     const dataToBackup: { [key: string]: any } = {};
-    const keysToBackup = ['inventory', 'sales', 'purchaseOrders', 'patients', 'users', 'suppliers', 'supplierReturns', 'appSettings', 'quickItems'];
+    const keysToBackup = ['inventory', 'sales', 'purchaseOrders', 'patients', 'users', 'suppliers', 'supplierReturns', 'appSettings', 'quickItems', 'timeLogs'];
 
     keysToBackup.forEach(key => {
       const data = localStorage.getItem(key);
@@ -131,16 +135,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
                   <Menu className="me-2 h-4 w-4" />
                   القائمة الرئيسية
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
-                <DropdownMenuLabel>التنقل الرئيسي</DropdownMenuLabel>
-                <DropdownMenuSeparator />
                 {navItems.map((item) => (
-                  <DropdownMenuItem key={item.href} onSelect={() => router.push(item.href)}>
+                  <DropdownMenuItem key={item.href} onSelect={() => router.push(item.href)} disabled={item.href === '/users' && currentUser?.role !== 'Admin'}>
                     <item.icon className="me-2 h-4 w-4" />
                     <span>{item.label}</span>
                   </DropdownMenuItem>
@@ -157,11 +159,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuItem onSelect={() => router.push('/users')}>
-                  <Users className="me-2 h-4 w-4" />
-                  <span>إدارة المستخدمين</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                 <DropdownMenuLabel>
+                    <p>مرحباً, {currentUser?.name}</p>
+                    <p className="text-xs text-muted-foreground">{currentUser?.role === 'Admin' ? 'مدير' : 'موظف'}</p>
+                 </DropdownMenuLabel>
+                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>إدارة البيانات</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={handleImportClick}>
@@ -173,8 +175,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <span>نسخ احتياطي للبيانات</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <span>تسجيل الخروج</span>
+                <DropdownMenuItem onSelect={logout}>
+                    <LogOut className="me-2 h-4 w-4" />
+                    <span>تسجيل الخروج</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -7,7 +7,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card"
 import {
     Table,
@@ -26,6 +25,8 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,13 +35,19 @@ import { useToast } from "@/hooks/use-toast"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { users as fallbackUsers, timeLogs as fallbackTimeLogs, sales as fallbackSales } from "@/lib/data"
 import type { User, TimeLog, Sale } from "@/lib/types"
-import { UserPlus, Clock, DollarSign, LineChart } from "lucide-react"
-import { differenceInHours } from 'date-fns'
+import { UserPlus, DollarSign, LineChart, Calendar as CalendarIcon } from "lucide-react"
+import { differenceInHours, format, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns'
+import { cn } from "@/lib/utils"
 
 export default function UsersPage() {
   const [users, setUsers] = useLocalStorage<User[]>('users', fallbackUsers);
   const [timeLogs, setTimeLogs] = useLocalStorage<TimeLog[]>('timeLogs', fallbackTimeLogs);
   const [sales, setSales] = useLocalStorage<Sale[]>('sales', fallbackSales);
+  
+  const [dateRange, setDateRange] = React.useState<{from: Date | undefined, to: Date | undefined}>({
+      from: startOfMonth(new Date()),
+      to: endOfMonth(new Date())
+  });
 
   const { toast } = useToast()
 
@@ -73,7 +80,12 @@ export default function UsersPage() {
   }
 
   const calculateSalary = (userId: string, hourlyRate: number) => {
-      const userTimeLogs = timeLogs.filter(log => log.userId === userId && log.clockOut);
+      if (!dateRange.from || !dateRange.to) return { totalHours: 0, salary: 0};
+      const userTimeLogs = timeLogs.filter(log => {
+          if (log.userId !== userId || !log.clockOut) return false;
+          const logDate = new Date(log.clockIn);
+          return isWithinInterval(logDate, { start: dateRange.from!, end: dateRange.to! });
+      });
       const totalHours = userTimeLogs.reduce((acc, log) => {
           return acc + differenceInHours(new Date(log.clockOut!), new Date(log.clockIn));
       }, 0);
@@ -81,11 +93,15 @@ export default function UsersPage() {
   }
 
   const getUserSales = (userId: string) => {
-      const userSales = sales.filter(sale => sale.userId === userId);
+      if (!dateRange.from || !dateRange.to) return { salesCount: 0, totalRevenue: 0 };
+      const userSales = sales.filter(sale => {
+          if (sale.userId !== userId) return false;
+          const saleDate = new Date(sale.date);
+          return isWithinInterval(saleDate, { start: dateRange.from!, end: dateRange.to! });
+      });
       const totalRevenue = userSales.reduce((acc, sale) => acc + sale.total, 0);
       return { salesCount: userSales.length, totalRevenue };
   }
-
 
   return (
     <Tabs defaultValue="employees">
@@ -174,7 +190,42 @@ export default function UsersPage() {
         <Card>
           <CardHeader>
             <CardTitle>ملخص مبيعات الموظفين</CardTitle>
-            <CardDescription>نظرة عامة على أداء المبيعات لكل موظف بناءً على البيانات المسجلة.</CardDescription>
+            <CardDescription>نظرة عامة على أداء المبيعات لكل موظف ضمن النطاق الزمني المحدد.</CardDescription>
+             <div className="pt-4">
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                        id="date"
+                        variant={"outline"}
+                        className={cn("w-[300px] justify-start text-right font-normal", !dateRange && "text-muted-foreground")}
+                        >
+                        <CalendarIcon className="ms-2 h-4 w-4" />
+                        {dateRange?.from ? (
+                            dateRange.to ? (
+                            <>
+                                {format(dateRange.from, "LLL dd, y")} -{" "}
+                                {format(dateRange.to, "LLL dd, y")}
+                            </>
+                            ) : (
+                            format(dateRange.from, "LLL dd, y")
+                            )
+                        ) : (
+                            <span>اختر تاريخًا</span>
+                        )}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                            initialFocus
+                            mode="range"
+                            defaultMonth={dateRange?.from}
+                            selected={dateRange}
+                            onSelect={(range) => range && setDateRange(range)}
+                            numberOfMonths={2}
+                        />
+                    </PopoverContent>
+                </Popover>
+            </div>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {users.map(user => {
@@ -212,7 +263,42 @@ export default function UsersPage() {
         <Card>
           <CardHeader>
             <CardTitle>كشف رواتب الموظفين</CardTitle>
-            <CardDescription>ملخص ساعات العمل والرواتب المستحقة بناء على سجل الدوام المسجل.</CardDescription>
+            <CardDescription>ملخص ساعات العمل والرواتب المستحقة ضمن النطاق الزمني المحدد.</CardDescription>
+            <div className="pt-4">
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                        id="date-payroll"
+                        variant={"outline"}
+                        className={cn("w-[300px] justify-start text-right font-normal", !dateRange && "text-muted-foreground")}
+                        >
+                        <CalendarIcon className="ms-2 h-4 w-4" />
+                        {dateRange?.from ? (
+                            dateRange.to ? (
+                            <>
+                                {format(dateRange.from, "LLL dd, y")} -{" "}
+                                {format(dateRange.to, "LLL dd, y")}
+                            </>
+                            ) : (
+                            format(dateRange.from, "LLL dd, y")
+                            )
+                        ) : (
+                            <span>اختر تاريخًا</span>
+                        )}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                            initialFocus
+                            mode="range"
+                            defaultMonth={dateRange?.from}
+                            selected={dateRange}
+                            onSelect={(range) => range && setDateRange({ from: range?.from, to: range?.to })}
+                            numberOfMonths={2}
+                        />
+                    </PopoverContent>
+                </Popover>
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
