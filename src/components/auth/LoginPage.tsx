@@ -1,19 +1,18 @@
-
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { PackagePlus, AlertCircle, LogIn } from 'lucide-react';
+import { PackagePlus, LogIn, UserPlus } from 'lucide-react';
 import {
     AlertDialog,
     AlertDialogCancel,
     AlertDialogContent,
-    AlertDialogDescription,
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
@@ -21,53 +20,90 @@ import {
 } from "@/components/ui/alert-dialog"
 
 function ForgotPinDialog() {
-    const { getPinHint } = useAuth();
+    const { resetPin, checkUserExists } = useAuth();
     const { toast } = useToast();
+    
+    const [step, setStep] = React.useState<'email' | 'reset'>('email');
     const [email, setEmail] = React.useState('');
-    const [hint, setHint] = React.useState<string | null>(null);
-
-    const handleShowHint = () => {
+    const [newPin, setNewPin] = React.useState('');
+    const [confirmPin, setConfirmPin] = React.useState('');
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    
+    const handleContinue = async () => {
         if (!email) {
             toast({ variant: 'destructive', title: 'الرجاء إدخال البريد الإلكتروني' });
             return;
         }
-        const pinHint = getPinHint(email);
-        setHint(pinHint);
+        const userExists = await checkUserExists(email);
+        if (userExists) {
+            setStep('reset');
+        } else {
+            toast({ variant: 'destructive', title: 'المستخدم غير موجود', description: 'لم يتم العثور على حساب بهذا البريد الإلكتروني.' });
+        }
+    }
+
+    const handleResetPin = async () => {
+        if (!/^\d{4}$/.test(newPin)) {
+            toast({ variant: 'destructive', title: 'رمز PIN غير صالح', description: 'يجب أن يتكون رمز PIN من 4 أرقام بالضبط.' });
+            return;
+        }
+        if (newPin !== confirmPin) {
+            toast({ variant: 'destructive', title: 'رموز PIN غير متطابقة' });
+            return;
+        }
+
+        setIsSubmitting(true);
+        const success = await resetPin(email, newPin);
+        if (success) {
+            toast({ title: 'تم إعادة تعيين الرمز بنجاح', description: 'يمكنك الآن تسجيل الدخول باستخدام الرمز الجديد.' });
+            document.getElementById('forgot-pin-cancel')?.click();
+        } else {
+            toast({ variant: 'destructive', title: 'حدث خطأ', description: 'لم نتمكن من إعادة تعيين الرمز. الرجاء المحاولة مرة أخرى.' });
+        }
+        setIsSubmitting(false);
+    }
+    
+    const resetState = () => {
+        setStep('email');
+        setEmail('');
+        setNewPin('');
+        setConfirmPin('');
     }
 
     return (
-        <AlertDialogContent>
+        <AlertDialogContent onEscapeKeyDown={resetState} onPointerDownOutside={resetState}>
             <AlertDialogHeader>
-                <AlertDialogTitle>هل نسيت رمز PIN؟</AlertDialogTitle>
-                <AlertDialogDescription asChild>
-                    <div className="space-y-4 pt-4">
-                        <p>أدخل بريدك الإلكتروني المسجل لعرض تلميح استعادة الرمز الخاص بك.</p>
-                         <div className="space-y-2">
-                            <Label htmlFor="hint-email">البريد الإلكتروني</Label>
-                            <Input id="hint-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" />
-                        </div>
-                        {hint !== null && (
-                             hint ? (
-                                <>
-                                <p>التلميح الخاص بك هو:</p>
-                                <div className="p-3 bg-accent rounded-md border text-accent-foreground text-center font-medium">
-                                    {hint}
-                                </div>
-                                </>
-                            ) : (
-                                <div className="flex items-start gap-3 text-destructive">
-                                    <AlertCircle className="h-5 w-5 mt-1 shrink-0"/>
-                                    <span>لم يتم العثور على حساب بهذا البريد الإلكتروني أو لم تقم بتعيين تلميح. الطريقة الوحيدة للاستعادة هي مسح بيانات التطبيق.</span>
-                                </div>
-                            )
-                        )}
-                    </div>
-                </AlertDialogDescription>
+                <AlertDialogTitle>إعادة تعيين رمز PIN</AlertDialogTitle>
             </AlertDialogHeader>
-            <AlertDialogFooter className="pt-4 gap-2 sm:justify-between">
-                <Button onClick={handleShowHint}>عرض التلميح</Button>
-                <AlertDialogCancel onClick={() => { setEmail(''); setHint(null); }}>إغلاق</AlertDialogCancel>
-            </AlertDialogFooter>
+            {step === 'email' ? (
+                <div className="space-y-4 pt-2">
+                    <p className="text-sm text-muted-foreground">أدخل بريدك الإلكتروني للعثور على حسابك.</p>
+                    <div className="space-y-2">
+                        <Label htmlFor="reset-email">البريد الإلكتروني</Label>
+                        <Input id="reset-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" />
+                    </div>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel id="forgot-pin-cancel" onClick={resetState}>إلغاء</AlertDialogCancel>
+                        <Button onClick={handleContinue}>متابعة</Button>
+                    </AlertDialogFooter>
+                </div>
+            ) : (
+                <div className="space-y-4 pt-2">
+                     <p className="text-sm text-muted-foreground">أدخل رمز PIN الجديد لحساب <span className="font-medium text-foreground">{email}</span>.</p>
+                     <div className="space-y-2">
+                        <Label htmlFor="new-pin">رمز PIN الجديد (4 أرقام)</Label>
+                        <Input id="new-pin" type="password" value={newPin} onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))} maxLength={4} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="confirm-new-pin">تأكيد الرمز الجديد</Label>
+                        <Input id="confirm-new-pin" type="password" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))} maxLength={4} />
+                    </div>
+                     <AlertDialogFooter>
+                        <AlertDialogCancel id="forgot-pin-cancel" onClick={resetState}>إلغاء</AlertDialogCancel>
+                        <Button onClick={handleResetPin} disabled={isSubmitting}>إعادة تعيين الرمز</Button>
+                    </AlertDialogFooter>
+                </div>
+            )}
         </AlertDialogContent>
     )
 }
@@ -129,6 +165,16 @@ export default function LoginPage() {
                         </AlertDialog>
                     </CardFooter>
                 </form>
+                <Separator className="my-4" />
+                <CardFooter className="flex-col gap-4">
+                    <p className="text-sm text-muted-foreground">ليس لديك حساب؟</p>
+                    <Button variant="outline" className="w-full" asChild>
+                        <Link href="/signup">
+                            <UserPlus className="me-2 h-4 w-4" />
+                            إنشاء حساب جديد
+                        </Link>
+                    </Button>
+                </CardFooter>
             </Card>
         </div>
     );

@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -11,10 +10,12 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isSetup: boolean;
   loading: boolean;
-  setupAdmin: (name: string, email: string, pin: string, pinHint?: string) => void;
+  setupAdmin: (name: string, email: string, pin: string) => void;
   login: (email: string, pin: string) => Promise<boolean>;
   logout: () => void;
-  getPinHint: (email: string) => string | null;
+  registerUser: (name: string, email: string, pin: string) => Promise<boolean>;
+  resetPin: (email: string, newPin: string) => Promise<boolean>;
+  checkUserExists: (email: string) => Promise<boolean>;
 }
 
 const AuthContext = React.createContext<AuthContextType | null>(null);
@@ -30,22 +31,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  const setupAdmin = (name: string, email: string, pin: string, pinHint?: string) => {
+  const setupAdmin = (name: string, email: string, pin: string) => {
     const adminUser: User = {
       id: 'ADMIN001',
       name: name,
       email: email,
       role: 'Admin',
       pin: pin,
-      pinHint: pinHint,
     };
-    const otherUsers: User[] = [
-        { id: "USR002", name: "سارة الموظفة", email: "sara@medstock.app", role: "Employee", pin: "0000"},
-        { id: "USR003", name: "أحمد الصيدلي", email: "ahmad@medstock.app", role: "Employee", pin: "1111"},
-    ];
-    setUsers([adminUser, ...otherUsers]);
+    setUsers([adminUser]);
     setCurrentUser(adminUser);
   };
+  
+  const registerUser = async (name: string, email: string, pin: string): Promise<boolean> => {
+      const userExists = users.some(u => u.email.toLowerCase() === email.toLowerCase());
+      if (userExists) {
+          return false; // Email already taken
+      }
+      const newUser: User = {
+          id: `USR${(users.length + 1).toString().padStart(3, '0')}`,
+          name,
+          email,
+          pin,
+          role: 'Employee'
+      };
+      setUsers(prev => [...prev, newUser]);
+      return true;
+  }
+  
+  const checkUserExists = async (email: string): Promise<boolean> => {
+      return users.some(u => u.email.toLowerCase() === email.toLowerCase());
+  }
+  
+  const resetPin = async (email: string, newPin: string): Promise<boolean> => {
+      let userFound = false;
+      const updatedUsers = users.map(u => {
+          if (u.email.toLowerCase() === email.toLowerCase()) {
+              userFound = true;
+              return { ...u, pin: newPin };
+          }
+          return u;
+      });
+
+      if (userFound) {
+          setUsers(updatedUsers);
+          return true;
+      }
+      return false;
+  }
 
   const login = async (email: string, pin: string): Promise<boolean> => {
     const userToLogin = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.pin === pin);
@@ -60,18 +93,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(null);
   };
   
-  const getPinHint = (email: string) => {
-      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (user && user.pinHint) {
-          return user.pinHint;
-      }
-      return null;
-  }
-  
   const isAuthenticated = !!currentUser;
 
   return (
-    <AuthContext.Provider value={{ currentUser, isAuthenticated, loading, isSetup, setupAdmin, login, logout, getPinHint }}>
+    <AuthContext.Provider value={{ currentUser, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin }}>
       {children}
     </AuthContext.Provider>
   );

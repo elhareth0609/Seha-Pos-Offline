@@ -1,25 +1,28 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { KeyRound, PackagePlus } from 'lucide-react';
+import { UserPlus, PackagePlus } from 'lucide-react';
 
-export default function SetupPage() {
-    const [adminName, setAdminName] = React.useState('');
+export default function SignUpPage() {
+    const [name, setName] = React.useState('');
     const [email, setEmail] = React.useState('');
     const [pin, setPin] = React.useState('');
     const [confirmPin, setConfirmPin] = React.useState('');
-    const { setupAdmin } = useAuth();
+    const { registerUser } = useAuth();
     const { toast } = useToast();
+    const router = useRouter();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (adminName.trim().length < 3) {
+        if (name.trim().length < 3) {
             toast({ variant: 'destructive', title: 'اسم غير صالح', description: 'الرجاء إدخال اسم مكون من 3 أحرف على الأقل.' });
             return;
         }
@@ -35,8 +38,15 @@ export default function SetupPage() {
             toast({ variant: 'destructive', title: 'رموز PIN غير متطابقة', description: 'الرجاء التأكد من تطابق رمز PIN وتأكيده.' });
             return;
         }
-        setupAdmin(adminName.trim(), email.trim().toLowerCase(), pin);
-        toast({ title: 'اكتمل الإعداد!', description: `مرحباً بك، ${adminName.trim()}! تم إعداد حساب المدير.` });
+        
+        const success = await registerUser(name.trim(), email.trim().toLowerCase(), pin);
+        
+        if (success) {
+            toast({ title: 'تم إنشاء الحساب بنجاح!', description: `مرحباً بك، ${name.trim()}! يمكنك الآن تسجيل الدخول.` });
+            router.push('/');
+        } else {
+            toast({ variant: 'destructive', title: 'خطأ في التسجيل', description: 'البريد الإلكتروني مستخدم بالفعل. الرجاء استخدام بريد إلكتروني آخر.' });
+        }
     };
 
     return (
@@ -46,37 +56,43 @@ export default function SetupPage() {
                      <div className="mx-auto mb-4 bg-primary/10 p-4 rounded-full">
                         <PackagePlus className="h-12 w-12 text-primary" />
                     </div>
-                    <CardTitle className="text-2xl">مرحبًا بك في مدستوك</CardTitle>
+                    <CardTitle className="text-2xl">إنشاء حساب جديد</CardTitle>
                     <CardDescription>
-                        لنبدأ بإعداد حساب المدير الخاص بك. هذا الحساب سيكون له صلاحيات كاملة على النظام.
+                        انضم إلى فريق العمل.
                     </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSubmit}>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="admin-name">اسم المدير</Label>
-                            <Input id="admin-name" value={adminName} onChange={(e) => setAdminName(e.target.value)} placeholder="مثال: علي المدير" required />
+                            <Label htmlFor="signup-name">الاسم الكامل</Label>
+                            <Input id="signup-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: أحمد الموظف" required />
                         </div>
                          <div className="space-y-2">
-                            <Label htmlFor="email">البريد الإلكتروني</Label>
-                            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" required />
+                            <Label htmlFor="signup-email">البريد الإلكتروني</Label>
+                            <Input id="signup-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" required />
                         </div>
                          <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="pin">رمز PIN (4 أرقام)</Label>
-                                <Input id="pin" type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={4} required pattern="\d{4}" title="يجب أن يكون 4 أرقام" />
+                                <Label htmlFor="signup-pin">رمز PIN (4 أرقام)</Label>
+                                <Input id="signup-pin" type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={4} required />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="confirm-pin">تأكيد الرمز</Label>
-                                <Input id="confirm-pin" type="password" inputMode="numeric" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))} maxLength={4} required />
+                                <Label htmlFor="signup-confirm-pin">تأكيد الرمز</Label>
+                                <Input id="signup-confirm-pin" type="password" inputMode="numeric" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))} maxLength={4} required />
                             </div>
                         </div>
                     </CardContent>
-                    <CardFooter>
+                    <CardFooter className="flex-col gap-4">
                         <Button type="submit" className="w-full">
-                            <KeyRound className="me-2 h-4 w-4" />
-                            إنشاء حساب والبدء
+                            <UserPlus className="me-2 h-4 w-4" />
+                            إنشاء الحساب
                         </Button>
+                        <p className="text-center text-sm text-muted-foreground">
+                            لديك حساب بالفعل؟{' '}
+                            <Link href="/" className="underline text-primary">
+                                تسجيل الدخول
+                            </Link>
+                        </p>
                     </CardFooter>
                 </form>
             </Card>

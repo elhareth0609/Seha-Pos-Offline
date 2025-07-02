@@ -1,4 +1,3 @@
-
 export type Medication = {
   id: string;
   name: string;
@@ -82,7 +81,6 @@ export type User = {
   email: string;
   role: "Admin" | "Employee";
   pin: string;
-  pinHint?: string;
 };
 
 export type TimeLog = {
