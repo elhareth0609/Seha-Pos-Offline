@@ -32,20 +32,34 @@ import { sales as fallbackSales, appSettings as fallbackSettings } from '@/lib/d
 import type { Sale, AppSettings } from '@/lib/types';
 import { useReactToPrint } from 'react-to-print';
 import { InvoiceTemplate } from '@/components/ui/invoice';
-import { Printer, DollarSign, TrendingUp, PieChart } from 'lucide-react';
+import { Printer, DollarSign, TrendingUp, PieChart, ListFilter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function ReportsPage() {
     const [sales] = useLocalStorage<Sale[]>('sales', fallbackSales);
     const [settings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
     const [searchTerm, setSearchTerm] = React.useState("");
+    const [employeeFilter, setEmployeeFilter] = React.useState("all");
     const [isClient, setIsClient] = React.useState(false);
 
     React.useEffect(() => {
         setIsClient(true);
     }, []);
 
+    const employees = React.useMemo(() => {
+        const employeeSet = new Set(sales.map(s => s.employeeName).filter(Boolean));
+        return ['all', ...Array.from(employeeSet)];
+    }, [sales]);
 
     const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
     const [selectedSale, setSelectedSale] = React.useState<Sale | null>(null);
@@ -61,13 +75,15 @@ export default function ReportsPage() {
         setIsPrintDialogOpen(true);
     };
 
-    const filteredSales = sales.filter(sale => 
-        sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (sale.employeeName || '').toLowerCase().includes(searchTerm.toLowerCase())
-    ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const filteredSales = sales.filter(sale => {
+        const searchMatch = sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (sale.employeeName || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const employeeMatch = employeeFilter === 'all' || sale.employeeName === employeeFilter;
+        return searchMatch && employeeMatch;
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     const totalSalesValue = filteredSales.reduce((acc, sale) => acc + sale.total, 0);
-    const totalProfit = filteredSales.reduce((acc, sale) => acc + (sale.profit || 0), 0);
+    const totalProfit = filteredSales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
     const profitMargin = totalSalesValue > 0 ? (totalProfit / totalSalesValue) * 100 : 0;
 
     if (!isClient) {
@@ -82,8 +98,9 @@ export default function ReportsPage() {
                     <CardHeader>
                         <Skeleton className="h-8 w-48" />
                         <Skeleton className="h-5 w-72" />
-                        <div className="pt-4">
-                            <Skeleton className="h-10 max-w-sm" />
+                        <div className="pt-4 flex gap-2">
+                            <Skeleton className="h-10 max-w-sm flex-1" />
+                            <Skeleton className="h-10 w-32" />
                         </div>
                     </CardHeader>
                     <CardContent>
@@ -137,7 +154,7 @@ export default function ReportsPage() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">إجمالي الربح</CardTitle>
+                        <CardTitle className="text-sm font-medium">صافي الربح</CardTitle>
                         <TrendingUp className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
@@ -159,13 +176,32 @@ export default function ReportsPage() {
                 <CardHeader>
                     <CardTitle>سجل المبيعات</CardTitle>
                     <CardDescription>عرض وطباعة جميع فواتير المبيعات السابقة.</CardDescription>
-                     <div className="pt-4">
+                     <div className="pt-4 flex gap-2">
                         <Input 
                             placeholder="ابحث برقم الفاتورة أو اسم الموظف..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="max-w-sm"
                         />
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="gap-1">
+                                    <ListFilter className="h-3.5 w-3.5" />
+                                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                                        تصفية بالموظف
+                                    </span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                                <DropdownMenuLabel>تصفية حسب الموظف</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuRadioGroup value={employeeFilter} onValueChange={setEmployeeFilter}>
+                                    {employees.map(emp => (
+                                        <DropdownMenuRadioItem key={emp} value={emp}>{emp === 'all' ? 'الكل' : emp}</DropdownMenuRadioItem>
+                                    ))}
+                                </DropdownMenuRadioGroup>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -177,7 +213,7 @@ export default function ReportsPage() {
                                 <TableHead>الموظف</TableHead>
                                 <TableHead className="text-center">عدد الأصناف</TableHead>
                                 <TableHead className="text-left">الإجمالي</TableHead>
-                                <TableHead className="text-left">الربح</TableHead>
+                                <TableHead className="text-left">صافي الربح</TableHead>
                                 <TableHead>الإجراءات</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -189,7 +225,7 @@ export default function ReportsPage() {
                                     <TableCell>{sale.employeeName || 'غير محدد'}</TableCell>
                                     <TableCell className="text-center">{sale.items.length}</TableCell>
                                     <TableCell className="text-left font-mono">${sale.total.toFixed(2)}</TableCell>
-                                    <TableCell className="text-left font-mono text-green-600">${(sale.profit || 0).toFixed(2)}</TableCell>
+                                    <TableCell className="text-left font-mono text-green-600">${((sale.profit || 0) - (sale.discount || 0)).toFixed(2)}</TableCell>
                                     <TableCell>
                                         <Button variant="outline" size="sm" onClick={() => openPrintDialog(sale)}>
                                             <Printer className="me-2 h-4 w-4" />
