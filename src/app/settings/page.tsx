@@ -30,12 +30,21 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter,
+    DialogClose,
+} from "@/components/ui/dialog"
 import { Skeleton } from '@/components/ui/skeleton'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { useAuth } from '@/hooks/use-auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Trash2 } from 'lucide-react'
+import { Trash2, PlusCircle } from 'lucide-react'
 
 const settingsSchema = z.object({
   pharmacyName: z.string().min(2, { message: "يجب أن يكون اسم الصيدلية حرفين على الأقل." }),
@@ -48,30 +57,61 @@ const settingsSchema = z.object({
 
 type SettingsFormValues = z.infer<typeof settingsSchema>
 
+const addUserSchema = z.object({
+    name: z.string().min(3, { message: "الرجاء إدخال اسم مكون من 3 أحرف على الأقل." }),
+    email: z.string().email({ message: "الرجاء إدخال بريد إلكتروني صحيح." }),
+    pin: z.string().length(4, { message: "يجب أن يتكون رمز PIN من 4 أرقام." }).regex(/^\d{4}$/, { message: "يجب أن يتكون رمز PIN من أرقام فقط." }),
+    confirmPin: z.string()
+}).refine(data => data.pin === data.confirmPin, {
+    message: "رموز PIN غير متطابقة",
+    path: ["confirmPin"],
+});
+
+type AddUserFormValues = z.infer<typeof addUserSchema>;
+
+
 export default function SettingsPage() {
     const { toast } = useToast()
     const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
     const [isClient, setIsClient] = React.useState(false);
-    const { currentUser, users, deleteUser } = useAuth();
+    const { currentUser, users, deleteUser, registerUser } = useAuth();
+    const [isAddUserOpen, setIsAddUserOpen] = React.useState(false);
 
-    const form = useForm<SettingsFormValues>({
+    const settingsForm = useForm<SettingsFormValues>({
         resolver: zodResolver(settingsSchema),
         defaultValues: { ...fallbackSettings },
+    });
+    
+    const addUserForm = useForm<AddUserFormValues>({
+        resolver: zodResolver(addUserSchema),
+        defaultValues: { name: "", email: "", pin: "", confirmPin: "" }
     });
 
     React.useEffect(() => {
         setIsClient(true);
         if (settings) {
-            form.reset({ ...fallbackSettings, ...settings });
+            settingsForm.reset({ ...fallbackSettings, ...settings });
         }
-    }, [settings, form]);
+    }, [settings, settingsForm]);
 
-    const onSubmit = (data: SettingsFormValues) => {
+    const onSettingsSubmit = (data: SettingsFormValues) => {
         setSettings(data);
         toast({
             title: "تم حفظ الإعدادات بنجاح!",
         })
     }
+
+    const onAddUserSubmit = async (data: AddUserFormValues) => {
+        const success = await registerUser(data.name, data.email, data.pin);
+        if (success) {
+            toast({ title: "تم إضافة المستخدم بنجاح!" });
+            setIsAddUserOpen(false);
+            addUserForm.reset();
+        } else {
+            addUserForm.setError("email", { type: "manual", message: "هذا البريد الإلكتروني مستخدم بالفعل." });
+        }
+    }
+
 
     const handleClearData = () => {
         if (typeof window !== 'undefined') {
@@ -119,8 +159,8 @@ export default function SettingsPage() {
 
   return (
     <div className="grid gap-6">
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <Form {...settingsForm}>
+            <form onSubmit={settingsForm.handleSubmit(onSettingsSubmit)} className="space-y-8">
                 <Card>
                   <CardHeader>
                     <CardTitle>الإعدادات العامة</CardTitle>
@@ -130,7 +170,7 @@ export default function SettingsPage() {
                   </CardHeader>
                     <CardContent className="space-y-4">
                         <FormField
-                          control={form.control}
+                          control={settingsForm.control}
                           name="pharmacyName"
                           render={({ field }) => (
                             <FormItem>
@@ -141,7 +181,7 @@ export default function SettingsPage() {
                           )}
                         />
                         <FormField
-                          control={form.control}
+                          control={settingsForm.control}
                           name="pharmacyAddress"
                           render={({ field }) => (
                             <FormItem>
@@ -153,7 +193,7 @@ export default function SettingsPage() {
                         />
                         <div className="grid md:grid-cols-2 gap-4">
                             <FormField
-                              control={form.control}
+                              control={settingsForm.control}
                               name="pharmacyPhone"
                               render={({ field }) => (
                                 <FormItem>
@@ -164,7 +204,7 @@ export default function SettingsPage() {
                               )}
                             />
                             <FormField
-                              control={form.control}
+                              control={settingsForm.control}
                               name="pharmacyEmail"
                               render={({ field }) => (
                                 <FormItem>
@@ -176,7 +216,7 @@ export default function SettingsPage() {
                             />
                         </div>
                          <FormField
-                           control={form.control}
+                           control={settingsForm.control}
                            name="expirationThresholdDays"
                            render={({ field }) => (
                              <FormItem>
@@ -190,7 +230,7 @@ export default function SettingsPage() {
                            )}
                          />
                          <FormField
-                          control={form.control}
+                          control={settingsForm.control}
                           name="invoiceFooterMessage"
                           render={({ field }) => (
                             <FormItem>
@@ -213,11 +253,75 @@ export default function SettingsPage() {
         
         {currentUser.role === 'Admin' && (
             <Card>
-                <CardHeader>
-                    <CardTitle>إدارة المستخدمين</CardTitle>
-                    <CardDescription>
-                        عرض وحذف حسابات الموظفين. لإضافة موظف جديد، قم بإنشاء حساب جديد من شاشة تسجيل الدخول.
-                    </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>إدارة المستخدمين</CardTitle>
+                        <CardDescription>
+                            إضافة، عرض، وحذف حسابات الموظفين.
+                        </CardDescription>
+                    </div>
+                    <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+                        <DialogTrigger asChild>
+                            <Button size="sm"><PlusCircle className="me-2 h-4 w-4" /> إضافة موظف</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>إضافة موظف جديد</DialogTitle>
+                            </DialogHeader>
+                            <Form {...addUserForm}>
+                                <form onSubmit={addUserForm.handleSubmit(onAddUserSubmit)} className="space-y-4 py-2">
+                                    <FormField
+                                        control={addUserForm.control}
+                                        name="name"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>الاسم الكامل</FormLabel>
+                                                <FormControl><Input placeholder="اسم الموظف" {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={addUserForm.control}
+                                        name="email"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>البريد الإلكتروني</FormLabel>
+                                                <FormControl><Input type="email" placeholder="example@email.com" {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={addUserForm.control}
+                                        name="pin"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>رمز PIN (4 أرقام)</FormLabel>
+                                                <FormControl><Input type="password" inputMode="numeric" maxLength={4} {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                     <FormField
+                                        control={addUserForm.control}
+                                        name="confirmPin"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>تأكيد رمز PIN</FormLabel>
+                                                <FormControl><Input type="password" inputMode="numeric" maxLength={4} {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <DialogFooter className="pt-4">
+                                        <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                                        <Button type="submit" disabled={addUserForm.formState.isSubmitting}>إضافة الموظف</Button>
+                                    </DialogFooter>
+                                </form>
+                            </Form>
+                        </DialogContent>
+                    </Dialog>
                 </CardHeader>
                 <CardContent>
                     <Table>
