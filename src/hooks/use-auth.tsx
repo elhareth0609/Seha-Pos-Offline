@@ -7,6 +7,7 @@ import { users as fallbackUsers } from '@/lib/data';
 
 interface AuthContextType {
   currentUser: User | null;
+  users: User[];
   isAuthenticated: boolean;
   isSetup: boolean;
   loading: boolean;
@@ -16,6 +17,7 @@ interface AuthContextType {
   registerUser: (name: string, email: string, pin: string) => Promise<boolean>;
   resetPin: (email: string, newPin: string) => Promise<boolean>;
   checkUserExists: (email: string) => Promise<boolean>;
+  deleteUser: (userId: string) => Promise<boolean>;
 }
 
 const AuthContext = React.createContext<AuthContextType | null>(null);
@@ -92,11 +94,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     setCurrentUser(null);
   };
+
+  const deleteUser = async (userId: string): Promise<boolean> => {
+    const userToDelete = users.find(u => u.id === userId);
+    if (!userToDelete || userToDelete.role === 'Admin') {
+        return false;
+    }
+    setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
+    return true;
+  };
   
   const isAuthenticated = !!currentUser;
 
   return (
-    <AuthContext.Provider value={{ currentUser, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin }}>
+    <AuthContext.Provider value={{ currentUser, users, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, deleteUser }}>
       {children}
     </AuthContext.Provider>
   );

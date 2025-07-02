@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from 'react'
@@ -33,6 +32,10 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Skeleton } from '@/components/ui/skeleton'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { useAuth } from '@/hooks/use-auth'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Trash2 } from 'lucide-react'
 
 const settingsSchema = z.object({
   pharmacyName: z.string().min(2, { message: "يجب أن يكون اسم الصيدلية حرفين على الأقل." }),
@@ -49,6 +52,7 @@ export default function SettingsPage() {
     const { toast } = useToast()
     const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
     const [isClient, setIsClient] = React.useState(false);
+    const { currentUser, users, deleteUser } = useAuth();
 
     const form = useForm<SettingsFormValues>({
         resolver: zodResolver(settingsSchema),
@@ -77,7 +81,17 @@ export default function SettingsPage() {
         }
     }
 
-    if (!isClient) {
+    const handleDeleteUser = async (userId: string, userName: string) => {
+        const success = await deleteUser(userId);
+        if (success) {
+            toast({ title: "تم حذف المستخدم", description: `تم حذف ${userName} بنجاح.` });
+        } else {
+            toast({ variant: 'destructive', title: 'خطأ', description: 'لا يمكن حذف حساب المدير.' });
+        }
+    }
+
+
+    if (!isClient || !currentUser) {
         return (
             <div className="grid gap-6">
                 <Card>
@@ -196,35 +210,97 @@ export default function SettingsPage() {
                 </Card>
             </form>
         </Form>
-        <Card className="border-destructive">
-            <CardHeader>
-                <CardTitle>منطقة الخطر</CardTitle>
-                <CardDescription>
-                    إجراءات لا يمكن التراجع عنها. يرجى المتابعة بحذر.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="destructive">مسح جميع بيانات التطبيق</Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                هذا الإجراء لا يمكن التراجع عنه. سيؤدي هذا إلى حذف جميع البيانات بشكل دائم، بما في ذلك المخزون والمبيعات والمرضى والمستخدمين. لا يمكن استعادة هذه البيانات.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleClearData} className="bg-destructive hover:bg-destructive/90">نعم، امسح كل شيء</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            </CardContent>
-        </Card>
+        
+        {currentUser.role === 'Admin' && (
+            <Card>
+                <CardHeader>
+                    <CardTitle>إدارة المستخدمين</CardTitle>
+                    <CardDescription>
+                        عرض وحذف حسابات الموظفين. لإضافة موظف جديد، قم بإنشاء حساب جديد من شاشة تسجيل الدخول.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>الاسم</TableHead>
+                                <TableHead>البريد الإلكتروني</TableHead>
+                                <TableHead>الدور</TableHead>
+                                <TableHead className="text-left">الإجراءات</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {users.map(user => (
+                                <TableRow key={user.id}>
+                                    <TableCell className="font-medium">{user.name}</TableCell>
+                                    <TableCell>{user.email}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'}>
+                                            {user.role === 'Admin' ? 'مدير' : 'موظف'}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-left">
+                                        {user.role !== 'Admin' && (
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            سيتم حذف حساب المستخدم {user.name} بشكل نهائي. لا يمكن التراجع عن هذا الإجراء.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDeleteUser(user.id, user.name)} className="bg-destructive hover:bg-destructive/90">
+                                                            نعم، قم بالحذف
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        )}
+
+        {currentUser.role === 'Admin' && (
+            <Card className="border-destructive">
+                <CardHeader>
+                    <CardTitle>منطقة الخطر</CardTitle>
+                    <CardDescription>
+                        إجراءات لا يمكن التراجع عنها. يرجى المتابعة بحذر.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive">مسح جميع بيانات التطبيق</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    هذا الإجراء لا يمكن التراجع عنه. سيؤدي هذا إلى حذف جميع البيانات بشكل دائم، بما في ذلك المخزون والمبيعات والمرضى والمستخدمين. لا يمكن استعادة هذه البيانات.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleClearData} className="bg-destructive hover:bg-destructive/90">نعم، امسح كل شيء</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </CardContent>
+            </Card>
+        )}
     </div>
   )
 }
-
-    
