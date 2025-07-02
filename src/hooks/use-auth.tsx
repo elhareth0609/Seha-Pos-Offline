@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
   
   const registerUser = async (name: string, email: string, pin: string): Promise<boolean> => {
-      const userExists = users.some(u => u.email.toLowerCase() === email.toLowerCase());
+      const userExists = users.some(u => u && u.email && u.email.toLowerCase() === email.toLowerCase());
       if (userExists) {
           return false; // Email already taken
       }
@@ -60,13 +60,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
   
   const checkUserExists = async (email: string): Promise<boolean> => {
-      return users.some(u => u.email.toLowerCase() === email.toLowerCase());
+      return users.some(u => u && u.email && u.email.toLowerCase() === email.toLowerCase());
   }
   
   const resetPin = async (email: string, newPin: string): Promise<boolean> => {
       let userFound = false;
       const updatedUsers = users.map(u => {
-          if (u.email.toLowerCase() === email.toLowerCase()) {
+          if (u && u.email && u.email.toLowerCase() === email.toLowerCase()) {
               userFound = true;
               return { ...u, pin: newPin };
           }
@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const login = async (email: string, pin: string): Promise<boolean> => {
-    const userToLogin = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.pin === pin);
+    const userToLogin = users.find(u => u && u.email && u.email.toLowerCase() === email.toLowerCase() && u.pin === pin);
     if (userToLogin) {
       setCurrentUser(userToLogin);
       return true;
