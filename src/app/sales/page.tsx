@@ -39,7 +39,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import { inventory as fallbackInventory, sales as fallbackSales, appSettings as fallbackSettings } from "@/lib/data"
 import type { Medication, SaleItem, Sale, AppSettings } from "@/lib/types"
-import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon } from "lucide-react"
+import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -146,7 +146,7 @@ export default function SalesPage() {
             : item
         )
       }
-      return [...prevCart, { medicationId: medication.id, name: medication.name, quantity: 1, price: medication.price, expirationDate: medication.expirationDate, isReturn: false }]
+      return [...prevCart, { medicationId: medication.id, name: medication.name, quantity: 1, price: medication.price, purchasePrice: medication.purchasePrice, expirationDate: medication.expirationDate, isReturn: false }]
     })
     setSearchTerm("")
     setSuggestions([])
@@ -241,6 +241,12 @@ export default function SalesPage() {
       const itemTotal = item.price * item.quantity;
       return item.isReturn ? total - itemTotal : total + itemTotal;
   }, 0);
+
+  const totalProfit = cart.reduce((acc, item) => {
+      const itemProfit = (item.price - item.purchasePrice) * item.quantity;
+      return item.isReturn ? acc - itemProfit : acc + itemProfit;
+  }, 0);
+
   const finalTotal = subtotal - discount;
 
   const handleCheckout = () => {
@@ -300,6 +306,7 @@ export default function SalesPage() {
         date: new Date().toISOString(),
         items: cart,
         total: finalTotal,
+        profit: totalProfit,
         discount: discount,
         employeeId: currentUser.id,
         employeeName: currentUser.name,
@@ -401,6 +408,9 @@ export default function SalesPage() {
                                 const stock = medInInventory?.stock ?? 0;
                                 const remainingStock = stock - item.quantity;
                                 const itemTotal = (item.isReturn ? -1 : 1) * item.price * item.quantity;
+                                const isBelowCost = item.price < item.purchasePrice;
+                                const itemProfit = (item.price - item.purchasePrice) * item.quantity;
+
                                 return (
                                     <TableRow key={`${item.medicationId}-${item.isReturn}`} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
                                         <TableCell className="text-center">
@@ -408,6 +418,12 @@ export default function SalesPage() {
                                         </TableCell>
                                         <TableCell>
                                             <div className="font-medium">{item.name}</div>
+                                            <div className="text-xs text-muted-foreground flex items-center gap-x-2">
+                                                <span>الكلفة: ${item.purchasePrice.toFixed(2)}</span>
+                                                <span className={cn("font-medium", itemProfit >= 0 ? "text-green-600" : "text-destructive")}>
+                                                  | الربح: ${itemProfit.toFixed(2)}
+                                                </span>
+                                            </div>
                                             <div className="text-xs text-muted-foreground">
                                                 الرصيد: {stock} 
                                                 {!item.isReturn && ` | المتبقي: `}
@@ -422,7 +438,14 @@ export default function SalesPage() {
                                         </div>
                                         </TableCell>
                                         <TableCell>
-                                            <Input type="number" value={item.price.toFixed(2)} onChange={(e) => updatePrice(item.medicationId, parseFloat(e.target.value))} className="w-24 h-9 text-center" step="0.01" min="0" />
+                                            <div className="relative">
+                                                <Input type="number" value={item.price.toFixed(2)} onChange={(e) => updatePrice(item.medicationId, parseFloat(e.target.value))} className={cn("w-24 h-9 text-center", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} step="0.01" min="0" />
+                                                {isBelowCost && !item.isReturn && (
+                                                  <div className="absolute -top-2 -right-2 text-destructive" title="السعر أقل من الكلفة!">
+                                                    <AlertTriangle className="h-4 w-4" />
+                                                  </div>
+                                                )}
+                                            </div>
                                         </TableCell>
                                         <TableCell className="text-left font-mono">${itemTotal.toFixed(2)}</TableCell>
                                         <TableCell className="text-left">
@@ -464,6 +487,10 @@ export default function SalesPage() {
                     <div className="flex justify-between w-full text-md">
                         <span>المجموع الفرعي</span>
                         <span>${subtotal.toFixed(2)}</span>
+                    </div>
+                     <div className="flex justify-between w-full text-md text-green-600">
+                        <span className="flex items-center gap-1"><TrendingUp className="h-4 w-4" /> الربح المتوقع</span>
+                        <span className="font-semibold">${totalProfit.toFixed(2)}</span>
                     </div>
                     <div className="flex items-center justify-between w-full">
                         <Label htmlFor="discount" className="text-md shrink-0 me-2">خصم</Label>
@@ -512,6 +539,7 @@ export default function SalesPage() {
                                     <div className="flex justify-between"><span>الموظف:</span><span>{currentUser?.name}</span></div>
                                     <div className="flex justify-between"><span>المجموع الفرعي:</span><span>${subtotal.toFixed(2)}</span></div>
                                     <div className="flex justify-between"><span>الخصم:</span><span>-${discount.toFixed(2)}</span></div>
+                                     <div className="flex justify-between text-green-600"><span>الربح الصافي:</span><span>${(totalProfit - discount).toFixed(2)}</span></div>
                                     <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>${finalTotal.toFixed(2)}</span></div>
                                 </div>
                             </div>

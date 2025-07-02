@@ -32,7 +32,7 @@ import { sales as fallbackSales, appSettings as fallbackSettings } from '@/lib/d
 import type { Sale, AppSettings } from '@/lib/types';
 import { useReactToPrint } from 'react-to-print';
 import { InvoiceTemplate } from '@/components/ui/invoice';
-import { Printer } from 'lucide-react';
+import { Printer, DollarSign, TrendingUp, PieChart } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -65,52 +65,96 @@ export default function ReportsPage() {
         sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (sale.employeeName || '').toLowerCase().includes(searchTerm.toLowerCase())
     ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    const totalSalesValue = filteredSales.reduce((acc, sale) => acc + sale.total, 0);
+    const totalProfit = filteredSales.reduce((acc, sale) => acc + (sale.profit || 0), 0);
+    const profitMargin = totalSalesValue > 0 ? (totalProfit / totalSalesValue) * 100 : 0;
 
     if (!isClient) {
         return (
-            <Card>
-                <CardHeader>
-                    <Skeleton className="h-8 w-48" />
-                    <Skeleton className="h-5 w-72" />
-                    <div className="pt-4">
-                        <Skeleton className="h-10 max-w-sm" />
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>رقم الفاتورة</TableHead>
-                                <TableHead>التاريخ</TableHead>
-                                <TableHead>الموظف</TableHead>
-                                <TableHead className="text-center">عدد الأصناف</TableHead>
-                                <TableHead className="text-left">الإجمالي</TableHead>
-                                <TableHead>الإجراءات</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {Array.from({ length: 8 }).map((_, i) => (
-                                <TableRow key={i}>
-                                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                                    <TableCell className="text-center"><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
-                                    <TableCell className="text-left"><Skeleton className="h-5 w-16" /></TableCell>
-                                    <TableCell><Skeleton className="h-9 w-24" /></TableCell>
+            <div className="space-y-6">
+                 <div className="grid gap-4 md:grid-cols-3">
+                    <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
+                    <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
+                    <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
+                </div>
+                <Card>
+                    <CardHeader>
+                        <Skeleton className="h-8 w-48" />
+                        <Skeleton className="h-5 w-72" />
+                        <div className="pt-4">
+                            <Skeleton className="h-10 max-w-sm" />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>رقم الفاتورة</TableHead>
+                                    <TableHead>التاريخ</TableHead>
+                                    <TableHead>الموظف</TableHead>
+                                    <TableHead className="text-center">عدد الأصناف</TableHead>
+                                    <TableHead className="text-left">الإجمالي</TableHead>
+                                    <TableHead className="text-left">الربح</TableHead>
+                                    <TableHead>الإجراءات</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+                            </TableHeader>
+                            <TableBody>
+                                {Array.from({ length: 8 }).map((_, i) => (
+                                    <TableRow key={i}>
+                                        <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                                        <TableCell className="text-center"><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
+                                        <TableCell className="text-left"><Skeleton className="h-5 w-16" /></TableCell>
+                                        <TableCell className="text-left"><Skeleton className="h-5 w-16" /></TableCell>
+                                        <TableCell><Skeleton className="h-9 w-24" /></TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </div>
         );
     }
 
     return (
-        <>
+        <div className="space-y-6">
             <div className="hidden">
                 <InvoiceTemplate ref={printComponentRef} sale={selectedSale} settings={settings} />
             </div>
+
+             <div className="grid gap-4 md:grid-cols-3">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">إجمالي قيمة المبيعات</CardTitle>
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">${totalSalesValue.toFixed(2)}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">إجمالي الربح</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-green-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-green-600">${totalProfit.toFixed(2)}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">هامش الربح</CardTitle>
+                        <PieChart className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{profitMargin.toFixed(2)}%</div>
+                    </CardContent>
+                </Card>
+            </div>
+
             <Card>
                 <CardHeader>
                     <CardTitle>سجل المبيعات</CardTitle>
@@ -133,6 +177,7 @@ export default function ReportsPage() {
                                 <TableHead>الموظف</TableHead>
                                 <TableHead className="text-center">عدد الأصناف</TableHead>
                                 <TableHead className="text-left">الإجمالي</TableHead>
+                                <TableHead className="text-left">الربح</TableHead>
                                 <TableHead>الإجراءات</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -144,6 +189,7 @@ export default function ReportsPage() {
                                     <TableCell>{sale.employeeName || 'غير محدد'}</TableCell>
                                     <TableCell className="text-center">{sale.items.length}</TableCell>
                                     <TableCell className="text-left font-mono">${sale.total.toFixed(2)}</TableCell>
+                                    <TableCell className="text-left font-mono text-green-600">${(sale.profit || 0).toFixed(2)}</TableCell>
                                     <TableCell>
                                         <Button variant="outline" size="sm" onClick={() => openPrintDialog(sale)}>
                                             <Printer className="me-2 h-4 w-4" />
@@ -153,7 +199,7 @@ export default function ReportsPage() {
                                 </TableRow>
                             )) : (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                                         لم يتم العثور على فواتير.
                                     </TableCell>
                                 </TableRow>
@@ -185,6 +231,6 @@ export default function ReportsPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </>
+        </div>
     )
 }

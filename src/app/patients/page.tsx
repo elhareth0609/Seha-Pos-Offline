@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -55,12 +56,20 @@ export default function PatientsPage() {
   
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [newPatientName, setNewPatientName] = React.useState("");
+  const [newPatientNotes, setNewPatientNotes] = React.useState("");
   const [selectedMeds, setSelectedMeds] = React.useState<string[]>([]);
   const [medSearch, setMedSearch] = React.useState("");
   
   const [editingPatient, setEditingPatient] = React.useState<Patient | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 
+  const resetAddDialog = () => {
+    setNewPatientName("");
+    setNewPatientNotes("");
+    setSelectedMeds([]);
+    setMedSearch("");
+    setIsAddDialogOpen(false);
+  }
 
   const handleAddPatient = () => {
     if (!newPatientName.trim()) {
@@ -71,6 +80,7 @@ export default function PatientsPage() {
     const newPatient: Patient = {
         id: `PAT${(patients.length + 1).toString().padStart(3, '0')}`,
         name: newPatientName,
+        notes: newPatientNotes,
         medications: selectedMeds.map(medId => {
             const med = inventory.find(m => m.id === medId)!;
             return { medicationId: med.id, name: med.name };
@@ -78,13 +88,14 @@ export default function PatientsPage() {
     };
     
     setPatients(prev => [newPatient, ...prev]);
-
     toast({ title: "نجاح", description: `تمت إضافة المريض ${newPatient.name} بنجاح.` });
-    
-    setNewPatientName("");
-    setSelectedMeds([]);
-    setMedSearch("");
-    setIsAddDialogOpen(false);
+    resetAddDialog();
+  }
+
+  const openEditDialog = (patient: Patient) => {
+    setEditingPatient(patient);
+    setSelectedMeds(patient.medications.map(m => m.medicationId));
+    setIsEditDialogOpen(true);
   }
 
   const handleEditPatient = (e: React.FormEvent<HTMLFormElement>) => {
@@ -95,11 +106,21 @@ export default function PatientsPage() {
       const name = formData.get("name") as string;
       const notes = formData.get("notes") as string;
       
-      const updatedPatient: Patient = { ...editingPatient, name, notes };
+      const updatedPatient: Patient = { 
+        ...editingPatient, 
+        name, 
+        notes,
+        medications: selectedMeds.map(medId => {
+            const med = inventory.find(m => m.id === medId)!;
+            return { medicationId: med.id, name: med.name };
+        })
+      };
       
       setPatients(prev => prev.map(p => p.id === updatedPatient.id ? updatedPatient : p));
       toast({ title: "تم تحديث بيانات المريض بنجاح."});
       setIsEditDialogOpen(false);
+      setEditingPatient(null);
+      setSelectedMeds([]);
   }
 
   const handleDeletePatient = (patientId: string) => {
@@ -141,6 +162,10 @@ export default function PatientsPage() {
                             <Label htmlFor="patient-name" className="text-right">اسم المريض</Label>
                             <Input id="patient-name" value={newPatientName} onChange={(e) => setNewPatientName(e.target.value)} className="col-span-3" placeholder="مثال: محمد عبدالله" />
                         </div>
+                         <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="patient-notes" className="text-right">ملاحظات</Label>
+                            <Textarea id="patient-notes" value={newPatientNotes} onChange={(e) => setNewPatientNotes(e.target.value)} className="col-span-3" placeholder="ملاحظات حول المريض..." />
+                        </div>
                         <div className="grid grid-cols-4 items-start gap-4">
                             <Label htmlFor="meds" className="text-right pt-2">الأدوية المعتادة</Label>
                             <div className="col-span-3 border rounded-md p-2 space-y-2">
@@ -160,7 +185,7 @@ export default function PatientsPage() {
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
-                           <Button variant="outline">إلغاء</Button>
+                           <Button variant="outline" onClick={resetAddDialog}>إلغاء</Button>
                         </DialogClose>
                         <Button type="button" onClick={handleAddPatient}>إضافة المريض</Button>
                     </DialogFooter>
@@ -206,10 +231,7 @@ export default function PatientsPage() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuLabel>إجراءات</DropdownMenuLabel>
-                                    <DropdownMenuItem onSelect={() => {
-                                        setEditingPatient(patient);
-                                        setIsEditDialogOpen(true);
-                                    }}>
+                                    <DropdownMenuItem onSelect={() => openEditDialog(patient)}>
                                         <Pencil className="me-2 h-4 w-4"/>
                                         تعديل
                                     </DropdownMenuItem>
@@ -249,19 +271,35 @@ export default function PatientsPage() {
         </Table>
       </CardContent>
        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
                     <DialogTitle>تعديل بيانات المريض</DialogTitle>
                 </DialogHeader>
                 {editingPatient && (
                     <form onSubmit={handleEditPatient} className="space-y-4 pt-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="edit-patient-name">اسم المريض</Label>
-                            <Input id="edit-patient-name" name="name" defaultValue={editingPatient.name} required/>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-patient-name" className="text-right">اسم المريض</Label>
+                            <Input id="edit-patient-name" name="name" defaultValue={editingPatient.name} required className="col-span-3"/>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="edit-patient-notes">ملاحظات</Label>
-                            <Textarea id="edit-patient-notes" name="notes" defaultValue={editingPatient.notes}/>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-patient-notes" className="text-right">ملاحظات</Label>
+                            <Textarea id="edit-patient-notes" name="notes" defaultValue={editingPatient.notes} className="col-span-3"/>
+                        </div>
+                         <div className="grid grid-cols-4 items-start gap-4">
+                            <Label htmlFor="edit-meds" className="text-right pt-2">الأدوية المعتادة</Label>
+                            <div className="col-span-3 border rounded-md p-2 space-y-2">
+                                <Input placeholder="ابحث عن دواء لإضافته..." value={medSearch} onChange={e => setMedSearch(e.target.value)} />
+                                <ScrollArea className="h-[200px]">
+                                <div className="space-y-2 p-2">
+                                  {filteredMeds.map(med => (
+                                      <div key={`edit-${med.id}`} className="flex items-center space-x-2 space-x-reverse">
+                                          <Checkbox id={`edit-med-${med.id}`} checked={selectedMeds.includes(med.id)} onCheckedChange={() => handleMedToggle(med.id)} />
+                                          <Label htmlFor={`edit-med-${med.id}`} className="flex-1 cursor-pointer">{med.name}</Label>
+                                      </div>
+                                  ))}
+                                </div>
+                                </ScrollArea>
+                            </div>
                         </div>
                         <DialogFooter>
                             <DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose>

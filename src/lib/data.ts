@@ -1,5 +1,5 @@
 
-import type { Medication, Sale, PurchaseOrder, Return, Supplier, User, TimeLog, AppSettings, SupplierPayment } from "./types";
+import type { Medication, Sale, PurchaseOrder, Return, Supplier, User, TimeLog, AppSettings, SupplierPayment, Patient } from "./types";
 
 export const suppliers: Supplier[] = [
     { id: "SUP001", name: "Pharma Inc.", contactPerson: "John Doe", phone: "123-456-7890", email: "contact@pharma-inc.com"},
@@ -25,14 +25,19 @@ export const inventory: Medication[] = [
 
 export const users: User[] = [];
 
+export const patients: Patient[] = [
+  { id: "PAT001", name: "أحمد محمود", medications: [{medicationId: "301504944810", name: "Metformin 500mg Tabs"}], notes: "يراجع كل شهر" },
+  { id: "PAT002", name: "فاطمة علي", medications: [{medicationId: "305801384013", name: "Amlodipine 5mg Tabs"}, {medicationId: "03784993510", name: "Simvastatin 40mg Tabs"}], notes: "قياس الضغط عند كل زيارة" },
+];
+
 export const sales: Sale[] = [
-  { id: "SALE001", date: "2024-07-20T10:30:00Z", items: [{ medicationId: "8901138507542", name: "Paracetamol 500mg Tabs", quantity: 2, price: 5.99 }], total: 11.98, employeeId: "USR002", employeeName: "سارة الموظفة" },
-  { id: "SALE002", date: "2024-07-20T11:05:00Z", items: [{ medicationId: "8904091101497", name: "Ibuprofen 200mg Tabs", quantity: 1, price: 7.25 }, { medicationId: "5010087201048", name: "Loratadine 10mg Tabs", quantity: 1, price: 15.00 }], total: 22.25, employeeId: "USR001", employeeName: "علي المدير" },
-  { id: "SALE003", date: "2024-07-21T14:00:00Z", items: [{ medicationId: "8901043002229", name: "Amoxicillin 250mg Caps", quantity: 1, price: 12.50 }], total: 12.50, employeeId: "USR002", employeeName: "سارة الموظفة" },
-  { id: "SALE004", date: "2024-07-22T09:15:00Z", items: [{ medicationId: "041100062327", name: "Aspirin 81mg Tabs", quantity: 3, price: 4.50 }], total: 13.50, employeeId: "USR003", employeeName: "أحمد الصيدلي" },
-  { id: "SALE005", date: "2024-07-23T16:45:00Z", items: [{ medicationId: "300450305609", name: "Omeprazole 20mg Caps", quantity: 1, price: 22.75 }], total: 22.75, employeeId: "USR001", employeeName: "علي المدير" },
-  { id: "SALE006", date: "2024-07-24T12:00:00Z", items: [{ medicationId: "305801384013", name: "Amlodipine 5mg Tabs", quantity: 1, price: 14.50 }], total: 14.50, employeeId: "USR002", employeeName: "سارة الموظفة" },
-  { id: "SALE007", date: "2024-07-25T11:20:00Z", items: [{ medicationId: "8901138507542", name: "Paracetamol 500mg Tabs", quantity: 1, price: 5.99 }, { medicationId: "041100062327", name: "Aspirin 81mg Tabs", quantity: 1, price: 4.50 }], total: 10.49, employeeId: "USR001", employeeName: "علي المدير" },
+  { id: "SALE001", date: "2024-07-20T10:30:00Z", items: [{ medicationId: "8901138507542", name: "Paracetamol 500mg Tabs", quantity: 2, price: 5.99, purchasePrice: 3.50 }], total: 11.98, profit: 4.98, employeeId: "USR002", employeeName: "سارة الموظفة" },
+  { id: "SALE002", date: "2024-07-20T11:05:00Z", items: [{ medicationId: "8904091101497", name: "Ibuprofen 200mg Tabs", quantity: 1, price: 7.25, purchasePrice: 4.50 }, { medicationId: "5010087201048", name: "Loratadine 10mg Tabs", quantity: 1, price: 15.00, purchasePrice: 9.75 }], total: 22.25, profit: 8.00, employeeId: "USR001", employeeName: "علي المدير" },
+  { id: "SALE003", date: "2024-07-21T14:00:00Z", items: [{ medicationId: "8901043002229", name: "Amoxicillin 250mg Caps", quantity: 1, price: 12.50, purchasePrice: 8.00 }], total: 12.50, profit: 4.50, employeeId: "USR002", employeeName: "سارة الموظفة" },
+  { id: "SALE004", date: "2024-07-22T09:15:00Z", items: [{ medicationId: "041100062327", name: "Aspirin 81mg Tabs", quantity: 3, price: 4.50, purchasePrice: 2.50 }], total: 13.50, profit: 6.00, employeeId: "USR003", employeeName: "أحمد الصيدلي" },
+  { id: "SALE005", date: "2024-07-23T16:45:00Z", items: [{ medicationId: "300450305609", name: "Omeprazole 20mg Caps", quantity: 1, price: 22.75, purchasePrice: 15.00 }], total: 22.75, profit: 7.75, employeeId: "USR001", employeeName: "علي المدير" },
+  { id: "SALE006", date: "2024-07-24T12:00:00Z", items: [{ medicationId: "305801384013", name: "Amlodipine 5mg Tabs", quantity: 1, price: 14.50, purchasePrice: 9.00 }], total: 14.50, profit: 5.50, employeeId: "USR002", employeeName: "سارة الموظفة" },
+  { id: "SALE007", date: "2024-07-25T11:20:00Z", items: [{ medicationId: "8901138507542", name: "Paracetamol 500mg Tabs", quantity: 1, price: 5.99, purchasePrice: 3.50 }, { medicationId: "041100062327", name: "Aspirin 81mg Tabs", quantity: 1, price: 4.50, purchasePrice: 2.50 }], total: 10.49, profit: 4.49, employeeId: "USR001", employeeName: "علي المدير" },
 ];
 
 export const purchaseOrders: PurchaseOrder[] = [

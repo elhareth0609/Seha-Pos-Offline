@@ -16,6 +16,7 @@ export type SaleItem = {
   name: string;
   quantity: number;
   price: number;
+  purchasePrice: number;
   expirationDate?: string;
   isReturn?: boolean;
 };
@@ -25,6 +26,7 @@ export type Sale = {
   date: string;
   items: SaleItem[];
   total: number;
+  profit: number;
   discount?: number;
   employeeId: string;
   employeeName: string;
@@ -82,6 +84,17 @@ export type User = {
   role: "Admin" | "Employee";
   pin: string;
 };
+
+export type Patient = {
+  id: string;
+  name: string;
+  medications: {
+    medicationId: string;
+    name: string;
+  }[];
+  notes?: string;
+};
+
 
 export type TimeLog = {
   id: string;

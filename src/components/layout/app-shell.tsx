@@ -18,6 +18,7 @@ import {
   FileText,
   Landmark,
   LogOut,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +40,7 @@ const navItems = [
   { href: "/purchases", icon: Truck, label: "المشتريات" },
   { href: "/suppliers", icon: Landmark, label: "الموردون والحسابات" },
   { href: "/reports", icon: FileText, label: "التقارير" },
+  { href: "/patients", icon: Users, label: "أصدقاء الصيدلية" },
   { href: "/expiring-soon", icon: CalendarX2, label: "قريب الانتهاء" },
   { href: "/settings", icon: Settings, label: "الإعدادات" },
 ];
@@ -53,7 +55,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if(typeof window === 'undefined') return;
 
     const dataToBackup: { [key: string]: any } = {};
-    const keysToBackup = ['inventory', 'sales', 'purchaseOrders', 'users', 'suppliers', 'supplierReturns', 'appSettings', 'timeLogs', 'supplierPayments'];
+    const keysToBackup = ['inventory', 'sales', 'purchaseOrders', 'users', 'suppliers', 'supplierReturns', 'appSettings', 'timeLogs', 'supplierPayments', 'patients'];
 
     keysToBackup.forEach(key => {
       const data = localStorage.getItem(key);
