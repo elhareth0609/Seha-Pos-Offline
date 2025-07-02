@@ -26,9 +26,9 @@ import {
   YAxis,
   Tooltip,
 } from "recharts";
-import { inventory as fallbackInventory, sales as fallbackSales } from "@/lib/data";
-import type { Medication, Sale } from "@/lib/types";
-import { DollarSign, Package, Clock, TrendingDown } from "lucide-react";
+import { inventory as fallbackInventory, sales as fallbackSales, purchaseOrders as fallbackPurchaseOrders, supplierReturns as fallbackReturns } from "@/lib/data";
+import type { Medication, Sale, PurchaseOrder, Return } from "@/lib/types";
+import { DollarSign, Package, Clock, TrendingDown, Landmark } from "lucide-react";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { differenceInDays, parseISO } from 'date-fns';
@@ -39,6 +39,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function Dashboard() {
   const [inventory, setInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
   const [sales, setSales] = useLocalStorage<Sale[]>('sales', fallbackSales);
+  const [purchaseOrders, setPurchaseOrders] = useLocalStorage<PurchaseOrder[]>('purchaseOrders', fallbackPurchaseOrders);
+  const [supplierReturns, setSupplierReturns] = useLocalStorage<Return[]>('supplierReturns', fallbackReturns);
   const [isClient, setIsClient] = React.useState(false);
 
   React.useEffect(() => {
@@ -47,6 +49,10 @@ export default function Dashboard() {
 
   const totalRevenue = sales.reduce((acc, sale) => acc + (sale.total || 0), 0);
   
+  const totalPurchases = purchaseOrders.reduce((acc, po) => acc + (po.totalAmount || 0), 0);
+  const totalReturns = supplierReturns.reduce((acc, r) => acc + (r.totalAmount || 0), 0);
+  const totalDebt = totalPurchases - totalReturns;
+
   const lowStockItems = inventory.filter(
     (item) => item.stock < item.reorderPoint
   );
@@ -76,10 +82,10 @@ export default function Dashboard() {
               <Skeleton className="h-4 w-full" />
             </CardContent>
           </Card>
-          <Card>
+           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <Skeleton className="h-5 w-2/3" />
-              <Package className="h-4 w-4 text-muted-foreground" />
+              <Landmark className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <Skeleton className="h-8 w-1/2 mb-2" />
@@ -138,13 +144,15 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">إجمالي المبيعات</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">إجمالي الديون (للموردين)</CardTitle>
+            <Landmark className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{sales.length}</div>
+            <div className="text-2xl font-bold text-destructive">
+              ${totalDebt.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+            </div>
             <p className="text-xs text-muted-foreground">
-              عدد المعاملات المسجلة
+              إجمالي المستحقات للموردين
             </p>
           </CardContent>
         </Card>

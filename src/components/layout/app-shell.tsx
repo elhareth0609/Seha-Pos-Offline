@@ -18,7 +18,7 @@ import {
   Settings,
   Menu,
   FileText,
-  LogOut,
+  Landmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,10 +37,10 @@ const navItems = [
   { href: "/sales", icon: ShoppingCart, label: "المبيعات" },
   { href: "/inventory", icon: Boxes, label: "المخزون" },
   { href: "/purchases", icon: Truck, label: "المشتريات" },
+  { href: "/suppliers", icon: Landmark, label: "الموردون والحسابات" },
   { href: "/reports", icon: FileText, label: "التقارير" },
   { href: "/expiring-soon", icon: CalendarX2, label: "قريب الانتهاء" },
   { href: "/patients", icon: Users, label: "الأصدقاء" },
-  { href: "/users", icon: Users, label: "الموظفين" },
   { href: "/settings", icon: Settings, label: "الإعدادات" },
 ];
 
@@ -48,7 +48,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const importFileRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const { currentUser, logout } = useAuth();
+  const { currentUser } = useAuth();
 
   const handleBackup = () => {
     if(typeof window === 'undefined') return;
@@ -142,30 +142,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 {navItems.map((item) => (
-                  <DropdownMenuItem key={item.href} onSelect={() => router.push(item.href)} disabled={item.href === '/users' && currentUser?.role !== 'Admin'}>
+                  <DropdownMenuItem key={item.href} onSelect={() => router.push(item.href)}>
                     <item.icon className="me-2 h-4 w-4" />
                     <span>{item.label}</span>
                   </DropdownMenuItem>
                 ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          <div className="flex flex-1 items-center justify-end space-x-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <UserCircle />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                 <DropdownMenuLabel>
-                    <p>مرحباً, {currentUser?.name}</p>
-                    <p className="text-xs text-muted-foreground">{currentUser?.role === 'Admin' ? 'مدير' : 'موظف'}</p>
-                 </DropdownMenuLabel>
                  <DropdownMenuSeparator />
-                <DropdownMenuLabel>إدارة البيانات</DropdownMenuLabel>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={handleImportClick}>
                   <Upload className="me-2 h-4 w-4" />
                   <span>استيراد بيانات</span>
@@ -174,13 +156,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <FileDown className="me-2 h-4 w-4" />
                   <span>نسخ احتياطي للبيانات</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={logout}>
-                    <LogOut className="me-2 h-4 w-4" />
-                    <span>تسجيل الخروج</span>
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          </div>
+
+          <div className="flex flex-1 items-center justify-end space-x-4">
+            <div className="flex items-center gap-2">
+                <UserCircle />
+                <span className="text-sm font-medium">{currentUser?.name || "المستخدم"}</span>
+            </div>
           </div>
         </div>
       </header>

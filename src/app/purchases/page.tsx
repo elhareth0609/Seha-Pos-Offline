@@ -45,7 +45,7 @@ import {
     suppliers as fallbackSuppliers, 
     supplierReturns as fallbackSupplierReturns 
 } from "@/lib/data"
-import type { PurchaseOrder, Medication, Supplier, Return } from "@/lib/types"
+import type { PurchaseOrder, Medication, Supplier, Return, PurchaseOrderItem } from "@/lib/types"
 import { PlusCircle } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 
@@ -74,6 +74,7 @@ export default function PurchasesPage() {
     const sellingPrice = parseFloat(formData.get("sellingPrice") as string);
     
     const supplier = suppliers.find(s => s.id === supplierId);
+    const itemTotal = purchasePrice * quantity;
 
     if (!purchaseId || !supplier || !medicationName || !quantity || !expirationDate || isNaN(purchasePrice) || isNaN(sellingPrice)) {
         toast({
@@ -132,29 +133,27 @@ export default function PurchasesPage() {
     setInventory(newInventory);
     
     let newPurchaseOrders = [...purchaseOrders];
-    let purchaseOrder = newPurchaseOrders.find(po => po.id === purchaseId);
+    let purchaseOrderIndex = newPurchaseOrders.findIndex(po => po.id === purchaseId);
     
-    if (purchaseOrder) {
-        purchaseOrder.items.push({
-            medicationId: medicationId,
-            name: medicationName,
-            quantity: quantity,
-        });
-        purchaseOrder.supplierId = supplier.id;
-        purchaseOrder.supplierName = supplier.name;
-        purchaseOrder.date = new Date().toISOString().split("T")[0];
+    const newPurchaseItem: PurchaseOrderItem = {
+        medicationId: medicationId,
+        name: medicationName,
+        quantity: quantity,
+        purchasePrice: purchasePrice,
+    };
+
+    if (purchaseOrderIndex > -1) {
+        newPurchaseOrders[purchaseOrderIndex].items.push(newPurchaseItem);
+        newPurchaseOrders[purchaseOrderIndex].totalAmount += itemTotal;
     } else {
         const newOrder: PurchaseOrder = {
           id: purchaseId,
           supplierId: supplier.id,
           supplierName: supplier.name,
           date: new Date().toISOString().split("T")[0],
-          items: [{
-            medicationId: medicationId,
-            name: medicationName,
-            quantity: quantity,
-          }],
+          items: [newPurchaseItem],
           status: "Received",
+          totalAmount: itemTotal,
         };
         newPurchaseOrders.unshift(newOrder);
     }
@@ -209,7 +208,9 @@ export default function PurchasesPage() {
           toast({ variant: "destructive", title: "كمية غير كافية", description: `الرصيد المتوفر من ${medication.name} هو ${medication.stock} فقط.`});
           return;
       }
-
+      
+      const returnTotalAmount = quantity * medication.purchasePrice;
+      
       const newInventory = [...inventory];
       newInventory[medicationIndex] = { ...medication, stock: medication.stock - quantity };
       setInventory(newInventory);
@@ -223,6 +224,7 @@ export default function PurchasesPage() {
         reason: reason,
         supplierId: supplier.id,
         purchaseId: purchaseId || undefined,
+        totalAmount: returnTotalAmount,
       };
 
       setSupplierReturns(prev => [newReturn, ...prev]);
@@ -334,6 +336,7 @@ export default function PurchasesPage() {
                         <TableHead>رقم القائمة</TableHead>
                         <TableHead>المورد</TableHead>
                         <TableHead>التاريخ</TableHead>
+                        <TableHead>الإجمالي</TableHead>
                         <TableHead>الحالة</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -343,6 +346,7 @@ export default function PurchasesPage() {
                             <TableCell>{po.id}</TableCell>
                             <TableCell>{po.supplierName}</TableCell>
                             <TableCell>{new Date(po.date).toLocaleDateString('ar-EG')}</TableCell>
+                            <TableCell className="font-mono">${po.totalAmount.toFixed(2)}</TableCell>
                             <TableCell>{po.status}</TableCell>
                         </TableRow>
                     ))}
@@ -366,7 +370,7 @@ export default function PurchasesPage() {
                         <Select name="medicationId" required>
                             <SelectTrigger id="return-medicationId"><SelectValue placeholder="اختر دواء" /></SelectTrigger>
                             <SelectContent>
-                                {inventory.map(m => <SelectItem key={m.id} value={m.id}>{m.name} ({m.id})</SelectItem>)}
+                                {inventory.map(m => <SelectItem key={m.id} value={m.id}>{m.name} (سعر الشراء: ${m.purchasePrice.toFixed(2)})</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>
@@ -409,6 +413,7 @@ export default function PurchasesPage() {
                         <TableHead>معرف المرتجع</TableHead>
                         <TableHead>الدواء</TableHead>
                         <TableHead>الكمية</TableHead>
+                        <TableHead>قيمة المرتجع</TableHead>
                         <TableHead>السبب</TableHead>
                         <TableHead>التاريخ</TableHead>
                     </TableRow>
@@ -419,6 +424,7 @@ export default function PurchasesPage() {
                             <TableCell>{ret.id}</TableCell>
                             <TableCell>{ret.medicationName}</TableCell>
                             <TableCell>{ret.quantity}</TableCell>
+                            <TableCell className="font-mono">${ret.totalAmount.toFixed(2)}</TableCell>
                             <TableCell>{ret.reason}</TableCell>
                             <TableCell>{new Date(ret.date).toLocaleDateString('ar-EG')}</TableCell>
                         </TableRow>

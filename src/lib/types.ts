@@ -26,7 +26,8 @@ export type Sale = {
   items: SaleItem[];
   total: number;
   discount?: number;
-  userId: string;
+  employeeId: string;
+  employeeName: string;
   patientId?: string;
   patientName?: string;
 };
@@ -35,6 +36,7 @@ export type PurchaseOrderItem = {
   medicationId: string;
   name: string;
   quantity: number;
+  purchasePrice: number;
 };
 
 export type PurchaseOrder = {
@@ -44,6 +46,7 @@ export type PurchaseOrder = {
   date: string;
   items: PurchaseOrderItem[];
   status: "Pending" | "Received" | "Cancelled";
+  totalAmount: number;
 };
 
 export type Return = {
@@ -54,6 +57,7 @@ export type Return = {
   quantity: number;
   reason: string;
   supplierId: string;
+  totalAmount: number;
   purchaseId?: string;
 };
 
@@ -79,8 +83,6 @@ export type User = {
   id: string;
   name: string;
   role: "Admin" | "Employee";
-  hourlyRate: number;
-  pin: string; // Simulate login with a PIN
 };
 
 export type TimeLog = {
