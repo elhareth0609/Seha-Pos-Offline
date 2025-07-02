@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from 'react'
@@ -40,7 +41,12 @@ export default function SettingsPage() {
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { id, value } = e.target;
-        setCurrentSettings(prev => ({...prev, [id]: value}));
+        const target = e.target as HTMLInputElement;
+
+        setCurrentSettings(prev => ({
+            ...prev,
+            [id]: target.type === 'number' ? (parseInt(value, 10) || 0) : value
+        }));
     }
 
     const handleSubmit = (e: React.FormEvent) => {

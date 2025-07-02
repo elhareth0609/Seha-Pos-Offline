@@ -19,6 +19,7 @@ import {
   Landmark,
   LogOut,
   Users,
+  HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +43,7 @@ const navItems = [
   { href: "/reports", icon: FileText, label: "التقارير" },
   { href: "/patients", icon: Users, label: "أصدقاء الصيدلية" },
   { href: "/expiring-soon", icon: CalendarX2, label: "قريب الانتهاء" },
+  { href: "/guide", icon: HelpCircle, label: "دليل الاستخدام" },
   { href: "/settings", icon: Settings, label: "الإعدادات" },
 ];
 
