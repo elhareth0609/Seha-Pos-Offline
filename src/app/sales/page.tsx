@@ -29,13 +29,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
   Alert,
   AlertDescription,
   AlertTitle,
@@ -44,8 +37,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import { inventory as fallbackInventory, sales as fallbackSales, users as fallbackUsers, appSettings as fallbackSettings } from "@/lib/data"
-import type { Medication, SaleItem, Sale, User, AppSettings } from "@/lib/types"
+import { inventory as fallbackInventory, sales as fallbackSales, appSettings as fallbackSettings } from "@/lib/data"
+import type { Medication, SaleItem, Sale, AppSettings } from "@/lib/types"
 import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
@@ -55,6 +48,7 @@ import { cn } from "@/lib/utils"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useReactToPrint } from "react-to-print"
 import { InvoiceTemplate } from "@/components/ui/invoice"
+import { useAuth } from "@/hooks/use-auth"
 
 
 function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => void; onOpenChange: (isOpen: boolean) => void }) {
@@ -122,8 +116,8 @@ function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => 
 export default function SalesPage() {
   const [allInventory, setAllInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
   const [sales, setSales] = useLocalStorage<Sale[]>('sales', fallbackSales);
-  const [users, setUsers] = useLocalStorage<User[]>('users', fallbackUsers);
   const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
+  const { currentUser } = useAuth();
   
   const [searchTerm, setSearchTerm] = React.useState("")
   const [suggestions, setSuggestions] = React.useState<Medication[]>([])
@@ -136,8 +130,6 @@ export default function SalesPage() {
   const [discountInput, setDiscountInput] = React.useState("0");
   const { toast } = useToast()
   
-  const [selectedEmployee, setSelectedEmployee] = React.useState<User>(users[0]);
-
   const printComponentRef = React.useRef(null);
   const handlePrint = useReactToPrint({
     content: () => printComponentRef.current,
@@ -284,6 +276,11 @@ export default function SalesPage() {
   }
   
   const handleFinalizeSale = () => {
+    if (!currentUser) {
+        toast({ title: "خطأ", description: "لم يتم تحديد المستخدم الحالي.", variant: "destructive" });
+        return;
+    }
+
     const updatedInventory = allInventory.map(med => {
         const itemInCart = cart.find(cartItem => cartItem.medicationId === med.id);
         if (itemInCart) {
@@ -304,8 +301,8 @@ export default function SalesPage() {
         items: cart,
         total: finalTotal,
         discount: discount,
-        employeeId: selectedEmployee.id,
-        employeeName: selectedEmployee.name,
+        employeeId: currentUser.id,
+        employeeName: currentUser.name,
     };
     
     setSales(prev => [newSale, ...prev]);
@@ -318,11 +315,6 @@ export default function SalesPage() {
     setSaleToPrint(newSale);
     setIsCheckoutOpen(false);
     setIsReceiptOpen(true);
-  }
-  
-  const handleEmployeeSelect = (employeeId: string) => {
-    const employee = users.find(u => u.id === employeeId);
-    if(employee) setSelectedEmployee(employee);
   }
 
   return (
@@ -462,17 +454,10 @@ export default function SalesPage() {
                 <CardContent className="flex flex-col gap-4">
                      <div className="space-y-2">
                         <Label>الموظف البائع</Label>
-                         <Select onValueChange={handleEmployeeSelect} defaultValue={selectedEmployee.id}>
-                            <SelectTrigger>
-                                <UserIcon className="me-2 h-4 w-4" />
-                                <SelectValue placeholder="اختيار موظف..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {users.map(u => (
-                                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div className="flex items-center p-2 border rounded-md bg-muted">
+                            <UserIcon className="me-2 h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">{currentUser?.name}</span>
+                        </div>
                      </div>
                     <Separator />
 
@@ -524,7 +509,7 @@ export default function SalesPage() {
                                 </div>
                                 <Separator/>
                                 <div className="space-y-2 text-sm">
-                                    <div className="flex justify-between"><span>الموظف:</span><span>{selectedEmployee.name}</span></div>
+                                    <div className="flex justify-between"><span>الموظف:</span><span>{currentUser?.name}</span></div>
                                     <div className="flex justify-between"><span>المجموع الفرعي:</span><span>${subtotal.toFixed(2)}</span></div>
                                     <div className="flex justify-between"><span>الخصم:</span><span>-${discount.toFixed(2)}</span></div>
                                     <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>${finalTotal.toFixed(2)}</span></div>

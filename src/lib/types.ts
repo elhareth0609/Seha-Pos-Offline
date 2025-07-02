@@ -80,6 +80,8 @@ export type User = {
   id: string;
   name: string;
   role: "Admin" | "Employee";
+  pin: string;
+  pinHint?: string;
 };
 
 export type TimeLog = {
