@@ -23,11 +23,7 @@ export const inventory: Medication[] = [
   { id: "037000412852", name: "Vitamin D3 2000IU", stock: 150, reorderPoint: 30, category: "Vitamins", supplierId: "SUP004", supplierName: "Wellness Distributors", price: 13.50, purchasePrice: 8.50, expirationDate: "2026-06-30" },
 ];
 
-export const users: User[] = [
-    { id: "USR001", name: "علي المدير", role: "Admin"},
-    { id: "USR002", name: "سارة الموظفة", role: "Employee"},
-    { id: "USR003", name: "أحمد الصيدلي", role: "Employee"},
-];
+export const users: User[] = [];
 
 export const sales: Sale[] = [
   { id: "SALE001", date: "2024-07-20T10:30:00Z", items: [{ medicationId: "8901138507542", name: "Paracetamol 500mg Tabs", quantity: 2, price: 5.99 }], total: 11.98, employeeId: "USR002", employeeName: "سارة الموظفة" },

@@ -400,7 +400,7 @@ export default function SalesPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="p-0 flex-1">
-                    <ScrollArea className="h-[calc(100vh-29rem)]">
+                    <ScrollArea className="h-full">
                     {cart.length > 0 ? (
                         <Table>
                             <TableHeader className="sticky top-0 bg-background z-10">

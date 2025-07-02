@@ -4,9 +4,10 @@ import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { AppShell } from '@/components/layout/app-shell';
 import { Loader2 } from 'lucide-react';
+import SetupPage from '@/components/layout/setup-page';
 
 export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
-    const { loading } = useAuth();
+    const { loading, isSetup } = useAuth();
 
     if (loading) {
         return (
@@ -16,7 +17,9 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
         );
     }
 
-    // Since auth is simplified, we just show the AppShell with the children.
-    // No more redirects to a login page.
+    if (!isSetup) {
+        return <SetupPage />;
+    }
+
     return <AppShell>{children}</AppShell>;
 }
