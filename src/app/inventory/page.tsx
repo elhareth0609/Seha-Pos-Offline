@@ -2,6 +2,7 @@
 "use client"
 
 import * as React from "react"
+import * as XLSX from 'xlsx';
 import {
   Card,
   CardContent,
@@ -44,7 +45,7 @@ import { useToast } from "@/hooks/use-toast"
 import { inventory as fallbackInventory } from "@/lib/data"
 import type { Medication } from "@/lib/types"
 import { useLocalStorage } from "@/hooks/use-local-storage"
-import { MoreHorizontal, ListFilter, Trash2, Pencil, X, Printer } from "lucide-react"
+import { MoreHorizontal, ListFilter, Trash2, Pencil, X, Printer, Upload } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useReactToPrint } from 'react-to-print';
@@ -66,6 +67,7 @@ export default function InventoryPage() {
   const [printingMed, setPrintingMed] = React.useState<Medication | null>(null);
   const printComponentRef = React.useRef(null);
   const medToPrintRef = React.useRef<Medication | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handlePrint = useReactToPrint({
       content: () => printComponentRef.current,
@@ -148,6 +150,118 @@ export default function InventoryPage() {
       setIsEditModalOpen(false);
       setEditingMed(null);
   }
+  
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = e.target?.result;
+            const workbook = XLSX.read(data, { type: "array", cellDates: true });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+            if (jsonData.length < 2) {
+                 toast({ variant: 'destructive', title: 'ملف فارغ', description: 'الملف لا يحتوي على بيانات.' });
+                 return;
+            }
+
+            const headers: string[] = jsonData[0].map(h => String(h).toLowerCase().trim().replace(/\s+/g, ''));
+            const rows = jsonData.slice(1);
+
+            const requiredHeaders = ['id', 'name', 'stock', 'price', 'purchaseprice'];
+            const missingHeaders = requiredHeaders.filter(h => !headers.includes(h.toLowerCase()));
+            if (missingHeaders.length > 0) {
+                toast({ variant: 'destructive', title: 'أعمدة ناقصة', description: `الملف يجب أن يحتوي على الأعمدة التالية: ${requiredHeaders.join(', ')}` });
+                return;
+            }
+            
+            let updatedCount = 0;
+            let addedCount = 0;
+            const inventoryToUpdate = [...allInventory];
+
+            rows.forEach((rowArray) => {
+                const row: any = {};
+                headers.forEach((header, i) => {
+                    row[header] = rowArray[i];
+                });
+
+                const medId = String(row.id || '').trim();
+                if (!medId) return;
+
+                const existingIndex = inventoryToUpdate.findIndex(m => m.id === medId);
+                const isUpdate = existingIndex > -1;
+                
+                let expDate = row.expirationdate;
+                let formattedExpDate: string;
+                if (expDate instanceof Date) {
+                    expDate.setMinutes(expDate.getMinutes() - expDate.getTimezoneOffset());
+                    formattedExpDate = expDate.toISOString().split('T')[0];
+                } else if (typeof expDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(expDate)) {
+                    formattedExpDate = expDate;
+                } else {
+                    const futureDate = new Date();
+                    futureDate.setFullYear(futureDate.getFullYear() + 1);
+                    formattedExpDate = futureDate.toISOString().split('T')[0];
+                }
+
+                const medData: Partial<Medication> = {
+                    id: medId,
+                    name: String(row.name || (isUpdate ? inventoryToUpdate[existingIndex].name : 'Unnamed Product')).trim(),
+                    stock: parseInt(row.stock, 10) || 0,
+                    price: parseFloat(row.price) || 0,
+                    purchasePrice: parseFloat(row.purchaseprice) || 0,
+                    reorderPoint: parseInt(row.reorderpoint, 10) || 10,
+                    category: String(row.category || 'Uncategorized').trim(),
+                    expirationDate: formattedExpDate,
+                    supplierName: String(row.suppliername || 'Default Supplier').trim(),
+                    supplierId: String(row.supplierid || 'SUP-DEFAULT').trim(),
+                };
+
+                if (isUpdate) {
+                    inventoryToUpdate[existingIndex] = { ...inventoryToUpdate[existingIndex], ...medData };
+                    updatedCount++;
+                } else {
+                    const newMed: Medication = {
+                        id: medData.id!,
+                        name: medData.name!,
+                        stock: medData.stock!,
+                        reorderPoint: medData.reorderPoint!,
+                        category: medData.category!,
+                        supplierId: medData.supplierId!,
+                        supplierName: medData.supplierName!,
+                        price: medData.price!,
+                        purchasePrice: medData.purchasePrice!,
+                        expirationDate: medData.expirationDate!,
+                    };
+                    inventoryToUpdate.push(newMed);
+                    addedCount++;
+                }
+            });
+
+            setAllInventory(inventoryToUpdate);
+            toast({ title: "اكتمل الاستيراد", description: `تم إضافة ${addedCount} صنفًا وتحديث ${updatedCount} صنفًا.` });
+        } catch (error) {
+            console.error("Error importing from Excel:", error);
+            toast({ variant: 'destructive', title: 'خطأ في الاستيراد', description: 'حدث خطأ أثناء معالجة الملف. تأكد من أن الملف بالتنسيق الصحيح.' });
+        } finally {
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+        }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
 
   if (!isClient) {
     return (
@@ -243,6 +357,17 @@ export default function InventoryPage() {
                     </DropdownMenuRadioGroup>
                 </DropdownMenuContent>
             </DropdownMenu>
+             <Button variant="outline" onClick={handleImportClick}>
+                <Upload className="me-2 h-4 w-4" />
+                استيراد Excel
+            </Button>
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                accept=".xlsx, .xls"
+            />
         </div>
       </CardHeader>
       <CardContent>
