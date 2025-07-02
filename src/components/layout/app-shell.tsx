@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -16,6 +17,7 @@ import {
   Upload,
   Settings,
   Menu,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +35,7 @@ const navItems = [
   { href: "/sales", icon: ShoppingCart, label: "المبيعات" },
   { href: "/inventory", icon: Boxes, label: "المخزون" },
   { href: "/purchases", icon: Truck, label: "المشتريات" },
+  { href: "/reports", icon: FileText, label: "التقارير" },
   { href: "/expiring-soon", icon: CalendarX2, label: "قريب الانتهاء" },
   { href: "/patients", icon: Users, label: "الأصدقاء" },
   { href: "/settings", icon: Settings, label: "الإعدادات" },
@@ -128,7 +131,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button>
+                <Button variant="outline" className="gap-2">
                   <Menu className="me-2 h-4 w-4" />
                   القائمة الرئيسية
                 </Button>

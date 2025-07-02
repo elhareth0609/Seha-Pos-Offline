@@ -1,0 +1,144 @@
+
+"use client"
+
+import * as React from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { sales as fallbackSales, appSettings as fallbackSettings } from '@/lib/data';
+import type { Sale, AppSettings } from '@/lib/types';
+import { useReactToPrint } from 'react-to-print';
+import { InvoiceTemplate } from '@/components/ui/invoice';
+import { Printer } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+
+export default function ReportsPage() {
+    const [sales] = useLocalStorage<Sale[]>('sales', fallbackSales);
+    const [settings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
+    const [searchTerm, setSearchTerm] = React.useState("");
+
+    const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
+    const [selectedSale, setSelectedSale] = React.useState<Sale | null>(null);
+    const printComponentRef = React.useRef(null);
+
+    const handlePrint = useReactToPrint({
+        content: () => printComponentRef.current,
+        documentTitle: `invoice-${selectedSale?.id || ''}`,
+    });
+
+    const openPrintDialog = (sale: Sale) => {
+        setSelectedSale(sale);
+        setIsPrintDialogOpen(true);
+    };
+
+    const filteredSales = sales.filter(sale => 
+        sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sale.patientName?.toLowerCase().includes(searchTerm.toLowerCase())
+    ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+
+    return (
+        <>
+            <div className="hidden">
+                <InvoiceTemplate ref={printComponentRef} sale={selectedSale} settings={settings} />
+            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>سجل المبيعات</CardTitle>
+                    <CardDescription>عرض وطباعة جميع فواتير المبيعات السابقة.</CardDescription>
+                     <div className="pt-4">
+                        <Input 
+                            placeholder="ابحث برقم الفاتورة أو اسم العميل..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="max-w-sm"
+                        />
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>رقم الفاتورة</TableHead>
+                                <TableHead>التاريخ</TableHead>
+                                <TableHead>العميل</TableHead>
+                                <TableHead className="text-center">عدد الأصناف</TableHead>
+                                <TableHead className="text-left">الإجمالي</TableHead>
+                                <TableHead>الإجراءات</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredSales.length > 0 ? filteredSales.map((sale) => (
+                                <TableRow key={sale.id}>
+                                    <TableCell className="font-medium">{sale.id}</TableCell>
+                                    <TableCell>{new Date(sale.date).toLocaleDateString('ar-EG')}</TableCell>
+                                    <TableCell>{sale.patientName || 'عميل عام'}</TableCell>
+                                    <TableCell className="text-center">{sale.items.length}</TableCell>
+                                    <TableCell className="text-left font-mono">${sale.total.toFixed(2)}</TableCell>
+                                    <TableCell>
+                                        <Button variant="outline" size="sm" onClick={() => openPrintDialog(sale)}>
+                                            <Printer className="me-2 h-4 w-4" />
+                                            طباعة
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            )) : (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                        لم يتم العثور على فواتير.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+
+             <Dialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen}>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>طباعة الفاتورة #{selectedSale?.id}</DialogTitle>
+                        <DialogDescription>
+                            معاينة سريعة قبل الطباعة.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="max-h-[60vh] overflow-y-auto border rounded-md bg-gray-50">
+                        <InvoiceTemplate sale={selectedSale} settings={settings} ref={null} />
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="outline">إغلاق</Button>
+                        </DialogClose>
+                        <Button onClick={handlePrint}>
+                            <Printer className="me-2 h-4 w-4" />
+                            طباعة
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
+    )
+}

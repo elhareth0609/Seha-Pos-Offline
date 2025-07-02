@@ -44,15 +44,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import { inventory as fallbackInventory, sales as fallbackSales, patients as fallbackPatients } from "@/lib/data"
-import type { Medication, SaleItem, Sale, Patient } from "@/lib/types"
-import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, UserSearch } from "lucide-react"
+import { inventory as fallbackInventory, sales as fallbackSales, patients as fallbackPatients, appSettings as fallbackSettings } from "@/lib/data"
+import type { Medication, SaleItem, Sale, Patient, AppSettings } from "@/lib/types"
+import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, UserSearch, Printer } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import { useLocalStorage } from "@/hooks/use-local-storage"
+import { useReactToPrint } from "react-to-print"
+import { InvoiceTemplate } from "@/components/ui/invoice"
+
 
 function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => void; onOpenChange: (isOpen: boolean) => void }) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -120,17 +123,26 @@ export default function SalesPage() {
   const [allInventory, setAllInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
   const [sales, setSales] = useLocalStorage<Sale[]>('sales', fallbackSales);
   const [patients, setPatients] = useLocalStorage<Patient[]>('patients', fallbackPatients);
+  const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
   
   const [searchTerm, setSearchTerm] = React.useState("")
   const [suggestions, setSuggestions] = React.useState<Medication[]>([])
   const [cart, setCart] = React.useState<SaleItem[]>([])
   const [isScannerOpen, setIsScannerOpen] = React.useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = React.useState(false);
+  const [isReceiptOpen, setIsReceiptOpen] = React.useState(false);
+  const [saleToPrint, setSaleToPrint] = React.useState<Sale | null>(null);
   const [discount, setDiscount] = React.useState(0);
   const [discountInput, setDiscountInput] = React.useState("0");
   const { toast } = useToast()
   
   const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
+
+  const printComponentRef = React.useRef(null);
+  const handlePrint = useReactToPrint({
+    content: () => printComponentRef.current,
+    documentTitle: `invoice-${saleToPrint?.id || ''}`,
+  });
 
   const addToCart = React.useCallback((medication: Medication) => {
     setCart((prevCart) => {
@@ -262,6 +274,15 @@ export default function SalesPage() {
     
     setIsCheckoutOpen(true);
   }
+
+  const resetSale = () => {
+    setCart([]);
+    setDiscount(0);
+    setDiscountInput("0");
+    setSearchTerm("");
+    setSelectedPatient(null);
+    setSaleToPrint(null);
+  }
   
   const handleFinalizeSale = () => {
     const updatedInventory = allInventory.map(med => {
@@ -296,12 +317,9 @@ export default function SalesPage() {
       description: `تم تسجيل عملية جديدة بقيمة إجمالية ${finalTotal.toFixed(2)}$`
     })
 
-    setCart([])
-    setDiscount(0);
-    setDiscountInput("0");
-    setSearchTerm("");
+    setSaleToPrint(newSale);
     setIsCheckoutOpen(false);
-    setSelectedPatient(null);
+    setIsReceiptOpen(true);
   }
   
   const handlePatientSelect = (patientId: string) => {
@@ -310,6 +328,10 @@ export default function SalesPage() {
   }
 
   return (
+    <>
+    <div className="hidden">
+        <InvoiceTemplate ref={printComponentRef} sale={saleToPrint} settings={settings} />
+    </div>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-9rem)]">
         {/* Main Content */}
         <div className="lg:col-span-2 flex flex-col gap-4">
@@ -508,13 +530,44 @@ export default function SalesPage() {
                             </div>
                             <DialogFooter>
                                 <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
-                                <Button onClick={handleFinalizeSale}>تأكيد البيع وتحديث المخزون</Button>
+                                <Button onClick={handleFinalizeSale}>تأكيد البيع</Button>
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
                 </CardFooter>
             </Card>
         </div>
+
+        <Dialog open={isReceiptOpen} onOpenChange={(open) => {
+            if (!open) {
+                resetSale();
+            }
+            setIsReceiptOpen(open);
+        }}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>تمت العملية بنجاح</DialogTitle>
+                    <DialogDescription>
+                        تم تسجيل الفاتورة رقم {saleToPrint?.id}. هل تريد طباعة نسخة؟
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="sm:justify-between gap-2">
+                    <Button onClick={() => setIsReceiptOpen(false)} className="w-full sm:w-auto">
+                        فاتورة جديدة
+                    </Button>
+                    <div className="flex gap-2">
+                        <DialogClose asChild>
+                            <Button variant="outline">إغلاق</Button>
+                        </DialogClose>
+                        <Button onClick={handlePrint} className="w-full sm:w-auto">
+                            <Printer className="me-2 h-4 w-4" />
+                            طباعة الفاتورة
+                        </Button>
+                    </div>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
+    </>
   )
 }
