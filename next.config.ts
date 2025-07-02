@@ -9,8 +9,6 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
-  assetPrefix: './',
-  trailingSlash: true,
   output: 'export',
   typescript: {
     ignoreBuildErrors: true,
@@ -20,14 +18,6 @@ const nextConfig: NextConfig = {
   },
   images: {
     unoptimized: true, // Required for static export
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'placehold.co',
-        port: '',
-        pathname: '/**',
-      },
-    ],
   },
 };
 
