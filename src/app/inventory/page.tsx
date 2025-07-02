@@ -148,10 +148,8 @@ export default function InventoryPage() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle><Skeleton className="h-8 w-48" /></CardTitle>
-                <CardDescription>
-                    <Skeleton className="h-5 w-72" />
-                </CardDescription>
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-5 w-72" />
                 <div className="pt-4 flex gap-2">
                     <Skeleton className="h-10 max-w-sm flex-1" />
                     <Skeleton className="h-10 w-28" />
