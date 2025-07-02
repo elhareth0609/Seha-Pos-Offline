@@ -149,7 +149,7 @@ export default function ReportsPage() {
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">${totalSalesValue.toFixed(2)}</div>
+                        <div className="text-2xl font-bold">{totalSalesValue.toLocaleString('ar-IQ')} ع.د</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -158,7 +158,7 @@ export default function ReportsPage() {
                         <TrendingUp className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-600">${totalProfit.toFixed(2)}</div>
+                        <div className="text-2xl font-bold text-green-600">{totalProfit.toLocaleString('ar-IQ')} ع.د</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -224,8 +224,8 @@ export default function ReportsPage() {
                                     <TableCell>{new Date(sale.date).toLocaleDateString('ar-EG')}</TableCell>
                                     <TableCell>{sale.employeeName || 'غير محدد'}</TableCell>
                                     <TableCell className="text-center">{sale.items.length}</TableCell>
-                                    <TableCell className="text-left font-mono">${sale.total.toFixed(2)}</TableCell>
-                                    <TableCell className="text-left font-mono text-green-600">${((sale.profit || 0) - (sale.discount || 0)).toFixed(2)}</TableCell>
+                                    <TableCell className="text-left font-mono">{sale.total.toLocaleString('ar-IQ')} ع.د</TableCell>
+                                    <TableCell className="text-left font-mono text-green-600">{((sale.profit || 0) - (sale.discount || 0)).toLocaleString('ar-IQ')} ع.د</TableCell>
                                     <TableCell>
                                         <Button variant="outline" size="sm" onClick={() => openPrintDialog(sale)}>
                                             <Printer className="me-2 h-4 w-4" />

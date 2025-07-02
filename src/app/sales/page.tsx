@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -336,7 +337,7 @@ export default function SalesPage() {
     
     toast({
       title: "تمت العملية بنجاح",
-      description: `تم تسجيل عملية جديدة بقيمة إجمالية ${finalTotal.toFixed(2)}$`
+      description: `تم تسجيل عملية جديدة بقيمة إجمالية ${finalTotal.toLocaleString('ar-IQ')} ع.د`
     })
 
     setSaleToPrint(newSale);
@@ -378,7 +379,7 @@ export default function SalesPage() {
                                                     className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
                                                 >
                                                     <span>{med.name}</span>
-                                                    <span className="text-sm text-muted-foreground">${med.price.toFixed(2)}</span>
+                                                    <span className="text-sm text-muted-foreground">{med.price.toLocaleString('ar-IQ')} ع.د</span>
                                                 </li>
                                             ))}
                                         </ul>
@@ -439,9 +440,9 @@ export default function SalesPage() {
                                         <TableCell>
                                             <div className="font-medium">{item.name}</div>
                                             <div className="text-xs text-muted-foreground flex items-center gap-x-2">
-                                                <span>الكلفة: ${item.purchasePrice.toFixed(2)}</span>
+                                                <span>الكلفة: {item.purchasePrice.toLocaleString('ar-IQ')} ع.د</span>
                                                 <span className={cn("font-medium", itemProfit >= 0 ? "text-green-600" : "text-destructive")}>
-                                                  | الربح: ${itemProfit.toFixed(2)}
+                                                  | الربح: {itemProfit.toLocaleString('ar-IQ')} ع.د
                                                 </span>
                                             </div>
                                             <div className="text-xs text-muted-foreground">
@@ -459,7 +460,7 @@ export default function SalesPage() {
                                         </TableCell>
                                         <TableCell>
                                             <div className="relative">
-                                                <Input type="number" value={item.price.toFixed(2)} onChange={(e) => updatePrice(item.medicationId, parseFloat(e.target.value))} className={cn("w-24 h-9 text-center", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} step="0.01" min="0" />
+                                                <Input type="number" value={item.price} onChange={(e) => updatePrice(item.medicationId, parseFloat(e.target.value))} className={cn("w-24 h-9 text-center", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} step="1" min="0" />
                                                 {isBelowCost && !item.isReturn && (
                                                   <div className="absolute -top-2 -right-2 text-destructive" title="السعر أقل من الكلفة!">
                                                     <AlertTriangle className="h-4 w-4" />
@@ -467,7 +468,7 @@ export default function SalesPage() {
                                                 )}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-left font-mono">${itemTotal.toFixed(2)}</TableCell>
+                                        <TableCell className="text-left font-mono">{itemTotal.toLocaleString('ar-IQ')} ع.د</TableCell>
                                         <TableCell className="text-left">
                                             <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)}><X className="h-4 w-4" /></Button>
                                         </TableCell>
@@ -518,20 +519,20 @@ export default function SalesPage() {
 
                     <div className="flex justify-between w-full text-md">
                         <span>المجموع الفرعي</span>
-                        <span>${subtotal.toFixed(2)}</span>
+                        <span>{subtotal.toLocaleString('ar-IQ')} ع.د</span>
                     </div>
                      <div className="flex justify-between w-full text-md text-green-600">
                         <span className="flex items-center gap-1"><TrendingUp className="h-4 w-4" /> الربح المتوقع</span>
-                        <span className="font-semibold">${totalProfit.toFixed(2)}</span>
+                        <span className="font-semibold">{totalProfit.toLocaleString('ar-IQ')} ع.د</span>
                     </div>
                     <div className="flex items-center justify-between w-full">
                         <Label htmlFor="discount" className="text-md shrink-0 me-2">خصم</Label>
-                        <Input id="discount" type="text" value={discountInput} onChange={handleDiscountChange} className="h-9 w-full bg-background ltr:text-left rtl:text-right" placeholder="0.00" />
+                        <Input id="discount" type="text" value={discountInput} onChange={handleDiscountChange} className="h-9 w-full bg-background ltr:text-left rtl:text-right" placeholder="0" />
                     </div>
                     <Separator />
                     <div className="flex justify-between w-full text-lg font-semibold">
                         <span>الإجمالي</span>
-                        <span className={finalTotal < 0 ? 'text-destructive' : ''}>${finalTotal.toFixed(2)}</span>
+                        <span className={finalTotal < 0 ? 'text-destructive' : ''}>{finalTotal.toLocaleString('ar-IQ')} ع.د</span>
                     </div>
                 </CardContent>
                 <CardFooter>
@@ -560,7 +561,7 @@ export default function SalesPage() {
                                                 <TableRow key={item.medicationId} className={cn(item.isReturn && "text-destructive")}>
                                                     <TableCell>{item.name} {item.isReturn && "(مرتجع)"}</TableCell>
                                                     <TableCell className="text-center">{item.quantity}</TableCell>
-                                                    <TableCell className="text-left">${((item.isReturn ? -1 : 1) * item.price * item.quantity).toFixed(2)}</TableCell>
+                                                    <TableCell className="text-left">{((item.isReturn ? -1 : 1) * item.price * item.quantity).toLocaleString('ar-IQ')} ع.د</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
@@ -569,10 +570,10 @@ export default function SalesPage() {
                                 <Separator/>
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between"><span>الموظف:</span><span>{users.find(u => u.id === selectedEmployeeId)?.name}</span></div>
-                                    <div className="flex justify-between"><span>المجموع الفرعي:</span><span>${subtotal.toFixed(2)}</span></div>
-                                    <div className="flex justify-between"><span>الخصم:</span><span>-${discount.toFixed(2)}</span></div>
-                                     <div className="flex justify-between text-green-600"><span>الربح الصافي:</span><span>${(totalProfit - discount).toFixed(2)}</span></div>
-                                    <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>${finalTotal.toFixed(2)}</span></div>
+                                    <div className="flex justify-between"><span>المجموع الفرعي:</span><span>{subtotal.toLocaleString('ar-IQ')} ع.د</span></div>
+                                    <div className="flex justify-between"><span>الخصم:</span><span>-{discount.toLocaleString('ar-IQ')} ع.د</span></div>
+                                     <div className="flex justify-between text-green-600"><span>الربح الصافي:</span><span>{(totalProfit - discount).toLocaleString('ar-IQ')} ع.د</span></div>
+                                    <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>{finalTotal.toLocaleString('ar-IQ')} ع.د</span></div>
                                 </div>
                             </div>
                             <DialogFooter>

@@ -49,8 +49,8 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
             <tr key={`${item.medicationId}-${item.isReturn}`} className={cn("border-b border-dashed", item.isReturn && 'text-red-600')}>
               <td className="p-2">{item.name} {item.isReturn && "(مرتجع)"}</td>
               <td className="p-2 text-center">{item.quantity}</td>
-              <td className="p-2 text-center">${item.price.toFixed(2)}</td>
-              <td className="p-2 text-left font-mono">${(item.price * item.quantity * (item.isReturn ? -1 : 1)).toFixed(2)}</td>
+              <td className="p-2 text-center">{item.price.toLocaleString('ar-IQ')} ع.د</td>
+              <td className="p-2 text-left font-mono">{(item.price * item.quantity * (item.isReturn ? -1 : 1)).toLocaleString('ar-IQ')} ع.د</td>
             </tr>
           ))}
         </tbody>
@@ -59,17 +59,17 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
         <div className="w-full md:w-1/3">
           <div className="flex justify-between py-1">
             <span className="font-semibold">المجموع الفرعي:</span>
-            <span>${subtotal.toFixed(2)}</span>
+            <span>{subtotal.toLocaleString('ar-IQ')} ع.د</span>
           </div>
           {sale.discount && sale.discount > 0 && (
              <div className="flex justify-between py-1 text-red-600">
                 <span className="font-semibold">الخصم:</span>
-                <span>-${sale.discount.toFixed(2)}</span>
+                <span>-{sale.discount.toLocaleString('ar-IQ')} ع.د</span>
             </div>
           )}
           <div className="flex justify-between py-2 border-t-2 border-black font-bold text-xl">
             <span>الإجمالي:</span>
-            <span>${sale.total.toFixed(2)}</span>
+            <span>{sale.total.toLocaleString('ar-IQ')} ع.د</span>
           </div>
         </div>
       </div>
@@ -81,5 +81,3 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
 });
 
 InvoiceTemplate.displayName = 'InvoiceTemplate';
-
-    

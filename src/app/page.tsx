@@ -138,7 +138,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+              {totalRevenue.toLocaleString('ar-IQ')} ع.د
             </div>
             <p className="text-xs text-muted-foreground">
               بناءً على إجمالي المبيعات
@@ -152,7 +152,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">
-              ${totalDebt.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+              {totalDebt.toLocaleString('ar-IQ')} ع.د
             </div>
             <p className="text-xs text-muted-foreground">
               إجمالي المستحقات للموردين
@@ -201,8 +201,8 @@ export default function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={salesDataForChart} layout="horizontal">
                         <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} reversed={true} />
-                        <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} orientation="right" />
-                         <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                        <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value.toLocaleString('ar-IQ')}`} orientation="right" />
+                         <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" formatter={(value) => `${Number(value).toLocaleString('ar-IQ')} ع.د`}/>} />
                         <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
@@ -228,7 +228,7 @@ export default function Dashboard() {
                   <TableRow key={sale.id}>
                     <TableCell className="font-medium">{sale.id}</TableCell>
                     <TableCell>{new Date(sale.date).toLocaleDateString('ar-EG')}</TableCell>
-                    <TableCell className="text-left">${sale.total.toFixed(2)}</TableCell>
+                    <TableCell className="text-left">{sale.total.toLocaleString('ar-IQ')} ع.د</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

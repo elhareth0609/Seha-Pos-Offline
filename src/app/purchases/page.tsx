@@ -311,11 +311,11 @@ export default function PurchasesPage() {
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="purchasePrice">سعر الشراء</Label>
-                        <Input id="purchasePrice" name="purchasePrice" type="number" placeholder="0.00" required step="0.01" />
+                        <Input id="purchasePrice" name="purchasePrice" type="number" placeholder="0" required step="1" />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="sellingPrice">سعر البيع</Label>
-                        <Input id="sellingPrice" name="sellingPrice" type="number" placeholder="0.00" required step="0.01" />
+                        <Input id="sellingPrice" name="sellingPrice" type="number" placeholder="0" required step="1" />
                     </div>
                 </div>
               <Button type="submit" className="w-full">إضافة للمخزون</Button>
@@ -346,7 +346,7 @@ export default function PurchasesPage() {
                             <TableCell>{po.id}</TableCell>
                             <TableCell>{po.supplierName}</TableCell>
                             <TableCell>{new Date(po.date).toLocaleDateString('ar-EG')}</TableCell>
-                            <TableCell className="font-mono">${(po.totalAmount || 0).toFixed(2)}</TableCell>
+                            <TableCell className="font-mono">{po.totalAmount.toLocaleString('ar-IQ')} ع.د</TableCell>
                             <TableCell>{po.status}</TableCell>
                         </TableRow>
                     ))}
@@ -370,7 +370,7 @@ export default function PurchasesPage() {
                         <Select name="medicationId" required>
                             <SelectTrigger id="return-medicationId"><SelectValue placeholder="اختر دواء" /></SelectTrigger>
                             <SelectContent>
-                                {inventory.map(m => <SelectItem key={m.id} value={m.id}>{m.name} (سعر الشراء: ${m.purchasePrice.toFixed(2)})</SelectItem>)}
+                                {inventory.map(m => <SelectItem key={m.id} value={m.id}>{m.name} (سعر الشراء: {m.purchasePrice.toLocaleString('ar-IQ')} ع.د)</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>
@@ -424,7 +424,7 @@ export default function PurchasesPage() {
                             <TableCell>{ret.id}</TableCell>
                             <TableCell>{ret.medicationName}</TableCell>
                             <TableCell>{ret.quantity}</TableCell>
-                            <TableCell className="font-mono">${(ret.totalAmount || 0).toFixed(2)}</TableCell>
+                            <TableCell className="font-mono">{(ret.totalAmount || 0).toLocaleString('ar-IQ')} ع.د</TableCell>
                             <TableCell>{ret.reason}</TableCell>
                             <TableCell>{new Date(ret.date).toLocaleDateString('ar-EG')}</TableCell>
                         </TableRow>

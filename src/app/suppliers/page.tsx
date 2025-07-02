@@ -149,19 +149,19 @@ export default function SuppliersPage() {
                     <CardContent className="space-y-3 text-sm flex-grow">
                         <div className="flex justify-between">
                             <span className="text-muted-foreground">إجمالي المشتريات:</span>
-                            <span className="font-mono font-medium">${account.totalPurchases.toFixed(2)}</span>
+                            <span className="font-mono font-medium">{account.totalPurchases.toLocaleString('ar-IQ')} ع.د</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-muted-foreground">إجمالي المرتجعات:</span>
-                            <span className="font-mono font-medium text-green-600">-${account.totalReturns.toFixed(2)}</span>
+                            <span className="font-mono font-medium text-green-600">-{account.totalReturns.toLocaleString('ar-IQ')} ع.د</span>
                         </div>
                          <div className="flex justify-between">
                             <span className="text-muted-foreground">إجمالي المدفوعات:</span>
-                            <span className="font-mono font-medium text-blue-600">-${account.totalPayments.toFixed(2)}</span>
+                            <span className="font-mono font-medium text-blue-600">-{account.totalPayments.toLocaleString('ar-IQ')} ع.د</span>
                         </div>
                          <div className="flex justify-between pt-2 border-t font-bold text-base">
                             <span>صافي الدين المستحق:</span>
-                            <span className="font-mono text-destructive">${account.netDebt.toFixed(2)}</span>
+                            <span className="font-mono text-destructive">{account.netDebt.toLocaleString('ar-IQ')} ع.د</span>
                         </div>
                     </CardContent>
                     <CardFooter>
@@ -183,8 +183,8 @@ export default function SuppliersPage() {
             </DialogHeader>
             <form onSubmit={handleAddPayment} className="space-y-4">
                 <div className="space-y-2">
-                    <Label htmlFor="amount">المبلغ المدفوع ($)</Label>
-                    <Input id="amount" name="amount" type="number" step="0.01" required autoFocus />
+                    <Label htmlFor="amount">المبلغ المدفوع (ع.د)</Label>
+                    <Input id="amount" name="amount" type="number" step="1" required autoFocus />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="notes">ملاحظات (اختياري)</Label>
