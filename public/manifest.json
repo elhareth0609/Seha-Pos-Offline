@@ -1,0 +1,9 @@
+{
+  "name": "مدستوك - نظام إدارة الصيدلية",
+  "short_name": "مدستوك",
+  "description": "نظام إدارة صيدلية للمبيعات والمخزون والمشتريات، يعمل بدون إنترنت.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#11a179"
+}

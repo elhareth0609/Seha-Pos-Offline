@@ -17,6 +17,8 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#11a179" />
       </head>
       <body className="font-body antialiased">
         <AuthProvider>

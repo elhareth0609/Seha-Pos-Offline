@@ -1,33 +1,117 @@
 import { useState, useEffect } from 'react';
 
-export function useLocalStorage<T>(key: string, fallbackData: T): [T, (value: T | ((val: T) => T)) => void] {
-    // 1. Initialize state with fallback data to ensure server and client have the same initial render.
-    // This prevents Next.js hydration errors.
-    const [value, setValue] = useState<T>(fallbackData);
+const DB_NAME = 'MedStockDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'appData';
 
-    // 2. On the client, after the component mounts, read the real value from localStorage.
-    useEffect(() => {
-        try {
-            const item = window.localStorage.getItem(key);
-            // If a value exists in storage, parse it and update our state.
-            if (item) {
-                setValue(JSON.parse(item));
+let dbPromise: Promise<IDBDatabase> | null = null;
+
+const getDb = (): Promise<IDBDatabase> => {
+    if (dbPromise) {
+        return dbPromise;
+    }
+    dbPromise = new Promise((resolve, reject) => {
+        if (typeof window === 'undefined') {
+            // This promise will never resolve on the server, which is fine.
+            return;
+        }
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onerror = () => {
+            console.error('IndexedDB error:', request.error);
+            reject(request.error);
+        };
+
+        request.onsuccess = () => {
+            resolve(request.result);
+        };
+
+        request.onupgradeneeded = () => {
+            const db = request.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME, { keyPath: 'key' });
             }
-        } catch (error) {
-            // If parsing fails, we'll just stick with the fallbackData.
-            console.error(`Error reading localStorage key “${key}”:`, error);
+        };
+    });
+    return dbPromise;
+};
+
+const getFromDB = async <T>(key: string): Promise<T | undefined> => {
+    const db = await getDb();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.get(key);
+        request.onsuccess = () => {
+            resolve(request.result?.value);
+        };
+        request.onerror = () => {
+            reject(request.error);
+        };
+    });
+};
+
+const setToDB = async (key: string, value: any): Promise<void> => {
+    const db = await getDb();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.put({ key, value });
+        request.onsuccess = () => {
+            resolve();
+        };
+        request.onerror = () => {
+            reject(request.error);
+        };
+    });
+};
+
+export const clearAllDBData = async (): Promise<void> => {
+    const db = await getDb();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.clear();
+         request.onsuccess = () => {
+            resolve();
+        };
+        request.onerror = () => {
+            reject(request.error);
+        };
+    });
+}
+
+
+export function useLocalStorage<T>(key: string, fallbackData: T): [T, (value: T | ((val: T) => T)) => void] {
+    const [value, setValue] = useState<T>(fallbackData);
+    const [isInitialized, setIsInitialized] = useState(false);
+
+    useEffect(() => {
+        // This effect runs once on mount to fetch initial data from IndexedDB
+        if (typeof window !== 'undefined') {
+            getFromDB<T>(key).then(storedValue => {
+                if (storedValue !== undefined) {
+                    setValue(storedValue);
+                }
+            }).catch(error => {
+                console.error(`Error reading IndexedDB key “${key}”:`, error);
+            }).finally(() => {
+                setIsInitialized(true);
+            });
         }
     }, [key]);
 
-    // 3. Whenever the state `value` changes, write it back to localStorage.
-    // This effect is separate to avoid writing the initial fallbackData over existing stored data.
     useEffect(() => {
-        try {
-             window.localStorage.setItem(key, JSON.stringify(value));
-        } catch (error) {
-            console.error(`Error writing to localStorage key “${key}”:`, error);
+        // This effect runs whenever `value` changes, to write back to IndexedDB.
+        // It only runs after the initial value has been loaded from storage.
+        if (isInitialized) {
+             if (typeof window !== 'undefined') {
+                setToDB(key, value).catch(error => {
+                    console.error(`Error writing to IndexedDB key “${key}”:`, error);
+                });
+            }
         }
-    }, [key, value]);
+    }, [key, value, isInitialized]);
     
     return [value, setValue];
 }

@@ -45,6 +45,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Trash2, PlusCircle } from 'lucide-react'
+import { clearAllDBData } from '@/hooks/use-local-storage'
 
 const settingsSchema = z.object({
   pharmacyName: z.string().min(2, { message: "يجب أن يكون اسم الصيدلية حرفين على الأقل." }),
@@ -108,11 +109,16 @@ export default function SettingsPage() {
     }
 
 
-    const handleClearData = () => {
+    const handleClearData = async () => {
         if (typeof window !== 'undefined') {
-            localStorage.clear();
-            alert("تم مسح جميع البيانات بنجاح. سيتم إعادة تحميل الصفحة.");
-            window.location.reload();
+            try {
+                await clearAllDBData();
+                alert("تم مسح جميع البيانات بنجاح. سيتم إعادة تحميل الصفحة.");
+                window.location.reload();
+            } catch (error) {
+                console.error("Failed to clear data:", error);
+                alert("حدث خطأ أثناء محاولة مسح البيانات.");
+            }
         }
     }
 
