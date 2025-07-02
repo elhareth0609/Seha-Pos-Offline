@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { PackagePlus, LogIn, UserPlus } from 'lucide-react';
+import { Separator } from "@/components/ui/separator";
 import {
     AlertDialog,
     AlertDialogCancel,
