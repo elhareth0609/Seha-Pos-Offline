@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -11,6 +12,7 @@ import { KeyRound, PackagePlus } from 'lucide-react';
 
 export default function SetupPage() {
     const [adminName, setAdminName] = React.useState('');
+    const [email, setEmail] = React.useState('');
     const [pin, setPin] = React.useState('');
     const [confirmPin, setConfirmPin] = React.useState('');
     const [pinHint, setPinHint] = React.useState('');
@@ -23,6 +25,10 @@ export default function SetupPage() {
             toast({ variant: 'destructive', title: 'اسم غير صالح', description: 'الرجاء إدخال اسم مكون من 3 أحرف على الأقل.' });
             return;
         }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            toast({ variant: 'destructive', title: 'بريد إلكتروني غير صالح', description: 'الرجاء إدخال بريد إلكتروني صحيح.' });
+            return;
+        }
         if (!/^\d{4}$/.test(pin)) {
             toast({ variant: 'destructive', title: 'رمز PIN غير صالح', description: 'يجب أن يتكون رمز PIN من 4 أرقام بالضبط.' });
             return;
@@ -31,7 +37,7 @@ export default function SetupPage() {
             toast({ variant: 'destructive', title: 'رموز PIN غير متطابقة', description: 'الرجاء التأكد من تطابق رمز PIN وتأكيده.' });
             return;
         }
-        setupAdmin(adminName.trim(), pin, pinHint.trim());
+        setupAdmin(adminName.trim(), email.trim().toLowerCase(), pin, pinHint.trim());
         toast({ title: 'اكتمل الإعداد!', description: `مرحباً بك، ${adminName.trim()}! تم إعداد حساب المدير.` });
     };
 
@@ -52,6 +58,10 @@ export default function SetupPage() {
                         <div className="space-y-2">
                             <Label htmlFor="admin-name">اسم المدير</Label>
                             <Input id="admin-name" value={adminName} onChange={(e) => setAdminName(e.target.value)} placeholder="مثال: علي المدير" required />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="email">البريد الإلكتروني</Label>
+                            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" required />
                         </div>
                          <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">

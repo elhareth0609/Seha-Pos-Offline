@@ -1,11 +1,14 @@
+
 'use client';
 
 import * as React from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { PackagePlus, AlertCircle, Fingerprint } from 'lucide-react';
+import { PackagePlus, AlertCircle, LogIn } from 'lucide-react';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -17,56 +20,76 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
-export default function LoginPage() {
-    const [pin, setPin] = React.useState('');
-    const { login, getPinHint } = useAuth();
+function ForgotPinDialog() {
+    const { getPinHint } = useAuth();
     const { toast } = useToast();
+    const [email, setEmail] = React.useState('');
+    const [hint, setHint] = React.useState<string | null>(null);
 
-    React.useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (/\d/.test(event.key)) {
-                handlePinChange(event.key);
-            } else if (event.key === 'Backspace') {
-                handleDelete();
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pin]); 
-
-
-    const handlePinChange = (value: string) => {
-        if (pin.length < 4) {
-            const newPin = pin + value;
-            setPin(newPin);
-            if (newPin.length === 4) {
-                handleSubmit(newPin);
-            }
+    const handleShowHint = () => {
+        if (!email) {
+            toast({ variant: 'destructive', title: 'الرجاء إدخال البريد الإلكتروني' });
+            return;
         }
-    };
-    
-    const handleDelete = () => {
-        setPin(pin.slice(0, -1));
+        const pinHint = getPinHint(email);
+        setHint(pinHint);
     }
 
-    const handleSubmit = async (finalPin: string) => {
-        const success = await login(finalPin);
+    return (
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>هل نسيت رمز PIN؟</AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                    <div className="space-y-4 pt-4">
+                        <p>أدخل بريدك الإلكتروني المسجل لعرض تلميح استعادة الرمز الخاص بك.</p>
+                         <div className="space-y-2">
+                            <Label htmlFor="hint-email">البريد الإلكتروني</Label>
+                            <Input id="hint-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" />
+                        </div>
+                        {hint !== null && (
+                             hint ? (
+                                <>
+                                <p>التلميح الخاص بك هو:</p>
+                                <div className="p-3 bg-accent rounded-md border text-accent-foreground text-center font-medium">
+                                    {hint}
+                                </div>
+                                </>
+                            ) : (
+                                <div className="flex items-start gap-3 text-destructive">
+                                    <AlertCircle className="h-5 w-5 mt-1 shrink-0"/>
+                                    <span>لم يتم العثور على حساب بهذا البريد الإلكتروني أو لم تقم بتعيين تلميح. الطريقة الوحيدة للاستعادة هي مسح بيانات التطبيق.</span>
+                                </div>
+                            )
+                        )}
+                    </div>
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="pt-4 gap-2 sm:justify-between">
+                <Button onClick={handleShowHint}>عرض التلميح</Button>
+                <AlertDialogCancel onClick={() => { setEmail(''); setHint(null); }}>إغلاق</AlertDialogCancel>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    )
+}
+
+export default function LoginPage() {
+    const [email, setEmail] = React.useState('');
+    const [pin, setPin] = React.useState('');
+    const { login } = useAuth();
+    const { toast } = useToast();
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const success = await login(email, pin);
         if (!success) {
             toast({
                 variant: 'destructive',
-                title: 'رمز PIN غير صحيح',
-                description: 'الرجاء المحاولة مرة أخرى.'
+                title: 'بيانات الدخول غير صحيحة',
+                description: 'الرجاء التأكد من البريد الإلكتروني ورمز PIN.'
             });
-            if (window.navigator.vibrate) window.navigator.vibrate(200);
-            setTimeout(() => setPin(''), 500);
+            setPin('');
         }
     };
-
-    const pinHint = getPinHint();
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-muted/40 p-4">
@@ -77,59 +100,35 @@ export default function LoginPage() {
                     </div>
                     <CardTitle className="text-2xl">مرحبًا بعودتك!</CardTitle>
                     <CardDescription>
-                        الرجاء إدخال رمز PIN الخاص بك للمتابعة.
+                        الرجاء تسجيل الدخول للمتابعة.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="flex justify-center items-center gap-4 h-8">
-                        {Array.from({ length: 4 }).map((_, index) => (
-                            <div key={index} className={`h-4 w-4 rounded-full border-2 transition-all ${pin.length > index ? 'bg-primary border-primary scale-110' : 'bg-background border-muted-foreground'}`}></div>
-                        ))}
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                        {[...Array(9)].map((_, i) => (
-                            <Button key={i+1} variant="outline" size="lg" className="text-2xl font-bold h-16" onClick={() => handlePinChange(String(i+1))}>
-                                {i+1}
-                            </Button>
-                        ))}
-                         <Button variant="outline" size="lg" className="text-2xl font-bold h-16" onClick={handleDelete} disabled={pin.length === 0}>
-                            ⌫
+                <form onSubmit={handleSubmit}>
+                    <CardContent className="space-y-4">
+                         <div className="space-y-2 text-right">
+                            <Label htmlFor="login-email">البريد الإلكتروني</Label>
+                            <Input id="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" required />
+                        </div>
+                        <div className="space-y-2 text-right">
+                            <Label htmlFor="login-pin">رمز PIN</Label>
+                            <Input id="login-pin" type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={4} required placeholder="••••" />
+                        </div>
+                    </CardContent>
+                    <CardFooter className="flex-col gap-4">
+                        <Button type="submit" className="w-full">
+                            <LogIn className="me-2 h-4 w-4" />
+                            تسجيل الدخول
                         </Button>
-                         <Button variant="outline" size="lg" className="text-2xl font-bold h-16" onClick={() => handlePinChange('0')}>
-                            0
-                        </Button>
-                        <AlertDialog>
+                         <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="lg" className="h-16 text-muted-foreground hover:bg-yellow-400/20 hover:text-yellow-600">
-                                    <Fingerprint />
+                                <Button variant="link" size="sm" className="text-muted-foreground">
+                                    هل نسيت رمز PIN؟
                                 </Button>
                             </AlertDialogTrigger>
-                             <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>هل نسيت رمز PIN؟</AlertDialogTitle>
-                                    <AlertDialogDescription className="space-y-4">
-                                        {pinHint ? (
-                                            <>
-                                            <p>لقد قمت بتعيين تلميح لمساعدتك على تذكر الرمز الخاص بك:</p>
-                                            <div className="p-3 bg-accent rounded-md border text-accent-foreground text-center font-medium">
-                                                {pinHint}
-                                            </div>
-                                            </>
-                                        ) : (
-                                            <div className="flex items-start gap-3 text-destructive">
-                                                <AlertCircle className="h-5 w-5 mt-1 shrink-0"/>
-                                                <span>لم تقم بتعيين تلميح لرمز PIN. الطريقة الوحيدة لاستعادة الوصول هي عن طريق مسح جميع بيانات التطبيق والبدء من جديد. هذا الإجراء لا يمكن التراجع عنه.</span>
-                                            </div>
-                                        )}
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>حسنًا</AlertDialogCancel>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
+                           <ForgotPinDialog />
                         </AlertDialog>
-                    </div>
-                </CardContent>
+                    </CardFooter>
+                </form>
             </Card>
         </div>
     );

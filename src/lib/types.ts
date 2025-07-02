@@ -79,6 +79,7 @@ export type Supplier = {
 export type User = {
   id: string;
   name: string;
+  email: string;
   role: "Admin" | "Employee";
   pin: string;
   pinHint?: string;

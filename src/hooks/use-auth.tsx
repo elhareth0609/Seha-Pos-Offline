@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -10,10 +11,10 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isSetup: boolean;
   loading: boolean;
-  setupAdmin: (name: string, pin: string, pinHint?: string) => void;
-  login: (pin: string) => Promise<boolean>;
+  setupAdmin: (name: string, email: string, pin: string, pinHint?: string) => void;
+  login: (email: string, pin: string) => Promise<boolean>;
   logout: () => void;
-  getPinHint: () => string | null;
+  getPinHint: (email: string) => string | null;
 }
 
 const AuthContext = React.createContext<AuthContextType | null>(null);
@@ -29,24 +30,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  const setupAdmin = (name: string, pin: string, pinHint?: string) => {
+  const setupAdmin = (name: string, email: string, pin: string, pinHint?: string) => {
     const adminUser: User = {
       id: 'ADMIN001',
       name: name,
+      email: email,
       role: 'Admin',
       pin: pin,
       pinHint: pinHint,
     };
     const otherUsers: User[] = [
-        { id: "USR002", name: "سارة الموظفة", role: "Employee", pin: "0000"},
-        { id: "USR003", name: "أحمد الصيدلي", role: "Employee", pin: "1111"},
+        { id: "USR002", name: "سارة الموظفة", email: "sara@medstock.app", role: "Employee", pin: "0000"},
+        { id: "USR003", name: "أحمد الصيدلي", email: "ahmad@medstock.app", role: "Employee", pin: "1111"},
     ];
     setUsers([adminUser, ...otherUsers]);
     setCurrentUser(adminUser);
   };
 
-  const login = async (pin: string): Promise<boolean> => {
-    const userToLogin = users.find(u => u.pin === pin);
+  const login = async (email: string, pin: string): Promise<boolean> => {
+    const userToLogin = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.pin === pin);
     if (userToLogin) {
       setCurrentUser(userToLogin);
       return true;
@@ -58,10 +60,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(null);
   };
   
-  const getPinHint = () => {
-      // For simplicity, we get the hint of the first (admin) user.
-      if (users.length > 0 && users[0].pinHint) {
-          return users[0].pinHint;
+  const getPinHint = (email: string) => {
+      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (user && user.pinHint) {
+          return user.pinHint;
       }
       return null;
   }
