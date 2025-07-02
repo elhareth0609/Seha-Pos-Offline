@@ -44,9 +44,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import { inventory as fallbackInventory, sales as fallbackSales, patients as fallbackPatients, users as fallbackUsers, appSettings as fallbackSettings } from "@/lib/data"
-import type { Medication, SaleItem, Sale, Patient, User, AppSettings } from "@/lib/types"
-import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, UserSearch, Printer, User as UserIcon } from "lucide-react"
+import { inventory as fallbackInventory, sales as fallbackSales, users as fallbackUsers, appSettings as fallbackSettings } from "@/lib/data"
+import type { Medication, SaleItem, Sale, User, AppSettings } from "@/lib/types"
+import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -122,7 +122,6 @@ function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => 
 export default function SalesPage() {
   const [allInventory, setAllInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
   const [sales, setSales] = useLocalStorage<Sale[]>('sales', fallbackSales);
-  const [patients, setPatients] = useLocalStorage<Patient[]>('patients', fallbackPatients);
   const [users, setUsers] = useLocalStorage<User[]>('users', fallbackUsers);
   const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
   
@@ -137,7 +136,6 @@ export default function SalesPage() {
   const [discountInput, setDiscountInput] = React.useState("0");
   const { toast } = useToast()
   
-  const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
   const [selectedEmployee, setSelectedEmployee] = React.useState<User>(users[0]);
 
   const printComponentRef = React.useRef(null);
@@ -282,7 +280,6 @@ export default function SalesPage() {
     setDiscount(0);
     setDiscountInput("0");
     setSearchTerm("");
-    setSelectedPatient(null);
     setSaleToPrint(null);
   }
   
@@ -309,8 +306,6 @@ export default function SalesPage() {
         discount: discount,
         employeeId: selectedEmployee.id,
         employeeName: selectedEmployee.name,
-        patientId: selectedPatient?.id,
-        patientName: selectedPatient?.name
     };
     
     setSales(prev => [newSale, ...prev]);
@@ -323,11 +318,6 @@ export default function SalesPage() {
     setSaleToPrint(newSale);
     setIsCheckoutOpen(false);
     setIsReceiptOpen(true);
-  }
-  
-  const handlePatientSelect = (patientId: string) => {
-    const patient = patients.find(p => p.id === patientId);
-    setSelectedPatient(patient || null);
   }
   
   const handleEmployeeSelect = (employeeId: string) => {
@@ -484,22 +474,6 @@ export default function SalesPage() {
                             </SelectContent>
                         </Select>
                      </div>
-                      <div className="space-y-2">
-                        <Label>العميل (اختياري)</Label>
-                        <Select onValueChange={handlePatientSelect} value={selectedPatient?.id || ""}>
-                            <SelectTrigger>
-                                <UserSearch className="me-2 h-4 w-4" />
-                                <SelectValue placeholder="اختيار مريض..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="none">بدون مريض</SelectItem>
-                                {patients.map(p => (
-                                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
                     <Separator />
 
                     <div className="flex justify-between w-full text-md">
@@ -551,7 +525,6 @@ export default function SalesPage() {
                                 <Separator/>
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between"><span>الموظف:</span><span>{selectedEmployee.name}</span></div>
-                                    {selectedPatient && <div className="flex justify-between"><span>المريض:</span><span>{selectedPatient.name}</span></div>}
                                     <div className="flex justify-between"><span>المجموع الفرعي:</span><span>${subtotal.toFixed(2)}</span></div>
                                     <div className="flex justify-between"><span>الخصم:</span><span>-${discount.toFixed(2)}</span></div>
                                     <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>${finalTotal.toFixed(2)}</span></div>

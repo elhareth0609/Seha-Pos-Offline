@@ -63,7 +63,6 @@ export default function ReportsPage() {
 
     const filteredSales = sales.filter(sale => 
         sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (sale.patientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (sale.employeeName || '').toLowerCase().includes(searchTerm.toLowerCase())
     ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -83,7 +82,6 @@ export default function ReportsPage() {
                             <TableRow>
                                 <TableHead>رقم الفاتورة</TableHead>
                                 <TableHead>التاريخ</TableHead>
-                                <TableHead>العميل</TableHead>
                                 <TableHead>الموظف</TableHead>
                                 <TableHead className="text-center">عدد الأصناف</TableHead>
                                 <TableHead className="text-left">الإجمالي</TableHead>
@@ -95,7 +93,6 @@ export default function ReportsPage() {
                                 <TableRow key={i}>
                                     <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                                     <TableCell className="text-center"><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
                                     <TableCell className="text-left"><Skeleton className="h-5 w-16" /></TableCell>
@@ -120,7 +117,7 @@ export default function ReportsPage() {
                     <CardDescription>عرض وطباعة جميع فواتير المبيعات السابقة.</CardDescription>
                      <div className="pt-4">
                         <Input 
-                            placeholder="ابحث برقم الفاتورة، اسم العميل أو الموظف..."
+                            placeholder="ابحث برقم الفاتورة أو اسم الموظف..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="max-w-sm"
@@ -133,7 +130,6 @@ export default function ReportsPage() {
                             <TableRow>
                                 <TableHead>رقم الفاتورة</TableHead>
                                 <TableHead>التاريخ</TableHead>
-                                <TableHead>العميل</TableHead>
                                 <TableHead>الموظف</TableHead>
                                 <TableHead className="text-center">عدد الأصناف</TableHead>
                                 <TableHead className="text-left">الإجمالي</TableHead>
@@ -145,7 +141,6 @@ export default function ReportsPage() {
                                 <TableRow key={sale.id}>
                                     <TableCell className="font-medium">{sale.id}</TableCell>
                                     <TableCell>{new Date(sale.date).toLocaleDateString('ar-EG')}</TableCell>
-                                    <TableCell>{sale.patientName || 'عميل عام'}</TableCell>
                                     <TableCell>{sale.employeeName || 'غير محدد'}</TableCell>
                                     <TableCell className="text-center">{sale.items.length}</TableCell>
                                     <TableCell className="text-left font-mono">${sale.total.toFixed(2)}</TableCell>
@@ -158,7 +153,7 @@ export default function ReportsPage() {
                                 </TableRow>
                             )) : (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                                         لم يتم العثور على فواتير.
                                     </TableCell>
                                 </TableRow>

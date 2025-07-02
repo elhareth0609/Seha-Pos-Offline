@@ -1,3 +1,4 @@
+
 export type Medication = {
   id: string;
   name: string;
@@ -28,8 +29,6 @@ export type Sale = {
   discount?: number;
   employeeId: string;
   employeeName: string;
-  patientId?: string;
-  patientName?: string;
 };
 
 export type PurchaseOrderItem = {
@@ -61,15 +60,13 @@ export type Return = {
   purchaseId?: string;
 };
 
-export type Patient = {
-  id: string;
-  name: string;
-  medications: {
-    medicationId: string;
-    name: string;
-  }[];
-  notes?: string;
-};
+export type SupplierPayment = {
+    id: string;
+    date: string;
+    supplierId: string;
+    amount: number;
+    notes?: string;
+}
 
 export type Supplier = {
   id: string;

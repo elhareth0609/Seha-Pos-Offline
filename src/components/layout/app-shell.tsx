@@ -8,17 +8,16 @@ import {
   Boxes,
   CalendarX2,
   LayoutDashboard,
-  PackagePlus,
-  ShoppingCart,
   Truck,
+  ShoppingCart,
   UserCircle,
-  Users,
   FileDown,
   Upload,
   Settings,
   Menu,
   FileText,
   Landmark,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { PackagePlus } from 'lucide-react';
 
 const navItems = [
   { href: "/", icon: LayoutDashboard, label: "لوحة التحكم" },
@@ -40,7 +40,6 @@ const navItems = [
   { href: "/suppliers", icon: Landmark, label: "الموردون والحسابات" },
   { href: "/reports", icon: FileText, label: "التقارير" },
   { href: "/expiring-soon", icon: CalendarX2, label: "قريب الانتهاء" },
-  { href: "/patients", icon: Users, label: "الأصدقاء" },
   { href: "/settings", icon: Settings, label: "الإعدادات" },
 ];
 
@@ -48,13 +47,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const importFileRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
 
   const handleBackup = () => {
     if(typeof window === 'undefined') return;
 
     const dataToBackup: { [key: string]: any } = {};
-    const keysToBackup = ['inventory', 'sales', 'purchaseOrders', 'patients', 'users', 'suppliers', 'supplierReturns', 'appSettings', 'quickItems', 'timeLogs'];
+    const keysToBackup = ['inventory', 'sales', 'purchaseOrders', 'users', 'suppliers', 'supplierReturns', 'appSettings', 'timeLogs', 'supplierPayments'];
 
     keysToBackup.forEach(key => {
       const data = localStorage.getItem(key);
@@ -161,10 +160,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex flex-1 items-center justify-end space-x-4">
-            <div className="flex items-center gap-2">
-                <UserCircle />
-                <span className="text-sm font-medium">{currentUser?.name || "المستخدم"}</span>
-            </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center gap-2 px-2">
+                        <UserCircle />
+                        <span className="text-sm font-medium">{currentUser?.name || "المستخدم"}</span>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                     <DropdownMenuItem onSelect={logout}>
+                        <LogOut className="me-2 h-4 w-4" />
+                        <span>تسجيل الخروج</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
