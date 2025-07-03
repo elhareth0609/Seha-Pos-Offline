@@ -152,7 +152,7 @@ export default function SuppliersPage() {
                             <span className="font-mono font-medium">{account.totalPurchases.toLocaleString('ar-IQ')} د.ع</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-muted-foreground">إجمالي المرتجعات:</span>
+                            <span className="text-muted-foreground">إجمالي الاسترجاع:</span>
                             <span className="font-mono font-medium text-green-600">-{account.totalReturns.toLocaleString('ar-IQ')} د.ع</span>
                         </div>
                          <div className="flex justify-between">

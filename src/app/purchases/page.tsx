@@ -311,7 +311,7 @@ export default function PurchasesPage() {
 
       setSupplierReturns(prev => [newReturn, ...prev]);
 
-      toast({ title: "تم تسجيل المرتجع", description: `تم إرجاع ${quantity} من ${medication.name} للمورد.`});
+      toast({ title: "تم تسجيل الاسترجاع", description: `تم إرجاع ${quantity} من ${medication.name} للمورد.`});
       
       // Reset only item-specific fields
       setReturnMedicationId('');
@@ -329,7 +329,7 @@ export default function PurchasesPage() {
         <TabsTrigger value="new-purchase">استلام بضاعة</TabsTrigger>
         <TabsTrigger value="purchase-history">سجل المشتريات</TabsTrigger>
         <TabsTrigger value="new-return">إرجاع للمورد</TabsTrigger>
-        <TabsTrigger value="return-history">سجل المرتجعات</TabsTrigger>
+        <TabsTrigger value="return-history">سجل الاسترجاع</TabsTrigger>
       </TabsList>
       <TabsContent value="new-purchase">
         <Card>
@@ -548,7 +548,7 @@ export default function PurchasesPage() {
                         <Label htmlFor="reason">سبب الإرجاع</Label>
                         <Textarea id="reason" name="reason" placeholder="مثال: تالف، قريب الانتهاء" required value={returnReason} onChange={e => setReturnReason(e.target.value)} />
                     </div>
-                    <Button type="submit" variant="destructive" className="w-full">تسجيل المرتجع وخصم من المخزون</Button>
+                    <Button type="submit" variant="destructive" className="w-full">تسجيل الاسترجاع وخصم من المخزون</Button>
                 </form>
             </CardContent>
         </Card>
@@ -556,11 +556,11 @@ export default function PurchasesPage() {
        <TabsContent value="return-history">
         <Card>
           <CardHeader>
-            <CardTitle>سجل المرتجعات</CardTitle>
-            <CardDescription>قائمة بجميع المرتجعات للموردين.</CardDescription>
+            <CardTitle>سجل الاسترجاع</CardTitle>
+            <CardDescription>قائمة بجميع عمليات الاسترجاع للموردين.</CardDescription>
              <div className="pt-4">
               <Input 
-                placeholder="ابحث برقم المرتجع، اسم المادة، التاريخ، أو اسم المورد..."
+                placeholder="ابحث برقم الاسترجاع، اسم المادة، التاريخ، أو اسم المورد..."
                 value={returnHistorySearchTerm}
                 onChange={(e) => setReturnHistorySearchTerm(e.target.value)}
                 className="max-w-lg"
@@ -571,11 +571,11 @@ export default function PurchasesPage() {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>معرف المرتجع</TableHead>
+                        <TableHead>معرف الاسترجاع</TableHead>
                         <TableHead>الدواء</TableHead>
                         <TableHead>المورد</TableHead>
                         <TableHead>الكمية</TableHead>
-                        <TableHead>قيمة المرتجع</TableHead>
+                        <TableHead>قيمة الاسترجاع</TableHead>
                         <TableHead>السبب</TableHead>
                         <TableHead>التاريخ</TableHead>
                     </TableRow>
