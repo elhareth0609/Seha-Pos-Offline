@@ -81,6 +81,52 @@ export const clearAllDBData = async (): Promise<void> => {
     });
 }
 
+export const getAllDataForBackup = async (): Promise<{ [key: string]: any }> => {
+    const db = await getDb();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.getAll();
+
+        request.onsuccess = () => {
+            const allItems = request.result; // This is an array of {key, value}
+            const dataObject: { [key: string]: any } = {};
+            allItems.forEach(item => {
+                dataObject[item.key] = item.value;
+            });
+            resolve(dataObject);
+        };
+        request.onerror = () => {
+            reject(request.error);
+        };
+    });
+};
+
+export const importAllData = async (data: { [key: string]: any }): Promise<void> => {
+    const db = await getDb();
+    const transaction = db.transaction(STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    
+    // Clear existing data first
+    store.clear();
+
+    // Then add all new data
+    Object.keys(data).forEach(key => {
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+            store.put({ key, value: data[key] });
+        }
+    });
+
+    return new Promise((resolve, reject) => {
+        transaction.oncomplete = () => {
+            resolve();
+        };
+        transaction.onerror = () => {
+            reject(transaction.error);
+        };
+    });
+};
+
 
 export function useLocalStorage<T>(key: string, fallbackData: T): [T, (value: T | ((val: T) => T)) => void] {
     const [value, setValue] = useState<T>(fallbackData);

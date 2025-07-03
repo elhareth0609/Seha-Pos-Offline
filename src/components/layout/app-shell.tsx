@@ -33,6 +33,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { PackagePlus } from 'lucide-react';
+import { getAllDataForBackup, importAllData } from "@/hooks/use-local-storage";
+
 
 const navItems = [
   { href: "/", icon: LayoutDashboard, label: "لوحة التحكم" },
@@ -53,34 +55,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const { currentUser, logout } = useAuth();
 
-  const handleBackup = () => {
-    if(typeof window === 'undefined') return;
+  const handleBackup = async () => {
+    if (typeof window === 'undefined') return;
 
-    const dataToBackup: { [key: string]: any } = {};
-    const keysToBackup = ['inventory', 'sales', 'purchaseOrders', 'users', 'suppliers', 'supplierReturns', 'appSettings', 'timeLogs', 'supplierPayments', 'patients'];
-
-    keysToBackup.forEach(key => {
-      const data = localStorage.getItem(key);
-      if (data) {
-        try {
-          dataToBackup[key] = JSON.parse(data);
-        } catch(e) {
-          console.error(`Could not parse ${key} from localStorage`, e);
+    try {
+        const dataToBackup = await getAllDataForBackup();
+        
+        if (Object.keys(dataToBackup).length === 0) {
+            toast({ variant: "destructive", title: "لا توجد بيانات للنسخ الاحتياطي" });
+            return;
         }
-      }
-    });
-    
-    const jsonString = JSON.stringify(dataToBackup, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `medstock-backup-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast({ title: "تم بدء تنزيل النسخة الاحتياطية." });
+
+        const jsonString = JSON.stringify(dataToBackup, null, 2);
+        const blob = new Blob([jsonString], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `medstock-backup-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast({ title: "تم بدء تنزيل النسخة الاحتياطية." });
+    } catch (error) {
+        console.error("Error creating backup:", error);
+        toast({ variant: 'destructive', title: 'خطأ في النسخ الاحتياطي', description: 'حدث خطأ أثناء إنشاء ملف النسخة الاحتياطية.' });
+    }
   };
 
   const handleImportClick = () => {
@@ -92,25 +92,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
       try {
           const text = e.target?.result as string;
           const data = JSON.parse(text);
           
-          let imported = false;
-          for (const key in data) {
-              if (Object.prototype.hasOwnProperty.call(data, key)) {
-                  localStorage.setItem(key, JSON.stringify(data[key]));
-                  imported = true;
-              }
-          }
-
-          if (imported) {
-              alert('تم استيراد البيانات بنجاح! سيتم إعادة تحميل الصفحة لتطبيق التغييرات.');
-              window.location.reload();
-          } else {
+          if (typeof data !== 'object' || data === null || Object.keys(data).length === 0) {
               toast({ variant: 'destructive', title: 'خطأ في الاستيراد', description: 'ملف النسخ الاحتياطي غير صالح أو فارغ.'});
+              return;
           }
+          
+          await importAllData(data);
+
+          alert('تم استيراد البيانات بنجاح! سيتم إعادة تحميل الصفحة لتطبيق التغييرات.');
+          window.location.reload();
 
       } catch (error) {
           console.error("Error importing backup:", error);

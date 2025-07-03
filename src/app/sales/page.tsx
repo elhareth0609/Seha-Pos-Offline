@@ -194,7 +194,7 @@ export default function SalesPage() {
     setIsScannerOpen(false);
   }, [addToCart, toast, allInventory]);
 
-  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleSearchKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
         event.preventDefault();
 
@@ -213,7 +213,7 @@ export default function SalesPage() {
             toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'يرجى التأكد من المعرف أو البحث بالاسم.' });
         }
     }
-  };
+  }, [suggestions, allInventory, searchTerm, addToCart, toast]);
 
   const updateQuantity = (medicationId: string, quantity: number) => {
     if (quantity <= 0) {
