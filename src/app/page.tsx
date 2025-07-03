@@ -28,20 +28,13 @@ import {
 } from "recharts";
 import { inventory as fallbackInventory, sales as fallbackSales, purchaseOrders as fallbackPurchaseOrders, supplierReturns as fallbackReturns, appSettings as fallbackSettings } from "@/lib/data";
 import type { Medication, Sale, PurchaseOrder, Return, AppSettings } from "@/lib/types";
-import { DollarSign, Package, Clock, TrendingDown, Landmark, ListFilter } from "lucide-react";
+import { DollarSign, Package, Clock, TrendingDown, Landmark } from "lucide-react";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { differenceInDays, parseISO } from 'date-fns';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuRadioGroup,
-    DropdownMenuRadioItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 export default function Dashboard() {
   const [inventory, setInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
@@ -51,8 +44,6 @@ export default function Dashboard() {
   const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
   const [isClient, setIsClient] = React.useState(false);
   
-  const [analysisType, setAnalysisType] = React.useState<'topSelling' | 'leastSelling' | 'mostProfitable'>('topSelling');
-
   React.useEffect(() => {
     setIsClient(true);
   }, []);
@@ -80,8 +71,8 @@ export default function Dashboard() {
     total: sale.total,
   })).slice(-10);
   
-  const medicationAnalysis = React.useMemo(() => {
-    const stats: { [medId: string]: { name: string; quantity: number; profit: number } } = {};
+  const topSellingMedications = React.useMemo(() => {
+    const stats: { [medId: string]: { name: string; quantity: number } } = {};
 
     sales.forEach(sale => {
         sale.items.forEach(item => {
@@ -91,32 +82,15 @@ export default function Dashboard() {
                 stats[item.medicationId] = {
                     name: item.name,
                     quantity: 0,
-                    profit: 0
                 };
             }
             stats[item.medicationId].quantity += item.quantity;
-            stats[item.medicationId].profit += (item.price - item.purchasePrice) * item.quantity;
         });
     });
 
     const statsArray = Object.values(stats);
-
-    const topSelling = [...statsArray].sort((a, b) => b.quantity - a.quantity).slice(0, 5);
-    const leastSelling = [...statsArray].sort((a, b) => a.quantity - b.quantity).slice(0, 5);
-    const mostProfitable = [...statsArray].sort((a, b) => b.profit - a.profit).slice(0, 5);
-
-    return { topSelling, leastSelling, mostProfitable };
+    return [...statsArray].sort((a, b) => b.quantity - a.quantity).slice(0, 5);
   }, [sales]);
-
-
-  const analysisLabels = {
-    topSelling: 'الأكثر مبيعًا',
-    leastSelling: 'الأقل مبيعًا',
-    mostProfitable: 'الأكثر ربحًا',
-  };
-
-  const currentAnalysisData = medicationAnalysis[analysisType];
-
 
   if (!isClient) {
     return (
@@ -334,50 +308,23 @@ export default function Dashboard() {
               </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center">
-              <div className="grid gap-2">
-                <CardTitle>تحليلات الأدوية</CardTitle>
-                <CardDescription>
-                  نظرة على أداء الأدوية في المبيعات.
-                </CardDescription>
-              </div>
-              <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="ms-auto gap-1">
-                          <ListFilter className="h-3.5 w-3.5" />
-                          <span className="sr-only sm:not-sr-only">
-                              {analysisLabels[analysisType]}
-                          </span>
-                      </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                      <DropdownMenuRadioGroup value={analysisType} onValueChange={(v) => setAnalysisType(v as any)}>
-                          <DropdownMenuRadioItem value="topSelling">الأكثر مبيعًا</DropdownMenuRadioItem>
-                          <DropdownMenuRadioItem value="leastSelling">الأقل مبيعًا</DropdownMenuRadioItem>
-                          <DropdownMenuRadioItem value="mostProfitable">الأكثر ربحًا</DropdownMenuRadioItem>
-                      </DropdownMenuRadioGroup>
-                  </DropdownMenuContent>
-              </DropdownMenu>
+            <CardHeader>
+                <CardTitle>الأدوية الأكثر مبيعًا</CardTitle>
+                <CardDescription>أفضل 5 أدوية مبيعًا حسب الكمية.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                   <TableHeader>
                       <TableRow>
                           <TableHead>الدواء</TableHead>
-                          <TableHead className="text-left">
-                              {analysisType === 'mostProfitable' ? 'إجمالي الربح' : 'الكمية المباعة'}
-                          </TableHead>
+                          <TableHead className="text-left">الكمية المباعة</TableHead>
                       </TableRow>
                   </TableHeader>
                   <TableBody>
-                      {currentAnalysisData.length > 0 ? currentAnalysisData.map((item, index) => (
+                      {topSellingMedications.length > 0 ? topSellingMedications.map((item, index) => (
                           <TableRow key={index}>
                               <TableCell className="font-medium">{item.name}</TableCell>
-                              <TableCell className="text-left font-mono">
-                                  {analysisType === 'mostProfitable' 
-                                      ? `${item.profit.toLocaleString('ar-IQ')} د.ع` 
-                                      : item.quantity}
-                              </TableCell>
+                              <TableCell className="text-left font-mono">{item.quantity}</TableCell>
                           </TableRow>
                       )) : (
                           <TableRow>
