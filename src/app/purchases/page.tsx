@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -95,7 +94,7 @@ export default function PurchasesPage() {
         po.id.toLowerCase().includes(term) ||
         po.supplierName.toLowerCase().includes(term) ||
         po.date.includes(term) ||
-        po.items.some(item => item.name.toLowerCase().includes(term))
+        po.items?.some(item => item.name.toLowerCase().includes(term))
       );
       setFilteredPurchaseOrders(filtered);
     }
@@ -110,7 +109,7 @@ export default function PurchasesPage() {
         ret.id.toLowerCase().includes(term) ||
         ret.supplierName.toLowerCase().includes(term) ||
         ret.date.includes(term) ||
-        ret.items.some(item => item.name.toLowerCase().includes(term))
+        ret.items?.some(item => item.name.toLowerCase().includes(term))
       );
       setFilteredSupplierReturns(filtered);
     }
@@ -494,14 +493,18 @@ export default function PurchasesPage() {
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
-                                                    {po.items.map((item, index) => (
+                                                    {po.items?.length > 0 ? po.items.map((item, index) => (
                                                         <TableRow key={index}>
                                                             <TableCell>{item.name}</TableCell>
                                                             <TableCell>{item.quantity}</TableCell>
                                                             <TableCell className="font-mono">{item.purchasePrice.toLocaleString('ar-IQ')} د.ع</TableCell>
                                                             <TableCell className="font-mono text-left">{(item.quantity * item.purchasePrice).toLocaleString('ar-IQ')} د.ع</TableCell>
                                                         </TableRow>
-                                                    ))}
+                                                    )) : (
+                                                      <TableRow>
+                                                        <TableCell colSpan={4} className="text-center text-muted-foreground">لا توجد أصناف في هذه القائمة.</TableCell>
+                                                      </TableRow>
+                                                    )}
                                                 </TableBody>
                                             </Table>
                                         </div>
@@ -623,7 +626,7 @@ export default function PurchasesPage() {
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
-                                                    {ret.items.map((item, index) => (
+                                                    {ret.items?.length > 0 ? ret.items.map((item, index) => (
                                                         <TableRow key={index}>
                                                             <TableCell>{item.name}</TableCell>
                                                             <TableCell>{item.quantity}</TableCell>
@@ -631,7 +634,11 @@ export default function PurchasesPage() {
                                                             <TableCell>{item.reason}</TableCell>
                                                             <TableCell className="font-mono text-left">{(item.quantity * item.purchasePrice).toLocaleString('ar-IQ')} د.ع</TableCell>
                                                         </TableRow>
-                                                    ))}
+                                                    )) : (
+                                                      <TableRow>
+                                                        <TableCell colSpan={5} className="text-center text-muted-foreground">لا توجد أصناف في هذا الإرجاع.</TableCell>
+                                                      </TableRow>
+                                                    )}
                                                 </TableBody>
                                             </Table>
                                         </div>
