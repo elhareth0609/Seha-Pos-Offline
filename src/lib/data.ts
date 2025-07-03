@@ -1,5 +1,5 @@
 
-import type { Medication, Sale, PurchaseOrder, Return, Supplier, User, TimeLog, AppSettings, SupplierPayment, Patient } from "./types";
+import type { Medication, Sale, PurchaseOrder, ReturnOrder, Supplier, User, TimeLog, AppSettings, SupplierPayment, Patient } from "./types";
 
 export const suppliers: Supplier[] = [
     { id: "SUP001", name: "Pharma Inc.", contactPerson: "John Doe", phone: "123-456-7890", email: "contact@pharma-inc.com"},
@@ -46,8 +46,24 @@ export const purchaseOrders: PurchaseOrder[] = [
   { id: "PO003", supplierId: "SUP003", supplierName: "Allergy Relief Co.", date: "2024-07-22", items: [{ medicationId: "5010087201048", name: "Loratadine 10mg Tabs", quantity: 30, purchasePrice: 14750 }], status: "Pending", totalAmount: 442500 },
 ];
 
-export const supplierReturns: Return[] = [
-    { id: "S-RET001", date: "2024-07-21", medicationId: "8901138507542", medicationName: "Paracetamol 500mg Tabs", quantity: 5, reason: "Damaged packaging", supplierId: "SUP001", purchaseId: "PO001", totalAmount: 26250 },
+export const supplierReturns: ReturnOrder[] = [
+    { 
+        id: "RET-001", 
+        date: "2024-07-21", 
+        supplierId: "SUP001",
+        supplierName: "Pharma Inc.",
+        items: [
+            {
+                medicationId: "8901138507542", 
+                name: "Paracetamol 500mg Tabs", 
+                quantity: 5, 
+                reason: "Damaged packaging",
+                purchasePrice: 5250
+            }
+        ],
+        purchaseId: "PO001", 
+        totalAmount: 26250 
+    },
 ];
 
 export const supplierPayments: SupplierPayment[] = [];

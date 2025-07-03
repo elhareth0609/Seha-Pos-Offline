@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { inventory as fallbackInventory, sales as fallbackSales, purchaseOrders as fallbackPurchaseOrders, supplierReturns as fallbackReturns, appSettings as fallbackSettings } from "@/lib/data";
-import type { Medication, Sale, PurchaseOrder, Return, AppSettings } from "@/lib/types";
+import type { Medication, Sale, PurchaseOrder, ReturnOrder, AppSettings } from "@/lib/types";
 import { DollarSign, Clock, TrendingDown, Landmark, FileText, Calendar, CalendarDays, TrendingUp } from "lucide-react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, isWithinInterval } from 'date-fns';
@@ -31,7 +31,7 @@ export default function Dashboard() {
   const [inventory, setInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
   const [sales, setSales] = useLocalStorage<Sale[]>('sales', fallbackSales);
   const [purchaseOrders, setPurchaseOrders] = useLocalStorage<PurchaseOrder[]>('purchaseOrders', fallbackPurchaseOrders);
-  const [supplierReturns, setSupplierReturns] = useLocalStorage<Return[]>('supplierReturns', fallbackReturns);
+  const [supplierReturns, setSupplierReturns] = useLocalStorage<ReturnOrder[]>('supplierReturns', fallbackReturns);
   const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
   const [isClient, setIsClient] = React.useState(false);
   

@@ -52,16 +52,22 @@ export type PurchaseOrder = {
   totalAmount: number;
 };
 
-export type Return = {
-  id: string;
-  date: string;
+export type ReturnOrderItem = {
   medicationId: string;
-  medicationName: string;
+  name: string;
   quantity: number;
+  purchasePrice: number;
   reason: string;
+};
+
+export type ReturnOrder = {
+  id: string;
   supplierId: string;
+  supplierName: string;
+  date: string;
+  items: ReturnOrderItem[];
   totalAmount: number;
-  purchaseId?: string;
+  purchaseId?: string; // Optional: Link to the original purchase order
 };
 
 export type SupplierPayment = {

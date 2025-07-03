@@ -45,7 +45,7 @@ import {
     suppliers as fallbackSuppliers, 
     supplierReturns as fallbackSupplierReturns 
 } from "@/lib/data"
-import type { PurchaseOrder, Medication, Supplier, Return, PurchaseOrderItem } from "@/lib/types"
+import type { PurchaseOrder, Medication, Supplier, ReturnOrder, PurchaseOrderItem, ReturnOrderItem } from "@/lib/types"
 import { PlusCircle, ChevronDown } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
@@ -56,12 +56,14 @@ export default function PurchasesPage() {
   const [inventory, setInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
   const [suppliers, setSuppliers] = useLocalStorage<Supplier[]>('suppliers', fallbackSuppliers);
   const [purchaseOrders, setPurchaseOrders] = useLocalStorage<PurchaseOrder[]>('purchaseOrders', fallbackPurchaseOrders);
-  const [supplierReturns, setSupplierReturns] = useLocalStorage<Return[]>('supplierReturns', fallbackSupplierReturns);
+  const [supplierReturns, setSupplierReturns] = useLocalStorage<ReturnOrder[]>('supplierReturns', fallbackSupplierReturns);
 
   const [isAddSupplierOpen, setIsAddSupplierOpen] = React.useState(false);
   const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
 
-  // State for fields to be reset in purchase form
+  // State for purchase form
+  const [purchaseId, setPurchaseId] = React.useState('');
+  const [purchaseSupplierId, setPurchaseSupplierId] = React.useState('');
   const [purchaseMedicationId, setPurchaseMedicationId] = React.useState('');
   const [purchaseMedicationName, setPurchaseMedicationName] = React.useState('');
   const [purchaseSaleUnit, setPurchaseSaleUnit] = React.useState('علبة');
@@ -70,16 +72,19 @@ export default function PurchasesPage() {
   const [purchasePurchasePrice, setPurchasePurchasePrice] = React.useState('');
   const [purchaseSellingPrice, setPurchaseSellingPrice] = React.useState('');
 
-  // State for fields to be reset in return form
+  // State for return form
+  const [returnSlipId, setReturnSlipId] = React.useState('');
+  const [returnSupplierId, setReturnSupplierId] = React.useState('');
   const [returnMedicationId, setReturnMedicationId] = React.useState('');
   const [returnQuantity, setReturnQuantity] = React.useState('');
   const [returnReason, setReturnReason] = React.useState('');
-  
+  const [returnPurchaseId, setReturnPurchaseId] = React.useState('');
+
   // State for advanced search
   const [purchaseHistorySearchTerm, setPurchaseHistorySearchTerm] = React.useState('');
   const [returnHistorySearchTerm, setReturnHistorySearchTerm] = React.useState('');
   const [filteredPurchaseOrders, setFilteredPurchaseOrders] = React.useState<PurchaseOrder[]>([]);
-  const [filteredSupplierReturns, setFilteredSupplierReturns] = React.useState<Return[]>([]);
+  const [filteredSupplierReturns, setFilteredSupplierReturns] = React.useState<ReturnOrder[]>([]);
 
   React.useEffect(() => {
     const term = purchaseHistorySearchTerm.toLowerCase().trim();
@@ -101,18 +106,15 @@ export default function PurchasesPage() {
     if (!term) {
       setFilteredSupplierReturns(supplierReturns);
     } else {
-      const filtered = supplierReturns.filter(ret => {
-        const supplier = suppliers.find(s => s.id === ret.supplierId);
-        return (
-          ret.id.toLowerCase().includes(term) ||
-          ret.medicationName.toLowerCase().includes(term) ||
-          ret.date.includes(term) ||
-          (supplier && supplier.name.toLowerCase().includes(term))
-        );
-      });
+      const filtered = supplierReturns.filter(ret => 
+        ret.id.toLowerCase().includes(term) ||
+        ret.supplierName.toLowerCase().includes(term) ||
+        ret.date.includes(term) ||
+        ret.items.some(item => item.name.toLowerCase().includes(term))
+      );
       setFilteredSupplierReturns(filtered);
     }
-  }, [returnHistorySearchTerm, supplierReturns, suppliers]);
+  }, [returnHistorySearchTerm, supplierReturns]);
 
 
   const toggleRow = (id: string) => {
@@ -129,10 +131,8 @@ export default function PurchasesPage() {
   const handleAddPurchase = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
-    const formData = new FormData(form);
     
-    const purchaseId = formData.get("purchaseId") as string;
-    const supplierId = formData.get("supplierId") as string;
+    const supplierId = purchaseSupplierId;
     let medicationId = purchaseMedicationId.trim();
     const medicationName = purchaseMedicationName.trim();
     const saleUnit = purchaseSaleUnit;
@@ -269,9 +269,8 @@ export default function PurchasesPage() {
   const handleReturnToSupplier = (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const form = event.currentTarget;
-      const formData = new FormData(form);
-      const supplierId = formData.get("supplierId") as string;
-      const purchaseId = formData.get("purchaseId") as string;
+      
+      const supplierId = returnSupplierId;
       const medicationId = returnMedicationId;
       const quantity = parseInt(returnQuantity, 10);
       const reason = returnReason;
@@ -279,7 +278,7 @@ export default function PurchasesPage() {
       const medicationIndex = inventory.findIndex(m => m.id === medicationId);
       const supplier = suppliers.find(s => s.id === supplierId);
 
-      if (medicationIndex === -1 || !supplier || !quantity || !reason) {
+      if (!returnSlipId || !supplier || !medicationId || !quantity || !reason) {
           toast({ variant: "destructive", title: "حقول ناقصة", description: "الرجاء ملء جميع الحقول المطلوبة." });
           return;
       }
@@ -297,19 +296,33 @@ export default function PurchasesPage() {
       newInventory[medicationIndex] = { ...medication, stock: medication.stock - quantity };
       setInventory(newInventory);
 
-      const newReturn: Return = {
-        id: `S-RET${(supplierReturns.length + 1).toString().padStart(3, '0')}`,
-        date: new Date().toISOString().split("T")[0],
-        medicationId: medication.id,
-        medicationName: medication.name,
-        quantity: quantity,
-        reason: reason,
-        supplierId: supplier.id,
-        purchaseId: purchaseId || undefined,
-        totalAmount: returnTotalAmount,
-      };
+      let newReturnOrders = [...supplierReturns];
+      let returnOrderIndex = newReturnOrders.findIndex(ro => ro.id === returnSlipId);
 
-      setSupplierReturns(prev => [newReturn, ...prev]);
+      const newReturnItem: ReturnOrderItem = {
+          medicationId: medicationId,
+          name: medication.name,
+          quantity: quantity,
+          purchasePrice: medication.purchasePrice,
+          reason: reason
+      };
+      
+      if (returnOrderIndex > -1) {
+          newReturnOrders[returnOrderIndex].items.push(newReturnItem);
+          newReturnOrders[returnOrderIndex].totalAmount += returnTotalAmount;
+      } else {
+          const newReturnOrder: ReturnOrder = {
+              id: returnSlipId,
+              supplierId: supplier.id,
+              supplierName: supplier.name,
+              date: new Date().toISOString().split("T")[0],
+              items: [newReturnItem],
+              totalAmount: returnTotalAmount,
+              purchaseId: returnPurchaseId || undefined
+          };
+          newReturnOrders.unshift(newReturnOrder);
+      }
+      setSupplierReturns(newReturnOrders);
 
       toast({ title: "تم تسجيل الاسترجاع", description: `تم إرجاع ${quantity} من ${medication.name} للمورد.`});
       
@@ -343,7 +356,7 @@ export default function PurchasesPage() {
             <form className="space-y-4" onSubmit={handleAddPurchase}>
                 <div className="space-y-2">
                     <Label htmlFor="purchaseId">رقم قائمة الشراء</Label>
-                    <Input id="purchaseId" name="purchaseId" type="text" placeholder="مثال: INV-2024-001" required />
+                    <Input id="purchaseId" name="purchaseId" type="text" placeholder="مثال: INV-2024-001" required value={purchaseId} onChange={e => setPurchaseId(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                     <div className="flex justify-between items-center">
@@ -373,7 +386,7 @@ export default function PurchasesPage() {
                             </DialogContent>
                         </Dialog>
                     </div>
-                    <Select name="supplierId" required>
+                    <Select name="supplierId" required value={purchaseSupplierId} onValueChange={setPurchaseSupplierId}>
                         <SelectTrigger id="supplierId"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
                         <SelectContent>
                             {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
@@ -519,6 +532,19 @@ export default function PurchasesPage() {
             <CardContent>
                 <form className="space-y-4" onSubmit={handleReturnToSupplier}>
                     <div className="space-y-2">
+                        <Label htmlFor="returnSlipId">رقم قائمة الاسترجاع</Label>
+                        <Input id="returnSlipId" name="returnSlipId" type="text" placeholder="مثال: RET-2024-001" required value={returnSlipId} onChange={e => setReturnSlipId(e.target.value)} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="return-supplierId">المورد</Label>
+                        <Select name="supplierId" required value={returnSupplierId} onValueChange={setReturnSupplierId}>
+                            <SelectTrigger id="return-supplierId"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
+                            <SelectContent>
+                                {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
                         <Label htmlFor="return-medicationId">الدواء المُراد إرجاعه</Label>
                         <Select name="medicationId" required value={returnMedicationId} onValueChange={setReturnMedicationId}>
                             <SelectTrigger id="return-medicationId"><SelectValue placeholder="اختر دواء" /></SelectTrigger>
@@ -528,17 +554,8 @@ export default function PurchasesPage() {
                         </Select>
                     </div>
                      <div className="space-y-2">
-                        <Label htmlFor="return-supplierId">المورد</Label>
-                        <Select name="supplierId" required>
-                            <SelectTrigger id="return-supplierId"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
-                            <SelectContent>
-                                {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="return-purchaseId">رقم قائمة الشراء (اختياري)</Label>
-                        <Input id="return-purchaseId" name="purchaseId" type="text" placeholder="مثال: INV-2024-001" />
+                        <Label htmlFor="return-purchaseId">رقم قائمة الشراء الأصلية (اختياري)</Label>
+                        <Input id="return-purchaseId" name="purchaseId" type="text" placeholder="مثال: INV-2024-001" value={returnPurchaseId} onChange={e => setReturnPurchaseId(e.target.value)} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="return-quantity">الكمية المرتجعة</Label>
@@ -557,10 +574,10 @@ export default function PurchasesPage() {
         <Card>
           <CardHeader>
             <CardTitle>سجل الاسترجاع</CardTitle>
-            <CardDescription>قائمة بجميع عمليات الاسترجاع للموردين.</CardDescription>
+            <CardDescription>قائمة بجميع عمليات الاسترجاع للموردين. اضغط على أي صف لعرض التفاصيل.</CardDescription>
              <div className="pt-4">
               <Input 
-                placeholder="ابحث برقم الاسترجاع، اسم المادة، التاريخ، أو اسم المورد..."
+                placeholder="ابحث برقم القائمة، اسم المورد، التاريخ، أو اسم المادة..."
                 value={returnHistorySearchTerm}
                 onChange={(e) => setReturnHistorySearchTerm(e.target.value)}
                 className="max-w-lg"
@@ -571,32 +588,60 @@ export default function PurchasesPage() {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>معرف الاسترجاع</TableHead>
-                        <TableHead>الدواء</TableHead>
+                        <TableHead>رقم القائمة</TableHead>
                         <TableHead>المورد</TableHead>
-                        <TableHead>الكمية</TableHead>
-                        <TableHead>قيمة الاسترجاع</TableHead>
-                        <TableHead>السبب</TableHead>
                         <TableHead>التاريخ</TableHead>
+                        <TableHead>قيمة الاسترجاع</TableHead>
+                        <TableHead className="w-12"></TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {filteredSupplierReturns.length > 0 ? filteredSupplierReturns.map(ret => {
-                        const supplier = suppliers.find(s => s.id === ret.supplierId);
-                        return (
-                          <TableRow key={ret.id}>
-                              <TableCell>{ret.id}</TableCell>
-                              <TableCell>{ret.medicationName}</TableCell>
-                              <TableCell>{supplier?.name || 'غير معروف'}</TableCell>
-                              <TableCell>{ret.quantity}</TableCell>
-                              <TableCell className="font-mono">{(ret.totalAmount || 0).toLocaleString('ar-IQ')} د.ع</TableCell>
-                              <TableCell>{ret.reason}</TableCell>
-                              <TableCell>{new Date(ret.date).toLocaleDateString('ar-EG')}</TableCell>
-                          </TableRow>
-                        )
-                    }) : (
+                    {filteredSupplierReturns.length > 0 ? filteredSupplierReturns.map(ret => (
+                        <React.Fragment key={ret.id}>
+                            <TableRow onClick={() => toggleRow(ret.id)} className="cursor-pointer">
+                                <TableCell>{ret.id}</TableCell>
+                                <TableCell>{ret.supplierName}</TableCell>
+                                <TableCell>{new Date(ret.date).toLocaleDateString('ar-EG')}</TableCell>
+                                <TableCell className="font-mono">{ret.totalAmount.toLocaleString('ar-IQ')} د.ع</TableCell>
+                                <TableCell>
+                                    <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", expandedRows.has(ret.id) && "rotate-180")} />
+                                </TableCell>
+                            </TableRow>
+                            {expandedRows.has(ret.id) && (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="p-0">
+                                        <div className="p-4 bg-muted/50">
+                                            <h4 className="mb-2 font-semibold">أصناف القائمة:</h4>
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>المنتج</TableHead>
+                                                        <TableHead>الكمية</TableHead>
+                                                        <TableHead>سعر الشراء</TableHead>
+                                                        <TableHead>السبب</TableHead>
+                                                        <TableHead className="text-left">القيمة</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {ret.items.map((item, index) => (
+                                                        <TableRow key={index}>
+                                                            <TableCell>{item.name}</TableCell>
+                                                            <TableCell>{item.quantity}</TableCell>
+                                                            <TableCell className="font-mono">{item.purchasePrice.toLocaleString('ar-IQ')} د.ع</TableCell>
+                                                            <TableCell>{item.reason}</TableCell>
+                                                            <TableCell className="font-mono text-left">{(item.quantity * item.purchasePrice).toLocaleString('ar-IQ')} د.ع</TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </React.Fragment>
+                    )) : (
                       <TableRow>
-                          <TableCell colSpan={7} className="text-center h-24">
+                          <TableCell colSpan={5} className="text-center h-24">
                               لا توجد نتائج مطابقة للبحث.
                           </TableCell>
                       </TableRow>

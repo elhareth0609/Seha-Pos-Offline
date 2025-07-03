@@ -17,7 +17,7 @@ import {
   supplierReturns as fallbackSupplierReturns,
   supplierPayments as fallbackSupplierPayments
 } from "@/lib/data"
-import type { Supplier, PurchaseOrder, Return, SupplierPayment } from "@/lib/types"
+import type { Supplier, PurchaseOrder, ReturnOrder, SupplierPayment } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import {
@@ -39,7 +39,7 @@ import { DollarSign } from "lucide-react"
 export default function SuppliersPage() {
   const [suppliers] = useLocalStorage<Supplier[]>('suppliers', fallbackSuppliers);
   const [purchaseOrders] = useLocalStorage<PurchaseOrder[]>('purchaseOrders', fallbackPurchaseOrders);
-  const [supplierReturns] = useLocalStorage<Return[]>('supplierReturns', fallbackSupplierReturns);
+  const [supplierReturns] = useLocalStorage<ReturnOrder[]>('supplierReturns', fallbackSupplierReturns);
   const [supplierPayments, setSupplierPayments] = useLocalStorage<SupplierPayment[]>('supplierPayments', fallbackSupplierPayments);
 
   const [isClient, setIsClient] = React.useState(false)
