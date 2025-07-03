@@ -270,11 +270,6 @@ export default function SalesPage() {
       return;
     }
 
-    if (finalTotal < 0) {
-      toast({ title: "خطأ في الإجمالي", description: "لا يمكن أن يكون المبلغ الإجمالي سالبًا.", variant: "destructive" })
-      return;
-    }
-
     if (!selectedEmployeeId) {
         toast({ title: "لم يتم تحديد الموظف", description: "الرجاء اختيار الموظف البائع من القائمة.", variant: "destructive" });
         return;
