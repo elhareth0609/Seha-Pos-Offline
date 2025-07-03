@@ -83,7 +83,7 @@ export default function PatientsPage() {
         notes: newPatientNotes,
         medications: selectedMeds.map(medId => {
             const med = inventory.find(m => m.id === medId)!;
-            return { medicationId: med.id, name: med.name };
+            return { medicationId: med.id, name: med.name, saleUnit: med.saleUnit };
         })
     };
     
@@ -112,7 +112,7 @@ export default function PatientsPage() {
         notes,
         medications: selectedMeds.map(medId => {
             const med = inventory.find(m => m.id === medId)!;
-            return { medicationId: med.id, name: med.name };
+            return { medicationId: med.id, name: med.name, saleUnit: med.saleUnit };
         })
       };
       
@@ -175,7 +175,7 @@ export default function PatientsPage() {
                                   {filteredMeds.map(med => (
                                       <div key={med.id} className="flex items-center space-x-2 space-x-reverse">
                                           <Checkbox id={`med-${med.id}`} checked={selectedMeds.includes(med.id)} onCheckedChange={() => handleMedToggle(med.id)} />
-                                          <Label htmlFor={`med-${med.id}`} className="flex-1 cursor-pointer">{med.name}</Label>
+                                          <Label htmlFor={`med-${med.id}`} className="flex-1 cursor-pointer">{med.name} {med.saleUnit && `(${med.saleUnit})`}</Label>
                                       </div>
                                   ))}
                                 </div>
@@ -218,7 +218,7 @@ export default function PatientsPage() {
                         <TableCell>{patient.id}</TableCell>
                         <TableCell className="font-medium">{patient.name}</TableCell>
                         <TableCell>
-                            {patient.medications.length > 0 ? patient.medications.map(m => m.name).join(', ') : 'لا يوجد'}
+                            {patient.medications.length > 0 ? patient.medications.map(m => `${m.name}${m.saleUnit ? ` (${m.saleUnit})` : ''}`).join(', ') : 'لا يوجد'}
                         </TableCell>
                         <TableCell>{patient.notes || 'لا يوجد'}</TableCell>
                         <TableCell>
@@ -294,7 +294,7 @@ export default function PatientsPage() {
                                   {filteredMeds.map(med => (
                                       <div key={`edit-${med.id}`} className="flex items-center space-x-2 space-x-reverse">
                                           <Checkbox id={`edit-med-${med.id}`} checked={selectedMeds.includes(med.id)} onCheckedChange={() => handleMedToggle(med.id)} />
-                                          <Label htmlFor={`edit-med-${med.id}`} className="flex-1 cursor-pointer">{med.name}</Label>
+                                          <Label htmlFor={`edit-med-${med.id}`} className="flex-1 cursor-pointer">{med.name} {med.saleUnit && `(${med.saleUnit})`}</Label>
                                       </div>
                                   ))}
                                 </div>

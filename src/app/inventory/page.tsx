@@ -143,6 +143,7 @@ export default function InventoryPage() {
           reorderPoint: parseInt(formData.get('reorderPoint') as string, 10),
           price: parseFloat(formData.get('price') as string),
           category: formData.get('category') as string,
+          saleUnit: formData.get('saleUnit') as string,
       }
       
       setAllInventory(prev => prev.map(m => m.id === updatedMed.id ? updatedMed : m));
@@ -225,6 +226,7 @@ export default function InventoryPage() {
                     expirationDate: formattedExpDate,
                     supplierName: String(row.suppliername || 'Default Supplier').trim(),
                     supplierId: String(row.supplierid || 'SUP-DEFAULT').trim(),
+                    saleUnit: String(row.saleunit || 'علبة').trim(),
                 };
 
                 if (isUpdate) {
@@ -242,6 +244,7 @@ export default function InventoryPage() {
                         price: medData.price!,
                         purchasePrice: medData.purchasePrice!,
                         expirationDate: medData.expirationDate!,
+                        saleUnit: medData.saleUnit!,
                     };
                     inventoryToUpdate.push(newMed);
                     addedCount++;
@@ -282,6 +285,7 @@ export default function InventoryPage() {
                                 <TableHead>الباركود</TableHead>
                                 <TableHead>الاسم</TableHead>
                                 <TableHead>الفئة</TableHead>
+                                <TableHead>وحدة البيع</TableHead>
                                 <TableHead>المورد</TableHead>
                                 <TableHead className="text-center">المخزون</TableHead>
                                 <TableHead className="text-center">نقطة إعادة الطلب</TableHead>
@@ -297,6 +301,7 @@ export default function InventoryPage() {
                                     <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-40" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
@@ -378,6 +383,7 @@ export default function InventoryPage() {
               <TableHead>الباركود</TableHead>
               <TableHead>الاسم</TableHead>
               <TableHead>الفئة</TableHead>
+              <TableHead>وحدة البيع</TableHead>
               <TableHead>المورد</TableHead>
               <TableHead className="text-center">المخزون</TableHead>
               <TableHead className="text-center">نقطة إعادة الطلب</TableHead>
@@ -393,6 +399,7 @@ export default function InventoryPage() {
                 <TableCell className="font-medium font-mono text-xs">{item.id}</TableCell>
                 <TableCell>{item.name}</TableCell>
                 <TableCell>{item.category}</TableCell>
+                <TableCell>{item.saleUnit || '-'}</TableCell>
                 <TableCell>{item.supplierName}</TableCell>
                 <TableCell className="text-center">{item.stock}</TableCell>
                 <TableCell className="text-center">{item.reorderPoint}</TableCell>
@@ -472,9 +479,15 @@ export default function InventoryPage() {
                                 <Input id="edit-price" name="price" type="number" step="1" defaultValue={editingMed.price} required />
                             </div>
                         </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="edit-category">الفئة</Label>
-                            <Input id="edit-category" name="category" defaultValue={editingMed.category} required />
+                         <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="edit-category">الفئة</Label>
+                                <Input id="edit-category" name="category" defaultValue={editingMed.category} required />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="edit-saleUnit">وحدة البيع</Label>
+                                <Input id="edit-saleUnit" name="saleUnit" defaultValue={editingMed.saleUnit || ''} />
+                            </div>
                         </div>
                         <DialogFooter>
                             <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>

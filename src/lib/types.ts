@@ -10,6 +10,7 @@ export type Medication = {
   price: number; // Selling price
   purchasePrice: number;
   expirationDate: string;
+  saleUnit?: string;
 };
 
 export type SaleItem = {
@@ -20,6 +21,7 @@ export type SaleItem = {
   purchasePrice: number;
   expirationDate?: string;
   isReturn?: boolean;
+  saleUnit?: string;
 };
 
 export type Sale = {
@@ -92,6 +94,7 @@ export type Patient = {
   medications: {
     medicationId: string;
     name: string;
+    saleUnit?: string;
   }[];
   notes?: string;
 };
@@ -112,5 +115,3 @@ export type AppSettings = {
     expirationThresholdDays: number;
     invoiceFooterMessage?: string;
 }
-
-    

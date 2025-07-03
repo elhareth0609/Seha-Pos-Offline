@@ -68,6 +68,7 @@ export default function PurchasesPage() {
     const supplierId = formData.get("supplierId") as string;
     let medicationId = formData.get("medicationId") as string; // This is the barcode
     const medicationName = formData.get("medicationName") as string;
+    const saleUnit = formData.get("saleUnit") as string;
     const quantity = parseInt(formData.get("quantity") as string, 10);
     const expirationDate = formData.get("expirationDate") as string;
     const purchasePrice = parseFloat(formData.get("purchasePrice") as string);
@@ -103,6 +104,7 @@ export default function PurchasesPage() {
       existingMed.supplierId = supplier.id;
       existingMed.supplierName = supplier.name;
       existingMed.name = medicationName; // Also update the name
+      existingMed.saleUnit = saleUnit;
       newInventory[medicationIndex] = existingMed;
       toast({
           title: "تم تحديث الرصيد",
@@ -122,6 +124,7 @@ export default function PurchasesPage() {
           price: sellingPrice,
           purchasePrice: purchasePrice,
           expirationDate: expirationDate,
+          saleUnit: saleUnit,
       };
       newInventory.unshift(newMedication);
       toast({
@@ -294,9 +297,23 @@ export default function PurchasesPage() {
                     <Label htmlFor="medicationId">الباركود (المعرف) - يترك فارغاً للتوليد التلقائي</Label>
                     <Input id="medicationId" name="medicationId" type="text" placeholder="امسح الباركود أو أدخله يدويًا" />
                 </div>
-                <div className="space-y-2">
-                    <Label htmlFor="medicationName">اسم الدواء</Label>
-                    <Input id="medicationName" name="medicationName" type="text" placeholder="مثال: Paracetamol 500mg" required />
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="medicationName">اسم الدواء</Label>
+                        <Input id="medicationName" name="medicationName" type="text" placeholder="مثال: Paracetamol 500mg" required />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="saleUnit">وحدة البيع</Label>
+                        <Select name="saleUnit" required defaultValue="علبة">
+                            <SelectTrigger id="saleUnit"><SelectValue placeholder="اختر وحدة" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="علبة">علبة</SelectItem>
+                                <SelectItem value="شريط">شريط</SelectItem>
+                                <SelectItem value="قطعة">قطعة</SelectItem>
+                                <SelectItem value="قنينة">قنينة</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">

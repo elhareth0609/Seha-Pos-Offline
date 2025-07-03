@@ -161,7 +161,7 @@ export default function SalesPage() {
             : item
         )
       }
-      return [...prevCart, { medicationId: medication.id, name: medication.name, quantity: 1, price: medication.price, purchasePrice: medication.purchasePrice, expirationDate: medication.expirationDate, isReturn: false }]
+      return [...prevCart, { medicationId: medication.id, name: medication.name, quantity: 1, price: medication.price, purchasePrice: medication.purchasePrice, expirationDate: medication.expirationDate, isReturn: false, saleUnit: medication.saleUnit }]
     })
     setSearchTerm("")
     setSuggestions([])
@@ -378,7 +378,7 @@ export default function SalesPage() {
                                                     }}
                                                     className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
                                                 >
-                                                    <span>{med.name}</span>
+                                                    <span>{med.name} {med.saleUnit && `(${med.saleUnit})`}</span>
                                                     <span className="text-sm text-muted-foreground">{med.price.toLocaleString('ar-IQ')} ع.د</span>
                                                 </li>
                                             ))}
@@ -438,7 +438,7 @@ export default function SalesPage() {
                                             <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" />
                                         </TableCell>
                                         <TableCell>
-                                            <div className="font-medium">{item.name}</div>
+                                            <div className="font-medium">{item.name} {item.saleUnit && `(${item.saleUnit})`}</div>
                                             <div className="text-xs text-muted-foreground flex items-center gap-x-2">
                                                 <span>الكلفة: {item.purchasePrice.toLocaleString('ar-IQ')} ع.د</span>
                                                 <span className={cn("font-medium", itemProfit >= 0 ? "text-green-600" : "text-destructive")}>
@@ -559,7 +559,7 @@ export default function SalesPage() {
                                         <TableBody>
                                             {cart.map(item => (
                                                 <TableRow key={item.medicationId} className={cn(item.isReturn && "text-destructive")}>
-                                                    <TableCell>{item.name} {item.isReturn && "(مرتجع)"}</TableCell>
+                                                    <TableCell>{item.name} {item.saleUnit && `(${item.saleUnit})`} {item.isReturn && "(مرتجع)"}</TableCell>
                                                     <TableCell className="text-center">{item.quantity}</TableCell>
                                                     <TableCell className="text-left">{((item.isReturn ? -1 : 1) * item.price * item.quantity).toLocaleString('ar-IQ')} ع.د</TableCell>
                                                 </TableRow>
