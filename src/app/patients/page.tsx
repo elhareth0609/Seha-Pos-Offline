@@ -148,7 +148,7 @@ export default function PatientsPage() {
             </div>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
-                    <Button><UserPlus className="me-2"/> إضافة مريض جديد</Button>
+                    <Button variant="success"><UserPlus className="me-2"/> إضافة مريض جديد</Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[600px]">
                     <DialogHeader>
@@ -187,7 +187,7 @@ export default function PatientsPage() {
                         <DialogClose asChild>
                            <Button variant="outline" onClick={resetAddDialog}>إلغاء</Button>
                         </DialogClose>
-                        <Button type="button" onClick={handleAddPatient}>إضافة المريض</Button>
+                        <Button type="button" onClick={handleAddPatient} variant="success">إضافة المريض</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -303,7 +303,7 @@ export default function PatientsPage() {
                         </div>
                         <DialogFooter>
                             <DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose>
-                            <Button type="submit">حفظ التغييرات</Button>
+                            <Button type="submit" variant="success">حفظ التغييرات</Button>
                         </DialogFooter>
                     </form>
                 )}

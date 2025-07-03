@@ -533,7 +533,7 @@ export default function SalesPage() {
                 <CardFooter>
                      <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
                         <DialogTrigger asChild>
-                            <Button size="lg" className="w-full text-lg" onClick={handleCheckout} disabled={cart.length === 0 || !selectedEmployeeId}>
+                            <Button size="lg" className="w-full text-lg" onClick={handleCheckout} disabled={cart.length === 0 || !selectedEmployeeId} variant="success">
                                 إتمام العملية
                             </Button>
                         </DialogTrigger>
@@ -573,7 +573,7 @@ export default function SalesPage() {
                             </div>
                             <DialogFooter>
                                 <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
-                                <Button onClick={handleFinalizeSale}>تأكيد البيع</Button>
+                                <Button onClick={handleFinalizeSale} variant="success">تأكيد البيع</Button>
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>

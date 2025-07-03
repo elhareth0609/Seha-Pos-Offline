@@ -246,7 +246,7 @@ export default function SettingsPage() {
                         />
                     </CardContent>
                     <CardFooter>
-                        <Button type="submit">حفظ التغييرات</Button>
+                        <Button type="submit" variant="success">حفظ التغييرات</Button>
                     </CardFooter>
                 </Card>
             </form>
@@ -284,7 +284,7 @@ export default function SettingsPage() {
                                     />
                                     <DialogFooter className="pt-4">
                                         <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
-                                        <Button type="submit" disabled={addUserForm.formState.isSubmitting}>إضافة الموظف</Button>
+                                        <Button type="submit" disabled={addUserForm.formState.isSubmitting} variant="success">إضافة الموظف</Button>
                                     </DialogFooter>
                                 </form>
                             </Form>

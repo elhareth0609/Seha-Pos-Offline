@@ -230,7 +230,7 @@ export default function SuppliersPage() {
                            <FileText className="me-2 h-4 w-4" />
                            عرض الكشف
                         </Button>
-                        <Button onClick={() => { setSelectedSupplier(account); setIsPaymentDialogOpen(true); }} className="w-full">
+                        <Button variant="success" onClick={() => { setSelectedSupplier(account); setIsPaymentDialogOpen(true); }} className="w-full">
                             <DollarSign className="me-2 h-4 w-4" />
                             تسديد دفعة
                         </Button>
@@ -257,7 +257,7 @@ export default function SuppliersPage() {
                 </div>
                 <DialogFooter>
                     <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
-                    <Button type="submit">حفظ الدفعة</Button>
+                    <Button type="submit" variant="success">حفظ الدفعة</Button>
                 </DialogFooter>
             </form>
         </DialogContent>

@@ -380,7 +380,7 @@ export default function PurchasesPage() {
       <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="new-purchase">استلام بضاعة</TabsTrigger>
         <TabsTrigger value="purchase-history">سجل المشتريات</TabsTrigger>
-        <TabsTrigger value="new-return">استرجاع للمورد</TabsTrigger>
+        <TabsTrigger value="new-return">إرجاع للمورد</TabsTrigger>
         <TabsTrigger value="return-history">سجل الاسترجاع</TabsTrigger>
       </TabsList>
       <TabsContent value="new-purchase">
@@ -419,7 +419,7 @@ export default function PurchasesPage() {
                                     </div>
                                     <DialogFooter>
                                         <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
-                                        <Button type="submit">إضافة</Button>
+                                        <Button type="submit" variant="success">إضافة</Button>
                                     </DialogFooter>
                                 </form>
                             </DialogContent>
@@ -474,7 +474,7 @@ export default function PurchasesPage() {
                         <Input id="sellingPrice" name="sellingPrice" type="number" placeholder="0" required step="1" value={purchaseSellingPrice} onChange={(e) => setPurchaseSellingPrice(e.target.value)} />
                     </div>
                 </div>
-              <Button type="submit" className="w-full">إضافة للمخزون</Button>
+              <Button type="submit" className="w-full" variant="success">إضافة للمخزون</Button>
             </form>
           </CardContent>
         </Card>
@@ -567,7 +567,7 @@ export default function PurchasesPage() {
        <TabsContent value="new-return">
          <Card>
             <CardHeader>
-                <CardTitle>إنشاء قائمة استرجاع للمورد</CardTitle>
+                <CardTitle>إنشاء قائمة إرجاع للمورد</CardTitle>
                 <CardDescription>
                 استخدم هذا النموذج لإنشاء قائمة بالأدوية المرتجعة للمورد.
                 </CardDescription>
