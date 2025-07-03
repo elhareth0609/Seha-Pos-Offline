@@ -46,8 +46,9 @@ import {
     supplierReturns as fallbackSupplierReturns 
 } from "@/lib/data"
 import type { PurchaseOrder, Medication, Supplier, Return, PurchaseOrderItem } from "@/lib/types"
-import { PlusCircle } from "lucide-react"
+import { PlusCircle, ChevronDown } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
+import { cn } from "@/lib/utils"
 
 export default function PurchasesPage() {
   const { toast } = useToast()
@@ -58,6 +59,32 @@ export default function PurchasesPage() {
   const [supplierReturns, setSupplierReturns] = useLocalStorage<Return[]>('supplierReturns', fallbackSupplierReturns);
 
   const [isAddSupplierOpen, setIsAddSupplierOpen] = React.useState(false);
+  const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
+
+  // State for fields to be reset in purchase form
+  const [purchaseMedicationId, setPurchaseMedicationId] = React.useState('');
+  const [purchaseMedicationName, setPurchaseMedicationName] = React.useState('');
+  const [purchaseSaleUnit, setPurchaseSaleUnit] = React.useState('علبة');
+  const [purchaseQuantity, setPurchaseQuantity] = React.useState('');
+  const [purchaseExpirationDate, setPurchaseExpirationDate] = React.useState('');
+  const [purchasePurchasePrice, setPurchasePurchasePrice] = React.useState('');
+  const [purchaseSellingPrice, setPurchaseSellingPrice] = React.useState('');
+
+  // State for fields to be reset in return form
+  const [returnMedicationId, setReturnMedicationId] = React.useState('');
+  const [returnQuantity, setReturnQuantity] = React.useState('');
+  const [returnReason, setReturnReason] = React.useState('');
+  
+  const toggleRow = (id: string) => {
+    const newExpandedRows = new Set(expandedRows);
+    if (newExpandedRows.has(id)) {
+      newExpandedRows.delete(id);
+    } else {
+      newExpandedRows.add(id);
+    }
+    setExpandedRows(newExpandedRows);
+  };
+
 
   const handleAddPurchase = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -66,13 +93,13 @@ export default function PurchasesPage() {
     
     const purchaseId = formData.get("purchaseId") as string;
     const supplierId = formData.get("supplierId") as string;
-    let medicationId = formData.get("medicationId") as string; // This is the barcode
-    const medicationName = formData.get("medicationName") as string;
-    const saleUnit = formData.get("saleUnit") as string;
-    const quantity = parseInt(formData.get("quantity") as string, 10);
-    const expirationDate = formData.get("expirationDate") as string;
-    const purchasePrice = parseFloat(formData.get("purchasePrice") as string);
-    const sellingPrice = parseFloat(formData.get("sellingPrice") as string);
+    let medicationId = purchaseMedicationId.trim();
+    const medicationName = purchaseMedicationName.trim();
+    const saleUnit = purchaseSaleUnit;
+    const quantity = parseInt(purchaseQuantity, 10);
+    const expirationDate = purchaseExpirationDate;
+    const purchasePrice = parseFloat(purchasePurchasePrice);
+    const sellingPrice = parseFloat(purchaseSellingPrice);
     
     const supplier = suppliers.find(s => s.id === supplierId);
     const itemTotal = purchasePrice * quantity;
@@ -103,7 +130,7 @@ export default function PurchasesPage() {
       existingMed.expirationDate = expirationDate;
       existingMed.supplierId = supplier.id;
       existingMed.supplierName = supplier.name;
-      existingMed.name = medicationName; // Also update the name
+      existingMed.name = medicationName;
       existingMed.saleUnit = saleUnit;
       newInventory[medicationIndex] = existingMed;
       toast({
@@ -163,7 +190,18 @@ export default function PurchasesPage() {
 
     setPurchaseOrders(newPurchaseOrders);
     
-    form.reset();
+    // Reset only item-specific fields
+    setPurchaseMedicationId('');
+    setPurchaseMedicationName('');
+    setPurchaseSaleUnit('علبة');
+    setPurchaseQuantity('');
+    setPurchaseExpirationDate('');
+    setPurchasePurchasePrice('');
+    setPurchaseSellingPrice('');
+    
+    // Focus the barcode input for next entry
+    const barcodeInput = form.querySelector<HTMLInputElement>('#medicationId');
+    barcodeInput?.focus();
   };
 
   const handleAddSupplier = (event: React.FormEvent<HTMLFormElement>) => {
@@ -190,12 +228,13 @@ export default function PurchasesPage() {
 
   const handleReturnToSupplier = (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      const formData = new FormData(event.currentTarget);
-      const medicationId = formData.get("medicationId") as string;
+      const form = event.currentTarget;
+      const formData = new FormData(form);
       const supplierId = formData.get("supplierId") as string;
       const purchaseId = formData.get("purchaseId") as string;
-      const quantity = parseInt(formData.get("quantity") as string, 10);
-      const reason = formData.get("reason") as string;
+      const medicationId = returnMedicationId;
+      const quantity = parseInt(returnQuantity, 10);
+      const reason = returnReason;
 
       const medicationIndex = inventory.findIndex(m => m.id === medicationId);
       const supplier = suppliers.find(s => s.id === supplierId);
@@ -233,7 +272,15 @@ export default function PurchasesPage() {
       setSupplierReturns(prev => [newReturn, ...prev]);
 
       toast({ title: "تم تسجيل المرتجع", description: `تم إرجاع ${quantity} من ${medication.name} للمورد.`});
-      event.currentTarget.reset();
+      
+      // Reset only item-specific fields
+      setReturnMedicationId('');
+      setReturnQuantity('');
+      setReturnReason('');
+
+      // Focus the medication select for next entry
+      const medSelect = form.querySelector<HTMLButtonElement>('#return-medicationId');
+      medSelect?.focus();
   }
   
   return (
@@ -295,16 +342,16 @@ export default function PurchasesPage() {
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="medicationId">الباركود (المعرف) - يترك فارغاً للتوليد التلقائي</Label>
-                    <Input id="medicationId" name="medicationId" type="text" placeholder="امسح الباركود أو أدخله يدويًا" />
+                    <Input id="medicationId" name="medicationId" type="text" placeholder="امسح الباركود أو أدخله يدويًا" value={purchaseMedicationId} onChange={(e) => setPurchaseMedicationId(e.target.value)} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="medicationName">اسم الدواء</Label>
-                        <Input id="medicationName" name="medicationName" type="text" placeholder="مثال: Paracetamol 500mg" required />
+                        <Input id="medicationName" name="medicationName" type="text" placeholder="مثال: Paracetamol 500mg" required value={purchaseMedicationName} onChange={(e) => setPurchaseMedicationName(e.target.value)} />
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="saleUnit">وحدة البيع</Label>
-                        <Select name="saleUnit" required defaultValue="علبة">
+                        <Select name="saleUnit" required value={purchaseSaleUnit} onValueChange={setPurchaseSaleUnit}>
                             <SelectTrigger id="saleUnit"><SelectValue placeholder="اختر وحدة" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="علبة">علبة</SelectItem>
@@ -318,21 +365,21 @@ export default function PurchasesPage() {
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="quantity">الكمية</Label>
-                        <Input id="quantity" name="quantity" type="number" placeholder="0" required min="1" />
+                        <Input id="quantity" name="quantity" type="number" placeholder="0" required min="1" value={purchaseQuantity} onChange={(e) => setPurchaseQuantity(e.target.value)} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="expirationDate">تاريخ الانتهاء</Label>
-                        <Input id="expirationDate" name="expirationDate" type="date" required />
+                        <Input id="expirationDate" name="expirationDate" type="date" required value={purchaseExpirationDate} onChange={(e) => setPurchaseExpirationDate(e.target.value)} />
                     </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="purchasePrice">سعر الشراء</Label>
-                        <Input id="purchasePrice" name="purchasePrice" type="number" placeholder="0" required step="1" />
+                        <Input id="purchasePrice" name="purchasePrice" type="number" placeholder="0" required step="1" value={purchasePurchasePrice} onChange={(e) => setPurchasePurchasePrice(e.target.value)} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="sellingPrice">سعر البيع</Label>
-                        <Input id="sellingPrice" name="sellingPrice" type="number" placeholder="0" required step="1" />
+                        <Input id="sellingPrice" name="sellingPrice" type="number" placeholder="0" required step="1" value={purchaseSellingPrice} onChange={(e) => setPurchaseSellingPrice(e.target.value)} />
                     </div>
                 </div>
               <Button type="submit" className="w-full">إضافة للمخزون</Button>
@@ -344,7 +391,7 @@ export default function PurchasesPage() {
         <Card>
           <CardHeader>
             <CardTitle>سجل المشتريات</CardTitle>
-            <CardDescription>قائمة بجميع طلبات الشراء المستلمة.</CardDescription>
+            <CardDescription>قائمة بجميع طلبات الشراء المستلمة. اضغط على أي صف لعرض التفاصيل.</CardDescription>
           </CardHeader>
           <CardContent>
              <Table>
@@ -355,17 +402,52 @@ export default function PurchasesPage() {
                         <TableHead>التاريخ</TableHead>
                         <TableHead>الإجمالي</TableHead>
                         <TableHead>الحالة</TableHead>
+                        <TableHead className="w-12"></TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {purchaseOrders.map(po => (
-                        <TableRow key={po.id}>
-                            <TableCell>{po.id}</TableCell>
-                            <TableCell>{po.supplierName}</TableCell>
-                            <TableCell>{new Date(po.date).toLocaleDateString('ar-EG')}</TableCell>
-                            <TableCell className="font-mono">{po.totalAmount.toLocaleString('ar-IQ')} ع.د</TableCell>
-                            <TableCell>{po.status}</TableCell>
-                        </TableRow>
+                        <React.Fragment key={po.id}>
+                            <TableRow onClick={() => toggleRow(po.id)} className="cursor-pointer">
+                                <TableCell>{po.id}</TableCell>
+                                <TableCell>{po.supplierName}</TableCell>
+                                <TableCell>{new Date(po.date).toLocaleDateString('ar-EG')}</TableCell>
+                                <TableCell className="font-mono">{po.totalAmount.toLocaleString('ar-IQ')} ع.د</TableCell>
+                                <TableCell>{po.status}</TableCell>
+                                <TableCell>
+                                    <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", expandedRows.has(po.id) && "rotate-180")} />
+                                </TableCell>
+                            </TableRow>
+                            {expandedRows.has(po.id) && (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="p-0">
+                                        <div className="p-4 bg-muted/50">
+                                            <h4 className="mb-2 font-semibold">أصناف القائمة:</h4>
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>المنتج</TableHead>
+                                                        <TableHead>الكمية</TableHead>
+                                                        <TableHead>سعر الشراء</TableHead>
+                                                        <TableHead className="text-left">الإجمالي</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {po.items.map((item, index) => (
+                                                        <TableRow key={index}>
+                                                            <TableCell>{item.name}</TableCell>
+                                                            <TableCell>{item.quantity}</TableCell>
+                                                            <TableCell className="font-mono">{item.purchasePrice.toLocaleString('ar-IQ')} ع.د</TableCell>
+                                                            <TableCell className="font-mono text-left">{(item.quantity * item.purchasePrice).toLocaleString('ar-IQ')} ع.د</TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </React.Fragment>
                     ))}
                 </TableBody>
             </Table>
@@ -384,7 +466,7 @@ export default function PurchasesPage() {
                 <form className="space-y-4" onSubmit={handleReturnToSupplier}>
                     <div className="space-y-2">
                         <Label htmlFor="return-medicationId">الدواء المُراد إرجاعه</Label>
-                        <Select name="medicationId" required>
+                        <Select name="medicationId" required value={returnMedicationId} onValueChange={setReturnMedicationId}>
                             <SelectTrigger id="return-medicationId"><SelectValue placeholder="اختر دواء" /></SelectTrigger>
                             <SelectContent>
                                 {inventory.map(m => <SelectItem key={m.id} value={m.id}>{m.name} (سعر الشراء: {m.purchasePrice.toLocaleString('ar-IQ')} ع.د)</SelectItem>)}
@@ -406,11 +488,11 @@ export default function PurchasesPage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="return-quantity">الكمية المرتجعة</Label>
-                        <Input id="return-quantity" name="quantity" type="number" placeholder="0" required min="1" />
+                        <Input id="return-quantity" name="quantity" type="number" placeholder="0" required min="1" value={returnQuantity} onChange={e => setReturnQuantity(e.target.value)} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="reason">سبب الإرجاع</Label>
-                        <Textarea id="reason" name="reason" placeholder="مثال: تالف، قريب الانتهاء" required />
+                        <Textarea id="reason" name="reason" placeholder="مثال: تالف، قريب الانتهاء" required value={returnReason} onChange={e => setReturnReason(e.target.value)} />
                     </div>
                     <Button type="submit" variant="destructive" className="w-full">تسجيل المرتجع وخصم من المخزون</Button>
                 </form>
