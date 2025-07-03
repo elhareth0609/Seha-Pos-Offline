@@ -75,10 +75,10 @@ export const timeLogs: TimeLog[] = [
 ];
 
 export const appSettings: AppSettings = {
-    pharmacyName: "صيدلية مدستوك",
+    pharmacyName: "صيدلية Midgram",
     pharmacyAddress: "123 شارع الصحة، المدينة الطبية",
     pharmacyPhone: "964-7701234567",
-    pharmacyEmail: "contact@medstock.com",
+    pharmacyEmail: "contact@midgram.com",
     expirationThresholdDays: 90,
     invoiceFooterMessage: "شكرًا لزيارتكم!",
 }

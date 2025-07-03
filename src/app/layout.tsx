@@ -5,7 +5,7 @@ import { AuthProvider } from '@/hooks/use-auth';
 import AppLayoutClient from './AppLayoutClient';
 
 export const metadata: Metadata = {
-  title: 'مدير المخزون الطبي',
+  title: 'Midgram',
   description: 'نظام إدارة صيدلية للمبيعات والمخزون والمشتريات.',
 };
 

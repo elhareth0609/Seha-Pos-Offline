@@ -46,7 +46,7 @@ export default function SetupPage() {
                      <div className="mx-auto mb-4 bg-primary/10 p-4 rounded-full">
                         <PackagePlus className="h-12 w-12 text-primary" />
                     </div>
-                    <CardTitle className="text-2xl">مرحبًا بك في مدستوك</CardTitle>
+                    <CardTitle className="text-2xl">مرحبًا بك في Midgram</CardTitle>
                     <CardDescription>
                         لنبدأ بإعداد حساب المدير الخاص بك. هذا الحساب سيكون له صلاحيات كاملة على النظام.
                     </CardDescription>

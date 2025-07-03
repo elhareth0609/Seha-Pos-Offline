@@ -71,7 +71,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `medstock-backup-${new Date().toISOString().split('T')[0]}.json`;
+        a.download = `midgram-backup-${new Date().toISOString().split('T')[0]}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -128,7 +128,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2 font-semibold">
               <PackagePlus className="h-6 w-6 text-primary" />
-              <span>مدستوك</span>
+              <span>Midgram</span>
             </Link>
             
             <DropdownMenu>
