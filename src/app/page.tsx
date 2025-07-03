@@ -116,10 +116,15 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
-        <div className="grid gap-6 lg:grid-cols-5">
-            <Card className="lg:col-span-3 h-[380px]"><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-full w-full" /></CardContent></Card>
-            <Card className="lg:col-span-2"><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-48 w-full" /></CardContent></Card>
-        </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-8 w-48 mb-2" />
+            <Skeleton className="h-5 w-72" />
+          </CardHeader>
+          <CardContent className="ps-2">
+            <Skeleton className="h-[300px] w-full" />
+          </CardContent>
+        </Card>
         <div className="grid gap-6 md:grid-cols-2">
             <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-48 w-full" /></CardContent></Card>
             <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-48 w-full" /></CardContent></Card>
@@ -185,57 +190,29 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>نظرة عامة على المبيعات</CardTitle>
-            <CardDescription>نظرة على آخر 10 معاملات بيع.</CardDescription>
-          </CardHeader>
-          <CardContent className="ps-2">
-             <ChartContainer
-                config={{
-                    total: { label: 'الإجمالي', color: 'hsl(var(--primary))' },
-                }}
-                className="h-[300px] w-full"
-            >
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={salesDataForChart} layout="horizontal">
-                        <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} reversed={true} />
-                        <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value.toLocaleString('ar-IQ')}`} orientation="right" />
-                         <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" formatter={(value) => `${Number(value).toLocaleString('ar-IQ')} ع.د`}/>} />
-                        <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>المبيعات الأخيرة</CardTitle>
-            <CardDescription>أحدث 5 معاملات بيع.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>معرف البيع</TableHead>
-                  <TableHead>التاريخ</TableHead>
-                  <TableHead className="text-left">المبلغ</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sales.slice(0, 5).map((sale) => (
-                  <TableRow key={sale.id}>
-                    <TableCell className="font-medium">{sale.id}</TableCell>
-                    <TableCell>{new Date(sale.date).toLocaleDateString('ar-EG')}</TableCell>
-                    <TableCell className="text-left">{sale.total.toLocaleString('ar-IQ')} ع.د</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>نظرة عامة على المبيعات</CardTitle>
+          <CardDescription>نظرة على آخر 10 معاملات بيع.</CardDescription>
+        </CardHeader>
+        <CardContent className="ps-2">
+            <ChartContainer
+              config={{
+                  total: { label: 'الإجمالي', color: 'hsl(var(--primary))' },
+              }}
+              className="h-[300px] w-full"
+          >
+              <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={salesDataForChart} layout="horizontal">
+                      <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} reversed={true} />
+                      <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value.toLocaleString('ar-IQ')}`} orientation="right" />
+                        <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" formatter={(value) => `${Number(value).toLocaleString('ar-IQ')} ع.د`}/>} />
+                      <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+              </ResponsiveContainer>
+          </ChartContainer>
+        </CardContent>
+      </Card>
 
        <div className="grid gap-6 md:grid-cols-2">
           <Card>
@@ -312,7 +289,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    
-
-    
