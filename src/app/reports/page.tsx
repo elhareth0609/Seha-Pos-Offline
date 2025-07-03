@@ -32,7 +32,7 @@ import { sales as fallbackSales, appSettings as fallbackSettings } from '@/lib/d
 import type { Sale, AppSettings } from '@/lib/types';
 import { useReactToPrint } from 'react-to-print';
 import { InvoiceTemplate } from '@/components/ui/invoice';
-import { Printer, DollarSign, TrendingUp, PieChart, ListFilter } from 'lucide-react';
+import { Printer, DollarSign, TrendingUp, PieChart, ListFilter, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -44,6 +44,9 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+
 
 export default function ReportsPage() {
     const [sales] = useLocalStorage<Sale[]>('sales', fallbackSales);
@@ -51,6 +54,7 @@ export default function ReportsPage() {
     const [searchTerm, setSearchTerm] = React.useState("");
     const [employeeFilter, setEmployeeFilter] = React.useState("all");
     const [isClient, setIsClient] = React.useState(false);
+    const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
 
     React.useEffect(() => {
         setIsClient(true);
@@ -75,9 +79,25 @@ export default function ReportsPage() {
         setIsPrintDialogOpen(true);
     };
 
+    const toggleRow = (id: string) => {
+        const newExpandedRows = new Set(expandedRows);
+        if (newExpandedRows.has(id)) {
+            newExpandedRows.delete(id);
+        } else {
+            newExpandedRows.add(id);
+        }
+        setExpandedRows(newExpandedRows);
+    };
+
     const filteredSales = sales.filter(sale => {
-        const searchMatch = sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (sale.employeeName || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const term = searchTerm.toLowerCase().trim();
+        const searchMatch = !term ? true : (
+            sale.id.toLowerCase().includes(term) ||
+            (sale.employeeName || '').toLowerCase().includes(term) ||
+            sale.items.some(item => item.name.toLowerCase().includes(term)) ||
+            (term === 'مرتجع' && sale.items.some(item => item.isReturn))
+        );
+
         const employeeMatch = employeeFilter === 'all' || sale.employeeName === employeeFilter;
         return searchMatch && employeeMatch;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -114,6 +134,7 @@ export default function ReportsPage() {
                                     <TableHead className="text-left">الإجمالي</TableHead>
                                     <TableHead className="text-left">الربح</TableHead>
                                     <TableHead>الإجراءات</TableHead>
+                                    <TableHead className="w-12"></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -126,6 +147,7 @@ export default function ReportsPage() {
                                         <TableCell className="text-left"><Skeleton className="h-5 w-16" /></TableCell>
                                         <TableCell className="text-left"><Skeleton className="h-5 w-16" /></TableCell>
                                         <TableCell><Skeleton className="h-9 w-24" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-5" /></TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -149,7 +171,7 @@ export default function ReportsPage() {
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{totalSalesValue.toLocaleString('ar-IQ')} ع.د</div>
+                        <div className="text-2xl font-bold">{totalSalesValue.toLocaleString('ar-IQ')} د.ع</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -158,7 +180,7 @@ export default function ReportsPage() {
                         <TrendingUp className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-600">{totalProfit.toLocaleString('ar-IQ')} ع.د</div>
+                        <div className="text-2xl font-bold text-green-600">{totalProfit.toLocaleString('ar-IQ')} د.ع</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -175,10 +197,10 @@ export default function ReportsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>سجل المبيعات</CardTitle>
-                    <CardDescription>عرض وطباعة جميع فواتير المبيعات السابقة.</CardDescription>
+                    <CardDescription>عرض وطباعة جميع فواتير المبيعات السابقة. اضغط على الصف لعرض التفاصيل.</CardDescription>
                      <div className="pt-4 flex gap-2">
                         <Input 
-                            placeholder="ابحث برقم الفاتورة أو اسم الموظف..."
+                            placeholder="ابحث برقم الفاتورة، الموظف، المادة، أو اكتب 'مرتجع'..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="max-w-sm"
@@ -211,32 +233,71 @@ export default function ReportsPage() {
                                 <TableHead>رقم الفاتورة</TableHead>
                                 <TableHead>التاريخ</TableHead>
                                 <TableHead>الموظف</TableHead>
-                                <TableHead className="text-center">عدد الأصناف</TableHead>
+                                <TableHead className="text-center">الأصناف</TableHead>
                                 <TableHead className="text-left">الإجمالي</TableHead>
-                                <TableHead className="text-left">صافي الربح</TableHead>
+                                <TableHead className="text-left">الربح</TableHead>
                                 <TableHead>الإجراءات</TableHead>
+                                <TableHead className="w-12"></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {filteredSales.length > 0 ? filteredSales.map((sale) => (
-                                <TableRow key={sale.id}>
-                                    <TableCell className="font-medium">{sale.id}</TableCell>
-                                    <TableCell>{new Date(sale.date).toLocaleDateString('ar-EG')}</TableCell>
-                                    <TableCell>{sale.employeeName || 'غير محدد'}</TableCell>
-                                    <TableCell className="text-center">{sale.items.length}</TableCell>
-                                    <TableCell className="text-left font-mono">{sale.total.toLocaleString('ar-IQ')} ع.د</TableCell>
-                                    <TableCell className="text-left font-mono text-green-600">{((sale.profit || 0) - (sale.discount || 0)).toLocaleString('ar-IQ')} ع.د</TableCell>
-                                    <TableCell>
-                                        <Button variant="outline" size="sm" onClick={() => openPrintDialog(sale)}>
-                                            <Printer className="me-2 h-4 w-4" />
-                                            طباعة
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
+                                <React.Fragment key={sale.id}>
+                                    <TableRow onClick={() => toggleRow(sale.id)} className="cursor-pointer">
+                                        <TableCell className="font-medium">{sale.id}</TableCell>
+                                        <TableCell>{new Date(sale.date).toLocaleDateString('ar-EG')}</TableCell>
+                                        <TableCell>{sale.employeeName || 'غير محدد'}</TableCell>
+                                        <TableCell className="text-center">{sale.items.length}</TableCell>
+                                        <TableCell className="text-left font-mono">{sale.total.toLocaleString('ar-IQ')} د.ع</TableCell>
+                                        <TableCell className="text-left font-mono text-green-600">{((sale.profit || 0) - (sale.discount || 0)).toLocaleString('ar-IQ')} د.ع</TableCell>
+                                        <TableCell>
+                                            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openPrintDialog(sale); }}>
+                                                <Printer className="me-2 h-4 w-4" />
+                                                طباعة
+                                            </Button>
+                                        </TableCell>
+                                         <TableCell>
+                                            <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", expandedRows.has(sale.id) && "rotate-180")} />
+                                        </TableCell>
+                                    </TableRow>
+                                    {expandedRows.has(sale.id) && (
+                                        <TableRow>
+                                            <TableCell colSpan={8} className="p-0">
+                                                <div className="p-4 bg-muted/50">
+                                                    <h4 className="mb-2 font-semibold">أصناف الفاتورة:</h4>
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow>
+                                                                <TableHead>المنتج</TableHead>
+                                                                <TableHead>الكمية</TableHead>
+                                                                <TableHead>السعر</TableHead>
+                                                                <TableHead>الإجمالي</TableHead>
+                                                                <TableHead>الحالة</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {sale.items.map((item, index) => (
+                                                                <TableRow key={index} className={cn(item.isReturn && "text-destructive")}>
+                                                                    <TableCell>{item.name}</TableCell>
+                                                                    <TableCell>{item.quantity}</TableCell>
+                                                                    <TableCell>{item.price.toLocaleString('ar-IQ')} د.ع</TableCell>
+                                                                    <TableCell>{(item.quantity * item.price).toLocaleString('ar-IQ')} د.ع</TableCell>
+                                                                    <TableCell>
+                                                                        {item.isReturn && <Badge variant="destructive">مرتجع</Badge>}
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ))}
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </React.Fragment>
                             )) : (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                                        لم يتم العثور على فواتير.
+                                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                                        لم يتم العثور على فواتير مطابقة.
                                     </TableCell>
                                 </TableRow>
                             )}

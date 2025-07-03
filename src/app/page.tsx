@@ -143,7 +143,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {totalRevenue.toLocaleString('ar-IQ')} ع.د
+              {totalRevenue.toLocaleString('ar-IQ')} د.ع
             </div>
             <p className="text-xs text-muted-foreground">
               بناءً على إجمالي المبيعات
@@ -157,7 +157,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">
-              {totalDebt.toLocaleString('ar-IQ')} ع.د
+              {totalDebt.toLocaleString('ar-IQ')} د.ع
             </div>
             <p className="text-xs text-muted-foreground">
               إجمالي المستحقات للموردين
@@ -206,7 +206,7 @@ export default function Dashboard() {
                   <BarChart data={salesDataForChart} layout="horizontal">
                       <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} reversed={true} />
                       <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value.toLocaleString('ar-IQ')}`} orientation="right" />
-                        <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" formatter={(value) => `${Number(value).toLocaleString('ar-IQ')} ع.د`}/>} />
+                        <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" formatter={(value) => `${Number(value).toLocaleString('ar-IQ')} د.ع`}/>} />
                       <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                   </BarChart>
               </ResponsiveContainer>

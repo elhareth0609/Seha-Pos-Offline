@@ -326,7 +326,7 @@ export default function InventoryPage() {
             <div ref={printComponentRef} className="p-8 text-center">
                 <h3 className="text-lg font-bold mb-4">{printingMed.name}</h3>
                 <Barcode value={printingMed.id} />
-                <p className="pt-2 text-xs">{printingMed.price.toLocaleString('ar-IQ')} ع.د</p>
+                <p className="pt-2 text-xs">{printingMed.price.toLocaleString('ar-IQ')} د.ع</p>
             </div>
         </div>
     )}
@@ -404,7 +404,7 @@ export default function InventoryPage() {
                 <TableCell className="text-center">{item.stock}</TableCell>
                 <TableCell className="text-center">{item.reorderPoint}</TableCell>
                 <TableCell>{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
-                <TableCell className="text-center">{item.price.toLocaleString('ar-IQ')} ع.د</TableCell>
+                <TableCell className="text-center">{item.price.toLocaleString('ar-IQ')} د.ع</TableCell>
                 <TableCell>{getStockStatus(item.stock, item.reorderPoint)}</TableCell>
                 <TableCell>
                     <DropdownMenu>
@@ -475,7 +475,7 @@ export default function InventoryPage() {
                                 <Input id="edit-reorderPoint" name="reorderPoint" type="number" defaultValue={editingMed.reorderPoint} required />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="edit-price">سعر البيع (ع.د)</Label>
+                                <Label htmlFor="edit-price">سعر البيع (د.ع)</Label>
                                 <Input id="edit-price" name="price" type="number" step="1" defaultValue={editingMed.price} required />
                             </div>
                         </div>

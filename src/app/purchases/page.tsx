@@ -460,7 +460,7 @@ export default function PurchasesPage() {
                                 <TableCell>{po.id}</TableCell>
                                 <TableCell>{po.supplierName}</TableCell>
                                 <TableCell>{new Date(po.date).toLocaleDateString('ar-EG')}</TableCell>
-                                <TableCell className="font-mono">{po.totalAmount.toLocaleString('ar-IQ')} ع.د</TableCell>
+                                <TableCell className="font-mono">{po.totalAmount.toLocaleString('ar-IQ')} د.ع</TableCell>
                                 <TableCell>{po.status}</TableCell>
                                 <TableCell>
                                     <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", expandedRows.has(po.id) && "rotate-180")} />
@@ -485,8 +485,8 @@ export default function PurchasesPage() {
                                                         <TableRow key={index}>
                                                             <TableCell>{item.name}</TableCell>
                                                             <TableCell>{item.quantity}</TableCell>
-                                                            <TableCell className="font-mono">{item.purchasePrice.toLocaleString('ar-IQ')} ع.د</TableCell>
-                                                            <TableCell className="font-mono text-left">{(item.quantity * item.purchasePrice).toLocaleString('ar-IQ')} ع.د</TableCell>
+                                                            <TableCell className="font-mono">{item.purchasePrice.toLocaleString('ar-IQ')} د.ع</TableCell>
+                                                            <TableCell className="font-mono text-left">{(item.quantity * item.purchasePrice).toLocaleString('ar-IQ')} د.ع</TableCell>
                                                         </TableRow>
                                                     ))}
                                                 </TableBody>
@@ -523,7 +523,7 @@ export default function PurchasesPage() {
                         <Select name="medicationId" required value={returnMedicationId} onValueChange={setReturnMedicationId}>
                             <SelectTrigger id="return-medicationId"><SelectValue placeholder="اختر دواء" /></SelectTrigger>
                             <SelectContent>
-                                {inventory.map(m => <SelectItem key={m.id} value={m.id}>{m.name} (سعر الشراء: {m.purchasePrice.toLocaleString('ar-IQ')} ع.د)</SelectItem>)}
+                                {inventory.map(m => <SelectItem key={m.id} value={m.id}>{m.name} (سعر الشراء: {m.purchasePrice.toLocaleString('ar-IQ')} د.ع)</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>
@@ -589,7 +589,7 @@ export default function PurchasesPage() {
                               <TableCell>{ret.medicationName}</TableCell>
                               <TableCell>{supplier?.name || 'غير معروف'}</TableCell>
                               <TableCell>{ret.quantity}</TableCell>
-                              <TableCell className="font-mono">{(ret.totalAmount || 0).toLocaleString('ar-IQ')} ع.د</TableCell>
+                              <TableCell className="font-mono">{(ret.totalAmount || 0).toLocaleString('ar-IQ')} د.ع</TableCell>
                               <TableCell>{ret.reason}</TableCell>
                               <TableCell>{new Date(ret.date).toLocaleDateString('ar-EG')}</TableCell>
                           </TableRow>
