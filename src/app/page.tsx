@@ -18,20 +18,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  Bar,
-  BarChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip,
-} from "recharts";
 import { inventory as fallbackInventory, sales as fallbackSales, purchaseOrders as fallbackPurchaseOrders, supplierReturns as fallbackReturns, appSettings as fallbackSettings } from "@/lib/data";
 import type { Medication, Sale, PurchaseOrder, Return, AppSettings } from "@/lib/types";
-import { DollarSign, Package, Clock, TrendingDown, Landmark } from "lucide-react";
-import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { DollarSign, Clock, TrendingDown, Landmark, FileText, Calendar, CalendarDays, TrendingUp } from "lucide-react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { differenceInDays, parseISO } from 'date-fns';
+import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, isWithinInterval } from 'date-fns';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -65,11 +56,6 @@ export default function Dashboard() {
     const daysLeft = differenceInDays(parseISO(item.expirationDate), new Date());
     return daysLeft > 0 && daysLeft <= expirationThreshold;
   }).sort((a,b) => differenceInDays(parseISO(a.expirationDate), new Date()) - differenceInDays(parseISO(b.expirationDate), new Date()));
-
-  const salesDataForChart = sales.map(sale => ({
-    date: new Date(sale.date).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' }),
-    total: sale.total,
-  })).slice(-10);
   
   const topSellingMedications = React.useMemo(() => {
     const stats: { [medId: string]: { name: string; quantity: number } } = {};
@@ -90,6 +76,34 @@ export default function Dashboard() {
 
     const statsArray = Object.values(stats);
     return [...statsArray].sort((a, b) => b.quantity - a.quantity).slice(0, 5);
+  }, [sales]);
+
+  const {
+    totalSalesToday,
+    salesTodayCount,
+    totalSalesWeek,
+    salesWeekCount,
+    totalSalesMonth,
+    salesMonthCount,
+    totalInvoices
+  } = React.useMemo(() => {
+    const today = startOfToday();
+    const weekStart = startOfWeek(today);
+    const monthStart = startOfMonth(today);
+
+    const salesToday = sales.filter(s => isWithinInterval(new Date(s.date), { start: today, end: new Date() }));
+    const salesThisWeek = sales.filter(s => isWithinInterval(new Date(s.date), { start: weekStart, end: new Date() }));
+    const salesThisMonth = sales.filter(s => isWithinInterval(new Date(s.date), { start: monthStart, end: new Date() }));
+
+    return {
+      totalSalesToday: salesToday.reduce((acc, sale) => acc + (sale.total || 0), 0),
+      salesTodayCount: salesToday.length,
+      totalSalesWeek: salesThisWeek.reduce((acc, sale) => acc + (sale.total || 0), 0),
+      salesWeekCount: salesThisWeek.length,
+      totalSalesMonth: salesThisMonth.reduce((acc, sale) => acc + (sale.total || 0), 0),
+      salesMonthCount: salesThisMonth.length,
+      totalInvoices: sales.length,
+    };
   }, [sales]);
 
   if (!isClient) {
@@ -137,15 +151,12 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-8 w-48 mb-2" />
-            <Skeleton className="h-5 w-72" />
-          </CardHeader>
-          <CardContent className="ps-2">
-            <Skeleton className="h-[300px] w-full" />
-          </CardContent>
-        </Card>
+         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card><CardContent className="pt-6"><Skeleton className="h-16 w-full" /></CardContent></Card>
+          <Card><CardContent className="pt-6"><Skeleton className="h-16 w-full" /></CardContent></Card>
+          <Card><CardContent className="pt-6"><Skeleton className="h-16 w-full" /></CardContent></Card>
+          <Card><CardContent className="pt-6"><Skeleton className="h-16 w-full" /></CardContent></Card>
+        </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-48 w-full" /></CardContent></Card>
             <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-48 w-full" /></CardContent></Card>
@@ -212,29 +223,63 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>نظرة عامة على المبيعات</CardTitle>
-          <CardDescription>نظرة على آخر 10 معاملات بيع.</CardDescription>
-        </CardHeader>
-        <CardContent className="ps-2">
-            <ChartContainer
-              config={{
-                  total: { label: 'الإجمالي', color: 'hsl(var(--primary))' },
-              }}
-              className="h-[300px] w-full"
-          >
-              <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={salesDataForChart} layout="horizontal">
-                      <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} reversed={true} />
-                      <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value.toLocaleString('ar-IQ')}`} orientation="right" />
-                        <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" formatter={(value) => `${Number(value).toLocaleString('ar-IQ')} د.ع`}/>} />
-                      <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-              </ResponsiveContainer>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">مبيعات اليوم</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {totalSalesToday.toLocaleString('ar-IQ')} د.ع
+              </div>
+              <p className="text-xs text-muted-foreground">
+                من {salesTodayCount} فاتورة
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">مبيعات هذا الأسبوع</CardTitle>
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {totalSalesWeek.toLocaleString('ar-IQ')} د.ع
+              </div>
+              <p className="text-xs text-muted-foreground">
+                من {salesWeekCount} فاتورة
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">مبيعات هذا الشهر</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {totalSalesMonth.toLocaleString('ar-IQ')} د.ع
+              </div>
+              <p className="text-xs text-muted-foreground">
+                من {salesMonthCount} فاتورة
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">إجمالي عدد الفواتير</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalInvoices}</div>
+              <p className="text-xs text-muted-foreground">
+                إجمالي الفواتير المسجلة
+              </p>
+            </CardContent>
+          </Card>
+      </div>
+
 
        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Card>
@@ -341,3 +386,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
