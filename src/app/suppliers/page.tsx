@@ -34,7 +34,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Textarea } from "@/components/ui/textarea"
-import { DollarSign, FileText } from "lucide-react"
+import { DollarSign, FileText, Truck, Undo2, Wallet, Scale } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
@@ -200,20 +200,28 @@ export default function SuppliersPage() {
                         <CardDescription>{account.contactPerson || 'لا يوجد جهة اتصال'}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3 text-sm flex-grow">
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">إجمالي المشتريات:</span>
+                        <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground flex items-center gap-2">
+                                <Truck className="h-4 w-4" /> إجمالي المشتريات:
+                            </span>
                             <span className="font-mono font-medium">{account.totalPurchases.toLocaleString('ar-IQ')} د.ع</span>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">إجمالي الاسترجاع:</span>
+                        <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground flex items-center gap-2">
+                                <Undo2 className="h-4 w-4 text-green-600" /> إجمالي الاسترجاع:
+                            </span>
                             <span className="font-mono font-medium text-green-600">-{account.totalReturns.toLocaleString('ar-IQ')} د.ع</span>
                         </div>
-                         <div className="flex justify-between">
-                            <span className="text-muted-foreground">إجمالي المدفوعات:</span>
+                         <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground flex items-center gap-2">
+                                <Wallet className="h-4 w-4 text-blue-600" /> إجمالي المدفوعات:
+                            </span>
                             <span className="font-mono font-medium text-blue-600">-{account.totalPayments.toLocaleString('ar-IQ')} د.ع</span>
                         </div>
-                         <div className="flex justify-between pt-2 border-t font-bold text-base">
-                            <span>صافي الدين المستحق:</span>
+                         <div className="flex justify-between items-center pt-2 border-t font-bold text-base">
+                            <span className="flex items-center gap-2">
+                                <Scale className="h-4 w-4" /> صافي الدين المستحق:
+                            </span>
                             <span className="font-mono text-destructive">{account.netDebt.toLocaleString('ar-IQ')} د.ع</span>
                         </div>
                     </CardContent>
