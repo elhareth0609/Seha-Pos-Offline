@@ -75,6 +75,46 @@ export default function PurchasesPage() {
   const [returnQuantity, setReturnQuantity] = React.useState('');
   const [returnReason, setReturnReason] = React.useState('');
   
+  // State for advanced search
+  const [purchaseHistorySearchTerm, setPurchaseHistorySearchTerm] = React.useState('');
+  const [returnHistorySearchTerm, setReturnHistorySearchTerm] = React.useState('');
+  const [filteredPurchaseOrders, setFilteredPurchaseOrders] = React.useState<PurchaseOrder[]>([]);
+  const [filteredSupplierReturns, setFilteredSupplierReturns] = React.useState<Return[]>([]);
+
+  React.useEffect(() => {
+    const term = purchaseHistorySearchTerm.toLowerCase().trim();
+    if (!term) {
+      setFilteredPurchaseOrders(purchaseOrders);
+    } else {
+      const filtered = purchaseOrders.filter(po => 
+        po.id.toLowerCase().includes(term) ||
+        po.supplierName.toLowerCase().includes(term) ||
+        po.date.includes(term) ||
+        po.items.some(item => item.name.toLowerCase().includes(term))
+      );
+      setFilteredPurchaseOrders(filtered);
+    }
+  }, [purchaseHistorySearchTerm, purchaseOrders]);
+
+  React.useEffect(() => {
+    const term = returnHistorySearchTerm.toLowerCase().trim();
+    if (!term) {
+      setFilteredSupplierReturns(supplierReturns);
+    } else {
+      const filtered = supplierReturns.filter(ret => {
+        const supplier = suppliers.find(s => s.id === ret.supplierId);
+        return (
+          ret.id.toLowerCase().includes(term) ||
+          ret.medicationName.toLowerCase().includes(term) ||
+          ret.date.includes(term) ||
+          (supplier && supplier.name.toLowerCase().includes(term))
+        );
+      });
+      setFilteredSupplierReturns(filtered);
+    }
+  }, [returnHistorySearchTerm, supplierReturns, suppliers]);
+
+
   const toggleRow = (id: string) => {
     const newExpandedRows = new Set(expandedRows);
     if (newExpandedRows.has(id)) {
@@ -392,6 +432,14 @@ export default function PurchasesPage() {
           <CardHeader>
             <CardTitle>سجل المشتريات</CardTitle>
             <CardDescription>قائمة بجميع طلبات الشراء المستلمة. اضغط على أي صف لعرض التفاصيل.</CardDescription>
+            <div className="pt-4">
+              <Input 
+                placeholder="ابحث برقم القائمة، اسم المورد، التاريخ، أو اسم المادة..."
+                value={purchaseHistorySearchTerm}
+                onChange={(e) => setPurchaseHistorySearchTerm(e.target.value)}
+                className="max-w-lg"
+              />
+            </div>
           </CardHeader>
           <CardContent>
              <Table>
@@ -406,7 +454,7 @@ export default function PurchasesPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {purchaseOrders.map(po => (
+                    {filteredPurchaseOrders.length > 0 ? filteredPurchaseOrders.map(po => (
                         <React.Fragment key={po.id}>
                             <TableRow onClick={() => toggleRow(po.id)} className="cursor-pointer">
                                 <TableCell>{po.id}</TableCell>
@@ -448,7 +496,13 @@ export default function PurchasesPage() {
                                 </TableRow>
                             )}
                         </React.Fragment>
-                    ))}
+                    )) : (
+                      <TableRow>
+                          <TableCell colSpan={6} className="text-center h-24">
+                              لا توجد نتائج مطابقة للبحث.
+                          </TableCell>
+                      </TableRow>
+                    )}
                 </TableBody>
             </Table>
           </CardContent>
@@ -504,6 +558,14 @@ export default function PurchasesPage() {
           <CardHeader>
             <CardTitle>سجل المرتجعات</CardTitle>
             <CardDescription>قائمة بجميع المرتجعات للموردين.</CardDescription>
+             <div className="pt-4">
+              <Input 
+                placeholder="ابحث برقم المرتجع، اسم المادة، التاريخ، أو اسم المورد..."
+                value={returnHistorySearchTerm}
+                onChange={(e) => setReturnHistorySearchTerm(e.target.value)}
+                className="max-w-lg"
+              />
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
@@ -511,6 +573,7 @@ export default function PurchasesPage() {
                     <TableRow>
                         <TableHead>معرف المرتجع</TableHead>
                         <TableHead>الدواء</TableHead>
+                        <TableHead>المورد</TableHead>
                         <TableHead>الكمية</TableHead>
                         <TableHead>قيمة المرتجع</TableHead>
                         <TableHead>السبب</TableHead>
@@ -518,16 +581,26 @@ export default function PurchasesPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {supplierReturns.map(ret => (
-                        <TableRow key={ret.id}>
-                            <TableCell>{ret.id}</TableCell>
-                            <TableCell>{ret.medicationName}</TableCell>
-                            <TableCell>{ret.quantity}</TableCell>
-                            <TableCell className="font-mono">{(ret.totalAmount || 0).toLocaleString('ar-IQ')} ع.د</TableCell>
-                            <TableCell>{ret.reason}</TableCell>
-                            <TableCell>{new Date(ret.date).toLocaleDateString('ar-EG')}</TableCell>
-                        </TableRow>
-                    ))}
+                    {filteredSupplierReturns.length > 0 ? filteredSupplierReturns.map(ret => {
+                        const supplier = suppliers.find(s => s.id === ret.supplierId);
+                        return (
+                          <TableRow key={ret.id}>
+                              <TableCell>{ret.id}</TableCell>
+                              <TableCell>{ret.medicationName}</TableCell>
+                              <TableCell>{supplier?.name || 'غير معروف'}</TableCell>
+                              <TableCell>{ret.quantity}</TableCell>
+                              <TableCell className="font-mono">{(ret.totalAmount || 0).toLocaleString('ar-IQ')} ع.د</TableCell>
+                              <TableCell>{ret.reason}</TableCell>
+                              <TableCell>{new Date(ret.date).toLocaleDateString('ar-EG')}</TableCell>
+                          </TableRow>
+                        )
+                    }) : (
+                      <TableRow>
+                          <TableCell colSpan={7} className="text-center h-24">
+                              لا توجد نتائج مطابقة للبحث.
+                          </TableCell>
+                      </TableRow>
+                    )}
                 </TableBody>
             </Table>
           </CardContent>
