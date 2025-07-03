@@ -28,13 +28,20 @@ import {
 } from "recharts";
 import { inventory as fallbackInventory, sales as fallbackSales, purchaseOrders as fallbackPurchaseOrders, supplierReturns as fallbackReturns, appSettings as fallbackSettings } from "@/lib/data";
 import type { Medication, Sale, PurchaseOrder, Return, AppSettings } from "@/lib/types";
-import { DollarSign, Package, Clock, TrendingDown, Landmark } from "lucide-react";
+import { DollarSign, Package, Clock, TrendingDown, Landmark, ListFilter } from "lucide-react";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { differenceInDays, parseISO } from 'date-fns';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Dashboard() {
   const [inventory, setInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
@@ -43,6 +50,8 @@ export default function Dashboard() {
   const [supplierReturns, setSupplierReturns] = useLocalStorage<Return[]>('supplierReturns', fallbackReturns);
   const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
   const [isClient, setIsClient] = React.useState(false);
+  
+  const [analysisType, setAnalysisType] = React.useState<'topSelling' | 'leastSelling' | 'mostProfitable'>('topSelling');
 
   React.useEffect(() => {
     setIsClient(true);
@@ -70,6 +79,44 @@ export default function Dashboard() {
     date: new Date(sale.date).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' }),
     total: sale.total,
   })).slice(-10);
+  
+  const medicationAnalysis = React.useMemo(() => {
+    const stats: { [medId: string]: { name: string; quantity: number; profit: number } } = {};
+
+    sales.forEach(sale => {
+        sale.items.forEach(item => {
+            if (item.isReturn) return; 
+
+            if (!stats[item.medicationId]) {
+                stats[item.medicationId] = {
+                    name: item.name,
+                    quantity: 0,
+                    profit: 0
+                };
+            }
+            stats[item.medicationId].quantity += item.quantity;
+            stats[item.medicationId].profit += (item.price - item.purchasePrice) * item.quantity;
+        });
+    });
+
+    const statsArray = Object.values(stats);
+
+    const topSelling = [...statsArray].sort((a, b) => b.quantity - a.quantity).slice(0, 5);
+    const leastSelling = [...statsArray].sort((a, b) => a.quantity - b.quantity).slice(0, 5);
+    const mostProfitable = [...statsArray].sort((a, b) => b.profit - a.profit).slice(0, 5);
+
+    return { topSelling, leastSelling, mostProfitable };
+  }, [sales]);
+
+
+  const analysisLabels = {
+    topSelling: 'الأكثر مبيعًا',
+    leastSelling: 'الأقل مبيعًا',
+    mostProfitable: 'الأكثر ربحًا',
+  };
+
+  const currentAnalysisData = medicationAnalysis[analysisType];
+
 
   if (!isClient) {
     return (
@@ -125,7 +172,8 @@ export default function Dashboard() {
             <Skeleton className="h-[300px] w-full" />
           </CardContent>
         </Card>
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-48 w-full" /></CardContent></Card>
             <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-48 w-full" /></CardContent></Card>
             <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-48 w-full" /></CardContent></Card>
         </div>
@@ -214,7 +262,7 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-       <div className="grid gap-6 md:grid-cols-2">
+       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Card>
               <CardHeader className="flex-row items-center justify-between">
                   <div>
@@ -243,7 +291,7 @@ export default function Dashboard() {
                               </TableRow>
                           )) : (
                               <TableRow>
-                                  <TableCell colSpan={3} className="text-center">لا توجد أصناف منخفضة المخزون.</TableCell>
+                                  <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">لا توجد أصناف منخفضة المخزون.</TableCell>
                               </TableRow>
                           )}
                       </TableBody>
@@ -278,12 +326,69 @@ export default function Dashboard() {
                               </TableRow>
                           )) : (
                               <TableRow>
-                                  <TableCell colSpan={3} className="text-center">لا توجد أصناف قريبة الانتهاء.</TableCell>
+                                  <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">لا توجد أصناف قريبة الانتهاء.</TableCell>
                               </TableRow>
                           )}
                       </TableBody>
                   </Table>
               </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center">
+              <div className="grid gap-2">
+                <CardTitle>تحليلات الأدوية</CardTitle>
+                <CardDescription>
+                  نظرة على أداء الأدوية في المبيعات.
+                </CardDescription>
+              </div>
+              <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="ms-auto gap-1">
+                          <ListFilter className="h-3.5 w-3.5" />
+                          <span className="sr-only sm:not-sr-only">
+                              {analysisLabels[analysisType]}
+                          </span>
+                      </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                      <DropdownMenuRadioGroup value={analysisType} onValueChange={(v) => setAnalysisType(v as any)}>
+                          <DropdownMenuRadioItem value="topSelling">الأكثر مبيعًا</DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="leastSelling">الأقل مبيعًا</DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="mostProfitable">الأكثر ربحًا</DropdownMenuRadioItem>
+                      </DropdownMenuRadioGroup>
+                  </DropdownMenuContent>
+              </DropdownMenu>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                  <TableHeader>
+                      <TableRow>
+                          <TableHead>الدواء</TableHead>
+                          <TableHead className="text-left">
+                              {analysisType === 'mostProfitable' ? 'إجمالي الربح' : 'الكمية المباعة'}
+                          </TableHead>
+                      </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                      {currentAnalysisData.length > 0 ? currentAnalysisData.map((item, index) => (
+                          <TableRow key={index}>
+                              <TableCell className="font-medium">{item.name}</TableCell>
+                              <TableCell className="text-left font-mono">
+                                  {analysisType === 'mostProfitable' 
+                                      ? `${item.profit.toLocaleString('ar-IQ')} د.ع` 
+                                      : item.quantity}
+                              </TableCell>
+                          </TableRow>
+                      )) : (
+                          <TableRow>
+                              <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">
+                                  لا توجد بيانات مبيعات لعرضها.
+                              </TableCell>
+                          </TableRow>
+                      )}
+                  </TableBody>
+              </Table>
+            </CardContent>
           </Card>
       </div>
     </div>
