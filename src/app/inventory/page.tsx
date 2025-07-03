@@ -166,7 +166,7 @@ export default function InventoryPage() {
     reader.onload = (e) => {
         try {
             const data = e.target?.result;
-            const workbook = XLSX.read(data, { type: "array", cellDates: true });
+            const workbook = XLSX.read(data, { type: "array" });
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
             const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
@@ -179,10 +179,10 @@ export default function InventoryPage() {
             const headers: string[] = jsonData[0].map(h => String(h).toLowerCase().trim().replace(/\s+/g, ''));
             const rows = jsonData.slice(1);
 
-            const requiredHeaders = ['id', 'name', 'stock', 'price', 'purchaseprice'];
+            const requiredHeaders = ['product_number', 'name'];
             const missingHeaders = requiredHeaders.filter(h => !headers.includes(h.toLowerCase()));
             if (missingHeaders.length > 0) {
-                toast({ variant: 'destructive', title: 'أعمدة ناقصة', description: `الملف يجب أن يحتوي على الأعمدة التالية: ${requiredHeaders.join(', ')}` });
+                toast({ variant: 'destructive', title: 'أعمدة ناقصة', description: `الملف يجب أن يحتوي على الأعمدة التالية على الأقل: ${requiredHeaders.join(', ')}` });
                 return;
             }
             
@@ -196,55 +196,52 @@ export default function InventoryPage() {
                     row[header] = rowArray[i];
                 });
 
-                const medId = String(row.id || '').trim();
+                const medId = String(row.product_number || '').trim();
                 if (!medId) return;
 
                 const existingIndex = inventoryToUpdate.findIndex(m => m.id === medId);
                 const isUpdate = existingIndex > -1;
                 
-                let expDate = row.expirationdate;
-                let formattedExpDate: string;
-                if (expDate instanceof Date) {
-                    expDate.setMinutes(expDate.getMinutes() - expDate.getTimezoneOffset());
-                    formattedExpDate = expDate.toISOString().split('T')[0];
-                } else if (typeof expDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(expDate)) {
-                    formattedExpDate = expDate;
-                } else {
-                    const futureDate = new Date();
-                    futureDate.setFullYear(futureDate.getFullYear() + 1);
-                    formattedExpDate = futureDate.toISOString().split('T')[0];
-                }
+                const futureDate = new Date();
+                futureDate.setFullYear(futureDate.getFullYear() + 2);
+                const formattedExpDate = futureDate.toISOString().split('T')[0];
+                
+                const supplierName = String(row.company || 'Default Supplier').trim();
+                const supplierId = `SUP-${supplierName.replace(/\s+/g, '').toUpperCase()}`;
 
                 const medData: Partial<Medication> = {
                     id: medId,
-                    name: String(row.name || (isUpdate ? inventoryToUpdate[existingIndex].name : 'Unnamed Product')).trim(),
-                    stock: parseInt(row.stock, 10) || 0,
-                    price: parseFloat(row.price) || 0,
-                    purchasePrice: parseFloat(row.purchaseprice) || 0,
-                    reorderPoint: parseInt(row.reorderpoint, 10) || 10,
-                    category: String(row.category || 'Uncategorized').trim(),
-                    expirationDate: formattedExpDate,
-                    supplierName: String(row.suppliername || 'Default Supplier').trim(),
-                    supplierId: String(row.supplierid || 'SUP-DEFAULT').trim(),
-                    saleUnit: String(row.saleunit || 'علبة').trim(),
+                    name: String(row.name || 'Unnamed Product').trim(),
+                    category: String(row.form || 'Uncategorized').trim(),
+                    supplierName: supplierName,
+                    supplierId: supplierId,
+                    saleUnit: String(row.form || 'قطعة').trim(),
                 };
 
                 if (isUpdate) {
-                    inventoryToUpdate[existingIndex] = { ...inventoryToUpdate[existingIndex], ...medData };
+                    // Update reference data, but preserve stock, price, etc.
+                    inventoryToUpdate[existingIndex] = { 
+                        ...inventoryToUpdate[existingIndex], 
+                        name: medData.name,
+                        category: medData.category,
+                        supplierName: medData.supplierName,
+                        supplierId: medData.supplierId,
+                        saleUnit: medData.saleUnit
+                    };
                     updatedCount++;
                 } else {
                     const newMed: Medication = {
                         id: medData.id!,
                         name: medData.name!,
-                        stock: medData.stock!,
-                        reorderPoint: medData.reorderPoint!,
+                        stock: 0,
+                        reorderPoint: 10,
                         category: medData.category!,
                         supplierId: medData.supplierId!,
                         supplierName: medData.supplierName!,
-                        price: medData.price!,
-                        purchasePrice: medData.purchasePrice!,
-                        expirationDate: medData.expirationDate!,
-                        saleUnit: medData.saleUnit!,
+                        price: 0,
+                        purchasePrice: 0,
+                        expirationDate: formattedExpDate,
+                        saleUnit: medData.saleUnit,
                     };
                     inventoryToUpdate.push(newMed);
                     addedCount++;
