@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -7,6 +8,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter
 } from "@/components/ui/card"
 import {
   Select,
@@ -45,7 +47,7 @@ import {
     supplierReturns as fallbackSupplierReturns 
 } from "@/lib/data"
 import type { PurchaseOrder, Medication, Supplier, ReturnOrder, PurchaseOrderItem, ReturnOrderItem } from "@/lib/types"
-import { PlusCircle, ChevronDown } from "lucide-react"
+import { PlusCircle, ChevronDown, Trash2 } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
@@ -74,10 +76,14 @@ export default function PurchasesPage() {
   // State for return form
   const [returnSlipId, setReturnSlipId] = React.useState('');
   const [returnSupplierId, setReturnSupplierId] = React.useState('');
-  const [returnMedicationId, setReturnMedicationId] = React.useState('');
-  const [returnQuantity, setReturnQuantity] = React.useState('');
-  const [returnReason, setReturnReason] = React.useState('');
-  const [returnPurchaseId, setReturnPurchaseId] = React.useState('');
+  const [returnCart, setReturnCart] = React.useState<ReturnOrderItem[]>([]);
+  const [isReturnInfoLocked, setIsReturnInfoLocked] = React.useState(false);
+  const [returnMedSearchTerm, setReturnMedSearchTerm] = React.useState("");
+  const [returnMedSuggestions, setReturnMedSuggestions] = React.useState<Medication[]>([]);
+  const [selectedMedForReturn, setSelectedMedForReturn] = React.useState<Medication | null>(null);
+  const [returnItemQuantity, setReturnItemQuantity] = React.useState("1");
+  const [returnItemReason, setReturnItemReason] = React.useState("");
+
 
   // State for advanced search
   const [purchaseHistorySearchTerm, setPurchaseHistorySearchTerm] = React.useState('');
@@ -265,74 +271,108 @@ export default function PurchasesPage() {
     (event.target as HTMLFormElement).reset();
   };
 
-  const handleReturnToSupplier = (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      const form = event.currentTarget;
-      
-      const supplierId = returnSupplierId;
-      const medicationId = returnMedicationId;
-      const quantity = parseInt(returnQuantity, 10);
-      const reason = returnReason;
+  const handleReturnSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setReturnMedSearchTerm(value);
+    if (value.length > 1) {
+        const filtered = inventory.filter(med => 
+            (med.name.toLowerCase().includes(value.toLowerCase()) || med.id.includes(value)) && med.stock > 0
+        );
+        setReturnMedSuggestions(filtered.slice(0, 5));
+    } else {
+        setReturnMedSuggestions([]);
+    }
+  };
+  
+  const handleSelectMedForReturn = (med: Medication) => {
+    setSelectedMedForReturn(med);
+    setReturnMedSearchTerm(med.name);
+    setReturnMedSuggestions([]);
+    document.getElementById("return-quantity")?.focus();
+  };
 
-      const medicationIndex = inventory.findIndex(m => m.id === medicationId);
-      const supplier = suppliers.find(s => s.id === supplierId);
+  const handleAddItemToReturnCart = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!returnSlipId || !returnSupplierId) {
+        toast({ variant: "destructive", title: "حقول ناقصة", description: "الرجاء إدخال رقم قائمة الاسترجاع واختيار المورد." });
+        return;
+    }
+    if (!selectedMedForReturn) {
+        toast({ variant: "destructive", title: "لم يتم اختيار دواء", description: "الرجاء البحث واختيار دواء لإضافته." });
+        return;
+    }
+    const quantity = parseInt(returnItemQuantity, 10);
+    if (isNaN(quantity) || quantity <= 0) {
+        toast({ variant: "destructive", title: "كمية غير صالحة", description: "الرجاء إدخال كمية صحيحة." });
+        return;
+    }
+    if (quantity > selectedMedForReturn.stock) {
+        toast({ variant: "destructive", title: "كمية غير كافية", description: `الرصيد المتوفر من ${selectedMedForReturn.name} هو ${selectedMedForReturn.stock} فقط.`});
+        return;
+    }
 
-      if (!returnSlipId || !supplier || !medicationId || !quantity || !reason) {
-          toast({ variant: "destructive", title: "حقول ناقصة", description: "الرجاء ملء جميع الحقول المطلوبة." });
-          return;
-      }
-      
-      const medication = inventory[medicationIndex];
+    const newItem: ReturnOrderItem = {
+        medicationId: selectedMedForReturn.id,
+        name: selectedMedForReturn.name,
+        quantity: quantity,
+        purchasePrice: selectedMedForReturn.purchasePrice,
+        reason: returnItemReason
+    };
+    
+    setReturnCart(prev => [...prev, newItem]);
+    setIsReturnInfoLocked(true);
+    
+    // Reset item form
+    setSelectedMedForReturn(null);
+    setReturnMedSearchTerm("");
+    setReturnItemQuantity("1");
+    setReturnItemReason("");
+    document.getElementById("return-med-search")?.focus();
+  };
+  
+  const handleRemoveFromReturnCart = (medId: string) => {
+    setReturnCart(prev => prev.filter(item => item.medicationId !== medId));
+  }
 
-      if(medication.stock < quantity) {
-          toast({ variant: "destructive", title: "كمية غير كافية", description: `الرصيد المتوفر من ${medication.name} هو ${medication.stock} فقط.`});
-          return;
-      }
-      
-      const returnTotalAmount = quantity * medication.purchasePrice;
-      
-      const newInventory = [...inventory];
-      newInventory[medicationIndex] = { ...medication, stock: medication.stock - quantity };
-      setInventory(newInventory);
+  const handleFinalizeReturn = () => {
+    if (returnCart.length === 0) {
+      toast({ variant: "destructive", title: "القائمة فارغة", description: "الرجاء إضافة أصناف إلى قائمة الاسترجاع أولاً." });
+      return;
+    }
 
-      let newReturnOrders = [...supplierReturns];
-      let returnOrderIndex = newReturnOrders.findIndex(ro => ro.id === returnSlipId);
+    const supplier = suppliers.find(s => s.id === returnSupplierId);
+    if (!supplier) return;
 
-      const newReturnItem: ReturnOrderItem = {
-          medicationId: medicationId,
-          name: medication.name,
-          quantity: quantity,
-          purchasePrice: medication.purchasePrice,
-          reason: reason
-      };
-      
-      if (returnOrderIndex > -1) {
-          newReturnOrders[returnOrderIndex].items.push(newReturnItem);
-          newReturnOrders[returnOrderIndex].totalAmount += returnTotalAmount;
-      } else {
-          const newReturnOrder: ReturnOrder = {
-              id: returnSlipId,
-              supplierId: supplier.id,
-              supplierName: supplier.name,
-              date: new Date().toISOString().split("T")[0],
-              items: [newReturnItem],
-              totalAmount: returnTotalAmount,
-              purchaseId: returnPurchaseId || undefined
-          };
-          newReturnOrders.unshift(newReturnOrder);
-      }
-      setSupplierReturns(newReturnOrders);
+    let totalAmount = 0;
+    const newInventory = [...inventory];
 
-      toast({ title: "تم تسجيل الاسترجاع", description: `تم إرجاع ${quantity} من ${medication.name} للمورد.`});
-      
-      // Reset only item-specific fields
-      setReturnMedicationId('');
-      setReturnQuantity('');
-      setReturnReason('');
-
-      // Focus the medication select for next entry
-      const medSelect = form.querySelector<HTMLButtonElement>('#return-medicationId');
-      medSelect?.focus();
+    returnCart.forEach(item => {
+        totalAmount += item.quantity * item.purchasePrice;
+        const medIndex = newInventory.findIndex(m => m.id === item.medicationId);
+        if (medIndex > -1) {
+            newInventory[medIndex].stock -= item.quantity;
+        }
+    });
+    
+    const newReturnOrder: ReturnOrder = {
+        id: returnSlipId,
+        supplierId: supplier.id,
+        supplierName: supplier.name,
+        date: new Date().toISOString().split('T')[0],
+        items: returnCart,
+        totalAmount,
+    };
+    
+    setInventory(newInventory);
+    setSupplierReturns(prev => [newReturnOrder, ...prev]);
+    
+    toast({ title: "تم تسجيل الاسترجاع بنجاح", description: `تم تسجيل قائمة الاسترجاع رقم ${returnSlipId}.`});
+    
+    // Reset form
+    setReturnSlipId("");
+    setReturnSupplierId("");
+    setReturnCart([]);
+    setIsReturnInfoLocked(false);
   }
   
   return (
@@ -340,7 +380,7 @@ export default function PurchasesPage() {
       <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="new-purchase">استلام بضاعة</TabsTrigger>
         <TabsTrigger value="purchase-history">سجل المشتريات</TabsTrigger>
-        <TabsTrigger value="new-return">إرجاع للمورد</TabsTrigger>
+        <TabsTrigger value="new-return">استرجاع للمورد</TabsTrigger>
         <TabsTrigger value="return-history">سجل الاسترجاع</TabsTrigger>
       </TabsList>
       <TabsContent value="new-purchase">
@@ -527,50 +567,106 @@ export default function PurchasesPage() {
        <TabsContent value="new-return">
          <Card>
             <CardHeader>
-                <CardTitle>إرجاع بضاعة للمورد</CardTitle>
+                <CardTitle>إنشاء قائمة استرجاع للمورد</CardTitle>
                 <CardDescription>
-                استخدم هذا النموذج لإرجاع الأدوية (مثلاً التالفة أو قريبة الانتهاء) إلى المورد.
+                استخدم هذا النموذج لإنشاء قائمة بالأدوية المرتجعة للمورد.
                 </CardDescription>
             </CardHeader>
-            <CardContent>
-                <form className="space-y-4" onSubmit={handleReturnToSupplier}>
+            <CardContent className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="returnSlipId">رقم قائمة الاسترجاع</Label>
-                        <Input id="returnSlipId" name="returnSlipId" type="text" placeholder="مثال: RET-2024-001" required value={returnSlipId} onChange={e => setReturnSlipId(e.target.value)} />
+                        <Input id="returnSlipId" value={returnSlipId} onChange={e => setReturnSlipId(e.target.value)} placeholder="مثال: RET-2024-001" required disabled={isReturnInfoLocked} />
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="return-supplierId">المورد</Label>
-                        <Select name="supplierId" required value={returnSupplierId} onValueChange={setReturnSupplierId}>
+                        <Select value={returnSupplierId} onValueChange={setReturnSupplierId} required disabled={isReturnInfoLocked}>
                             <SelectTrigger id="return-supplierId"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
                             <SelectContent>
                                 {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="return-medicationId">الدواء المُراد إرجاعه</Label>
-                        <Select name="medicationId" required value={returnMedicationId} onValueChange={setReturnMedicationId}>
-                            <SelectTrigger id="return-medicationId"><SelectValue placeholder="اختر دواء" /></SelectTrigger>
-                            <SelectContent>
-                                {inventory.map(m => <SelectItem key={m.id} value={m.id}>{m.name} (سعر الشراء: {m.purchasePrice.toLocaleString('ar-IQ')} د.ع)</SelectItem>)}
-                            </SelectContent>
-                        </Select>
+                </div>
+                
+                <form onSubmit={handleAddItemToReturnCart} className="p-4 border rounded-md space-y-4">
+                    <div className="relative space-y-2">
+                        <Label htmlFor="return-med-search">ابحث عن دواء (بالاسم أو الباركود)</Label>
+                        <Input 
+                            id="return-med-search" 
+                            value={returnMedSearchTerm} 
+                            onChange={handleReturnSearchChange} 
+                            placeholder="ابحث هنا..."
+                            autoComplete="off"
+                        />
+                         {returnMedSuggestions.length > 0 && (
+                            <Card className="absolute z-10 w-full mt-1 bg-background shadow-lg border">
+                                <CardContent className="p-0">
+                                    <ul className="divide-y divide-border">
+                                        {returnMedSuggestions.map(med => (
+                                            <li key={med.id} 
+                                                onMouseDown={() => handleSelectMedForReturn(med)}
+                                                className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
+                                            >
+                                                <span>{med.name}</span>
+                                                <span className="text-sm text-muted-foreground">الرصيد: {med.stock}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="return-purchaseId">رقم قائمة الشراء الأصلية (اختياري)</Label>
-                        <Input id="return-purchaseId" name="purchaseId" type="text" placeholder="مثال: INV-2024-001" value={returnPurchaseId} onChange={e => setReturnPurchaseId(e.target.value)} />
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="return-quantity">الكمية المرتجعة</Label>
+                            <Input id="return-quantity" type="number" value={returnItemQuantity} onChange={e => setReturnItemQuantity(e.target.value)} required min="1" disabled={!selectedMedForReturn} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="reason">سبب الإرجاع</Label>
+                            <Input id="reason" value={returnItemReason} onChange={e => setReturnItemReason(e.target.value)} placeholder="مثال: تالف، قريب الانتهاء" disabled={!selectedMedForReturn} />
+                        </div>
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="return-quantity">الكمية المرتجعة</Label>
-                        <Input id="return-quantity" name="quantity" type="number" placeholder="0" required min="1" value={returnQuantity} onChange={e => setReturnQuantity(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="reason">سبب الإرجاع</Label>
-                        <Textarea id="reason" name="reason" placeholder="مثال: تالف، قريب الانتهاء" required value={returnReason} onChange={e => setReturnReason(e.target.value)} />
-                    </div>
-                    <Button type="submit" variant="destructive" className="w-full">تسجيل الاسترجاع وخصم من المخزون</Button>
+                    <Button type="submit" className="w-full" disabled={!selectedMedForReturn}>إضافة إلى القائمة</Button>
                 </form>
+                
+                {returnCart.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 text-lg font-semibold">أصناف في قائمة الاسترجاع الحالية:</h3>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>المنتج</TableHead>
+                          <TableHead>الكمية</TableHead>
+                          <TableHead>السبب</TableHead>
+                          <TableHead>القيمة</TableHead>
+                          <TableHead></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {returnCart.map(item => (
+                          <TableRow key={item.medicationId}>
+                            <TableCell>{item.name}</TableCell>
+                            <TableCell>{item.quantity}</TableCell>
+                            <TableCell>{item.reason}</TableCell>
+                            <TableCell>{(item.quantity * item.purchasePrice).toLocaleString('ar-IQ')} د.ع</TableCell>
+                            <TableCell>
+                              <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleRemoveFromReturnCart(item.medicationId)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
             </CardContent>
+            <CardFooter>
+              <Button onClick={handleFinalizeReturn} variant="destructive" className="w-full" disabled={returnCart.length === 0}>
+                إتمام عملية الاسترجاع
+              </Button>
+            </CardFooter>
         </Card>
       </TabsContent>
        <TabsContent value="return-history">
