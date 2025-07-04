@@ -17,12 +17,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { inventory as fallbackInventory, sales as fallbackSales, appSettings as fallbackSettings } from "@/lib/data";
 import type { Medication, Sale, AppSettings } from "@/lib/types";
 import { DollarSign, Clock, TrendingDown, FileText, Calendar, CalendarDays, TrendingUp, PieChart } from "lucide-react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, isWithinInterval } from 'date-fns';
+import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, isWithinInterval, isToday } from 'date-fns';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,6 +33,7 @@ export default function Dashboard() {
   const [sales] = useLocalStorage<Sale[]>('sales', fallbackSales);
   const [settings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
   const [isClient, setIsClient] = React.useState(false);
+  const [timeFilter, setTimeFilter] = React.useState<'today' | 'week' | 'month' | 'all'>('month');
   
   React.useEffect(() => {
     setIsClient(true);
@@ -74,33 +76,37 @@ export default function Dashboard() {
     return [...statsArray].sort((a, b) => b.quantity - a.quantity).slice(0, 5);
   }, [sales]);
 
-  const {
-    totalSalesToday,
-    salesTodayCount,
-    totalSalesWeek,
-    salesWeekCount,
-    totalSalesMonth,
-    salesMonthCount,
-    totalInvoices
-  } = React.useMemo(() => {
-    const today = startOfToday();
-    const weekStart = startOfWeek(today);
-    const monthStart = startOfMonth(today);
+  const salesPerformance = React.useMemo(() => {
+    if (!isClient) return { totalRevenue: 0, totalProfit: 0, profitMargin: 0, invoiceCount: 0 };
+    
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 6 }); // Saturday
+    const monthStart = startOfMonth(now);
+    const todayStart = startOfToday();
 
-    const salesToday = sales.filter(s => isWithinInterval(new Date(s.date), { start: today, end: new Date() }));
-    const salesThisWeek = sales.filter(s => isWithinInterval(new Date(s.date), { start: weekStart, end: new Date() }));
-    const salesThisMonth = sales.filter(s => isWithinInterval(new Date(s.date), { start: monthStart, end: new Date() }));
+    const filteredSales = sales.filter(sale => {
+        const saleDate = parseISO(sale.date);
+        switch (timeFilter) {
+            case 'today':
+                return isToday(saleDate);
+            case 'week':
+                return isWithinInterval(saleDate, { start: weekStart, end: now });
+            case 'month':
+                return isWithinInterval(saleDate, { start: monthStart, end: now });
+            case 'all':
+            default:
+                return true;
+        }
+    });
 
-    return {
-      totalSalesToday: salesToday.reduce((acc, sale) => acc + (sale.total || 0), 0),
-      salesTodayCount: salesToday.length,
-      totalSalesWeek: salesThisWeek.reduce((acc, sale) => acc + (sale.total || 0), 0),
-      salesWeekCount: salesThisWeek.length,
-      totalSalesMonth: salesThisMonth.reduce((acc, sale) => acc + (sale.total || 0), 0),
-      salesMonthCount: salesThisMonth.length,
-      totalInvoices: sales.length,
-    };
-  }, [sales]);
+    const currentTotalRevenue = filteredSales.reduce((acc, sale) => acc + (sale.total || 0), 0);
+    const currentTotalProfit = filteredSales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
+    const currentProfitMargin = currentTotalRevenue > 0 ? (currentTotalProfit / currentTotalRevenue) * 100 : 0;
+    const invoiceCount = filteredSales.length;
+
+    return { totalRevenue: currentTotalRevenue, totalProfit: currentTotalProfit, profitMargin: currentProfitMargin, invoiceCount };
+  }, [sales, timeFilter, isClient]);
+
 
   if (!isClient) {
     return (
@@ -147,12 +153,17 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
-         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card><CardContent className="pt-6"><Skeleton className="h-16 w-full" /></CardContent></Card>
-          <Card><CardContent className="pt-6"><Skeleton className="h-16 w-full" /></CardContent></Card>
-          <Card><CardContent className="pt-6"><Skeleton className="h-16 w-full" /></CardContent></Card>
-          <Card><CardContent className="pt-6"><Skeleton className="h-16 w-full" /></CardContent></Card>
-        </div>
+        <Card className="lg:col-span-4">
+            <CardHeader className="flex-row items-center justify-between">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-10 w-80" />
+            </CardHeader>
+            <CardContent className="grid gap-6 pt-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Skeleton className="h-28 w-full" />
+                <Skeleton className="h-28 w-full" />
+                <Skeleton className="h-28 w-full" />
+            </CardContent>
+        </Card>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-48 w-full" /></CardContent></Card>
             <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-48 w-full" /></CardContent></Card>
@@ -167,7 +178,7 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">إجمالي الإيرادات</CardTitle>
+            <CardTitle className="text-sm font-medium">إجمالي الإيرادات (الكلي)</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -175,13 +186,13 @@ export default function Dashboard() {
               {totalRevenue.toLocaleString('ar-IQ')} د.ع
             </div>
             <p className="text-xs text-muted-foreground">
-              إجمالي الإيرادات المحققة من جميع المبيعات.
+              إجمالي الإيرادات من جميع المبيعات.
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">هامش الربح</CardTitle>
+            <CardTitle className="text-sm font-medium">هامش الربح (الكلي)</CardTitle>
             <PieChart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -219,62 +230,56 @@ export default function Dashboard() {
         </Card>
       </div>
 
-       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">مبيعات اليوم</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+       <Card className="lg:col-span-4">
+            <CardHeader className="flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <CardTitle>أداء المبيعات لفترة محددة</CardTitle>
+                    <CardDescription>
+                        اختر الفترة الزمنية لعرض إحصائيات المبيعات والأرباح.
+                    </CardDescription>
+                </div>
+                <Tabs defaultValue="month" onValueChange={(value) => setTimeFilter(value as any)} dir="ltr">
+                    <TabsList>
+                        <TabsTrigger value="today">اليوم</TabsTrigger>
+                        <TabsTrigger value="week">الأسبوع</TabsTrigger>
+                        <TabsTrigger value="month">الشهر</TabsTrigger>
+                        <TabsTrigger value="all">الكلي</TabsTrigger>
+                    </TabsList>
+                </Tabs>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {totalSalesToday.toLocaleString('ar-IQ')} د.ع
-              </div>
-              <p className="text-xs text-muted-foreground">
-                من {salesTodayCount} فاتورة
-              </p>
+            <CardContent className="grid gap-6 pt-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
+                    <div className="flex items-center justify-between text-muted-foreground">
+                        <span className="text-sm font-medium">إجمالي المبيعات</span>
+                        <DollarSign className="h-5 w-5" />
+                    </div>
+                    <div className="text-3xl font-bold">
+                        {salesPerformance.totalRevenue.toLocaleString('ar-IQ')} د.ع
+                    </div>
+                    <p className="text-xs text-muted-foreground">من {salesPerformance.invoiceCount} فاتورة</p>
+                </div>
+                <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
+                    <div className="flex items-center justify-between text-muted-foreground">
+                        <span className="text-sm font-medium">صافي الربح</span>
+                        <TrendingUp className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div className="text-3xl font-bold text-green-600">
+                        {salesPerformance.totalProfit.toLocaleString('ar-IQ')} د.ع
+                    </div>
+                    <p className="text-xs text-muted-foreground">الربح بعد طرح تكلفة البضاعة والخصومات</p>
+                </div>
+                <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
+                    <div className="flex items-center justify-between text-muted-foreground">
+                        <span className="text-sm font-medium">هامش الربح</span>
+                        <PieChart className="h-5 w-5" />
+                    </div>
+                    <div className="text-3xl font-bold">
+                        {salesPerformance.profitMargin.toFixed(1)}%
+                    </div>
+                    <p className="text-xs text-muted-foreground">نسبة الربح الصافي من الإيرادات</p>
+                </div>
             </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">مبيعات هذا الأسبوع</CardTitle>
-              <CalendarDays className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {totalSalesWeek.toLocaleString('ar-IQ')} د.ع
-              </div>
-              <p className="text-xs text-muted-foreground">
-                من {salesWeekCount} فاتورة
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">مبيعات هذا الشهر</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {totalSalesMonth.toLocaleString('ar-IQ')} د.ع
-              </div>
-              <p className="text-xs text-muted-foreground">
-                من {salesMonthCount} فاتورة
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">إجمالي عدد الفواتير</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalInvoices}</div>
-              <p className="text-xs text-muted-foreground">
-                إجمالي الفواتير المسجلة
-              </p>
-            </CardContent>
-          </Card>
-      </div>
+        </Card>
 
 
        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -382,5 +387,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
 
     
