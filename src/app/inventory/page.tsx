@@ -196,14 +196,9 @@ export default function InventoryPage() {
                 futureDate.setFullYear(futureDate.getFullYear() + 2);
                 const formattedExpDate = futureDate.toISOString().split('T')[0];
                 
-                const supplierName = String(row.company || 'Default Supplier').trim();
-                const supplierId = `SUP-${supplierName.replace(/\s+/g, '').toUpperCase()}`;
-
                 const medData: Partial<Medication> = {
                     id: medId,
                     name: String(row.name || 'Unnamed Product').trim(),
-                    supplierName: supplierName,
-                    supplierId: supplierId,
                     saleUnit: String(row.form || 'قطعة').trim(),
                 };
 
@@ -212,8 +207,6 @@ export default function InventoryPage() {
                     inventoryToUpdate[existingIndex] = { 
                         ...inventoryToUpdate[existingIndex], 
                         name: medData.name,
-                        supplierName: medData.supplierName,
-                        supplierId: medData.supplierId,
                         saleUnit: medData.saleUnit
                     };
                     updatedCount++;
@@ -223,8 +216,6 @@ export default function InventoryPage() {
                         name: medData.name!,
                         stock: 0,
                         reorderPoint: 10,
-                        supplierId: medData.supplierId!,
-                        supplierName: medData.supplierName!,
                         price: 0,
                         purchasePrice: 0,
                         expirationDate: formattedExpDate,
@@ -269,7 +260,6 @@ export default function InventoryPage() {
                                 <TableHead>الباركود</TableHead>
                                 <TableHead>الاسم</TableHead>
                                 <TableHead>وحدة البيع</TableHead>
-                                <TableHead>المورد</TableHead>
                                 <TableHead className="text-center">المخزون</TableHead>
                                 <TableHead className="text-center">نقطة إعادة الطلب</TableHead>
                                 <TableHead>تاريخ الانتهاء</TableHead>
@@ -284,7 +274,6 @@ export default function InventoryPage() {
                                     <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-40" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
@@ -346,7 +335,6 @@ export default function InventoryPage() {
               <TableHead>الباركود</TableHead>
               <TableHead>الاسم</TableHead>
               <TableHead>وحدة البيع</TableHead>
-              <TableHead>المورد</TableHead>
               <TableHead className="text-center">المخزون</TableHead>
               <TableHead className="text-center">نقطة إعادة الطلب</TableHead>
               <TableHead>تاريخ الانتهاء</TableHead>
@@ -361,7 +349,6 @@ export default function InventoryPage() {
                 <TableCell className="font-medium font-mono text-xs">{item.id}</TableCell>
                 <TableCell>{item.name}</TableCell>
                 <TableCell>{item.saleUnit || '-'}</TableCell>
-                <TableCell>{item.supplierName}</TableCell>
                 <TableCell className="text-center">{item.stock}</TableCell>
                 <TableCell className="text-center">{item.reorderPoint}</TableCell>
                 <TableCell>{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>

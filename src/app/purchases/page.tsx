@@ -173,8 +173,6 @@ export default function PurchasesPage() {
       existingMed.price = sellingPrice;
       existingMed.purchasePrice = purchasePrice;
       existingMed.expirationDate = expirationDate;
-      existingMed.supplierId = supplier.id;
-      existingMed.supplierName = supplier.name;
       existingMed.name = medicationName;
       existingMed.saleUnit = saleUnit;
       newInventory[medicationIndex] = existingMed;
@@ -190,8 +188,6 @@ export default function PurchasesPage() {
           name: medicationName,
           stock: quantity,
           reorderPoint: 20, // default
-          supplierId: supplier.id,
-          supplierName: supplier.name,
           price: sellingPrice,
           purchasePrice: purchasePrice,
           expirationDate: expirationDate,

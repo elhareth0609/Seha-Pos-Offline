@@ -4,8 +4,6 @@ export type Medication = {
   name: string;
   stock: number;
   reorderPoint: number;
-  supplierId: string;
-  supplierName: string;
   price: number; // Selling price
   purchasePrice: number;
   expirationDate: string;

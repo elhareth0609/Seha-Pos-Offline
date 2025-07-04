@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -80,7 +81,6 @@ export default function ExpiringSoonPage() {
           <TableHeader>
             <TableRow>
               <TableHead>الاسم</TableHead>
-              <TableHead>المورد</TableHead>
               <TableHead>تاريخ الانتهاء</TableHead>
               <TableHead>الأيام المتبقية</TableHead>
               <TableHead>الحالة</TableHead>
@@ -90,14 +90,13 @@ export default function ExpiringSoonPage() {
             {expiringMedications.length > 0 ? expiringMedications.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell>{item.supplier}</TableCell>
                 <TableCell>{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
                 <TableCell>{formatDaysLeft(item.expirationDate)}</TableCell>
                 <TableCell>{getExpirationBadge(item.expirationDate)}</TableCell>
               </TableRow>
             )) : (
                 <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                         لا توجد أدوية ستنتهي صلاحيتها قريبًا.
                     </TableCell>
                 </TableRow>
