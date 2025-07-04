@@ -1,5 +1,5 @@
 {
-  "name": "Midgram",
+  "name": "Midgram Pharmacy System",
   "short_name": "Midgram",
   "description": "نظام إدارة صيدلية للمبيعات والمخزون والمشتريات.",
   "start_url": "/",
@@ -8,12 +8,12 @@
   "theme_color": "#11a179",
   "icons": [
     {
-      "src": "icon-192x192.png",
+      "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "icon-512x512.png",
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
