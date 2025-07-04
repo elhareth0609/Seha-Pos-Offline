@@ -1,23 +1,8 @@
-import type {NextConfig} from 'next';
-import withPWAInit from '@ducanh2912/next-pwa';
-
-const withPWA = withPWAInit({
-  disable: process.env.NODE_ENV === 'development',
-  register: true,
-  skipWaiting: true,
-});
-
-const nextConfig: NextConfig = {
+const nextConfig = {
   output: 'export',
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   images: {
-    unoptimized: true, // Required for static export
+    unoptimized: true,
   },
 };
 
-export default withPWA(nextConfig);
+module.exports = nextConfig;

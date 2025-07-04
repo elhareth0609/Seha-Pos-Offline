@@ -72,8 +72,13 @@ export default function Dashboard() {
         });
     });
 
-    const statsArray = Object.values(stats);
-    return [...statsArray].sort((a, b) => b.quantity - a.quantity).slice(0, 5);
+    const statsArray = Object.keys(stats).map(medId => ({
+        medicationId: medId,
+        name: stats[medId].name,
+        quantity: stats[medId].quantity
+    }));
+
+    return statsArray.sort((a, b) => b.quantity - a.quantity).slice(0, 5);
   }, [sales]);
 
   const salesPerformance = React.useMemo(() => {
@@ -186,7 +191,7 @@ export default function Dashboard() {
               {totalRevenue.toLocaleString('ar-IQ')} د.ع
             </div>
             <p className="text-xs text-muted-foreground">
-              إجمالي الإيرادات من جميع المبيعات.
+              مجموع المبالغ النهائية لجميع الفواتير.
             </p>
           </CardContent>
         </Card>
@@ -367,8 +372,8 @@ export default function Dashboard() {
                       </TableRow>
                   </TableHeader>
                   <TableBody>
-                      {topSellingMedications.length > 0 ? topSellingMedications.map((item, index) => (
-                          <TableRow key={index}>
+                      {topSellingMedications.length > 0 ? topSellingMedications.map((item) => (
+                          <TableRow key={item.medicationId}>
                               <TableCell className="font-medium">{item.name}</TableCell>
                               <TableCell className="text-left font-mono">{item.quantity}</TableCell>
                           </TableRow>
@@ -387,7 +392,5 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    
 
     

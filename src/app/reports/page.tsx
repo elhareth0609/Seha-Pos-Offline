@@ -277,8 +277,8 @@ export default function ReportsPage() {
                                                         </TableHeader>
                                                         <TableBody>
                                                             {sale.items.map((item, index) => (
-                                                                <TableRow key={index} className={cn(item.isReturn && "text-destructive")}>
-                                                                    <TableCell>{item.name}</TableCell>
+                                                                <TableRow key={`${sale.id}-${item.medicationId}-${index}`} className={cn(item.isReturn && "text-destructive")}>
+                                                                    <TableCell>{item.name} {item.saleUnit && `(${item.saleUnit})`}</TableCell>
                                                                     <TableCell>{item.quantity}</TableCell>
                                                                     <TableCell>{item.price.toLocaleString('ar-IQ')} د.ع</TableCell>
                                                                     <TableCell>{(item.quantity * item.price).toLocaleString('ar-IQ')} د.ع</TableCell>
@@ -331,3 +331,5 @@ export default function ReportsPage() {
         </div>
     )
 }
+
+    

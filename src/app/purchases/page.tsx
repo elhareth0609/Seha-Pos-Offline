@@ -258,8 +258,8 @@ export default function PurchasesPage() {
         name,
         contactPerson: contact,
     };
-    const newSuppliers = [newSupplier, ...suppliers];
-    setSuppliers(newSuppliers);
+    setSuppliers(prev => [newSupplier, ...prev]);
+    setPurchaseSupplierId(newSupplier.id); // Select the new supplier automatically
 
     setIsAddSupplierOpen(false);
     toast({ title: "تمت إضافة المورد بنجاح" });
@@ -403,7 +403,7 @@ export default function PurchasesPage() {
                                 <DialogHeader>
                                     <DialogTitle>إضافة مورد جديد</DialogTitle>
                                 </DialogHeader>
-                                <form onSubmit={handleAddSupplier} className="space-y-4">
+                                <form onSubmit={handleAddSupplier} className="space-y-4 pt-2">
                                     <div className="space-y-2">
                                         <Label htmlFor="supplierName">اسم المورد</Label>
                                         <Input id="supplierName" name="supplierName" required />
@@ -412,8 +412,8 @@ export default function PurchasesPage() {
                                         <Label htmlFor="supplierContact">الشخص المسؤول (اختياري)</Label>
                                         <Input id="supplierContact" name="supplierContact" />
                                     </div>
-                                    <DialogFooter>
-                                        <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
+                                    <DialogFooter className="pt-2">
+                                        <DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose>
                                         <Button type="submit" variant="success">إضافة</Button>
                                     </DialogFooter>
                                 </form>
@@ -528,8 +528,8 @@ export default function PurchasesPage() {
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
-                                                    {po.items?.length > 0 ? po.items.map((item, index) => (
-                                                        <TableRow key={index}>
+                                                    {po.items?.length > 0 ? po.items.map((item) => (
+                                                        <TableRow key={item.medicationId}>
                                                             <TableCell>{item.name}</TableCell>
                                                             <TableCell>{item.quantity}</TableCell>
                                                             <TableCell className="font-mono">{item.purchasePrice.toLocaleString('ar-IQ')} د.ع</TableCell>
@@ -717,8 +717,8 @@ export default function PurchasesPage() {
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
-                                                    {ret.items?.length > 0 ? ret.items.map((item, index) => (
-                                                        <TableRow key={index}>
+                                                    {ret.items?.length > 0 ? ret.items.map((item) => (
+                                                        <TableRow key={item.medicationId}>
                                                             <TableCell>{item.name}</TableCell>
                                                             <TableCell>{item.quantity}</TableCell>
                                                             <TableCell className="font-mono">{item.purchasePrice.toLocaleString('ar-IQ')} د.ع</TableCell>
@@ -752,3 +752,5 @@ export default function PurchasesPage() {
     </Tabs>
   )
 }
+
+    
