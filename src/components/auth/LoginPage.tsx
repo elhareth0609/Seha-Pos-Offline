@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -156,12 +157,18 @@ export default function LoginPage() {
                         </Button>
                          <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <Button variant="link" size="sm" className="text-muted-foreground">
+                                <Button variant="link" size="sm" className="text-muted-foreground p-0 h-auto">
                                     هل نسيت رمز PIN؟
                                 </Button>
                             </AlertDialogTrigger>
                            <ForgotPinDialog />
                         </AlertDialog>
+                         <p className="text-center text-sm text-muted-foreground">
+                            ليس لديك حساب؟{' '}
+                            <Link href="/signup" className="underline text-primary">
+                                إنشاء حساب جديد
+                            </Link>
+                        </p>
                     </CardFooter>
                 </form>
             </Card>

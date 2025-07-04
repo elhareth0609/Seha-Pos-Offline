@@ -60,6 +60,8 @@ type SettingsFormValues = z.infer<typeof settingsSchema>
 
 const addUserSchema = z.object({
     name: z.string().min(3, { message: "الرجاء إدخال اسم مكون من 3 أحرف على الأقل." }),
+    email: z.string().email({ message: "الرجاء إدخال بريد إلكتروني صالح."}),
+    pin: z.string().regex(/^\d{4}$/, { message: "يجب أن يتكون رمز PIN من 4 أرقام." }),
 });
 
 type AddUserFormValues = z.infer<typeof addUserSchema>;
@@ -79,7 +81,7 @@ export default function SettingsPage() {
     
     const addUserForm = useForm<AddUserFormValues>({
         resolver: zodResolver(addUserSchema),
-        defaultValues: { name: "" }
+        defaultValues: { name: "", email: "", pin: "" }
     });
 
     React.useEffect(() => {
@@ -97,14 +99,13 @@ export default function SettingsPage() {
     }
 
     const onAddUserSubmit = async (data: AddUserFormValues) => {
-        const success = await registerUser(data.name);
+        const success = await registerUser(data.name, data.email, data.pin);
         if (success) {
             toast({ title: "تم إضافة الموظف بنجاح!" });
             setIsAddUserOpen(false);
             addUserForm.reset();
         } else {
-            // This case should not happen with the new simplified logic
-            toast({ variant: 'destructive', title: "حدث خطأ" });
+            toast({ variant: 'destructive', title: "البريد الإلكتروني مستخدم", description: "هذا البريد الإلكتروني مسجل بالفعل." });
         }
     }
 
@@ -258,7 +259,7 @@ export default function SettingsPage() {
                     <div>
                         <CardTitle>إدارة الموظفين</CardTitle>
                         <CardDescription>
-                            إضافة، عرض، وحذف أسماء الموظفين لإسناد المبيعات.
+                            إضافة، عرض، وحذف حسابات الموظفين.
                         </CardDescription>
                     </div>
                     <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
@@ -282,6 +283,28 @@ export default function SettingsPage() {
                                             </FormItem>
                                         )}
                                     />
+                                    <FormField
+                                        control={addUserForm.control}
+                                        name="email"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>البريد الإلكتروني</FormLabel>
+                                                <FormControl><Input type="email" placeholder="example@email.com" {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                     <FormField
+                                        control={addUserForm.control}
+                                        name="pin"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>رمز PIN (4 أرقام)</FormLabel>
+                                                <FormControl><Input type="password" inputMode="numeric" maxLength={4} {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
                                     <DialogFooter className="pt-4">
                                         <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
                                         <Button type="submit" disabled={addUserForm.formState.isSubmitting} variant="success">إضافة الموظف</Button>
@@ -296,6 +319,7 @@ export default function SettingsPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>الاسم</TableHead>
+                                <TableHead>البريد الإلكتروني</TableHead>
                                 <TableHead>الدور</TableHead>
                                 <TableHead className="text-left">الإجراءات</TableHead>
                             </TableRow>
@@ -304,6 +328,7 @@ export default function SettingsPage() {
                             {users.map(user => (
                                 <TableRow key={user.id}>
                                     <TableCell className="font-medium">{user.name}</TableCell>
+                                    <TableCell>{user.email || 'N/A'}</TableCell>
                                     <TableCell>
                                         <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'}>
                                             {user.role === 'Admin' ? 'مدير' : 'موظف'}
