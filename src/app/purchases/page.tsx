@@ -67,7 +67,6 @@ export default function PurchasesPage() {
   const [purchaseSupplierId, setPurchaseSupplierId] = React.useState('');
   const [purchaseMedicationId, setPurchaseMedicationId] = React.useState('');
   const [purchaseMedicationName, setPurchaseMedicationName] = React.useState('');
-  const [purchaseCategory, setPurchaseCategory] = React.useState('غير مصنف');
   const [purchaseSaleUnit, setPurchaseSaleUnit] = React.useState('علبة');
   const [purchaseQuantity, setPurchaseQuantity] = React.useState('');
   const [purchaseExpirationDate, setPurchaseExpirationDate] = React.useState('');
@@ -141,7 +140,6 @@ export default function PurchasesPage() {
     const supplierId = purchaseSupplierId;
     let medicationId = purchaseMedicationId.trim();
     const medicationName = purchaseMedicationName.trim();
-    const category = purchaseCategory.trim();
     const saleUnit = purchaseSaleUnit;
     const quantity = parseInt(purchaseQuantity, 10);
     const expirationDate = purchaseExpirationDate;
@@ -151,7 +149,7 @@ export default function PurchasesPage() {
     const supplier = suppliers.find(s => s.id === supplierId);
     const itemTotal = purchasePrice * quantity;
 
-    if (!purchaseId || !supplier || !medicationName || !category || !quantity || !expirationDate || isNaN(purchasePrice) || isNaN(sellingPrice)) {
+    if (!purchaseId || !supplier || !medicationName || !quantity || !expirationDate || isNaN(purchasePrice) || isNaN(sellingPrice)) {
         toast({
             variant: "destructive",
             title: "حقول ناقصة",
@@ -179,7 +177,6 @@ export default function PurchasesPage() {
       existingMed.supplierName = supplier.name;
       existingMed.name = medicationName;
       existingMed.saleUnit = saleUnit;
-      existingMed.category = category;
       newInventory[medicationIndex] = existingMed;
       toast({
           title: "تم تحديث الرصيد",
@@ -193,7 +190,6 @@ export default function PurchasesPage() {
           name: medicationName,
           stock: quantity,
           reorderPoint: 20, // default
-          category: category,
           supplierId: supplier.id,
           supplierName: supplier.name,
           price: sellingPrice,
@@ -241,7 +237,6 @@ export default function PurchasesPage() {
     // Reset only item-specific fields
     setPurchaseMedicationId('');
     setPurchaseMedicationName('');
-    setPurchaseCategory('غير مصنف');
     setPurchaseSaleUnit('علبة');
     setPurchaseQuantity('');
     setPurchaseExpirationDate('');
@@ -440,15 +435,9 @@ export default function PurchasesPage() {
                     <Label htmlFor="medicationId">الباركود (المعرف) - يترك فارغاً للتوليد التلقائي</Label>
                     <Input id="medicationId" name="medicationId" type="text" placeholder="امسح الباركود أو أدخله يدويًا" value={purchaseMedicationId} onChange={(e) => setPurchaseMedicationId(e.target.value)} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="medicationName">اسم الدواء</Label>
-                        <Input id="medicationName" name="medicationName" type="text" placeholder="مثال: Paracetamol 500mg" required value={purchaseMedicationName} onChange={(e) => setPurchaseMedicationName(e.target.value)} />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="purchaseCategory">الفئة</Label>
-                        <Input id="purchaseCategory" name="category" type="text" placeholder="مثال: مسكن ألم" required value={purchaseCategory} onChange={(e) => setPurchaseCategory(e.target.value)} />
-                    </div>
+                <div className="space-y-2">
+                    <Label htmlFor="medicationName">اسم الدواء</Label>
+                    <Input id="medicationName" name="medicationName" type="text" placeholder="مثال: Paracetamol 500mg" required value={purchaseMedicationName} onChange={(e) => setPurchaseMedicationName(e.target.value)} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                      <div className="space-y-2">

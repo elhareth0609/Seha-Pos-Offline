@@ -36,8 +36,6 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuRadioGroup,
-    DropdownMenuRadioItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -45,7 +43,7 @@ import { useToast } from "@/hooks/use-toast"
 import { inventory as fallbackInventory } from "@/lib/data"
 import type { Medication } from "@/lib/types"
 import { useLocalStorage } from "@/hooks/use-local-storage"
-import { MoreHorizontal, ListFilter, Trash2, Pencil, X, Printer, Upload } from "lucide-react"
+import { MoreHorizontal, Trash2, Pencil, Printer, Upload } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useReactToPrint } from 'react-to-print';
@@ -56,7 +54,6 @@ export default function InventoryPage() {
   const [allInventory, setAllInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
   const [filteredInventory, setFilteredInventory] = React.useState<Medication[]>([]);
   const [searchTerm, setSearchTerm] = React.useState("");
-  const [categoryFilter, setCategoryFilter] = React.useState("all");
   
   const [editingMed, setEditingMed] = React.useState<Medication | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
@@ -95,8 +92,6 @@ export default function InventoryPage() {
   }, [])
 
 
-  const categories = React.useMemo(() => ["all", ...Array.from(new Set(allInventory.map(item => item.category)))], [allInventory]);
-
   React.useEffect(() => {
     if (isClient) {
         let tempInventory = allInventory;
@@ -108,13 +103,9 @@ export default function InventoryPage() {
         );
         }
         
-        if (categoryFilter !== "all") {
-            tempInventory = tempInventory.filter(item => item.category === categoryFilter);
-        }
-
         setFilteredInventory(tempInventory);
     }
-  }, [searchTerm, allInventory, categoryFilter, isClient]);
+  }, [searchTerm, allInventory, isClient]);
 
   const getStockStatus = (stock: number, reorderPoint: number) => {
     if (stock <= 0) return <Badge variant="destructive">نفد من المخزون</Badge>
@@ -142,7 +133,6 @@ export default function InventoryPage() {
           name: formData.get('name') as string,
           reorderPoint: parseInt(formData.get('reorderPoint') as string, 10),
           price: parseFloat(formData.get('price') as string),
-          category: formData.get('category') as string,
           saleUnit: formData.get('saleUnit') as string,
       }
       
@@ -212,7 +202,6 @@ export default function InventoryPage() {
                 const medData: Partial<Medication> = {
                     id: medId,
                     name: String(row.name || 'Unnamed Product').trim(),
-                    category: String(row.form || 'غير مصنف').trim(),
                     supplierName: supplierName,
                     supplierId: supplierId,
                     saleUnit: String(row.form || 'قطعة').trim(),
@@ -223,7 +212,6 @@ export default function InventoryPage() {
                     inventoryToUpdate[existingIndex] = { 
                         ...inventoryToUpdate[existingIndex], 
                         name: medData.name,
-                        category: medData.category,
                         supplierName: medData.supplierName,
                         supplierId: medData.supplierId,
                         saleUnit: medData.saleUnit
@@ -235,7 +223,6 @@ export default function InventoryPage() {
                         name: medData.name!,
                         stock: 0,
                         reorderPoint: 10,
-                        category: medData.category!,
                         supplierId: medData.supplierId!,
                         supplierName: medData.supplierName!,
                         price: 0,
@@ -281,7 +268,6 @@ export default function InventoryPage() {
                             <TableRow>
                                 <TableHead>الباركود</TableHead>
                                 <TableHead>الاسم</TableHead>
-                                <TableHead>الفئة</TableHead>
                                 <TableHead>وحدة البيع</TableHead>
                                 <TableHead>المورد</TableHead>
                                 <TableHead className="text-center">المخزون</TableHead>
@@ -297,7 +283,6 @@ export default function InventoryPage() {
                                 <TableRow key={i}>
                                     <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-40" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
@@ -340,25 +325,6 @@ export default function InventoryPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
           />
-           <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="gap-1">
-                        <ListFilter className="h-3.5 w-3.5" />
-                        <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                            تصفية
-                        </span>
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                    <DropdownMenuLabel>تصفية حسب الفئة</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuRadioGroup value={categoryFilter} onValueChange={setCategoryFilter}>
-                        {categories.map(cat => (
-                             <DropdownMenuRadioItem key={cat} value={cat}>{cat === 'all' ? 'الكل' : cat}</DropdownMenuRadioItem>
-                        ))}
-                    </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-            </DropdownMenu>
              <Button variant="outline" onClick={handleImportClick}>
                 <Upload className="me-2 h-4 w-4" />
                 استيراد Excel
@@ -379,7 +345,6 @@ export default function InventoryPage() {
             <TableRow>
               <TableHead>الباركود</TableHead>
               <TableHead>الاسم</TableHead>
-              <TableHead>الفئة</TableHead>
               <TableHead>وحدة البيع</TableHead>
               <TableHead>المورد</TableHead>
               <TableHead className="text-center">المخزون</TableHead>
@@ -395,7 +360,6 @@ export default function InventoryPage() {
               <TableRow key={item.id}>
                 <TableCell className="font-medium font-mono text-xs">{item.id}</TableCell>
                 <TableCell>{item.name}</TableCell>
-                <TableCell>{item.category}</TableCell>
                 <TableCell>{item.saleUnit || '-'}</TableCell>
                 <TableCell>{item.supplierName}</TableCell>
                 <TableCell className="text-center">{item.stock}</TableCell>
@@ -476,15 +440,9 @@ export default function InventoryPage() {
                                 <Input id="edit-price" name="price" type="number" step="1" defaultValue={editingMed.price} required />
                             </div>
                         </div>
-                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="edit-category">الفئة</Label>
-                                <Input id="edit-category" name="category" defaultValue={editingMed.category} required />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="edit-saleUnit">وحدة البيع</Label>
-                                <Input id="edit-saleUnit" name="saleUnit" defaultValue={editingMed.saleUnit || ''} />
-                            </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="edit-saleUnit">وحدة البيع</Label>
+                            <Input id="edit-saleUnit" name="saleUnit" defaultValue={editingMed.saleUnit || ''} />
                         </div>
                         <DialogFooter>
                             <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>

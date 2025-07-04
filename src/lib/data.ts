@@ -9,18 +9,18 @@ export const suppliers: Supplier[] = [
 ];
 
 export const inventory: Medication[] = [
-  { id: "8901138507542", name: "Paracetamol 500mg Tabs", stock: 150, reorderPoint: 50, category: "Painkiller", supplierId: "SUP001", supplierName: "Pharma Inc.", price: 9000, purchasePrice: 5250, expirationDate: "2025-12-31", saleUnit: "شريط" },
-  { id: "8901043002229", name: "Amoxicillin 250mg Caps", stock: 80, reorderPoint: 30, category: "Antibiotic", supplierId: "SUP002", supplierName: "HealthCare Supplies", price: 18750, purchasePrice: 12000, expirationDate: "2025-08-31", saleUnit: "علبة" },
-  { id: "8904091101497", name: "Ibuprofen 200mg Tabs", stock: 20, reorderPoint: 75, category: "Painkiller", supplierId: "SUP001", supplierName: "Pharma Inc.", price: 11000, purchasePrice: 6750, expirationDate: "2026-01-31", saleUnit: "شريط" },
-  { id: "5010087201048", name: "Loratadine 10mg Tabs", stock: 45, reorderPoint: 20, category: "Antihistamine", supplierId: "SUP003", supplierName: "Allergy Relief Co.", price: 22500, purchasePrice: 14750, expirationDate: "2024-10-31", saleUnit: "علبة" },
-  { id: "300450305609", name: "Omeprazole 20mg Caps", stock: 60, reorderPoint: 25, category: "Acid Reflux", supplierId: "SUP002", supplierName: "HealthCare Supplies", price: 34250, purchasePrice: 22500, expirationDate: "2025-05-31", saleUnit: "علبة" },
-  { id: "03784993510", name: "Simvastatin 40mg Tabs", stock: 90, reorderPoint: 40, category: "Cholesterol", supplierId: "SUP001", supplierName: "Pharma Inc.", price: 45000, purchasePrice: 30500, expirationDate: "2024-09-30", saleUnit: "شريط" },
-  { id: "301504944810", name: "Metformin 500mg Tabs", stock: 120, reorderPoint: 50, category: "Diabetes", supplierId: "SUP002", supplierName: "HealthCare Supplies", price: 28500, purchasePrice: 18000, expirationDate: "2025-11-30", saleUnit: "شريط" },
-  { id: "305801384013", name: "Amlodipine 5mg Tabs", stock: 12, reorderPoint: 15, category: "Blood Pressure", supplierId: "SUP003", supplierName: "Allergy Relief Co.", price: 21750, purchasePrice: 13500, expirationDate: "2024-08-15", saleUnit: "شريط" },
-  { id: "300450552109", name: "Cetirizine 10mg Tabs", stock: 70, reorderPoint: 30, category: "Antihistamine", supplierId: "SUP003", supplierName: "Allergy Relief Co.", price: 17000, purchasePrice: 10500, expirationDate: "2026-03-31", saleUnit: "علبة" },
-  { id: "041100062327", name: "Aspirin 81mg Tabs", stock: 300, reorderPoint: 100, category: "Painkiller", supplierId: "SUP001", supplierName: "Pharma Inc.", price: 6750, purchasePrice: 3750, expirationDate: "2025-07-31", saleUnit: "شريط" },
-  { id: "031604012891", name: "Vitamin C 1000mg", stock: 5, reorderPoint: 20, category: "Vitamins", supplierId: "SUP004", supplierName: "Wellness Distributors", price: 15000, purchasePrice: 9000, expirationDate: "2024-08-20", saleUnit: "علبة" },
-  { id: "037000412852", name: "Vitamin D3 2000IU", stock: 150, reorderPoint: 30, category: "Vitamins", supplierId: "SUP004", supplierName: "Wellness Distributors", price: 20250, purchasePrice: 12750, expirationDate: "2026-06-30", saleUnit: "علبة" },
+  { id: "8901138507542", name: "Paracetamol 500mg Tabs", stock: 150, reorderPoint: 50, supplierId: "SUP001", supplierName: "Pharma Inc.", price: 9000, purchasePrice: 5250, expirationDate: "2025-12-31", saleUnit: "شريط" },
+  { id: "8901043002229", name: "Amoxicillin 250mg Caps", stock: 80, reorderPoint: 30, supplierId: "SUP002", supplierName: "HealthCare Supplies", price: 18750, purchasePrice: 12000, expirationDate: "2025-08-31", saleUnit: "علبة" },
+  { id: "8904091101497", name: "Ibuprofen 200mg Tabs", stock: 20, reorderPoint: 75, supplierId: "SUP001", supplierName: "Pharma Inc.", price: 11000, purchasePrice: 6750, expirationDate: "2026-01-31", saleUnit: "شريط" },
+  { id: "5010087201048", name: "Loratadine 10mg Tabs", stock: 45, reorderPoint: 20, supplierId: "SUP003", supplierName: "Allergy Relief Co.", price: 22500, purchasePrice: 14750, expirationDate: "2024-10-31", saleUnit: "علبة" },
+  { id: "300450305609", name: "Omeprazole 20mg Caps", stock: 60, reorderPoint: 25, supplierId: "SUP002", supplierName: "HealthCare Supplies", price: 34250, purchasePrice: 22500, expirationDate: "2025-05-31", saleUnit: "علبة" },
+  { id: "03784993510", name: "Simvastatin 40mg Tabs", stock: 90, reorderPoint: 40, supplierId: "SUP001", supplierName: "Pharma Inc.", price: 45000, purchasePrice: 30500, expirationDate: "2024-09-30", saleUnit: "شريط" },
+  { id: "301504944810", name: "Metformin 500mg Tabs", stock: 120, reorderPoint: 50, supplierId: "SUP002", supplierName: "HealthCare Supplies", price: 28500, purchasePrice: 18000, expirationDate: "2025-11-30", saleUnit: "شريط" },
+  { id: "305801384013", name: "Amlodipine 5mg Tabs", stock: 12, reorderPoint: 15, supplierId: "SUP003", supplierName: "Allergy Relief Co.", price: 21750, purchasePrice: 13500, expirationDate: "2024-08-15", saleUnit: "شريط" },
+  { id: "300450552109", name: "Cetirizine 10mg Tabs", stock: 70, reorderPoint: 30, supplierId: "SUP003", supplierName: "Allergy Relief Co.", price: 17000, purchasePrice: 10500, expirationDate: "2026-03-31", saleUnit: "علبة" },
+  { id: "041100062327", name: "Aspirin 81mg Tabs", stock: 300, reorderPoint: 100, supplierId: "SUP001", supplierName: "Pharma Inc.", price: 6750, purchasePrice: 3750, expirationDate: "2025-07-31", saleUnit: "شريط" },
+  { id: "031604012891", name: "Vitamin C 1000mg", stock: 5, reorderPoint: 20, supplierId: "SUP004", supplierName: "Wellness Distributors", price: 15000, purchasePrice: 9000, expirationDate: "2024-08-20", saleUnit: "علبة" },
+  { id: "037000412852", name: "Vitamin D3 2000IU", stock: 150, reorderPoint: 30, supplierId: "SUP004", supplierName: "Wellness Distributors", price: 20250, purchasePrice: 12750, expirationDate: "2026-06-30", saleUnit: "علبة" },
 ];
 
 export const users: User[] = [];
