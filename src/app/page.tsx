@@ -18,9 +18,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { inventory as fallbackInventory, sales as fallbackSales, purchaseOrders as fallbackPurchaseOrders, supplierReturns as fallbackReturns, appSettings as fallbackSettings } from "@/lib/data";
-import type { Medication, Sale, PurchaseOrder, ReturnOrder, AppSettings } from "@/lib/types";
-import { DollarSign, Clock, TrendingDown, Landmark, FileText, Calendar, CalendarDays, TrendingUp } from "lucide-react";
+import { inventory as fallbackInventory, sales as fallbackSales, appSettings as fallbackSettings } from "@/lib/data";
+import type { Medication, Sale, AppSettings } from "@/lib/types";
+import { DollarSign, Clock, TrendingDown, FileText, Calendar, CalendarDays, TrendingUp, PieChart } from "lucide-react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, isWithinInterval } from 'date-fns';
 import Link from "next/link";
@@ -28,11 +28,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Dashboard() {
-  const [inventory, setInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
-  const [sales, setSales] = useLocalStorage<Sale[]>('sales', fallbackSales);
-  const [purchaseOrders, setPurchaseOrders] = useLocalStorage<PurchaseOrder[]>('purchaseOrders', fallbackPurchaseOrders);
-  const [supplierReturns, setSupplierReturns] = useLocalStorage<ReturnOrder[]>('supplierReturns', fallbackReturns);
-  const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
+  const [inventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
+  const [sales] = useLocalStorage<Sale[]>('sales', fallbackSales);
+  const [settings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
   const [isClient, setIsClient] = React.useState(false);
   
   React.useEffect(() => {
@@ -40,10 +38,8 @@ export default function Dashboard() {
   }, []);
 
   const totalRevenue = sales.reduce((acc, sale) => acc + (sale.total || 0), 0);
-  
-  const totalPurchases = purchaseOrders.reduce((acc, po) => acc + (po.totalAmount || 0), 0);
-  const totalReturns = supplierReturns.reduce((acc, r) => acc + (r.totalAmount || 0), 0);
-  const totalDebt = totalPurchases - totalReturns;
+  const totalProfit = sales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
+  const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
   const lowStockItems = inventory.filter(
     (item) => item.stock < item.reorderPoint
@@ -123,7 +119,7 @@ export default function Dashboard() {
            <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <Skeleton className="h-5 w-2/3" />
-              <Landmark className="h-4 w-4 text-muted-foreground" />
+              <PieChart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <Skeleton className="h-8 w-1/2 mb-2" />
@@ -179,21 +175,21 @@ export default function Dashboard() {
               {totalRevenue.toLocaleString('ar-IQ')} د.ع
             </div>
             <p className="text-xs text-muted-foreground">
-              مجموع المبالغ النهائية لجميع الفواتير بعد الخصم.
+              إجمالي الإيرادات المحققة من جميع المبيعات.
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">إجمالي الديون (للموردين)</CardTitle>
-            <Landmark className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">هامش الربح</CardTitle>
+            <PieChart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">
-              {totalDebt.toLocaleString('ar-IQ')} د.ع
+            <div className="text-2xl font-bold">
+              {profitMargin.toFixed(2)}%
             </div>
             <p className="text-xs text-muted-foreground">
-              إجمالي المستحقات للموردين
+             النسبة المئوية للربح من الإيرادات.
             </p>
           </CardContent>
         </Card>
@@ -386,7 +382,5 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    
 
     
