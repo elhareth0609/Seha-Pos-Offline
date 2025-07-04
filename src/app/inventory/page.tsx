@@ -149,93 +149,100 @@ export default function InventoryPage() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
-        return;
+      return;
     }
 
     const reader = new FileReader();
     reader.onload = (e) => {
-        try {
-            const data = e.target?.result;
-            const workbook = XLSX.read(data, { type: "array" });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
 
-            if (jsonData.length < 2) {
-                 toast({ variant: 'destructive', title: 'ملف فارغ', description: 'الملف لا يحتوي على بيانات.' });
-                 return;
-            }
-
-            const headers: string[] = jsonData[0].map(h => String(h).toLowerCase().trim().replace(/\s+/g, ''));
-            const rows = jsonData.slice(1);
-
-            const requiredHeaders = ['product_number', 'name'];
-            const missingHeaders = requiredHeaders.filter(h => !headers.includes(h.toLowerCase()));
-            if (missingHeaders.length > 0) {
-                toast({ variant: 'destructive', title: 'أعمدة ناقصة', description: `الملف يجب أن يحتوي على الأعمدة التالية على الأقل: ${requiredHeaders.join(', ')}` });
-                return;
-            }
-            
-            let updatedCount = 0;
-            let addedCount = 0;
-            const inventoryToUpdate = [...allInventory];
-
-            rows.forEach((rowArray) => {
-                const row: any = {};
-                headers.forEach((header, i) => {
-                    row[header] = rowArray[i];
-                });
-
-                const medId = String(row.product_number || '').trim();
-                if (!medId) return;
-
-                const existingIndex = inventoryToUpdate.findIndex(m => m.id === medId);
-                const isUpdate = existingIndex > -1;
-                
-                const futureDate = new Date();
-                futureDate.setFullYear(futureDate.getFullYear() + 2);
-                const formattedExpDate = futureDate.toISOString().split('T')[0];
-                
-                const medData: Partial<Medication> = {
-                    id: medId,
-                    name: String(row.name || 'Unnamed Product').trim(),
-                    saleUnit: String(row.form || 'قطعة').trim(),
-                };
-
-                if (isUpdate) {
-                    // Update reference data, but preserve stock, price, etc.
-                    inventoryToUpdate[existingIndex] = { 
-                        ...inventoryToUpdate[existingIndex], 
-                        name: medData.name,
-                        saleUnit: medData.saleUnit
-                    };
-                    updatedCount++;
-                } else {
-                    const newMed: Medication = {
-                        id: medData.id!,
-                        name: medData.name!,
-                        stock: 0,
-                        reorderPoint: 10,
-                        price: 0,
-                        purchasePrice: 0,
-                        expirationDate: formattedExpDate,
-                        saleUnit: medData.saleUnit,
-                    };
-                    inventoryToUpdate.push(newMed);
-                    addedCount++;
-                }
-            });
-
-            setAllInventory(inventoryToUpdate);
-            toast({ title: "اكتمل الاستيراد", description: `تم إضافة ${addedCount} صنفًا وتحديث ${updatedCount} صنفًا.` });
-        } catch (error) {
-            console.error("Error importing from Excel:", error);
-            toast({ variant: 'destructive', title: 'خطأ في الاستيراد', description: 'حدث خطأ أثناء معالجة الملف. تأكد من أن الملف بالتنسيق الصحيح.' });
-        } finally {
-            if (fileInputRef.current) {
-                fileInputRef.current.value = "";
-            }
+        if (jsonData.length < 2) {
+          toast({ variant: 'destructive', title: 'ملف فارغ', description: 'الملف لا يحتوي على بيانات.' });
+          return;
         }
+
+        const headerRow: string[] = jsonData[0].map(h => String(h).toLowerCase().trim());
+        const rows = jsonData.slice(1);
+
+        const barcodeAliases = ['barcode', 'product_number', 'الباركود'];
+        const nameAliases = ['name', 'الاسم'];
+
+        const barcodeIndex = headerRow.findIndex(h => barcodeAliases.some(alias => h.includes(alias)));
+        const nameIndex = headerRow.findIndex(h => nameAliases.some(alias => h.includes(alias)));
+        
+        if (barcodeIndex === -1 || nameIndex === -1) {
+          toast({
+            variant: 'destructive',
+            title: 'أعمدة ناقصة',
+            description: `الملف يجب أن يحتوي على عمود للباركود (مثل product_number أو barcode) وعمود للاسم (name).`,
+          });
+          return;
+        }
+
+        let updatedCount = 0;
+        let addedCount = 0;
+        const inventoryToUpdate = [...allInventory];
+
+        rows.forEach((row) => {
+          const medId = String(row[barcodeIndex] || '').trim();
+          const medName = String(row[nameIndex] || 'Unnamed Product').trim();
+
+          if (!medId || !medName) {
+            return; // Skip empty or invalid rows
+          }
+
+          const existingIndex = inventoryToUpdate.findIndex((m) => m.id === medId);
+          const isUpdate = existingIndex > -1;
+
+          const futureDate = new Date();
+          futureDate.setFullYear(futureDate.getFullYear() + 2);
+          const formattedExpDate = futureDate.toISOString().split('T')[0];
+
+          if (isUpdate) {
+            // Only update the name. Preserve all other data like stock, price, etc.
+            if (inventoryToUpdate[existingIndex].name !== medName) {
+                inventoryToUpdate[existingIndex].name = medName;
+                updatedCount++;
+            }
+          } else {
+            // This is a new medication, add it with default values.
+            const newMed: Medication = {
+              id: medId,
+              name: medName,
+              stock: 0,
+              reorderPoint: 10,
+              price: 0,
+              purchasePrice: 0,
+              expirationDate: formattedExpDate,
+              saleUnit: 'قطعة', // Default value
+            };
+            inventoryToUpdate.push(newMed);
+            addedCount++;
+          }
+        });
+
+        setAllInventory(inventoryToUpdate);
+        toast({
+          title: 'اكتمل الاستيراد بنجاح',
+          description: `تم إضافة ${addedCount} صنفًا جديدًا وتحديث بيانات ${updatedCount} صنفًا.`,
+        });
+      } catch (error) {
+        console.error('Error importing from Excel:', error);
+        toast({
+          variant: 'destructive',
+          title: 'خطأ في الاستيراد',
+          description: 'حدث خطأ أثناء معالجة الملف. تأكد من أن الملف بصيغة Excel الصحيحة.',
+        });
+      } finally {
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }
     };
     reader.readAsArrayBuffer(file);
   };
