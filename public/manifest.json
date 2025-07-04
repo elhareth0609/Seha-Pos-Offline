@@ -1,24 +1,26 @@
 {
-  "name": "Midgram Pharmacy Management",
+  "name": "Midgram Pharmacy System",
   "short_name": "Midgram",
   "description": "نظام إدارة صيدلية للمبيعات والمخزون والمشتريات.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#11a179",
   "icons": [
     {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
       "src": "/icon-192x192.png",
-      "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "sizes": "192x192"
     },
     {
       "src": "/icon-512x512.png",
-      "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "sizes": "512x512"
     }
-  ],
-  "theme_color": "#11a179",
-  "background_color": "#ffffff",
-  "start_url": "/",
-  "display": "standalone",
-  "orientation": "portrait"
+  ]
 }
