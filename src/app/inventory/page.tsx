@@ -212,7 +212,7 @@ export default function InventoryPage() {
                 const medData: Partial<Medication> = {
                     id: medId,
                     name: String(row.name || 'Unnamed Product').trim(),
-                    category: String(row.form || 'Uncategorized').trim(),
+                    category: String(row.form || 'غير مصنف').trim(),
                     supplierName: supplierName,
                     supplierId: supplierId,
                     saleUnit: String(row.form || 'قطعة').trim(),
@@ -488,7 +488,7 @@ export default function InventoryPage() {
                         </div>
                         <DialogFooter>
                             <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
-                            <Button type="submit">حفظ التغييرات</Button>
+                            <Button type="submit" variant="success">حفظ التغييرات</Button>
                         </DialogFooter>
                     </form>
                 )}

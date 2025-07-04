@@ -67,6 +67,7 @@ export default function PurchasesPage() {
   const [purchaseSupplierId, setPurchaseSupplierId] = React.useState('');
   const [purchaseMedicationId, setPurchaseMedicationId] = React.useState('');
   const [purchaseMedicationName, setPurchaseMedicationName] = React.useState('');
+  const [purchaseCategory, setPurchaseCategory] = React.useState('غير مصنف');
   const [purchaseSaleUnit, setPurchaseSaleUnit] = React.useState('علبة');
   const [purchaseQuantity, setPurchaseQuantity] = React.useState('');
   const [purchaseExpirationDate, setPurchaseExpirationDate] = React.useState('');
@@ -140,6 +141,7 @@ export default function PurchasesPage() {
     const supplierId = purchaseSupplierId;
     let medicationId = purchaseMedicationId.trim();
     const medicationName = purchaseMedicationName.trim();
+    const category = purchaseCategory.trim();
     const saleUnit = purchaseSaleUnit;
     const quantity = parseInt(purchaseQuantity, 10);
     const expirationDate = purchaseExpirationDate;
@@ -149,7 +151,7 @@ export default function PurchasesPage() {
     const supplier = suppliers.find(s => s.id === supplierId);
     const itemTotal = purchasePrice * quantity;
 
-    if (!purchaseId || !supplier || !medicationName || !quantity || !expirationDate || isNaN(purchasePrice) || isNaN(sellingPrice)) {
+    if (!purchaseId || !supplier || !medicationName || !category || !quantity || !expirationDate || isNaN(purchasePrice) || isNaN(sellingPrice)) {
         toast({
             variant: "destructive",
             title: "حقول ناقصة",
@@ -177,6 +179,7 @@ export default function PurchasesPage() {
       existingMed.supplierName = supplier.name;
       existingMed.name = medicationName;
       existingMed.saleUnit = saleUnit;
+      existingMed.category = category;
       newInventory[medicationIndex] = existingMed;
       toast({
           title: "تم تحديث الرصيد",
@@ -190,7 +193,7 @@ export default function PurchasesPage() {
           name: medicationName,
           stock: quantity,
           reorderPoint: 20, // default
-          category: "Uncategorized", // default
+          category: category,
           supplierId: supplier.id,
           supplierName: supplier.name,
           price: sellingPrice,
@@ -238,6 +241,7 @@ export default function PurchasesPage() {
     // Reset only item-specific fields
     setPurchaseMedicationId('');
     setPurchaseMedicationName('');
+    setPurchaseCategory('غير مصنف');
     setPurchaseSaleUnit('علبة');
     setPurchaseQuantity('');
     setPurchaseExpirationDate('');
@@ -442,6 +446,12 @@ export default function PurchasesPage() {
                         <Input id="medicationName" name="medicationName" type="text" placeholder="مثال: Paracetamol 500mg" required value={purchaseMedicationName} onChange={(e) => setPurchaseMedicationName(e.target.value)} />
                     </div>
                      <div className="space-y-2">
+                        <Label htmlFor="purchaseCategory">الفئة</Label>
+                        <Input id="purchaseCategory" name="category" type="text" placeholder="مثال: مسكن ألم" required value={purchaseCategory} onChange={(e) => setPurchaseCategory(e.target.value)} />
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-2">
                         <Label htmlFor="saleUnit">وحدة البيع</Label>
                         <Select name="saleUnit" required value={purchaseSaleUnit} onValueChange={setPurchaseSaleUnit}>
                             <SelectTrigger id="saleUnit"><SelectValue placeholder="اختر وحدة" /></SelectTrigger>
@@ -453,22 +463,22 @@ export default function PurchasesPage() {
                             </SelectContent>
                         </Select>
                     </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="quantity">الكمية</Label>
                         <Input id="quantity" name="quantity" type="number" placeholder="0" required min="1" value={purchaseQuantity} onChange={(e) => setPurchaseQuantity(e.target.value)} />
                     </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="expirationDate">تاريخ الانتهاء</Label>
                         <Input id="expirationDate" name="expirationDate" type="date" required value={purchaseExpirationDate} onChange={(e) => setPurchaseExpirationDate(e.target.value)} />
                     </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="purchasePrice">سعر الشراء</Label>
                         <Input id="purchasePrice" name="purchasePrice" type="number" placeholder="0" required step="1" value={purchasePurchasePrice} onChange={(e) => setPurchasePurchasePrice(e.target.value)} />
                     </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="sellingPrice">سعر البيع</Label>
                         <Input id="sellingPrice" name="sellingPrice" type="number" placeholder="0" required step="1" value={purchaseSellingPrice} onChange={(e) => setPurchaseSellingPrice(e.target.value)} />
