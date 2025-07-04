@@ -179,7 +179,7 @@ export default function Dashboard() {
               {totalRevenue.toLocaleString('ar-IQ')} د.ع
             </div>
             <p className="text-xs text-muted-foreground">
-              بناءً على إجمالي المبيعات
+              مجموع المبالغ النهائية لجميع الفواتير بعد الخصم.
             </p>
           </CardContent>
         </Card>
@@ -386,5 +386,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
 
     
