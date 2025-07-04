@@ -25,6 +25,9 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
     }
 
     if (!isAuthenticated) {
+        if (pathname === '/signup') {
+            return <>{children}</>;
+        }
         return <LoginPage />;
     }
 
