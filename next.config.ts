@@ -5,8 +5,8 @@ const withPWA = require('@ducanh2912/next-pwa')({
   disable: process.env.NODE_ENV === 'development',
 });
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
   images: {
     unoptimized: true,
   },
