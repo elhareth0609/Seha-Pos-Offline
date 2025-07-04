@@ -32,6 +32,13 @@ import {
     DialogClose
 } from "@/components/ui/dialog"
 import {
+    AlertDialog,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
@@ -48,6 +55,7 @@ import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useReactToPrint } from 'react-to-print';
 import Barcode from '@/components/ui/barcode';
+import { Progress } from "@/components/ui/progress";
 
 
 export default function InventoryPage() {
@@ -65,6 +73,10 @@ export default function InventoryPage() {
   const printComponentRef = React.useRef(null);
   const medToPrintRef = React.useRef<Medication | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const [isImporting, setIsImporting] = React.useState(false);
+  const [importProgress, setImportProgress] = React.useState(0);
+  const [importMessage, setImportMessage] = React.useState("");
 
   const handlePrint = useReactToPrint({
       content: () => printComponentRef.current,
@@ -153,8 +165,12 @@ export default function InventoryPage() {
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
+        setIsImporting(true);
+        setImportProgress(0);
+        setImportMessage("جاري قراءة الملف...");
+
         const data = e.target?.result;
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
@@ -163,6 +179,7 @@ export default function InventoryPage() {
 
         if (jsonData.length < 2) {
           toast({ variant: 'destructive', title: 'ملف فارغ', description: 'الملف لا يحتوي على بيانات.' });
+          setIsImporting(false);
           return;
         }
 
@@ -181,56 +198,72 @@ export default function InventoryPage() {
             title: 'أعمدة ناقصة',
             description: `الملف يجب أن يحتوي على عمود للباركود (مثل product_number أو barcode) وعمود للاسم (name).`,
           });
+          setIsImporting(false);
           return;
         }
 
+        // Use a Map for efficient lookups
+        const inventoryMap = new Map(allInventory.map(item => [item.id, item]));
         let updatedCount = 0;
         let addedCount = 0;
-        const inventoryToUpdate = [...allInventory];
+        const CHUNK_SIZE = 200;
+        const totalRows = rows.length;
 
-        rows.forEach((row) => {
-          const medId = String(row[barcodeIndex] || '').trim();
-          const medName = String(row[nameIndex] || 'Unnamed Product').trim();
+        for (let i = 0; i < totalRows; i += CHUNK_SIZE) {
+            const chunk = rows.slice(i, i + CHUNK_SIZE);
+            
+            for (const row of chunk) {
+                const medId = String(row[barcodeIndex] || '').trim();
+                const medName = String(row[nameIndex] || 'Unnamed Product').trim();
 
-          if (!medId || !medName) {
-            return; // Skip empty or invalid rows
-          }
+                if (!medId || !medName) {
+                    continue; // Skip empty or invalid rows
+                }
 
-          const existingIndex = inventoryToUpdate.findIndex((m) => m.id === medId);
-          const isUpdate = existingIndex > -1;
+                if (inventoryMap.has(medId)) {
+                    // Update existing medication
+                    const existingMed = inventoryMap.get(medId)!;
+                    if (existingMed.name !== medName) {
+                        existingMed.name = medName;
+                        inventoryMap.set(medId, existingMed);
+                        updatedCount++;
+                    }
+                } else {
+                    // Add new medication
+                    const futureDate = new Date();
+                    futureDate.setFullYear(futureDate.getFullYear() + 2);
+                    const formattedExpDate = futureDate.toISOString().split('T')[0];
 
-          const futureDate = new Date();
-          futureDate.setFullYear(futureDate.getFullYear() + 2);
-          const formattedExpDate = futureDate.toISOString().split('T')[0];
-
-          if (isUpdate) {
-            // Only update the name. Preserve all other data like stock, price, etc.
-            if (inventoryToUpdate[existingIndex].name !== medName) {
-                inventoryToUpdate[existingIndex].name = medName;
-                updatedCount++;
+                    const newMed: Medication = {
+                      id: medId,
+                      name: medName,
+                      stock: 0,
+                      reorderPoint: 10,
+                      price: 0,
+                      purchasePrice: 0,
+                      expirationDate: formattedExpDate,
+                      saleUnit: 'قطعة', // Default value
+                    };
+                    inventoryMap.set(medId, newMed);
+                    addedCount++;
+                }
             }
-          } else {
-            // This is a new medication, add it with default values.
-            const newMed: Medication = {
-              id: medId,
-              name: medName,
-              stock: 0,
-              reorderPoint: 10,
-              price: 0,
-              purchasePrice: 0,
-              expirationDate: formattedExpDate,
-              saleUnit: 'قطعة', // Default value
-            };
-            inventoryToUpdate.push(newMed);
-            addedCount++;
-          }
-        });
 
-        setAllInventory(inventoryToUpdate);
+            const progress = Math.round(((i + chunk.length) / totalRows) * 100);
+            setImportProgress(progress);
+            setImportMessage(`جاري معالجة ${i + chunk.length} من ${totalRows} صنفًا...`);
+
+            // Yield to the main thread to prevent UI freezing
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+
+        setAllInventory(Array.from(inventoryMap.values()));
+        
         toast({
           title: 'اكتمل الاستيراد بنجاح',
           description: `تم إضافة ${addedCount} صنفًا جديدًا وتحديث بيانات ${updatedCount} صنفًا.`,
         });
+
       } catch (error) {
         console.error('Error importing from Excel:', error);
         toast({
@@ -239,6 +272,9 @@ export default function InventoryPage() {
           description: 'حدث خطأ أثناء معالجة الملف. تأكد من أن الملف بصيغة Excel الصحيحة.',
         });
       } finally {
+        setIsImporting(false);
+        setImportProgress(0);
+        setImportMessage("");
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -299,6 +335,21 @@ export default function InventoryPage() {
   
   return (
     <>
+    <AlertDialog open={isImporting}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>جاري استيراد البيانات من ملف Excel</AlertDialogTitle>
+                <AlertDialogDescription>
+                    هذه العملية قد تستغرق بعض الوقت للملفات الكبيرة. الرجاء عدم إغلاق الصفحة.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-4 pt-4">
+                <Progress value={importProgress} className="w-full" />
+                <p className="text-sm text-center text-muted-foreground">{importMessage}</p>
+            </div>
+        </AlertDialogContent>
+    </AlertDialog>
+
     {printingMed && (
         <div className="hidden">
             <div ref={printComponentRef} className="p-8 text-center">
@@ -321,7 +372,7 @@ export default function InventoryPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
           />
-             <Button variant="outline" onClick={handleImportClick}>
+             <Button variant="outline" onClick={handleImportClick} disabled={isImporting}>
                 <Upload className="me-2 h-4 w-4" />
                 استيراد Excel
             </Button>
