@@ -254,7 +254,7 @@ export default function PurchasesPage() {
         return;
     }
     const newSupplier: Supplier = {
-        id: `SUP${(suppliers.length + 1).toString().padStart(3, '0')}`,
+        id: `SUP${Date.now()}`,
         name,
         contactPerson: contact,
     };
