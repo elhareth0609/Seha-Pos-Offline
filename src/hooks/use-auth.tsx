@@ -1,8 +1,9 @@
+
 "use client";
 
 import * as React from 'react';
 import { useLocalStorage } from './use-local-storage';
-import type { User } from '@/lib/types';
+import type { User, UserPermissions } from '@/lib/types';
 import { users as fallbackUsers } from '@/lib/data';
 
 interface AuthContextType {
@@ -18,9 +19,36 @@ interface AuthContextType {
   resetPin: (email: string, newPin: string) => Promise<boolean>;
   checkUserExists: (email: string) => Promise<boolean>;
   deleteUser: (userId: string) => Promise<boolean>;
+  updateUserPermissions: (userId: string, permissions: UserPermissions) => Promise<boolean>;
 }
 
 const AuthContext = React.createContext<AuthContextType | null>(null);
+
+const defaultEmployeePermissions: UserPermissions = {
+    sales: true,
+    inventory: true,
+    purchases: false,
+    suppliers: false,
+    reports: false,
+    itemMovement: true,
+    patients: true,
+    expiringSoon: true,
+    guide: true,
+    settings: false,
+};
+
+const allPermissions: UserPermissions = {
+    sales: true,
+    inventory: true,
+    purchases: true,
+    suppliers: true,
+    reports: true,
+    itemMovement: true,
+    patients: true,
+    expiringSoon: true,
+    guide: true,
+    settings: true,
+};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useLocalStorage<User[]>('users', fallbackUsers);
@@ -40,6 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email: email,
       role: 'Admin',
       pin: pin,
+      permissions: allPermissions,
     };
     setUsers([adminUser]);
     setCurrentUser(adminUser);
@@ -56,7 +85,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name,
           email,
           pin,
-          role: 'Employee'
+          role: 'Employee',
+          permissions: defaultEmployeePermissions,
       };
       setUsers(prev => [...prev, newUser]);
       return true;
@@ -72,6 +102,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (u && u.email && u.email.toLowerCase() === email.toLowerCase()) {
               userFound = true;
               return { ...u, pin: newPin };
+          }
+          return u;
+      });
+
+      if (userFound) {
+          setUsers(updatedUsers);
+          return true;
+      }
+      return false;
+  }
+
+  const updateUserPermissions = async (userId: string, permissions: UserPermissions): Promise<boolean> => {
+      let userFound = false;
+      const updatedUsers = users.map(u => {
+          if (u.id === userId && u.role === 'Employee') {
+              userFound = true;
+              return { ...u, permissions };
           }
           return u;
       });
@@ -108,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = !!currentUser;
 
   return (
-    <AuthContext.Provider value={{ currentUser, users, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, deleteUser }}>
+    <AuthContext.Provider value={{ currentUser, users, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, deleteUser, updateUserPermissions }}>
       {children}
     </AuthContext.Provider>
   );

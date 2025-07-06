@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from 'react'
@@ -18,7 +19,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Textarea } from "@/components/ui/textarea"
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import { appSettings as fallbackSettings } from '@/lib/data'
-import type { AppSettings } from '@/lib/types'
+import type { AppSettings, User, UserPermissions } from '@/lib/types'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -38,14 +39,19 @@ import {
     DialogTrigger,
     DialogFooter,
     DialogClose,
+    DialogDescription
 } from "@/components/ui/dialog"
 import { Skeleton } from '@/components/ui/skeleton'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { useAuth } from '@/hooks/use-auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Trash2, PlusCircle } from 'lucide-react'
+import { Trash2, PlusCircle, ShieldCheck } from 'lucide-react'
 import { clearAllDBData } from '@/hooks/use-local-storage'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+
 
 const settingsSchema = z.object({
   pharmacyName: z.string().min(2, { message: "يجب أن يكون اسم الصيدلية حرفين على الأقل." }),
@@ -66,13 +72,28 @@ const addUserSchema = z.object({
 
 type AddUserFormValues = z.infer<typeof addUserSchema>;
 
+const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: string }[] = [
+    { key: 'sales', label: 'الوصول إلى قسم المبيعات' },
+    { key: 'inventory', label: 'الوصول إلى المخزون' },
+    { key: 'purchases', label: 'الوصول إلى المشتريات' },
+    { key: 'suppliers', label: 'الوصول إلى الموردين والحسابات' },
+    { key: 'reports', label: 'الوصول إلى التقارير' },
+    { key: 'itemMovement', label: 'الوصول إلى حركة المادة' },
+    { key: 'patients', label: 'الوصول إلى أصدقاء الصيدلية' },
+    { key: 'expiringSoon', label: 'الوصول إلى قريب الانتهاء' },
+    { key: 'settings', label: 'الوصول إلى الإعدادات' },
+];
 
 export default function SettingsPage() {
     const { toast } = useToast()
     const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
     const [isClient, setIsClient] = React.useState(false);
-    const { currentUser, users, deleteUser, registerUser } = useAuth();
+    const { currentUser, users, deleteUser, registerUser, updateUserPermissions } = useAuth();
+    
     const [isAddUserOpen, setIsAddUserOpen] = React.useState(false);
+    const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = React.useState(false);
+    const [editingUser, setEditingUser] = React.useState<User | null>(null);
+    const [currentUserPermissions, setCurrentUserPermissions] = React.useState<UserPermissions | null>(null);
 
     const settingsForm = useForm<SettingsFormValues>({
         resolver: zodResolver(settingsSchema),
@@ -109,7 +130,6 @@ export default function SettingsPage() {
         }
     }
 
-
     const handleClearData = async () => {
         if (typeof window !== 'undefined') {
             try {
@@ -131,6 +151,35 @@ export default function SettingsPage() {
             toast({ variant: 'destructive', title: 'خطأ', description: 'لا يمكن حذف حساب المدير.' });
         }
     }
+    
+    const openPermissionsDialog = (user: User) => {
+        setEditingUser(user);
+        const permissions = user.permissions || {
+            sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false
+        };
+        setCurrentUserPermissions(permissions);
+        setIsPermissionsDialogOpen(true);
+    };
+
+    const handlePermissionChange = (key: keyof UserPermissions, checked: boolean) => {
+        if (currentUserPermissions) {
+            setCurrentUserPermissions({ ...currentUserPermissions, [key]: checked });
+        }
+    };
+
+    const handleSavePermissions = async () => {
+        if (editingUser && currentUserPermissions) {
+            const success = await updateUserPermissions(editingUser.id, currentUserPermissions);
+            if (success) {
+                toast({ title: 'تم تحديث الصلاحيات بنجاح' });
+                setIsPermissionsDialogOpen(false);
+                setEditingUser(null);
+                setCurrentUserPermissions(null);
+            } else {
+                toast({ variant: 'destructive', title: 'خطأ', description: 'لم نتمكن من تحديث الصلاحيات.' });
+            }
+        }
+    };
 
 
     if (!isClient || !currentUser) {
@@ -259,7 +308,7 @@ export default function SettingsPage() {
                     <div>
                         <CardTitle>إدارة الموظفين</CardTitle>
                         <CardDescription>
-                            إضافة، عرض، وحذف حسابات الموظفين.
+                            إضافة، عرض، وحذف حسابات الموظفين وصلاحياتهم.
                         </CardDescription>
                     </div>
                     <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
@@ -336,27 +385,51 @@ export default function SettingsPage() {
                                     </TableCell>
                                     <TableCell className="text-left">
                                         {user.role !== 'Admin' && (
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            سيتم حذف الموظف {user.name} بشكل نهائي.
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleDeleteUser(user.id, user.name)} className="bg-destructive hover:bg-destructive/90">
-                                                            نعم، قم بالحذف
-                                                        </AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
+                                            <div className="flex items-center justify-start gap-0">
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={() => openPermissionsDialog(user)}>
+                                                                <ShieldCheck className="h-4 w-4" />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>إدارة الصلاحيات</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                         <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p>حذف الموظف</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                سيتم حذف الموظف {user.name} بشكل نهائي.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleDeleteUser(user.id, user.name)} className="bg-destructive hover:bg-destructive/90">
+                                                                نعم، قم بالحذف
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            </div>
                                         )}
                                     </TableCell>
                                 </TableRow>
@@ -396,6 +469,36 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
         )}
+
+         <Dialog open={isPermissionsDialogOpen} onOpenChange={setIsPermissionsDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>صلاحيات الموظف: {editingUser?.name}</DialogTitle>
+                    <DialogDescription>
+                        اختر الأقسام التي يمكن للموظف الوصول إليها.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {currentUserPermissions && permissionLabels.map(p => (
+                        <div key={p.key} className="flex items-center space-x-2 space-x-reverse">
+                            <Checkbox
+                                id={`perm-${p.key}`}
+                                checked={currentUserPermissions[p.key]}
+                                onCheckedChange={(checked) => handlePermissionChange(p.key as keyof UserPermissions, !!checked)}
+                            />
+                            <Label htmlFor={`perm-${p.key}`} className="flex-1 cursor-pointer">{p.label}</Label>
+                        </div>
+                    ))}
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline" onClick={() => { setEditingUser(null); setCurrentUserPermissions(null); }}>إلغاء</Button>
+                    </DialogClose>
+                    <Button onClick={handleSavePermissions} variant="success">حفظ الصلاحيات</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
     </div>
   )
 }

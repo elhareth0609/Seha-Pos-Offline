@@ -1,4 +1,17 @@
 
+export type UserPermissions = {
+    sales: boolean;
+    inventory: boolean;
+    purchases: boolean;
+    suppliers: boolean;
+    reports: boolean;
+    itemMovement: boolean;
+    patients: boolean;
+    expiringSoon: boolean;
+    guide: boolean;
+    settings: boolean;
+};
+
 export type Medication = {
   id: string;
   name: string;
@@ -87,8 +100,9 @@ export type User = {
   id: string;
   name: string;
   role: "Admin" | "Employee";
-  email?: string; // Optional: Only for Admin
-  pin?: string; // Optional: Only for Admin
+  email?: string;
+  pin?: string;
+  permissions?: UserPermissions;
 };
 
 export type Patient = {

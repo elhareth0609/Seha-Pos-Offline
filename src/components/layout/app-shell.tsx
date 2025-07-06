@@ -45,9 +45,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import type { UserPermissions } from "@/lib/types";
 
 
-const navItems = [
+const allNavItems = [
   { href: "/", icon: LayoutDashboard, label: "لوحة التحكم" },
   { href: "/sales", icon: ShoppingCart, label: "المبيعات" },
   { href: "/inventory", icon: Boxes, label: "المخزون" },
@@ -69,6 +70,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const [dataToImport, setDataToImport] = React.useState<object | null>(null);
   const [isImportConfirmOpen, setIsImportConfirmOpen] = React.useState(false);
+
+  const navItems = React.useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.role === 'Admin') return allNavItems;
+
+    const permissions = currentUser.permissions || {
+        sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false
+    };
+
+    const permissionMap: { [key: string]: keyof UserPermissions } = {
+        '/sales': 'sales',
+        '/inventory': 'inventory',
+        '/purchases': 'purchases',
+        '/suppliers': 'suppliers',
+        '/reports': 'reports',
+        '/item-movement': 'itemMovement',
+        '/patients': 'patients',
+        '/expiring-soon': 'expiringSoon',
+        '/guide': 'guide',
+        '/settings': 'settings'
+    };
+
+    return allNavItems.filter(item => {
+        if (item.href === '/') return true; 
+        const permissionKey = permissionMap[item.href];
+        if (!permissionKey) return false;
+        return permissions[permissionKey];
+    });
+  }, [currentUser]);
+
 
   const handleBackup = async () => {
     if (typeof window === 'undefined') return;
@@ -195,15 +226,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       <span>{item.label}</span>
                     </DropdownMenuItem>
                   ))}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={handleImportClick}>
-                    <Upload className="me-2 h-4 w-4" />
-                    <span>استيراد بيانات</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={handleBackup}>
-                    <FileDown className="me-2 h-4 w-4" />
-                    <span>نسخ احتياطي للبيانات</span>
-                  </DropdownMenuItem>
+                  {currentUser?.role === 'Admin' && (
+                    <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onSelect={handleImportClick}>
+                            <Upload className="me-2 h-4 w-4" />
+                            <span>استيراد بيانات</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={handleBackup}>
+                            <FileDown className="me-2 h-4 w-4" />
+                            <span>نسخ احتياطي للبيانات</span>
+                        </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
