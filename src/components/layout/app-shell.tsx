@@ -20,6 +20,7 @@ import {
   LogOut,
   Users,
   HelpCircle,
+  Repeat,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,6 +54,7 @@ const navItems = [
   { href: "/purchases", icon: Truck, label: "المشتريات" },
   { href: "/suppliers", icon: Landmark, label: "الموردون والحسابات" },
   { href: "/reports", icon: FileText, label: "التقارير" },
+  { href: "/item-movement", icon: Repeat, label: "حركة المادة" },
   { href: "/patients", icon: Users, label: "أصدقاء الصيدلية" },
   { href: "/expiring-soon", icon: CalendarX2, label: "قريب الانتهاء" },
   { href: "/guide", icon: HelpCircle, label: "دليل الاستخدام" },
