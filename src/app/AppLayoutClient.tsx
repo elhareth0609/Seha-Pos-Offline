@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from 'react';
-import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { AppShell } from '@/components/layout/app-shell';
 import { Loader2 } from 'lucide-react';
@@ -10,7 +9,6 @@ import LoginPage from '@/components/auth/LoginPage';
 
 export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
     const { loading, isSetup, isAuthenticated } = useAuth();
-    const pathname = usePathname();
 
     if (loading) {
         return (
@@ -25,9 +23,6 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
     }
 
     if (!isAuthenticated) {
-        if (pathname === '/signup') {
-            return <>{children}</>;
-        }
         return <LoginPage />;
     }
 
