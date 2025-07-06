@@ -71,7 +71,7 @@ export default function ItemMovementPage() {
         setSuggestions([]);
 
         const purchases = purchaseOrders
-            .flatMap(po => po.items.map(item => ({ ...item, date: po.date, supplierName: po.supplierName, documentId: po.id })))
+            .flatMap(po => (po.items || []).map(item => ({ ...item, date: po.date, supplierName: po.supplierName, documentId: po.id })))
             .filter(item => item.medicationId === med.id)
             .map(item => ({
                 date: item.date,
@@ -83,7 +83,7 @@ export default function ItemMovementPage() {
             }));
 
         const saleEvents = sales
-            .flatMap(s => s.items.map(item => ({ ...item, date: s.date, employeeName: s.employeeName, documentId: s.id })))
+            .flatMap(s => (s.items || []).map(item => ({ ...item, date: s.date, employeeName: s.employeeName, documentId: s.id })))
             .filter(item => item.medicationId === med.id)
             .map(item => ({
                 date: item.date,
@@ -95,7 +95,7 @@ export default function ItemMovementPage() {
             }));
 
         const returnsToSupplier = supplierReturns
-            .flatMap(r => r.items.map(item => ({ ...item, date: r.date, supplierName: r.supplierName, documentId: r.id })))
+            .flatMap(r => (r.items || []).map(item => ({ ...item, date: r.date, supplierName: r.supplierName, documentId: r.id })))
             .filter(item => item.medicationId === med.id)
             .map(item => ({
                 date: item.date,
