@@ -29,6 +29,17 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
   Alert,
   AlertDescription,
   AlertTitle,
@@ -39,7 +50,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import { inventory as fallbackInventory, sales as fallbackSales, appSettings as fallbackSettings } from "@/lib/data"
 import type { Medication, SaleItem, Sale, AppSettings } from "@/lib/types"
-import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp } from "lucide-react"
+import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, ArrowLeft, ArrowRight, FilePlus } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -56,6 +67,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { buttonVariants } from "@/components/ui/button"
 
 
 function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => void; onOpenChange: (isOpen: boolean) => void }) {
@@ -137,6 +149,10 @@ export default function SalesPage() {
   const [discountInput, setDiscountInput] = React.useState("0");
   const [selectedEmployeeId, setSelectedEmployeeId] = React.useState<string | undefined>(currentUser?.id);
 
+  const [mode, setMode] = React.useState<'new' | 'review'>('new');
+  const [reviewIndex, setReviewIndex] = React.useState(0);
+  const [isPrintReviewOpen, setIsPrintReviewOpen] = React.useState(false);
+
   const { toast } = useToast()
   
   const printComponentRef = React.useRef(null);
@@ -144,6 +160,8 @@ export default function SalesPage() {
     content: () => printComponentRef.current,
     documentTitle: `invoice-${saleToPrint?.id || ''}`,
   });
+  
+  const sortedSales = React.useMemo(() => sales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [sales]);
 
   React.useEffect(() => {
     if (currentUser && !selectedEmployeeId) {
@@ -152,6 +170,7 @@ export default function SalesPage() {
   }, [currentUser, selectedEmployeeId]);
 
   const addToCart = React.useCallback((medication: Medication) => {
+    if (mode !== 'new') return;
     setCart((prevCart) => {
       const existingItem = prevCart.find(item => item.medicationId === medication.id && !item.isReturn)
       if (existingItem) {
@@ -165,7 +184,7 @@ export default function SalesPage() {
     })
     setSearchTerm("")
     setSuggestions([])
-  }, [])
+  }, [mode])
   
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -182,8 +201,8 @@ export default function SalesPage() {
     }
   }
 
-
   const handleScan = React.useCallback((result: string) => {
+    if (mode !== 'new') return;
     const scannedMedication = allInventory.find(med => med.id === result);
     if (scannedMedication) {
       addToCart(scannedMedication);
@@ -192,9 +211,10 @@ export default function SalesPage() {
       toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'الباركود الممسوح ضوئيًا لا يتطابق مع أي منتج.' });
     }
     setIsScannerOpen(false);
-  }, [addToCart, toast, allInventory]);
+  }, [addToCart, toast, allInventory, mode]);
 
   const handleSearchKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (mode !== 'new') return;
     if (event.key === 'Enter') {
         event.preventDefault();
 
@@ -213,9 +233,10 @@ export default function SalesPage() {
             toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'يرجى التأكد من المعرف أو البحث بالاسم.' });
         }
     }
-  }, [suggestions, allInventory, searchTerm, addToCart, toast]);
+  }, [suggestions, allInventory, searchTerm, addToCart, toast, mode]);
 
   const updateQuantity = (medicationId: string, quantity: number) => {
+    if (mode !== 'new') return;
     if (quantity <= 0) {
       removeFromCart(medicationId)
     } else {
@@ -224,6 +245,7 @@ export default function SalesPage() {
   }
   
   const updatePrice = (medicationId: string, newPrice: number) => {
+    if (mode !== 'new') return;
     if (newPrice < 0) return;
     setCart(cart => cart.map(item => 
       item.medicationId === medicationId 
@@ -232,12 +254,13 @@ export default function SalesPage() {
     ));
   };
 
-
   const removeFromCart = (medicationId: string) => {
+    if (mode !== 'new') return;
     setCart(cart => cart.filter(item => item.medicationId !== medicationId))
   }
 
   const toggleReturn = (medicationId: string) => {
+    if (mode !== 'new') return;
     setCart(cart => cart.map(item => 
       item.medicationId === medicationId 
         ? { ...item, isReturn: !item.isReturn } 
@@ -269,12 +292,10 @@ export default function SalesPage() {
       toast({ title: "السلة فارغة", description: "أضف منتجات إلى السلة قبل إتمام العملية.", variant: "destructive" })
       return;
     }
-
     if (!selectedEmployeeId) {
         toast({ title: "لم يتم تحديد الموظف", description: "الرجاء اختيار الموظف البائع من القائمة.", variant: "destructive" });
         return;
     }
-
     for (const itemInCart of cart) {
         if (!itemInCart.isReturn) {
             const med = allInventory.find(m => m.id === itemInCart.medicationId);
@@ -284,7 +305,6 @@ export default function SalesPage() {
             }
         }
     }
-    
     setIsCheckoutOpen(true);
   }
 
@@ -302,7 +322,6 @@ export default function SalesPage() {
         toast({ title: "خطأ", description: "الرجاء اختيار الموظف البائع.", variant: "destructive" });
         return;
     }
-
     const updatedInventory = allInventory.map(med => {
         const itemInCart = cart.find(cartItem => cartItem.medicationId === med.id);
         if (itemInCart) {
@@ -313,9 +332,7 @@ export default function SalesPage() {
         }
         return med;
     });
-    
     setAllInventory(updatedInventory);
-    
     const newSaleId = `SALE${(sales.length + 1).toString().padStart(3, '0')}`;
     const newSale: Sale = {
         id: newSaleId,
@@ -327,18 +344,49 @@ export default function SalesPage() {
         employeeId: selectedEmployee.id,
         employeeName: selectedEmployee.name,
     };
-    
     setSales(prev => [newSale, ...prev]);
-    
     toast({
       title: "تمت العملية بنجاح",
       description: `تم تسجيل عملية جديدة بقيمة إجمالية ${finalTotal.toLocaleString('ar-IQ')} د.ع`
     })
-
     setSaleToPrint(newSale);
     setIsCheckoutOpen(false);
     setIsReceiptOpen(true);
   }
+
+  const loadSaleForReview = (index: number) => {
+    if (index >= 0 && index < sortedSales.length) {
+        const saleToReview = sortedSales[index];
+        setCart(saleToReview.items);
+        setDiscount(saleToReview.discount || 0);
+        setDiscountInput((saleToReview.discount || 0).toString());
+        setSelectedEmployeeId(saleToReview.employeeId);
+        setReviewIndex(index);
+        setMode('review');
+        setSearchTerm('');
+        setSuggestions([]);
+    }
+  };
+
+  const handleNextInvoice = () => { // Newer invoice
+    if (reviewIndex > 0) {
+        loadSaleForReview(reviewIndex - 1);
+    }
+  };
+
+  const handlePreviousInvoice = () => { // Older invoice
+    if (mode === 'new' && sortedSales.length > 0) {
+        loadSaleForReview(0);
+    } else if (mode === 'review' && reviewIndex < sortedSales.length - 1) {
+        loadSaleForReview(reviewIndex + 1);
+    }
+  };
+
+  const handleNewInvoiceClick = () => {
+    setMode('new');
+    resetSale();
+    setSelectedEmployeeId(currentUser?.id);
+  };
 
   return (
     <>
@@ -346,9 +394,7 @@ export default function SalesPage() {
         <InvoiceTemplate ref={printComponentRef} sale={saleToPrint} settings={settings} />
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-12rem)]">
-        {/* Main Content */}
         <div className="lg:col-span-2 flex flex-col gap-4">
-            {/* Product Selection */}
             <Card>
                 <CardHeader className="pb-4">
                     <CardTitle>اختيار المنتج</CardTitle>
@@ -360,8 +406,9 @@ export default function SalesPage() {
                             onChange={handleSearchChange}
                             onKeyDown={handleSearchKeyDown}
                             autoFocus
+                            disabled={mode !== 'new'}
                             />
-                            {suggestions.length > 0 && (
+                            {suggestions.length > 0 && mode === 'new' && (
                                 <Card className="absolute z-50 w-full mt-1 bg-background shadow-lg border">
                                     <CardContent className="p-0">
                                         <ul className="divide-y divide-border">
@@ -384,7 +431,7 @@ export default function SalesPage() {
                         </div>
                         <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
                             <DialogTrigger asChild>
-                                <Button variant="outline" className="shrink-0"><ScanLine className="me-2"/> مسح</Button>
+                                <Button variant="outline" className="shrink-0" disabled={mode !== 'new'}><ScanLine className="me-2"/> مسح</Button>
                             </DialogTrigger>
                             <DialogContent>
                                 <DialogHeader>
@@ -397,11 +444,31 @@ export default function SalesPage() {
                 </CardHeader>
             </Card>
 
-            {/* Invoice Table */}
             <Card className="flex-1 flex flex-col">
                  <CardHeader className="py-4">
                     <div className="flex justify-between items-center">
-                        <CardTitle>الفاتورة الحالية</CardTitle>
+                        <CardTitle>
+                          {mode === 'new' ? 'الفاتورة الحالية' : `عرض الفاتورة #${sortedSales[reviewIndex]?.id}`}
+                        </CardTitle>
+                        <div className="flex items-center gap-2">
+                            {mode === 'review' ? (
+                                <>
+                                    <Button onClick={handleNewInvoiceClick} variant="secondary">
+                                        <FilePlus className="me-2"/> فاتورة جديدة
+                                    </Button>
+                                    <Button onClick={handlePreviousInvoice} variant="outline" size="icon" disabled={reviewIndex >= sortedSales.length - 1}>
+                                       <span className="sr-only">السابق</span> <ArrowRight/>
+                                    </Button>
+                                    <Button onClick={handleNextInvoice} variant="outline" size="icon" disabled={reviewIndex <= 0}>
+                                        <span className="sr-only">التالي</span> <ArrowLeft/>
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button onClick={handlePreviousInvoice} variant="outline" disabled={sortedSales.length === 0}>
+                                    <ArrowRight className="me-2"/> مراجعة
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0 flex-1">
@@ -430,7 +497,7 @@ export default function SalesPage() {
                                 return (
                                     <TableRow key={`${item.medicationId}-${item.isReturn}`} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
                                         <TableCell className="text-center">
-                                            <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" />
+                                            <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" disabled={mode !== 'new'}/>
                                         </TableCell>
                                         <TableCell>
                                             <div className="font-medium">{item.name} {item.saleUnit && `(${item.saleUnit})`}</div>
@@ -440,22 +507,24 @@ export default function SalesPage() {
                                                   | الربح: {itemProfit.toLocaleString('ar-IQ')} د.ع
                                                 </span>
                                             </div>
-                                            <div className="text-xs text-muted-foreground">
-                                                الرصيد: {stock} 
-                                                {!item.isReturn && ` | المتبقي: `}
-                                                {!item.isReturn && <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span>}
-                                            </div>
+                                            {mode === 'new' && (
+                                                <div className="text-xs text-muted-foreground">
+                                                    الرصيد: {stock} 
+                                                    {!item.isReturn && ` | المتبقي: `}
+                                                    {!item.isReturn && <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span>}
+                                                </div>
+                                            )}
                                         </TableCell>
                                         <TableCell>
                                         <div className="flex items-center justify-center gap-2">
-                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity - 1)}><MinusCircle className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity - 1)} disabled={mode !== 'new'}><MinusCircle className="h-4 w-4" /></Button>
                                             <span>{item.quantity}</span>
-                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity + 1)}><PlusCircle className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity + 1)} disabled={mode !== 'new'}><PlusCircle className="h-4 w-4" /></Button>
                                         </div>
                                         </TableCell>
                                         <TableCell>
                                             <div className="relative">
-                                                <Input type="number" value={item.price} onChange={(e) => updatePrice(item.medicationId, parseFloat(e.target.value))} className={cn("w-24 h-9 text-center", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} step="1" min="0" />
+                                                <Input type="number" value={item.price} onChange={(e) => updatePrice(item.medicationId, parseFloat(e.target.value))} className={cn("w-24 h-9 text-center", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} step="1" min="0" disabled={mode !== 'new'} />
                                                 {isBelowCost && !item.isReturn && (
                                                   <div className="absolute -top-2 -right-2 text-destructive" title="السعر أقل من الكلفة!">
                                                     <AlertTriangle className="h-4 w-4" />
@@ -465,7 +534,7 @@ export default function SalesPage() {
                                         </TableCell>
                                         <TableCell className="text-left font-mono">{itemTotal.toLocaleString('ar-IQ')} د.ع</TableCell>
                                         <TableCell className="text-left">
-                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)}><X className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)} disabled={mode !== 'new'}><X className="h-4 w-4" /></Button>
                                         </TableCell>
                                     </TableRow>
                                 );
@@ -484,7 +553,6 @@ export default function SalesPage() {
             </Card>
         </div>
 
-        {/* Checkout Summary */}
         <div className="lg:col-span-1">
              <Card className="sticky top-6">
                 <CardHeader>
@@ -497,6 +565,7 @@ export default function SalesPage() {
                             value={selectedEmployeeId}
                             onValueChange={setSelectedEmployeeId}
                             required
+                            disabled={mode !== 'new'}
                         >
                             <SelectTrigger id="employee-selector">
                                 <SelectValue placeholder="اختر الموظف" />
@@ -522,7 +591,7 @@ export default function SalesPage() {
                     </div>
                     <div className="flex items-center justify-between w-full">
                         <Label htmlFor="discount" className="text-md shrink-0 me-2">خصم</Label>
-                        <Input id="discount" type="text" value={discountInput} onChange={handleDiscountChange} className="h-9 w-full bg-background ltr:text-left rtl:text-right" placeholder="0" />
+                        <Input id="discount" type="text" value={discountInput} onChange={handleDiscountChange} className="h-9 w-full bg-background ltr:text-left rtl:text-right" placeholder="0" disabled={mode !== 'new'}/>
                     </div>
                     <Separator />
                     <div className="flex justify-between w-full text-lg font-semibold">
@@ -530,60 +599,97 @@ export default function SalesPage() {
                         <span className={finalTotal < 0 ? 'text-destructive' : ''}>{finalTotal.toLocaleString('ar-IQ')} د.ع</span>
                     </div>
                 </CardContent>
-                <CardFooter>
-                     <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-                        <DialogTrigger asChild>
-                            <Button size="lg" className="w-full text-lg" onClick={handleCheckout} disabled={cart.length === 0 || !selectedEmployeeId} variant="success">
-                                إتمام العملية
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>تأكيد الفاتورة</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                                <div className="max-h-64 overflow-y-auto p-1">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>المنتج</TableHead>
-                                                <TableHead className="text-center">الكمية</TableHead>
-                                                <TableHead className="text-left">السعر</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {cart.map(item => (
-                                                <TableRow key={item.medicationId} className={cn(item.isReturn && "text-destructive")}>
-                                                    <TableCell>{item.name} {item.saleUnit && `(${item.saleUnit})`} {item.isReturn && "(مرتجع)"}</TableCell>
-                                                    <TableCell className="text-center">{item.quantity}</TableCell>
-                                                    <TableCell className="text-left">{((item.isReturn ? -1 : 1) * item.price * item.quantity).toLocaleString('ar-IQ')} د.ع</TableCell>
+                <CardFooter className="flex flex-col items-stretch gap-2">
+                    {mode === 'new' ? (
+                      <>
+                        <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
+                            <DialogTrigger asChild>
+                                <Button size="lg" className="w-full" onClick={handleCheckout} disabled={cart.length === 0 || !selectedEmployeeId} variant="success">
+                                    إتمام العملية
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>تأكيد الفاتورة</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                    <div className="max-h-64 overflow-y-auto p-1">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>المنتج</TableHead>
+                                                    <TableHead className="text-center">الكمية</TableHead>
+                                                    <TableHead className="text-left">السعر</TableHead>
                                                 </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {cart.map(item => (
+                                                    <TableRow key={item.medicationId} className={cn(item.isReturn && "text-destructive")}>
+                                                        <TableCell>{item.name} {item.saleUnit && `(${item.saleUnit})`} {item.isReturn && "(مرتجع)"}</TableCell>
+                                                        <TableCell className="text-center">{item.quantity}</TableCell>
+                                                        <TableCell className="text-left">{((item.isReturn ? -1 : 1) * item.price * item.quantity).toLocaleString('ar-IQ')} د.ع</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                    <Separator/>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between"><span>الموظف:</span><span>{users.find(u => u.id === selectedEmployeeId)?.name}</span></div>
+                                        <div className="flex justify-between"><span>المجموع الفرعي:</span><span>{subtotal.toLocaleString('ar-IQ')} د.ع</span></div>
+                                        <div className="flex justify-between"><span>الخصم:</span><span>-{discount.toLocaleString('ar-IQ')} د.ع</span></div>
+                                         <div className="flex justify-between text-green-600"><span>الربح الصافي:</span><span>{(totalProfit - discount).toLocaleString('ar-IQ')} د.ع</span></div>
+                                        <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>{finalTotal.toLocaleString('ar-IQ')} د.ع</span></div>
+                                    </div>
                                 </div>
-                                <Separator/>
-                                <div className="space-y-2 text-sm">
-                                    <div className="flex justify-between"><span>الموظف:</span><span>{users.find(u => u.id === selectedEmployeeId)?.name}</span></div>
-                                    <div className="flex justify-between"><span>المجموع الفرعي:</span><span>{subtotal.toLocaleString('ar-IQ')} د.ع</span></div>
-                                    <div className="flex justify-between"><span>الخصم:</span><span>-{discount.toLocaleString('ar-IQ')} د.ع</span></div>
-                                     <div className="flex justify-between text-green-600"><span>الربح الصافي:</span><span>{(totalProfit - discount).toLocaleString('ar-IQ')} د.ع</span></div>
-                                    <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>{finalTotal.toLocaleString('ar-IQ')} د.ع</span></div>
-                                </div>
-                            </div>
-                            <DialogFooter>
-                                <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
-                                <Button onClick={handleFinalizeSale} variant="success">تأكيد البيع</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                                <DialogFooter>
+                                    <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
+                                    <Button onClick={handleFinalizeSale} variant="success">تأكيد البيع</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="outline" className="w-full" disabled={cart.length === 0}>
+                                    <X className="me-2"/>
+                                    إلغاء الفاتورة
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>هل أنت متأكد من إلغاء الفاتورة؟</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        سيتم حذف جميع الأصناف من السلة الحالية.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>تراجع</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => {
+                                        resetSale();
+                                        toast({ title: "تم إلغاء الفاتورة" });
+                                    }} className={buttonVariants({ variant: "destructive" })}>نعم، قم بالإلغاء</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                      </>
+                    ) : (
+                        <Button onClick={() => {
+                            setSaleToPrint(sortedSales[reviewIndex]);
+                            setIsPrintReviewOpen(true);
+                        }} className="w-full">
+                            <Printer className="me-2 h-4 w-4" />
+                            طباعة الفاتورة
+                        </Button>
+                    )}
                 </CardFooter>
             </Card>
         </div>
 
         <Dialog open={isReceiptOpen} onOpenChange={(open) => {
             if (!open) {
-                resetSale();
+                if (mode === 'new') {
+                    resetSale();
+                }
             }
             setIsReceiptOpen(open);
         }}>
@@ -595,7 +701,10 @@ export default function SalesPage() {
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter className="sm:justify-between gap-2">
-                    <Button onClick={() => setIsReceiptOpen(false)} className="w-full sm:w-auto">
+                    <Button onClick={() => {
+                        setIsReceiptOpen(false);
+                        handleNewInvoiceClick();
+                    }} className="w-full sm:w-auto">
                         فاتورة جديدة
                     </Button>
                     <div className="flex gap-2">
@@ -610,7 +719,30 @@ export default function SalesPage() {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+
+        <Dialog open={isPrintReviewOpen} onOpenChange={setIsPrintReviewOpen}>
+            <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>طباعة الفاتورة #{saleToPrint?.id}</DialogTitle>
+                    <DialogDescription>معاينة سريعة قبل الطباعة.</DialogDescription>
+                </DialogHeader>
+                <div className="max-h-[60vh] overflow-y-auto border rounded-md bg-gray-50">
+                    <InvoiceTemplate sale={saleToPrint} settings={settings} ref={null} />
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">إغلاق</Button>
+                    </DialogClose>
+                    <Button onClick={handlePrint}>
+                        <Printer className="me-2 h-4 w-4" />
+                        طباعة
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
     </>
   )
 }
+
+    
