@@ -98,9 +98,9 @@ export default function PurchasesPage() {
     } else {
       const filtered = purchaseOrders.filter(po => 
         po.id.toLowerCase().includes(term) ||
-        po.supplierName.toLowerCase().includes(term) ||
+        po.supplierName.toLowerCase().startsWith(term) ||
         po.date.includes(term) ||
-        po.items?.some(item => item.name.toLowerCase().includes(term))
+        (po.items || []).some(item => item.name.toLowerCase().startsWith(term))
       );
       setFilteredPurchaseOrders(filtered);
     }
@@ -113,9 +113,9 @@ export default function PurchasesPage() {
     } else {
       const filtered = supplierReturns.filter(ret => 
         ret.id.toLowerCase().includes(term) ||
-        ret.supplierName.toLowerCase().includes(term) ||
+        ret.supplierName.toLowerCase().startsWith(term) ||
         ret.date.includes(term) ||
-        ret.items?.some(item => item.name.toLowerCase().includes(term))
+        (ret.items || []).some(item => item.name.toLowerCase().startsWith(term))
       );
       setFilteredSupplierReturns(filtered);
     }
@@ -269,9 +269,10 @@ export default function PurchasesPage() {
   const handleReturnSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setReturnMedSearchTerm(value);
-    if (value.length > 1) {
+    if (value.length > 0) {
+        const lowercasedFilter = value.toLowerCase();
         const filtered = inventory.filter(med => 
-            (med.name.toLowerCase().includes(value.toLowerCase()) || med.id.includes(value)) && med.stock > 0
+            (med.name.toLowerCase().startsWith(lowercasedFilter) || med.id.includes(lowercasedFilter)) && med.stock > 0
         );
         setReturnMedSuggestions(filtered.slice(0, 5));
     } else {
@@ -528,7 +529,7 @@ export default function PurchasesPage() {
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
-                                                    {po.items?.length > 0 ? po.items.map((item) => (
+                                                    {(po.items || []).length > 0 ? po.items.map((item) => (
                                                         <TableRow key={item.medicationId}>
                                                             <TableCell>{item.name}</TableCell>
                                                             <TableCell>{item.quantity}</TableCell>
@@ -717,7 +718,7 @@ export default function PurchasesPage() {
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
-                                                    {ret.items?.length > 0 ? ret.items.map((item) => (
+                                                    {(ret.items || []).length > 0 ? ret.items.map((item) => (
                                                         <TableRow key={item.medicationId}>
                                                             <TableCell>{item.name}</TableCell>
                                                             <TableCell>{item.quantity}</TableCell>
@@ -752,5 +753,3 @@ export default function PurchasesPage() {
     </Tabs>
   )
 }
-
-    

@@ -22,8 +22,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { useLocalStorage } from "@/hooks/use-local-storage"
-import { patients as fallbackPatients, inventory as fallbackInventory } from "@/lib/data"
-import type { Patient, Medication } from "@/lib/types"
+import { patients as fallbackPatients, inventory as fallbackInventory, trash as fallbackTrash } from "@/lib/data"
+import type { Patient, Medication, TrashItem } from "@/lib/types"
 import { PlusCircle, UserPlus, Users, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import {
   Dialog,
@@ -50,6 +50,7 @@ import { Textarea } from "@/components/ui/textarea"
 export default function PatientsPage() {
   const [patients, setPatients] = useLocalStorage<Patient[]>('patients', fallbackPatients);
   const [inventory, setInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
+  const [trash, setTrash] = useLocalStorage<TrashItem[]>('trash', fallbackTrash);
   
   const [searchTerm, setSearchTerm] = React.useState("");
   const { toast } = useToast()
@@ -123,9 +124,16 @@ export default function PatientsPage() {
       setSelectedMeds([]);
   }
 
-  const handleDeletePatient = (patientId: string) => {
-      setPatients(prev => prev.filter(p => p.id !== patientId));
-      toast({ title: "تم حذف المريض."});
+  const handleDeletePatient = (patient: Patient) => {
+      const newTrashItem: TrashItem = {
+        id: `TRASH-${Date.now()}`,
+        deletedAt: new Date().toISOString(),
+        itemType: 'patient',
+        data: patient,
+      };
+      setTrash(prev => [newTrashItem, ...prev]);
+      setPatients(prev => prev.filter(p => p.id !== patient.id));
+      toast({ title: "تم نقل المريض إلى سلة المحذوفات."});
   }
 
 
@@ -133,8 +141,8 @@ export default function PatientsPage() {
     setSelectedMeds(prev => prev.includes(medId) ? prev.filter(id => id !== medId) : [...prev, medId]);
   }
 
-  const filteredPatients = patients.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  const filteredMeds = inventory.filter(m => m.name.toLowerCase().includes(medSearch.toLowerCase()));
+  const filteredPatients = patients.filter(p => p.name.toLowerCase().startsWith(searchTerm.toLowerCase()));
+  const filteredMeds = inventory.filter(m => m.name.toLowerCase().startsWith(medSearch.toLowerCase()));
 
   return (
     <Card>
@@ -247,12 +255,12 @@ export default function PatientsPage() {
                                             <DialogHeader>
                                                 <DialogTitle>هل أنت متأكد من حذف {patient.name}؟</DialogTitle>
                                                 <DialogDescription>
-                                                    لا يمكن التراجع عن هذا الإجراء.
+                                                    سيتم نقل هذا المريض إلى سلة المحذوفات.
                                                 </DialogDescription>
                                             </DialogHeader>
                                             <DialogFooter>
                                                 <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
-                                                <Button variant="destructive" onClick={() => handleDeletePatient(patient.id)}>نعم، قم بالحذف</Button>
+                                                <Button variant="destructive" onClick={() => handleDeletePatient(patient)}>نعم، قم بالحذف</Button>
                                             </DialogFooter>
                                         </DialogContent>
                                     </Dialog>

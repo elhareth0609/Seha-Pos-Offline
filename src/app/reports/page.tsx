@@ -93,8 +93,8 @@ export default function ReportsPage() {
         const term = searchTerm.toLowerCase().trim();
         const searchMatch = !term ? true : (
             sale.id.toLowerCase().includes(term) ||
-            (sale.employeeName || '').toLowerCase().includes(term) ||
-            sale.items.some(item => item.name.toLowerCase().includes(term)) ||
+            (sale.employeeName || '').toLowerCase().startsWith(term) ||
+            sale.items.some(item => item.name.toLowerCase().startsWith(term)) ||
             (term === 'مرتجع' && sale.items.some(item => item.isReturn))
         );
 
@@ -331,5 +331,3 @@ export default function ReportsPage() {
         </div>
     )
 }
-
-    

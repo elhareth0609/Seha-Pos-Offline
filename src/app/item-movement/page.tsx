@@ -54,10 +54,11 @@ export default function ItemMovementPage() {
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setSearchTerm(value);
-        if (value.length > 1) {
+        if (value.length > 0) {
+            const lowercasedFilter = value.toLowerCase();
             const filtered = inventory.filter(item => 
-                item.name.toLowerCase().includes(value.toLowerCase()) || 
-                item.id.toLowerCase().includes(value.toLowerCase())
+                item.name.toLowerCase().startsWith(lowercasedFilter) || 
+                item.id.toLowerCase().includes(lowercasedFilter)
             );
             setSuggestions(filtered.slice(0, 5));
         } else {
