@@ -68,7 +68,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const importFileRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
 
   const [dataToImport, setDataToImport] = React.useState<object | null>(null);
   const [isImportConfirmOpen, setIsImportConfirmOpen] = React.useState(false);
