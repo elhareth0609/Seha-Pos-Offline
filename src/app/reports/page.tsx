@@ -94,15 +94,15 @@ export default function ReportsPage() {
         const searchMatch = !term ? true : (
             sale.id.toLowerCase().includes(term) ||
             (sale.employeeName || '').toLowerCase().startsWith(term) ||
-            sale.items.some(item => item.name.toLowerCase().startsWith(term)) ||
-            (term === 'مرتجع' && sale.items.some(item => item.isReturn))
+            (sale.items || []).some(item => item.name.toLowerCase().startsWith(term)) ||
+            (term === 'مرتجع' && (sale.items || []).some(item => item.isReturn))
         );
 
         const employeeMatch = employeeFilter === 'all' || sale.employeeName === employeeFilter;
         return searchMatch && employeeMatch;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
-    const totalSalesValue = filteredSales.reduce((acc, sale) => acc + sale.total, 0);
+    const totalSalesValue = filteredSales.reduce((acc, sale) => acc + (sale.total || 0), 0);
     const totalProfit = filteredSales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
     const profitMargin = totalSalesValue > 0 ? (totalProfit / totalSalesValue) * 100 : 0;
 
@@ -247,7 +247,7 @@ export default function ReportsPage() {
                                         <TableCell className="font-medium">{sale.id}</TableCell>
                                         <TableCell>{new Date(sale.date).toLocaleString('ar-EG', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric' })}</TableCell>
                                         <TableCell>{sale.employeeName || 'غير محدد'}</TableCell>
-                                        <TableCell className="text-center">{sale.items.length}</TableCell>
+                                        <TableCell className="text-center">{(sale.items || []).length}</TableCell>
                                         <TableCell className="text-left font-mono">{sale.total.toLocaleString('ar-IQ')} د.ع</TableCell>
                                         <TableCell className="text-left font-mono text-green-600">{((sale.profit || 0) - (sale.discount || 0)).toLocaleString('ar-IQ')} د.ع</TableCell>
                                         <TableCell>
@@ -276,7 +276,7 @@ export default function ReportsPage() {
                                                             </TableRow>
                                                         </TableHeader>
                                                         <TableBody>
-                                                            {sale.items.map((item, index) => (
+                                                            {(sale.items || []).map((item, index) => (
                                                                 <TableRow key={`${sale.id}-${item.medicationId}-${index}`} className={cn(item.isReturn && "text-destructive")}>
                                                                     <TableCell>{item.name} {item.saleUnit && `(${item.saleUnit})`}</TableCell>
                                                                     <TableCell>{item.quantity}</TableCell>

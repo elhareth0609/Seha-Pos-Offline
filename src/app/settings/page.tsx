@@ -18,8 +18,8 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { Textarea } from "@/components/ui/textarea"
 import { useLocalStorage } from '@/hooks/use-local-storage'
-import { appSettings as fallbackSettings } from '@/lib/data'
-import type { AppSettings, User, UserPermissions } from '@/lib/types'
+import { appSettings as fallbackSettings, trash as fallbackTrash, sales as fallbackSales } from '@/lib/data'
+import type { AppSettings, User, UserPermissions, TrashItem, Sale } from '@/lib/types'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -76,19 +76,22 @@ const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: stri
     { key: 'sales', label: 'الوصول إلى قسم المبيعات' },
     { key: 'inventory', label: 'الوصول إلى المخزون' },
     { key: 'purchases', label: 'الوصول إلى المشتريات' },
-    { key: 'suppliers', label: 'الوصول إلى الموردين والحسابات' },
+    { key: 'suppliers', label: 'الوصول إلى الموردين' },
     { key: 'reports', label: 'الوصول إلى التقارير' },
     { key: 'itemMovement', label: 'الوصول إلى حركة المادة' },
     { key: 'patients', label: 'الوصول إلى أصدقاء الصيدلية' },
     { key: 'expiringSoon', label: 'الوصول إلى قريب الانتهاء' },
+    { key: 'trash', label: 'الوصول إلى سلة المحذوفات' },
     { key: 'settings', label: 'الوصول إلى الإعدادات' },
 ];
 
 export default function SettingsPage() {
     const { toast } = useToast()
     const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
+    const [trash, setTrash] = useLocalStorage<TrashItem[]>('trash', fallbackTrash);
+    const [sales] = useLocalStorage<Sale[]>('sales', fallbackSales);
     const [isClient, setIsClient] = React.useState(false);
-    const { currentUser, users, deleteUser, registerUser, updateUserPermissions } = useAuth();
+    const { currentUser, users, setUsers, registerUser, updateUserPermissions } = useAuth();
     
     const [isAddUserOpen, setIsAddUserOpen] = React.useState(false);
     const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = React.useState(false);
@@ -143,19 +146,33 @@ export default function SettingsPage() {
         }
     }
 
-    const handleDeleteUser = async (userId: string, userName: string) => {
-        const success = await deleteUser(userId);
-        if (success) {
-            toast({ title: "تم حذف الموظف", description: `تم حذف ${userName} بنجاح.` });
-        } else {
+    const handleDeleteUser = (user: User) => {
+        if (user.role === 'Admin') {
             toast({ variant: 'destructive', title: 'خطأ', description: 'لا يمكن حذف حساب المدير.' });
+            return;
         }
+
+        const hasSales = sales.some(sale => sale.employeeId === user.id);
+        if (hasSales) {
+            toast({ variant: 'destructive', title: 'لا يمكن الحذف', description: 'هذا الموظف مرتبط بسجلات مبيعات ولا يمكن حذفه.' });
+            return;
+        }
+
+        const newTrashItem: TrashItem = {
+            id: `TRASH-${Date.now()}`,
+            deletedAt: new Date().toISOString(),
+            itemType: 'user',
+            data: user,
+        };
+        setTrash(prev => [newTrashItem, ...prev]);
+        setUsers(prev => prev.filter(u => u.id !== user.id));
+        toast({ title: "تم نقل الموظف إلى سلة المحذوفات" });
     }
     
     const openPermissionsDialog = (user: User) => {
         setEditingUser(user);
         const permissions = user.permissions || {
-            sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false
+            sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false, trash: false
         };
         setCurrentUserPermissions(permissions);
         setIsPermissionsDialogOpen(true);
@@ -418,12 +435,12 @@ export default function SettingsPage() {
                                                         <AlertDialogHeader>
                                                             <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
                                                             <AlertDialogDescription>
-                                                                سيتم حذف الموظف {user.name} بشكل نهائي.
+                                                                سيتم نقل الموظف {user.name} إلى سلة المحذوفات.
                                                             </AlertDialogDescription>
                                                         </AlertDialogHeader>
                                                         <AlertDialogFooter>
                                                             <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => handleDeleteUser(user.id, user.name)} className="bg-destructive hover:bg-destructive/90">
+                                                            <AlertDialogAction onClick={() => handleDeleteUser(user)} className="bg-destructive hover:bg-destructive/90">
                                                                 نعم، قم بالحذف
                                                             </AlertDialogAction>
                                                         </AlertDialogFooter>

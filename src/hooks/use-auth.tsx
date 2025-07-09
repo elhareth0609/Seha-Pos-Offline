@@ -9,6 +9,7 @@ import { users as fallbackUsers } from '@/lib/data';
 interface AuthContextType {
   currentUser: User | null;
   users: User[];
+  setUsers: React.Dispatch<React.SetStateAction<User[]>>;
   isAuthenticated: boolean;
   isSetup: boolean;
   loading: boolean;
@@ -18,7 +19,6 @@ interface AuthContextType {
   registerUser: (name: string, email: string, pin: string) => Promise<boolean>;
   resetPin: (email: string, newPin: string) => Promise<boolean>;
   checkUserExists: (email: string) => Promise<boolean>;
-  deleteUser: (userId: string) => Promise<boolean>;
   updateUserPermissions: (userId: string, permissions: UserPermissions) => Promise<boolean>;
 }
 
@@ -35,6 +35,7 @@ const defaultEmployeePermissions: UserPermissions = {
     expiringSoon: true,
     guide: true,
     settings: false,
+    trash: false,
 };
 
 const allPermissions: UserPermissions = {
@@ -48,6 +49,7 @@ const allPermissions: UserPermissions = {
     expiringSoon: true,
     guide: true,
     settings: true,
+    trash: true,
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -142,20 +144,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     setCurrentUser(null);
   };
-
-  const deleteUser = async (userId: string): Promise<boolean> => {
-    const userToDelete = users.find(u => u.id === userId);
-    if (!userToDelete || userToDelete.role === 'Admin') {
-        return false;
-    }
-    setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
-    return true;
-  };
   
   const isAuthenticated = !!currentUser;
 
   return (
-    <AuthContext.Provider value={{ currentUser, users, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, deleteUser, updateUserPermissions }}>
+    <AuthContext.Provider value={{ currentUser, users, setUsers, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, updateUserPermissions }}>
       {children}
     </AuthContext.Provider>
   );

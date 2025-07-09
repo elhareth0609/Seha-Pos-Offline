@@ -15,7 +15,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { HelpCircle, LayoutDashboard, ShoppingCart, Boxes, Truck, Landmark, FileText, Users, CalendarX2, Settings, Upload, KeyRound, LogIn, UserPlus } from "lucide-react"
+import { HelpCircle, LayoutDashboard, ShoppingCart, Boxes, Truck, Landmark, FileText, Users, CalendarX2, Settings, Upload, KeyRound, LogIn, UserPlus, Repeat, Trash2 } from "lucide-react"
 
 const guideSections = [
     {
@@ -94,6 +94,15 @@ const guideSections = [
         ],
     },
     {
+        icon: Repeat,
+        title: "حركة المادة",
+        content: [
+            {
+                text: "هذا القسم يوفر لك سجلاً كاملاً لكل حركة تمت على أي دواء في مخزونك. ابحث عن دواء معين لعرض تفاصيل كل عملية شراء، بيع، مرتجع زبون، أو مرتجع للمورد، مع التاريخ، الكمية، والسعر، مما يمنحك شفافية مطلقة.",
+            },
+        ],
+    },
+    {
         icon: Users,
         title: "أصدقاء الصيدلية",
         content: [
@@ -108,6 +117,15 @@ const guideSections = [
         content: [
             {
                 text: "تعرض هذه الصفحة قائمة بجميع الأدوية التي ستنتهي صلاحيتها قريبًا، بناءً على الفترة الزمنية التي تحددها في الإعدادات (افتراضيًا 90 يومًا). هذا يساعدك على إدارة المخزون وتقليل الخسائر.",
+            },
+        ],
+    },
+    {
+        icon: Trash2,
+        title: "سلة المحذوفات",
+        content: [
+            {
+                text: "عندما تقوم بحذف أي عنصر (دواء، مريض، مورد، موظف) فإنه لا يُحذف نهائياً، بل يُنقل إلى هنا. من سلة المحذوفات، يمكنك استعادة العناصر المحذوفة إلى مكانها الأصلي، أو حذفها بشكل دائم. الحذف النهائي وتفريغ السلة هي صلاحيات حصرية للمدير فقط.",
             },
         ],
     },
