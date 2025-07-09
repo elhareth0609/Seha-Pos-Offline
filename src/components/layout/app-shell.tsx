@@ -21,6 +21,7 @@ import {
   Users,
   HelpCircle,
   Repeat,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,7 +30,6 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -46,6 +46,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { UserPermissions } from "@/lib/types";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 const allNavItems = [
@@ -58,6 +59,7 @@ const allNavItems = [
   { href: "/item-movement", icon: Repeat, label: "حركة المادة" },
   { href: "/patients", icon: Users, label: "أصدقاء الصيدلية" },
   { href: "/expiring-soon", icon: CalendarX2, label: "قريب الانتهاء" },
+  { href: "/trash", icon: Trash2, label: "سلة المحذوفات" },
   { href: "/guide", icon: HelpCircle, label: "دليل الاستخدام" },
   { href: "/settings", icon: Settings, label: "الإعدادات" },
 ];
@@ -66,7 +68,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const importFileRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const { currentUser, logout } = useAuth();
+  const { currentUser } = useAuth();
 
   const [dataToImport, setDataToImport] = React.useState<object | null>(null);
   const [isImportConfirmOpen, setIsImportConfirmOpen] = React.useState(false);
@@ -76,7 +78,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (currentUser.role === 'Admin') return allNavItems;
 
     const permissions = currentUser.permissions || {
-        sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false
+        sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false, trash: false
     };
 
     const permissionMap: { [key: string]: keyof UserPermissions } = {
@@ -89,13 +91,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         '/patients': 'patients',
         '/expiring-soon': 'expiringSoon',
         '/guide': 'guide',
-        '/settings': 'settings'
+        '/settings': 'settings',
+        '/trash': 'trash',
     };
 
     return allNavItems.filter(item => {
         if (item.href === '/') return true; 
         const permissionKey = permissionMap[item.href];
-        if (!permissionKey) return false;
+        if (!permissionKey) return true; // Show items without a specific permission (like guide)
         return permissions[permissionKey];
     });
   }, [currentUser]);
@@ -241,6 +244,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              {currentUser?.role === 'Admin' && (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span tabIndex={0} className="text-sm text-muted-foreground hidden lg:block cursor-help animate-pulse outline-none">
+                                تذكر النسخ الاحتياطي!
+                            </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>لحماية بياناتك، قم بعمل نسخة احتياطية بشكل دوري.</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
 
             <div className="flex flex-1 items-center justify-end space-x-4">
