@@ -1,0 +1,9 @@
+{
+    "name": "Midgram - نظام إدارة صيدلية",
+    "short_name": "Midgram",
+    "description": "نظام إدارة صيدلية للمبيعات والمخزون والمشتريات.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#11a179"
+}
