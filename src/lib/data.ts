@@ -1,5 +1,5 @@
 
-import type { Medication, Sale, PurchaseOrder, ReturnOrder, Supplier, User, TimeLog, AppSettings, SupplierPayment, Patient } from "./types";
+import type { Medication, Sale, PurchaseOrder, ReturnOrder, Supplier, User, TimeLog, AppSettings, SupplierPayment, Patient, TrashItem } from "./types";
 
 export const suppliers: Supplier[] = [];
 
@@ -19,6 +19,8 @@ export const supplierPayments: SupplierPayment[] = [];
 
 export const timeLogs: TimeLog[] = [];
 
+export const trash: TrashItem[] = [];
+
 export const appSettings: AppSettings = {
     pharmacyName: "صيدلية Midgram",
     pharmacyAddress: "123 شارع الصحة، المدينة الطبية",
@@ -27,4 +29,3 @@ export const appSettings: AppSettings = {
     expirationThresholdDays: 90,
     invoiceFooterMessage: "شكرًا لزيارتكم!",
 }
-
