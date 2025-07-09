@@ -15,9 +15,10 @@ import {
   suppliers as fallbackSuppliers,
   purchaseOrders as fallbackPurchaseOrders,
   supplierReturns as fallbackSupplierReturns,
-  supplierPayments as fallbackSupplierPayments
+  supplierPayments as fallbackSupplierPayments,
+  trash as fallbackTrash,
 } from "@/lib/data"
-import type { Supplier, PurchaseOrder, ReturnOrder, SupplierPayment } from "@/lib/types"
+import type { Supplier, PurchaseOrder, ReturnOrder, SupplierPayment, TrashItem } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import {
@@ -72,6 +73,7 @@ export default function SuppliersPage() {
   const [purchaseOrders, setPurchaseOrders] = useLocalStorage<PurchaseOrder[]>('purchaseOrders', fallbackPurchaseOrders);
   const [supplierReturns, setSupplierReturns] = useLocalStorage<ReturnOrder[]>('supplierReturns', fallbackSupplierReturns);
   const [supplierPayments, setSupplierPayments] = useLocalStorage<SupplierPayment[]>('supplierPayments', fallbackSupplierPayments);
+  const [trash, setTrash] = useLocalStorage<TrashItem[]>('trash', fallbackTrash);
 
   const [isClient, setIsClient] = React.useState(false)
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
@@ -128,11 +130,11 @@ export default function SuppliersPage() {
     setEditingSupplier(null);
   }
 
-  const handleDeleteSupplier = (supplierId: string) => {
+  const handleDeleteSupplier = (supplier: Supplier) => {
     const hasTransactions = 
-        purchaseOrders.some(p => p.supplierId === supplierId) ||
-        supplierReturns.some(r => r.supplierId === supplierId) ||
-        supplierPayments.some(sp => sp.supplierId === supplierId);
+        purchaseOrders.some(p => p.supplierId === supplier.id) ||
+        supplierReturns.some(r => r.supplierId === supplier.id) ||
+        supplierPayments.some(sp => sp.supplierId === supplier.id);
 
     if (hasTransactions) {
         toast({
@@ -143,8 +145,16 @@ export default function SuppliersPage() {
         return;
     }
 
-    setSuppliers(prev => prev.filter(s => s.id !== supplierId));
-    toast({ title: "تم حذف المورد بنجاح" });
+    const newTrashItem: TrashItem = {
+      id: `TRASH-${Date.now()}`,
+      deletedAt: new Date().toISOString(),
+      itemType: 'supplier',
+      data: supplier,
+    };
+    setTrash(prev => [newTrashItem, ...prev]);
+
+    setSuppliers(prev => prev.filter(s => s.id !== supplier.id));
+    toast({ title: "تم نقل المورد إلى سلة المحذوفات" });
   }
 
   const handleAddPayment = (event: React.FormEvent<HTMLFormElement>) => {
@@ -331,12 +341,12 @@ export default function SuppliersPage() {
                                             <AlertDialogHeader>
                                                 <AlertDialogTitle>هل أنت متأكد من حذف {account.name}؟</AlertDialogTitle>
                                                 <AlertDialogDescription>
-                                                    لا يمكن التراجع عن هذا الإجراء.
+                                                    سيتم نقل هذا المورد إلى سلة المحذوفات.
                                                 </AlertDialogDescription>
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
                                                 <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDeleteSupplier(account.id)} className="bg-destructive hover:bg-destructive/90">
+                                                <AlertDialogAction onClick={() => handleDeleteSupplier(account)} className="bg-destructive hover:bg-destructive/90">
                                                     نعم، قم بالحذف
                                                 </AlertDialogAction>
                                             </AlertDialogFooter>
@@ -446,7 +456,7 @@ export default function SuppliersPage() {
             <Table>
                 <TableHeader className="sticky top-0 bg-background">
                     <TableRow>
-                        <TableHead>التاريخ</TableHead>
+                        <TableHead>التاريخ والوقت</TableHead>
                         <TableHead>النوع</TableHead>
                         <TableHead>التفاصيل</TableHead>
                         <TableHead className="text-destructive">مدين (علينا)</TableHead>
@@ -457,7 +467,7 @@ export default function SuppliersPage() {
                 <TableBody>
                     {statementData.items.length > 0 ? statementData.items.map((item, index) => (
                         <TableRow key={index}>
-                            <TableCell>{new Date(item.date).toLocaleDateString('ar-EG')}</TableCell>
+                            <TableCell>{new Date(item.date).toLocaleString('ar-EG', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric' })}</TableCell>
                             <TableCell>{item.type}</TableCell>
                             <TableCell>{item.details}</TableCell>
                             <TableCell className="font-mono text-destructive">{item.debit > 0 ? item.debit.toLocaleString('ar-IQ') + ' د.ع' : '-'}</TableCell>

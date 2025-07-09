@@ -29,7 +29,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
         <div>
           <h2 className="text-xl font-bold mb-2">فاتورة ضريبية مبسطة</h2>
           <p><span className="font-semibold">رقم الفاتورة:</span> {sale.id}</p>
-          <p><span className="font-semibold">التاريخ:</span> {new Date(sale.date).toLocaleString('ar-EG')}</p>
+          <p><span className="font-semibold">التاريخ والوقت:</span> {new Date(sale.date).toLocaleString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}</p>
         </div>
         <div className="text-right">
              <Barcode value={sale.id} options={{ width: 1.5, height: 50, displayValue: false }} />

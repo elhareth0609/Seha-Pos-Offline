@@ -128,7 +128,7 @@ export default function ReportsPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>رقم الفاتورة</TableHead>
-                                    <TableHead>التاريخ</TableHead>
+                                    <TableHead>التاريخ والوقت</TableHead>
                                     <TableHead>الموظف</TableHead>
                                     <TableHead className="text-center">عدد الأصناف</TableHead>
                                     <TableHead className="text-left">الإجمالي</TableHead>
@@ -231,7 +231,7 @@ export default function ReportsPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>رقم الفاتورة</TableHead>
-                                <TableHead>التاريخ</TableHead>
+                                <TableHead>التاريخ والوقت</TableHead>
                                 <TableHead>الموظف</TableHead>
                                 <TableHead className="text-center">الأصناف</TableHead>
                                 <TableHead className="text-left">الإجمالي</TableHead>
@@ -245,7 +245,7 @@ export default function ReportsPage() {
                                 <React.Fragment key={sale.id}>
                                     <TableRow onClick={() => toggleRow(sale.id)} className="cursor-pointer">
                                         <TableCell className="font-medium">{sale.id}</TableCell>
-                                        <TableCell>{new Date(sale.date).toLocaleDateString('ar-EG')}</TableCell>
+                                        <TableCell>{new Date(sale.date).toLocaleString('ar-EG', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric' })}</TableCell>
                                         <TableCell>{sale.employeeName || 'غير محدد'}</TableCell>
                                         <TableCell className="text-center">{sale.items.length}</TableCell>
                                         <TableCell className="text-left font-mono">{sale.total.toLocaleString('ar-IQ')} د.ع</TableCell>
