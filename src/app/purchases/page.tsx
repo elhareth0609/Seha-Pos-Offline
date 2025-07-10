@@ -95,6 +95,7 @@ export default function PurchasesPage() {
   const [sellingPricePerSaleUnit, setSellingPricePerSaleUnit] = React.useState('');
   const [imageFile, setImageFile] = React.useState<File | null>(null);
   const [imagePreview, setImagePreview] = React.useState<string | null>(null);
+  const imageInputRef = React.useRef<HTMLInputElement>(null);
 
 
   // State for return form
@@ -172,9 +173,24 @@ export default function PurchasesPage() {
     setExpirationDate('');
     setPurchasePricePerPurchaseUnit('');
     setSellingPricePerSaleUnit('');
+    handleRemoveImage();
+    document.getElementById('medicationId')?.focus();
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+        setImageFile(file);
+        setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleRemoveImage = () => {
+    if (imageInputRef.current) {
+        imageInputRef.current.value = "";
+    }
     setImageFile(null);
     setImagePreview(null);
-    document.getElementById('medicationId')?.focus();
   };
 
   const handleAddPurchase = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -500,20 +516,14 @@ export default function PurchasesPage() {
                                 {imagePreview ? (
                                     <>
                                         <Image src={imagePreview} alt="Preview" width={100} height={100} className="mx-auto rounded-md object-cover h-24 w-24" />
-                                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 bg-destructive/80 text-destructive-foreground hover:bg-destructive" onClick={() => { setImageFile(null); setImagePreview(null); }}>
+                                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 bg-destructive/80 text-destructive-foreground hover:bg-destructive" onClick={handleRemoveImage}>
                                             <X className="h-4 w-4" />
                                         </Button>
                                     </>
                                 ) : (
                                     <div className="space-y-1"><UploadCloud className="mx-auto h-8 w-8 text-muted-foreground" /><p className="text-sm text-muted-foreground">اسحب وأفلت أو انقر للرفع</p></div>
                                 )}
-                                <Input id="image" type="file" accept="image/*" onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if(file) {
-                                        setImageFile(file);
-                                        setImagePreview(URL.createObjectURL(file));
-                                    }
-                                }} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                                <Input id="image" ref={imageInputRef} type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                             </div>
                          </div>
                     </div>

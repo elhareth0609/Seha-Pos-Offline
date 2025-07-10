@@ -32,6 +32,10 @@ export default function SetupPage() {
     const [image2Preview, setImage2Preview] = React.useState<string | null>(null);
     const { setupAdmin } = useAuth();
     const { toast } = useToast();
+    
+    // Refs for file inputs
+    const image1InputRef = React.useRef<HTMLInputElement>(null);
+    const image2InputRef = React.useRef<HTMLInputElement>(null);
 
     const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, imageNumber: 1 | 2) => {
         const file = e.target.files?.[0];
@@ -47,6 +51,18 @@ export default function SetupPage() {
         }
     };
     
+    const handleRemoveImage = (imageNumber: 1 | 2) => {
+        if (imageNumber === 1) {
+            if (image1InputRef.current) image1InputRef.current.value = "";
+            setImage1(null);
+            setImage1Preview(null);
+        } else {
+            if (image2InputRef.current) image2InputRef.current.value = "";
+            setImage2(null);
+            setImage2Preview(null);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (adminName.trim().length < 3) {
@@ -120,7 +136,7 @@ export default function SetupPage() {
                                     {image1Preview ? (
                                         <>
                                             <Image src={image1Preview} alt="Preview 1" width={100} height={100} className="mx-auto rounded-md object-cover h-24 w-24" />
-                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 bg-destructive/80 text-destructive-foreground hover:bg-destructive" onClick={() => { setImage1(null); setImage1Preview(null); }}>
+                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 bg-destructive/80 text-destructive-foreground hover:bg-destructive" onClick={() => handleRemoveImage(1)}>
                                                 <X className="h-4 w-4" />
                                             </Button>
                                         </>
@@ -130,7 +146,7 @@ export default function SetupPage() {
                                             <p className="text-sm text-muted-foreground">اسحب وأفلت أو انقر للرفع</p>
                                         </div>
                                     )}
-                                    <Input id="image1" type="file" accept="image/*" onChange={(e) => handleImageChange(e, 1)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required />
+                                    <Input id="image1" ref={image1InputRef} type="file" accept="image/*" onChange={(e) => handleImageChange(e, 1)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required={!image1} />
                                 </div>
                             </div>
                              <div className="space-y-2">
@@ -139,7 +155,7 @@ export default function SetupPage() {
                                     {image2Preview ? (
                                         <>
                                             <Image src={image2Preview} alt="Preview 2" width={100} height={100} className="mx-auto rounded-md object-cover h-24 w-24" />
-                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 bg-destructive/80 text-destructive-foreground hover:bg-destructive" onClick={() => { setImage2(null); setImage2Preview(null); }}>
+                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 bg-destructive/80 text-destructive-foreground hover:bg-destructive" onClick={() => handleRemoveImage(2)}>
                                                 <X className="h-4 w-4" />
                                             </Button>
                                         </>
@@ -149,7 +165,7 @@ export default function SetupPage() {
                                             <p className="text-sm text-muted-foreground">اسحب وأفلت أو انقر للرفع</p>
                                         </div>
                                     )}
-                                    <Input id="image2" type="file" accept="image/*" onChange={(e) => handleImageChange(e, 2)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required />
+                                    <Input id="image2" ref={image2InputRef} type="file" accept="image/*" onChange={(e) => handleImageChange(e, 2)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required={!image2}/>
                                 </div>
                             </div>
                         </div>
