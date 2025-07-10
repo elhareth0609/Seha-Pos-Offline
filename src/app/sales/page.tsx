@@ -60,7 +60,6 @@ import { cn } from "@/lib/utils"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useReactToPrint } from "react-to-print"
 import { InvoiceTemplate } from "@/components/ui/invoice"
-import { useAuth } from "@/hooks/use-auth"
 import { buttonVariants } from "@/components/ui/button"
 
 
@@ -525,20 +524,28 @@ export default function SalesPage() {
                                             <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" disabled={mode !== 'new'}/>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="font-medium">{item.name} {item.saleUnit && `(${item.saleUnit})`}</div>
-                                            <div className="text-xs text-muted-foreground flex items-center gap-x-2">
-                                                <span>الكلفة: {item.purchasePrice.toLocaleString('ar-IQ')} د.ع</span>
-                                                <span className={cn("font-medium", itemProfit >= 0 ? "text-green-600" : "text-destructive")}>
-                                                  | الربح: {itemProfit.toLocaleString('ar-IQ')} د.ع
-                                                </span>
-                                            </div>
-                                            {mode === 'new' && (
-                                                <div className="text-xs text-muted-foreground">
-                                                    الرصيد: {stock} 
-                                                    {!item.isReturn && ` | المتبقي: `}
-                                                    {!item.isReturn && <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span>}
+                                            <div className="flex items-start gap-3">
+                                                {medInInventory?.imageUrl ? (
+                                                    <Image src={medInInventory.imageUrl} alt={item.name} width={48} height={48} className="rounded-md object-cover h-12 w-12" />
+                                                ) : (
+                                                    <div className="h-12 w-12 flex items-center justify-center rounded-md bg-muted text-muted-foreground">
+                                                        <Package className="h-6 w-6" />
+                                                    </div>
+                                                )}
+                                                <div className="flex-1">
+                                                    <div className="font-medium">{item.name}</div>
+                                                    <div className="text-xs text-muted-foreground">
+                                                        {medInInventory?.scientificName} {medInInventory?.dosage && `(${medInInventory.dosage})`}
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground">{medInInventory?.company}</div>
+                                                    <div className="text-xs text-muted-foreground mt-1 flex items-center gap-x-2">
+                                                        <span>الكلفة: {item.purchasePrice.toLocaleString('ar-IQ')} د.ع</span>
+                                                        <span className={cn("font-medium", itemProfit >= 0 ? "text-green-600" : "text-destructive")}>
+                                                          | الربح: {itemProfit.toLocaleString('ar-IQ')} د.ع
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            )}
+                                            </div>
                                         </TableCell>
                                         <TableCell>
                                         <div className="flex items-center justify-center gap-2">
