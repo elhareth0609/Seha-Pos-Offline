@@ -114,30 +114,44 @@ export default function SetupPage() {
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4 pt-2">
-                            {[1, 2].map(num => (
-                                <div key={num} className="space-y-2">
-                                    <Label htmlFor={`image${num}`}>الصورة الشخصية {num}</Label>
-                                    <div className="relative border-2 border-dashed border-muted-foreground/50 rounded-lg p-4 text-center hover:border-primary transition-colors">
-                                        {(num === 1 ? image1Preview : image2Preview) ? (
-                                            <>
-                                                <Image src={num === 1 ? image1Preview! : image2Preview!} alt={`Preview ${num}`} width={100} height={100} className="mx-auto rounded-md object-cover h-24 w-24" />
-                                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 bg-destructive/80 text-destructive-foreground hover:bg-destructive" onClick={() => {
-                                                    if (num === 1) { setImage1(null); setImage1Preview(null); }
-                                                    else { setImage2(null); setImage2Preview(null); }
-                                                }}>
-                                                    <X className="h-4 w-4" />
-                                                </Button>
-                                            </>
-                                        ) : (
-                                            <div className="space-y-1">
-                                                <UploadCloud className="mx-auto h-8 w-8 text-muted-foreground" />
-                                                <p className="text-sm text-muted-foreground">اسحب وأفلت أو انقر للرفع</p>
-                                            </div>
-                                        )}
-                                        <Input id={`image${num}`} type="file" accept="image/*" onChange={(e) => handleImageChange(e, num as 1 | 2)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required />
-                                    </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="image1">صورة الامتياز</Label>
+                                <div className="relative border-2 border-dashed border-muted-foreground/50 rounded-lg p-4 text-center hover:border-primary transition-colors">
+                                    {image1Preview ? (
+                                        <>
+                                            <Image src={image1Preview} alt="Preview 1" width={100} height={100} className="mx-auto rounded-md object-cover h-24 w-24" />
+                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 bg-destructive/80 text-destructive-foreground hover:bg-destructive" onClick={() => { setImage1(null); setImage1Preview(null); }}>
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <div className="space-y-1">
+                                            <UploadCloud className="mx-auto h-8 w-8 text-muted-foreground" />
+                                            <p className="text-sm text-muted-foreground">اسحب وأفلت أو انقر للرفع</p>
+                                        </div>
+                                    )}
+                                    <Input id="image1" type="file" accept="image/*" onChange={(e) => handleImageChange(e, 1)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required />
                                 </div>
-                            ))}
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="image2">صورة هوية النقابة</Label>
+                                <div className="relative border-2 border-dashed border-muted-foreground/50 rounded-lg p-4 text-center hover:border-primary transition-colors">
+                                    {image2Preview ? (
+                                        <>
+                                            <Image src={image2Preview} alt="Preview 2" width={100} height={100} className="mx-auto rounded-md object-cover h-24 w-24" />
+                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 bg-destructive/80 text-destructive-foreground hover:bg-destructive" onClick={() => { setImage2(null); setImage2Preview(null); }}>
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <div className="space-y-1">
+                                            <UploadCloud className="mx-auto h-8 w-8 text-muted-foreground" />
+                                            <p className="text-sm text-muted-foreground">اسحب وأفلت أو انقر للرفع</p>
+                                        </div>
+                                    )}
+                                    <Input id="image2" type="file" accept="image/*" onChange={(e) => handleImageChange(e, 2)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required />
+                                </div>
+                            </div>
                         </div>
                     </CardContent>
                     <CardFooter>
