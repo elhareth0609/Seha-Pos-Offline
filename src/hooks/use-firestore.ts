@@ -51,11 +51,11 @@ export function useFirestoreCollection<T extends { id: string }>(collectionName:
     return await addDoc(collection(db, collectionName), newData);
   }
 
-  const setData = async (id: string, newData: T) => {
+  const setDocument = async (id: string, newData: T) => {
     return await setDoc(doc(db, collectionName, id), newData);
   }
 
-  return { data, loading, add, setData };
+  return { data, loading, add, setData: setDocument };
 }
 
 // Hook to get a single document

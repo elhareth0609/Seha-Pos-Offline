@@ -21,8 +21,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { useLocalStorage } from "@/hooks/use-local-storage"
-import { patients as fallbackPatients, trash as fallbackTrash } from "@/lib/data"
+import { useFirestoreCollection } from "@/hooks/use-firestore"
 import type { Patient, TrashItem } from "@/lib/types"
 import { PlusCircle, UserPlus, Users, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import {
@@ -43,9 +42,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useLocalStorage } from "@/hooks/use-local-storage"
+import { trash as fallbackTrash } from "@/lib/data"
+
 
 export default function PatientsPage() {
-  const [patients, setPatients] = useLocalStorage<Patient[]>('patients', fallbackPatients);
+  const { data: patients, add: addPatient, setData: setPatientData } = useFirestoreCollection<Patient>('patients');
   const [trash, setTrash] = useLocalStorage<TrashItem[]>('trash', fallbackTrash);
   
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -64,19 +66,18 @@ export default function PatientsPage() {
     setIsAddDialogOpen(false);
   }
 
-  const handleAddPatient = () => {
+  const handleAddPatient = async () => {
     if (!newPatientName.trim()) {
         toast({ title: "خطأ", description: "الرجاء إدخال اسم المريض.", variant: "destructive"});
         return;
     }
 
-    const newPatient: Patient = {
-        id: `PAT${Date.now()}`,
+    const newPatient: Omit<Patient, 'id'> = {
         name: newPatientName,
         phone: newPatientPhone,
     };
     
-    setPatients(prev => [newPatient, ...prev]);
+    await addPatient(newPatient);
     toast({ title: "نجاح", description: `تمت إضافة المريض ${newPatient.name} بنجاح.` });
     resetAddDialog();
   }
@@ -86,7 +87,7 @@ export default function PatientsPage() {
     setIsEditDialogOpen(true);
   }
 
-  const handleEditPatient = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleEditPatient = async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       if (!editingPatient) return;
 
@@ -100,7 +101,7 @@ export default function PatientsPage() {
         phone,
       };
       
-      setPatients(prev => prev.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+      await setPatientData(updatedPatient.id, updatedPatient);
       toast({ title: "تم تحديث بيانات المريض بنجاح."});
       setIsEditDialogOpen(false);
       setEditingPatient(null);
@@ -114,11 +115,15 @@ export default function PatientsPage() {
         data: patient,
       };
       setTrash(prev => [newTrashItem, ...prev]);
-      setPatients(prev => prev.filter(p => p.id !== patient.id));
-      toast({ title: "تم نقل المريض إلى سلة المحذوفات."});
+      // TODO: Implement soft delete in Firestore if needed, for now it's a hard delete from the main collection
+      // For now, we are not deleting from firestore, just adding to local trash.
+      // This is not ideal for a full online system, but keeps the trash logic simple for now.
+      // await deleteDoc(doc(db, "patients", patient.id));
+      
+      toast({ title: "تم نقل المريض إلى سلة المحذوفات (مؤقتاً).", description: "الحذف النهائي من قاعدة البيانات غير مطبق بعد."});
   }
 
-  const filteredPatients = patients.filter(p => 
+  const filteredPatients = (patients || []).filter(p => 
     p.name.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
     (p.phone && p.phone.includes(searchTerm))
   );
