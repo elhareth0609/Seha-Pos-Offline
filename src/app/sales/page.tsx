@@ -57,13 +57,15 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
+import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useReactToPrint } from "react-to-print"
 import { InvoiceTemplate } from "@/components/ui/invoice"
+import { useAuth } from "@/hooks/use-auth"
 import { buttonVariants } from "@/components/ui/button"
 import { calculateDose, type DoseCalculation, type DoseCalculationInput } from "@/ai/flows/dose-calculator-flow"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useLocalStorage } from "@/hooks/use-local-storage"
-import { useAuth } from "@/hooks/use-auth"
+import { useOnlineStatus } from "@/hooks/use-online-status"
+
 
 function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => void; onOpenChange: (isOpen: boolean) => void }) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -256,6 +258,7 @@ export default function SalesPage() {
   const [mode, setMode] = React.useState<'new' | 'review'>('new');
   const [reviewIndex, setReviewIndex] = React.useState(0);
   const [isPrintReviewOpen, setIsPrintReviewOpen] = React.useState(false);
+  const isOnline = useOnlineStatus();
 
   const { toast } = useToast()
   
@@ -766,8 +769,13 @@ export default function SalesPage() {
                         <div className="flex gap-2">
                             <Dialog open={isDosingAssistantOpen} onOpenChange={setIsDosingAssistantOpen}>
                                 <DialogTrigger asChild>
-                                    <Button size="lg" variant="outline" className="w-1/4" disabled={cart.length === 0} aria-label="مساعد الجرعات">
+                                    <Button size="lg" variant="outline" className="w-1/4 relative" disabled={!isOnline || cart.length === 0} aria-label="مساعد الجرعات">
                                         <Thermometer />
+                                        {isOnline ? (
+                                            <Wifi className="absolute top-1 right-1 h-3 w-3 text-green-500" />
+                                        ) : (
+                                            <WifiOff className="absolute top-1 right-1 h-3 w-3 text-muted-foreground" />
+                                        )}
                                     </Button>
                                 </DialogTrigger>
                                 <DosingAssistant cartItems={cart} />
@@ -914,5 +922,4 @@ export default function SalesPage() {
     </div>
     </>
   )
-
-    
+}
