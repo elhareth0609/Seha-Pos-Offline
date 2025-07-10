@@ -49,6 +49,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
+import { inventory as fallbackInventory, sales as fallbackSales, appSettings as fallbackSettings, patients as fallbackPatients } from "@/lib/data"
 import type { Medication, SaleItem, Sale, AppSettings, Patient } from "@/lib/types"
 import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, ArrowLeft, ArrowRight, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
@@ -61,9 +62,8 @@ import { InvoiceTemplate } from "@/components/ui/invoice"
 import { buttonVariants } from "@/components/ui/button"
 import { calculateDose, type DoseCalculation, type DoseCalculationInput } from "@/ai/flows/dose-calculator-flow"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useFirestoreCollection, useFirestoreDocument, useOnlineStatus, writeBatch, doc, db } from '@/hooks/use-firestore'
 import { useLocalStorage } from "@/hooks/use-local-storage"
-
+import { useAuth } from "@/hooks/use-auth"
 
 function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => void; onOpenChange: (isOpen: boolean) => void }) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -229,12 +229,11 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
 }
 
 export default function SalesPage() {
-  const { data: allInventory } = useFirestoreCollection<Medication>('inventory');
-  const { data: sales, add: addSale } = useFirestoreCollection<Sale>('sales');
-  const { data: patients, add: addPatient, setData: setPatients } = useFirestoreCollection<Patient>('patients');
-  const { data: settings } = useFirestoreDocument<AppSettings>('settings', 'main');
-  const [offlineSales, setOfflineSales] = useLocalStorage<Sale[]>('offlineSalesQueue', []);
-  const isOnline = useOnlineStatus();
+  const [allInventory, setAllInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
+  const [sales, setSales] = useLocalStorage<Sale[]>('sales', fallbackSales);
+  const [patients, setPatients] = useLocalStorage<Patient[]>('patients', fallbackPatients);
+  const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
+  const { currentUser } = useAuth();
   
   const [searchTerm, setSearchTerm] = React.useState("")
   const [suggestions, setSuggestions] = React.useState<Medication[]>([])
@@ -267,34 +266,6 @@ export default function SalesPage() {
   });
   
   const sortedSales = React.useMemo(() => (sales || []).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [sales]);
-
-  // Sync offline sales when connection is restored
-  React.useEffect(() => {
-    if (isOnline && offlineSales.length > 0) {
-      const syncOfflineSales = async () => {
-        toast({ title: "مزامنة المبيعات غير المتصلة...", description: `جاري مزامنة ${offlineSales.length} فاتورة.` });
-        const batch = writeBatch(db);
-        for (const sale of offlineSales) {
-          const saleRef = doc(db, "sales", sale.id);
-          batch.set(saleRef, sale);
-          // Also update inventory for each item in the sale
-          for (const item of sale.items) {
-            const medRef = doc(db, "inventory", item.medicationId);
-            const medDoc = allInventory?.find(inv => inv.id === item.medicationId);
-            if (medDoc) {
-                const stockChange = item.isReturn ? item.quantity : -item.quantity;
-                batch.update(medRef, { stock: medDoc.stock + stockChange });
-            }
-          }
-        }
-        await batch.commit();
-        setOfflineSales([]); // Clear the queue
-        toast({ title: "اكتملت المزامنة بنجاح!", variant: "success" });
-      };
-      syncOfflineSales();
-    }
-  }, [isOnline, offlineSales, allInventory, setOfflineSales, toast]);
-
 
   const addToCart = React.useCallback((medication: Medication) => {
     if (mode !== 'new') return;
@@ -451,6 +422,10 @@ export default function SalesPage() {
   
   const handleFinalizeSale = async () => {
     const saleId = `SALE${Date.now()}`;
+    if (!currentUser) {
+        toast({ variant: 'destructive', title: "خطأ", description: "لم يتم العثور على بيانات المستخدم الحالي." });
+        return;
+    }
     const newSale: Sale = {
         id: saleId,
         date: new Date().toISOString(),
@@ -460,30 +435,25 @@ export default function SalesPage() {
         discount: discount,
         patientId: selectedPatient?.id,
         patientName: selectedPatient?.name,
+        employeeId: currentUser.id,
+        employeeName: currentUser.name,
     };
     
-    if (isOnline) {
-        const batch = writeBatch(db);
-        const saleRef = doc(db, 'sales', newSale.id);
-        batch.set(saleRef, newSale);
+    const updatedInventory = allInventory.map(med => {
+        const itemInCart = cart.find(cartItem => cartItem.medicationId === med.id);
+        if (itemInCart) {
+            const newStock = itemInCart.isReturn 
+                ? med.stock + itemInCart.quantity
+                : med.stock - itemInCart.quantity;
+            return { ...med, stock: newStock };
+        }
+        return med;
+    });
 
-        cart.forEach(item => {
-            const medRef = doc(db, 'inventory', item.medicationId);
-            const stockChange = item.isReturn ? item.quantity : -item.quantity;
-            //Firestore transaction would be better here, but for simplicity we use batch
-            const medDoc = allInventory?.find(inv => inv.id === item.medicationId);
-            if(medDoc) {
-                batch.update(medRef, { stock: medDoc.stock + stockChange });
-            }
-        });
+    setAllInventory(updatedInventory);
+    setSales(prev => [newSale, ...prev]);
 
-        await batch.commit();
-         toast({ title: "تمت العملية بنجاح", description: `تم تسجيل الفاتورة رقم ${newSale.id} ومزامنتها.` });
-    } else {
-        // Offline: Add to queue, don't update local inventory state directly
-        setOfflineSales(prev => [...prev, newSale]);
-        toast({ title: "تم حفظ العملية محلياً", description: `سيتم مزامنة الفاتورة عند عودة الاتصال بالإنترنت.` });
-    }
+    toast({ title: "تمت العملية بنجاح", description: `تم تسجيل الفاتورة رقم ${newSale.id}` });
     
     setSaleToPrint(newSale);
     setIsCheckoutOpen(false);
@@ -493,7 +463,7 @@ export default function SalesPage() {
   const loadSaleForReview = (index: number) => {
     if (index >= 0 && index < sortedSales.length) {
         const saleToReview = sortedSales[index];
-        const patient = patients?.find(p => p.id === saleToReview.patientId);
+        const patient = (patients || []).find(p => p.id === saleToReview.patientId);
         setCart(saleToReview.items);
         setDiscount(saleToReview.discount || 0);
         setDiscountInput((saleToReview.discount || 0).toString());
@@ -529,12 +499,13 @@ export default function SalesPage() {
           toast({ variant: "destructive", title: "الاسم مطلوب" });
           return;
       }
-      const newPatient: Omit<Patient, 'id'> = {
+      const newPatient: Patient = {
+          id: `PAT${Date.now()}`,
           name: newPatientName,
           phone: newPatientPhone,
       };
-      const addedDoc = await addPatient(newPatient);
-      setSelectedPatient({ id: addedDoc.id, ...newPatient});
+      setPatients(prev => [newPatient, ...prev]);
+      setSelectedPatient(newPatient);
       toast({ title: "تم إضافة المريض", description: `تم تحديد ${newPatient.name} لهذه الفاتورة.` });
       setNewPatientName("");
       setNewPatientPhone("");
@@ -731,20 +702,6 @@ export default function SalesPage() {
                 <CardHeader>
                     <div className="flex justify-between items-center">
                         <CardTitle>ملخص الفاتورة</CardTitle>
-                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            {isOnline ? (
-                                <>
-                                <Wifi className="h-4 w-4 text-green-500"/>
-                                <span>متصل</span>
-                                </>
-                            ) : (
-                                <>
-                                <WifiOff className="h-4 w-4 text-destructive"/>
-                                <span>غير متصل</span>
-                                </>
-                            )}
-                            {offlineSales.length > 0 && <span className="text-xs">({offlineSales.length} في الانتظار)</span>}
-                        </div>
                     </div>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
@@ -957,4 +914,5 @@ export default function SalesPage() {
     </div>
     </>
   )
-}
+
+    
