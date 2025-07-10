@@ -46,11 +46,12 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useAuth } from '@/hooks/use-auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Trash2, PlusCircle, ShieldCheck } from 'lucide-react'
+import { Trash2, PlusCircle, ShieldCheck, UploadCloud, X } from 'lucide-react'
 import { clearAllDBData } from '@/hooks/use-local-storage'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import Image from 'next/image'
 
 
 const settingsSchema = z.object({
@@ -85,6 +86,138 @@ const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: stri
     { key: 'settings', label: 'الوصول إلى الإعدادات' },
 ];
 
+const fileToDataUri = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
+
+function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
+    const { registerUser } = useAuth();
+    const { toast } = useToast();
+    const addUserForm = useForm<AddUserFormValues>({
+        resolver: zodResolver(addUserSchema),
+        defaultValues: { name: "", email: "", pin: "" }
+    });
+    const [image1, setImage1] = React.useState<File | null>(null);
+    const [image2, setImage2] = React.useState<File | null>(null);
+    const [image1Preview, setImage1Preview] = React.useState<string | null>(null);
+    const [image2Preview, setImage2Preview] = React.useState<string | null>(null);
+
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, imageNumber: 1 | 2) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const preview = URL.createObjectURL(file);
+            if (imageNumber === 1) {
+                setImage1(file);
+                setImage1Preview(preview);
+            } else {
+                setImage2(file);
+                setImage2Preview(preview);
+            }
+        }
+    };
+    
+    const resetDialog = () => {
+        addUserForm.reset();
+        setImage1(null);
+        setImage2(null);
+        setImage1Preview(null);
+        setImage2Preview(null);
+        onOpenChange(false);
+    }
+
+    const onAddUserSubmit = async (data: AddUserFormValues) => {
+        if (!image1 || !image2) {
+            toast({ variant: 'destructive', title: 'صور ناقصة', description: 'الرجاء رفع الصورتين المطلوبتين للموظف.' });
+            return;
+        }
+
+        try {
+            const image1DataUri = await fileToDataUri(image1);
+            const image2DataUri = await fileToDataUri(image2);
+            const success = await registerUser(data.name, data.email, data.pin, image1DataUri, image2DataUri);
+            if (success) {
+                toast({ title: "تم إضافة الموظف بنجاح!" });
+                resetDialog();
+            } else {
+                toast({ variant: 'destructive', title: "البريد الإلكتروني مستخدم", description: "هذا البريد الإلكتروني مسجل بالفعل." });
+            }
+        } catch (error) {
+             toast({ variant: 'destructive', title: 'خطأ في رفع الصور', description: 'حدثت مشكلة أثناء معالجة الصور. الرجاء المحاولة مرة أخرى.' });
+        }
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>إضافة موظف جديد</DialogTitle>
+                </DialogHeader>
+                <Form {...addUserForm}>
+                    <form onSubmit={addUserForm.handleSubmit(onAddUserSubmit)} className="space-y-4 py-2">
+                        <FormField control={addUserForm.control} name="name" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>اسم الموظف</FormLabel>
+                                <FormControl><Input placeholder="اسم الموظف الكامل" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={addUserForm.control} name="email" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>البريد الإلكتروني</FormLabel>
+                                <FormControl><Input type="email" placeholder="example@email.com" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={addUserForm.control} name="pin" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>رمز PIN (4 أرقام)</FormLabel>
+                                <FormControl><Input type="password" inputMode="numeric" maxLength={4} {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <div className="grid grid-cols-2 gap-4 pt-2">
+                             {[1, 2].map(num => (
+                                <div key={num} className="space-y-2">
+                                    <Label htmlFor={`employee-image${num}`}>الصورة الشخصية {num}</Label>
+                                    <div className="relative border-2 border-dashed border-muted-foreground/50 rounded-lg p-2 text-center hover:border-primary transition-colors h-28 flex items-center justify-center">
+                                        {(num === 1 ? image1Preview : image2Preview) ? (
+                                            <>
+                                                <Image src={num === 1 ? image1Preview! : image2Preview!} alt={`Preview ${num}`} width={100} height={100} className="rounded-md object-cover h-24 w-24" />
+                                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 bg-destructive/80 text-destructive-foreground hover:bg-destructive" onClick={() => {
+                                                    if (num === 1) { setImage1(null); setImage1Preview(null); }
+                                                    else { setImage2(null); setImage2Preview(null); }
+                                                }}>
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <div className="space-y-1 text-center">
+                                                <UploadCloud className="mx-auto h-6 w-6 text-muted-foreground" />
+                                                <p className="text-xs text-muted-foreground">ارفع صورة</p>
+                                            </div>
+                                        )}
+                                        <Input id={`employee-image${num}`} type="file" accept="image/*" onChange={(e) => handleImageChange(e, num as 1 | 2)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <DialogFooter className="pt-4">
+                            <Button type="button" variant="outline" onClick={resetDialog}>إلغاء</Button>
+                            <Button type="submit" disabled={addUserForm.formState.isSubmitting} variant="success">إضافة الموظف</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+
 export default function SettingsPage() {
     const { toast } = useToast()
     const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
@@ -102,11 +235,6 @@ export default function SettingsPage() {
         resolver: zodResolver(settingsSchema),
         defaultValues: { ...fallbackSettings },
     });
-    
-    const addUserForm = useForm<AddUserFormValues>({
-        resolver: zodResolver(addUserSchema),
-        defaultValues: { name: "", email: "", pin: "" }
-    });
 
     React.useEffect(() => {
         setIsClient(true);
@@ -120,17 +248,6 @@ export default function SettingsPage() {
         toast({
             title: "تم حفظ الإعدادات بنجاح!",
         })
-    }
-
-    const onAddUserSubmit = async (data: AddUserFormValues) => {
-        const success = await registerUser(data.name, data.email, data.pin);
-        if (success) {
-            toast({ title: "تم إضافة الموظف بنجاح!" });
-            setIsAddUserOpen(false);
-            addUserForm.reset();
-        } else {
-            toast({ variant: 'destructive', title: "البريد الإلكتروني مستخدم", description: "هذا البريد الإلكتروني مسجل بالفعل." });
-        }
     }
 
     const handleClearData = async () => {
@@ -328,57 +445,7 @@ export default function SettingsPage() {
                             إضافة، عرض، وحذف حسابات الموظفين وصلاحياتهم.
                         </CardDescription>
                     </div>
-                    <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-                        <DialogTrigger asChild>
-                            <Button size="sm"><PlusCircle className="me-2 h-4 w-4" /> إضافة موظف</Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>إضافة موظف جديد</DialogTitle>
-                            </DialogHeader>
-                            <Form {...addUserForm}>
-                                <form onSubmit={addUserForm.handleSubmit(onAddUserSubmit)} className="space-y-4 py-2">
-                                    <FormField
-                                        control={addUserForm.control}
-                                        name="name"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>اسم الموظف</FormLabel>
-                                                <FormControl><Input placeholder="اسم الموظف الكامل" {...field} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={addUserForm.control}
-                                        name="email"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>البريد الإلكتروني</FormLabel>
-                                                <FormControl><Input type="email" placeholder="example@email.com" {...field} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                     <FormField
-                                        control={addUserForm.control}
-                                        name="pin"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>رمز PIN (4 أرقام)</FormLabel>
-                                                <FormControl><Input type="password" inputMode="numeric" maxLength={4} {...field} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <DialogFooter className="pt-4">
-                                        <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
-                                        <Button type="submit" disabled={addUserForm.formState.isSubmitting} variant="success">إضافة الموظف</Button>
-                                    </DialogFooter>
-                                </form>
-                            </Form>
-                        </DialogContent>
-                    </Dialog>
+                    <Button size="sm" onClick={() => setIsAddUserOpen(true)}><PlusCircle className="me-2 h-4 w-4" /> إضافة موظف</Button>
                 </CardHeader>
                 <CardContent>
                     <Table>
@@ -393,7 +460,14 @@ export default function SettingsPage() {
                         <TableBody>
                             {users.map(user => (
                                 <TableRow key={user.id}>
-                                    <TableCell className="font-medium">{user.name}</TableCell>
+                                    <TableCell className="font-medium flex items-center gap-2">
+                                        {user.image1DataUri ? (
+                                            <Image src={user.image1DataUri} alt={user.name} width={32} height={32} className="rounded-full object-cover" />
+                                        ) : (
+                                            <div className="h-8 w-8 rounded-full bg-muted" />
+                                        )}
+                                        {user.name}
+                                    </TableCell>
                                     <TableCell>{user.email || 'N/A'}</TableCell>
                                     <TableCell>
                                         <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'}>
@@ -486,6 +560,8 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
         )}
+        
+        <AddUserDialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen} />
 
          <Dialog open={isPermissionsDialogOpen} onOpenChange={setIsPermissionsDialogOpen}>
             <DialogContent className="sm:max-w-md">

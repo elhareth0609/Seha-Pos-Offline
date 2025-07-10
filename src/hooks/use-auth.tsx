@@ -13,10 +13,10 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isSetup: boolean;
   loading: boolean;
-  setupAdmin: (name: string, email: string, pin: string) => void;
+  setupAdmin: (name: string, email: string, pin: string, image1DataUri: string, image2DataUri: string) => void;
   login: (email: string, pin: string) => Promise<boolean>;
   logout: () => void;
-  registerUser: (name: string, email: string, pin: string) => Promise<boolean>;
+  registerUser: (name: string, email: string, pin: string, image1DataUri: string, image2DataUri: string) => Promise<boolean>;
   resetPin: (email: string, newPin: string) => Promise<boolean>;
   checkUserExists: (email: string) => Promise<boolean>;
   updateUserPermissions: (userId: string, permissions: UserPermissions) => Promise<boolean>;
@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  const setupAdmin = (name: string, email: string, pin: string) => {
+  const setupAdmin = (name: string, email: string, pin: string, image1DataUri: string, image2DataUri: string) => {
     const adminUser: User = {
       id: 'ADMIN001',
       name: name,
@@ -71,12 +71,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       role: 'Admin',
       pin: pin,
       permissions: allPermissions,
+      image1DataUri,
+      image2DataUri,
     };
     setUsers([adminUser]);
     setCurrentUser(adminUser);
   };
   
-  const registerUser = async (name: string, email: string, pin: string): Promise<boolean> => {
+  const registerUser = async (name: string, email: string, pin: string, image1DataUri: string, image2DataUri: string): Promise<boolean> => {
       const userExists = users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
       if (userExists) {
         return false;
@@ -89,6 +91,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           pin,
           role: 'Employee',
           permissions: defaultEmployeePermissions,
+          image1DataUri,
+          image2DataUri,
       };
       setUsers(prev => [...prev, newUser]);
       return true;

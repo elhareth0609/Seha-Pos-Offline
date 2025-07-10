@@ -10,6 +10,7 @@ export type UserPermissions = {
     expiringSoon: boolean;
     guide: boolean;
     settings: boolean;
+    trash: boolean;
 };
 
 export type Medication = {
@@ -103,6 +104,8 @@ export type User = {
   email?: string;
   pin?: string;
   permissions?: UserPermissions;
+  image1DataUri?: string;
+  image2DataUri?: string;
 };
 
 export type Patient = {
@@ -132,3 +135,10 @@ export type AppSettings = {
     expirationThresholdDays: number;
     invoiceFooterMessage?: string;
 }
+
+export type TrashItem = {
+  id: string; // Unique ID for the trash entry
+  deletedAt: string; // ISO date string
+  itemType: 'medication' | 'patient' | 'supplier' | 'user';
+  data: Medication | Patient | Supplier | User;
+};

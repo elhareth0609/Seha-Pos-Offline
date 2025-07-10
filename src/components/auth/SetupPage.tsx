@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -7,17 +8,46 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { KeyRound, PackagePlus } from 'lucide-react';
+import { KeyRound, PackagePlus, UploadCloud, Image as ImageIcon, X } from 'lucide-react';
+import Image from 'next/image';
+
+const fileToDataUri = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
+
 
 export default function SetupPage() {
     const [adminName, setAdminName] = React.useState('');
     const [email, setEmail] = React.useState('');
     const [pin, setPin] = React.useState('');
     const [confirmPin, setConfirmPin] = React.useState('');
+    const [image1, setImage1] = React.useState<File | null>(null);
+    const [image2, setImage2] = React.useState<File | null>(null);
+    const [image1Preview, setImage1Preview] = React.useState<string | null>(null);
+    const [image2Preview, setImage2Preview] = React.useState<string | null>(null);
     const { setupAdmin } = useAuth();
     const { toast } = useToast();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, imageNumber: 1 | 2) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const preview = URL.createObjectURL(file);
+            if (imageNumber === 1) {
+                setImage1(file);
+                setImage1Preview(preview);
+            } else {
+                setImage2(file);
+                setImage2Preview(preview);
+            }
+        }
+    };
+    
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (adminName.trim().length < 3) {
             toast({ variant: 'destructive', title: 'اسم غير صالح', description: 'الرجاء إدخال اسم مكون من 3 أحرف على الأقل.' });
@@ -35,13 +65,25 @@ export default function SetupPage() {
             toast({ variant: 'destructive', title: 'رموز PIN غير متطابقة', description: 'الرجاء التأكد من تطابق رمز PIN وتأكيده.' });
             return;
         }
-        setupAdmin(adminName.trim(), email.trim().toLowerCase(), pin);
-        toast({ title: 'اكتمل الإعداد!', description: `مرحباً بك، ${adminName.trim()}! تم إعداد حساب المدير.` });
+        if (!image1 || !image2) {
+            toast({ variant: 'destructive', title: 'صور ناقصة', description: 'الرجاء رفع الصورتين المطلوبتين.' });
+            return;
+        }
+
+        try {
+            const image1DataUri = await fileToDataUri(image1);
+            const image2DataUri = await fileToDataUri(image2);
+
+            setupAdmin(adminName.trim(), email.trim().toLowerCase(), pin, image1DataUri, image2DataUri);
+            toast({ title: 'اكتمل الإعداد!', description: `مرحباً بك، ${adminName.trim()}! تم إعداد حساب المدير.` });
+        } catch (error) {
+             toast({ variant: 'destructive', title: 'خطأ في رفع الصور', description: 'حدثت مشكلة أثناء معالجة الصور. الرجاء المحاولة مرة أخرى.' });
+        }
     };
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-muted/40 p-4">
-            <Card className="w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95">
+            <Card className="w-full max-w-lg shadow-2xl animate-in fade-in zoom-in-95">
                 <CardHeader className="text-center">
                      <div className="mx-auto mb-4 bg-primary/10 p-4 rounded-full">
                         <PackagePlus className="h-12 w-12 text-primary" />
@@ -70,6 +112,32 @@ export default function SetupPage() {
                                 <Label htmlFor="confirm-pin">تأكيد الرمز</Label>
                                 <Input id="confirm-pin" type="password" inputMode="numeric" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))} maxLength={4} required />
                             </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 pt-2">
+                            {[1, 2].map(num => (
+                                <div key={num} className="space-y-2">
+                                    <Label htmlFor={`image${num}`}>الصورة الشخصية {num}</Label>
+                                    <div className="relative border-2 border-dashed border-muted-foreground/50 rounded-lg p-4 text-center hover:border-primary transition-colors">
+                                        {(num === 1 ? image1Preview : image2Preview) ? (
+                                            <>
+                                                <Image src={num === 1 ? image1Preview! : image2Preview!} alt={`Preview ${num}`} width={100} height={100} className="mx-auto rounded-md object-cover h-24 w-24" />
+                                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 bg-destructive/80 text-destructive-foreground hover:bg-destructive" onClick={() => {
+                                                    if (num === 1) { setImage1(null); setImage1Preview(null); }
+                                                    else { setImage2(null); setImage2Preview(null); }
+                                                }}>
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <div className="space-y-1">
+                                                <UploadCloud className="mx-auto h-8 w-8 text-muted-foreground" />
+                                                <p className="text-sm text-muted-foreground">اسحب وأفلت أو انقر للرفع</p>
+                                            </div>
+                                        )}
+                                        <Input id={`image${num}`} type="file" accept="image/*" onChange={(e) => handleImageChange(e, num as 1 | 2)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required />
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </CardContent>
                     <CardFooter>
