@@ -3,6 +3,7 @@
 
 import * as React from "react"
 import * as XLSX from 'xlsx';
+import Image from 'next/image';
 import {
   Card,
   CardContent,
@@ -54,7 +55,7 @@ import { useToast } from "@/hooks/use-toast"
 import { inventory as fallbackInventory, trash as fallbackTrash } from "@/lib/data"
 import type { Medication, TrashItem } from "@/lib/types"
 import { useLocalStorage } from "@/hooks/use-local-storage"
-import { MoreHorizontal, Trash2, Pencil, Printer, Upload } from "lucide-react"
+import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useReactToPrint } from 'react-to-print';
@@ -120,7 +121,7 @@ export default function InventoryPage() {
         const lowercasedFilter = searchTerm.toLowerCase();
         const filtered = sortedInventory.filter((item) =>
             (item.tradeName || '').toLowerCase().startsWith(lowercasedFilter) ||
-            item.id.toLowerCase().includes(lowercasedFilter)
+            (item.id && item.id.toLowerCase().includes(lowercasedFilter))
         );
         setFilteredInventory(filtered);
       } else {
@@ -300,6 +301,7 @@ export default function InventoryPage() {
     reader.readAsArrayBuffer(file);
   };
 
+
   if (!isClient) {
     return (
         <Card>
@@ -389,8 +391,7 @@ export default function InventoryPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>الباركود</TableHead>
-                <TableHead>الاسم</TableHead>
+                <TableHead>الاسم التجاري</TableHead>
                 <TableHead>وحدة البيع</TableHead>
                 <TableHead className="text-center">المخزون</TableHead>
                 <TableHead className="text-center">نقطة إعادة الطلب</TableHead>
@@ -403,8 +404,21 @@ export default function InventoryPage() {
             <TableBody>
               {filteredInventory.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="font-medium font-mono text-xs">{item.id}</TableCell>
-                  <TableCell>{item.tradeName}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                        {item.imageUrl ? (
+                            <Image src={item.imageUrl} alt={item.tradeName || 'Medication'} width={40} height={40} className="rounded-md object-cover h-10 w-10" />
+                        ) : (
+                            <div className="h-10 w-10 flex items-center justify-center rounded-md bg-muted text-muted-foreground">
+                                <Package className="h-5 w-5" />
+                            </div>
+                        )}
+                        <div>
+                            <div className="font-medium">{item.tradeName}</div>
+                            <div className="text-xs text-muted-foreground font-mono">{item.id}</div>
+                        </div>
+                    </div>
+                  </TableCell>
                   <TableCell>{item.saleUnit || '-'}</TableCell>
                   <TableCell className="text-center font-mono">{formatStock(item.stock, item.purchaseUnit, item.saleUnit, item.itemsPerPurchaseUnit)}</TableCell>
                   <TableCell className="text-center">{item.reorderPoint}</TableCell>

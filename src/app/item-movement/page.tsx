@@ -2,6 +2,7 @@
 "use client"
 
 import * as React from "react"
+import Image from 'next/image';
 import {
   Card,
   CardContent,
@@ -23,7 +24,7 @@ import { useLocalStorage } from "@/hooks/use-local-storage"
 import { inventory as fallbackInventory, sales as fallbackSales, purchaseOrders as fallbackPurchaseOrders, supplierReturns as fallbackSupplierReturns } from "@/lib/data"
 import type { Medication, Sale, PurchaseOrder, ReturnOrder } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Repeat, PackageSearch, ArrowUp, ArrowDown, ShoppingCart, Truck, Undo2, RotateCcw } from "lucide-react"
+import { Repeat, PackageSearch, ArrowUp, ArrowDown, ShoppingCart, Truck, Undo2, RotateCcw, Package } from "lucide-react"
 import { formatStock } from "@/lib/utils"
 
 type TransactionHistoryItem = {
@@ -58,8 +59,8 @@ export default function ItemMovementPage() {
         if (value.length > 0) {
             const lowercasedFilter = value.toLowerCase();
             const filtered = inventory.filter(item => 
-                item.tradeName.toLowerCase().startsWith(lowercasedFilter) || 
-                item.id.toLowerCase().includes(lowercasedFilter)
+                (item.tradeName || '').toLowerCase().startsWith(lowercasedFilter) || 
+                (item.id || '').toLowerCase().includes(lowercasedFilter)
             );
             setSuggestions(filtered.slice(0, 5));
         } else {
@@ -85,7 +86,7 @@ export default function ItemMovementPage() {
             }));
 
         const saleEvents = sales
-            .flatMap(s => (s.items || []).map(item => ({ ...item, date: s.date, employeeName: s.employeeName, documentId: s.id })))
+            .flatMap(s => (s.items || []).map(item => ({ ...item, date: s.date, employeeName: s.patientName || 'زبون', documentId: s.id })))
             .filter(item => item.medicationId === med.id)
             .map(item => ({
                 date: item.date,
@@ -203,8 +204,19 @@ export default function ItemMovementPage() {
                     <div className="space-y-6">
                         <Card className="bg-muted/50">
                             <CardHeader>
-                                <CardTitle>{selectedMed.tradeName}</CardTitle>
-                                <CardDescription>الرصيد الحالي في المخزون: <span className="font-bold text-foreground">{formatStock(selectedMed.stock, selectedMed.purchaseUnit, selectedMed.saleUnit, selectedMed.itemsPerPurchaseUnit)}</span></CardDescription>
+                                <div className="flex items-start gap-4">
+                                     {selectedMed.imageUrl ? (
+                                        <Image src={selectedMed.imageUrl} alt={selectedMed.tradeName || 'Medication'} width={80} height={80} className="rounded-lg object-cover h-20 w-20" />
+                                    ) : (
+                                        <div className="h-20 w-20 flex items-center justify-center rounded-lg bg-muted-foreground/10 text-muted-foreground">
+                                            <Package className="h-10 w-10" />
+                                        </div>
+                                    )}
+                                    <div>
+                                        <CardTitle>{selectedMed.tradeName}</CardTitle>
+                                        <CardDescription>الرصيد الحالي في المخزون: <span className="font-bold text-foreground">{formatStock(selectedMed.stock, selectedMed.purchaseUnit, selectedMed.saleUnit, selectedMed.itemsPerPurchaseUnit)}</span></CardDescription>
+                                    </div>
+                                </div>
                             </CardHeader>
                         </Card>
 
@@ -213,7 +225,7 @@ export default function ItemMovementPage() {
                                 <TableRow>
                                     <TableHead>التاريخ</TableHead>
                                     <TableHead>النوع</TableHead>
-                                    <TableHead>الكمية</TableHead>
+                                    <TableHead>الكمية (وحدة بيع)</TableHead>
                                     <TableHead>رصيد المخزون</TableHead>
                                     <TableHead>السعر</TableHead>
                                     <TableHead>المصدر/الوجهة</TableHead>
@@ -231,7 +243,7 @@ export default function ItemMovementPage() {
                                                 {Math.abs(item.quantity)}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="font-mono">{item.balance}</TableCell>
+                                        <TableCell className="font-mono">{formatStock(item.balance, selectedMed.purchaseUnit, selectedMed.saleUnit, selectedMed.itemsPerPurchaseUnit)}</TableCell>
                                         <TableCell className="font-mono">{item.price.toLocaleString('ar-IQ')} د.ع</TableCell>
                                         <TableCell>{item.actor}</TableCell>
                                         <TableCell>{item.documentId}</TableCell>

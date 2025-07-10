@@ -2,6 +2,7 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import {
   Card,
   CardContent,
@@ -50,7 +51,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import { inventory as fallbackInventory, sales as fallbackSales, appSettings as fallbackSettings, patients as fallbackPatients } from "@/lib/data"
 import type { Medication, SaleItem, Sale, AppSettings, Patient } from "@/lib/types"
-import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, ArrowLeft, ArrowRight, FilePlus, UserPlus } from "lucide-react"
+import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, ArrowLeft, ArrowRight, FilePlus, UserPlus, Package } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -435,7 +436,16 @@ export default function SalesPage() {
                                                     }}
                                                     className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
                                                 >
-                                                    <span>{med.tradeName} {med.saleUnit && `(${med.saleUnit})`}</span>
+                                                    <div className="flex items-center gap-3">
+                                                        {med.imageUrl ? (
+                                                            <Image src={med.imageUrl} alt={med.tradeName || ''} width={32} height={32} className="rounded-sm object-cover h-8 w-8" />
+                                                        ) : (
+                                                            <div className="h-8 w-8 flex items-center justify-center rounded-sm bg-muted text-muted-foreground">
+                                                                <Package className="h-4 w-4" />
+                                                            </div>
+                                                        )}
+                                                        <span>{med.tradeName} {med.saleUnit && `(${med.saleUnit})`}</span>
+                                                    </div>
                                                     <span className="text-sm text-muted-foreground">{med.price.toLocaleString('ar-IQ')} د.ع</span>
                                                 </li>
                                             ))}
