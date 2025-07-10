@@ -14,19 +14,33 @@ export type UserPermissions = {
 };
 
 export type Medication = {
-  id: string;
-  name: string;
+  id: string; // Barcode
+  tradeName: string; // الاسم التجاري
+  scientificName?: string; // الاسم العلمي
+  company?: string; // الشركة
+  details?: string; // تفاصيل
+  dosage?: string; // الجرعة
+  dosageForm?: string; // الشكل الدوائي
+  imageUrl?: string; // صورة الدواء
+  
+  // Stock is always in the smallest unit (saleUnit)
   stock: number;
   reorderPoint: number;
-  price: number; // Selling price
-  purchasePrice: number;
+  
+  price: number; // Selling price for ONE saleUnit
+  purchasePrice: number; // Purchase price for ONE saleUnit
+  
   expirationDate: string;
-  saleUnit?: string;
+
+  // Unit management
+  purchaseUnit: string; // e.g., 'باكيت'
+  saleUnit: string; // e.g., 'شريط'
+  itemsPerPurchaseUnit: number; // e.g., 5 (شرائط in a باكيت)
 };
 
 export type SaleItem = {
   medicationId: string;
-  name: string;
+  name: string; // This will be tradeName for display
   quantity: number;
   price: number;
   purchasePrice: number;
@@ -48,9 +62,10 @@ export type Sale = {
 
 export type PurchaseOrderItem = {
   medicationId: string;
-  name: string;
-  quantity: number;
-  purchasePrice: number;
+  name: string; // tradeName
+  quantityInPurchaseUnits: number; // How many purchaseUnits (e.g., packets)
+  totalItems: number; // Total smallest units (e.g., strips)
+  purchasePricePerSaleUnit: number; // Price per smallest unit
 };
 
 export type PurchaseOrder = {
@@ -66,8 +81,8 @@ export type PurchaseOrder = {
 export type ReturnOrderItem = {
   medicationId: string;
   name: string;
-  quantity: number;
-  purchasePrice: number;
+  quantity: number; // in sale units
+  purchasePrice: number; // per sale unit
   reason: string;
 };
 
