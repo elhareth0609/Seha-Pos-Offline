@@ -300,7 +300,6 @@ export default function InventoryPage() {
     reader.readAsArrayBuffer(file);
   };
 
-
   if (!isClient) {
     return (
         <Card>
@@ -352,153 +351,154 @@ export default function InventoryPage() {
   
   return (
     <>
-    {printingMed && (
-      <div className="hidden">
-        <div ref={printComponentRef}>
-          <Barcode value={printingMed.id} />
+      {printingMed && (
+        <div className="hidden">
+          <div ref={printComponentRef}>
+            <Barcode value={printingMed.id} />
+          </div>
         </div>
-      </div>
-    )}
-    <Card>
-      <CardHeader>
-        <CardTitle>إدارة المخزون</CardTitle>
-        <CardDescription>
-          إدارة وتتبع مخزون الأدوية الخاص بك.
-        </CardDescription>
-        <div className="pt-4 flex gap-2">
-          <Input 
-            placeholder="ابحث بالاسم أو الباركود..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
-          />
-             <Button variant="outline" onClick={handleImportClick} disabled={isImporting}>
-                <Upload className="me-2 h-4 w-4" />
-                استيراد Excel
-            </Button>
-            <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-                accept=".xlsx, .xls"
+      )}
+      <Card>
+        <CardHeader>
+          <CardTitle>إدارة المخزون</CardTitle>
+          <CardDescription>
+            إدارة وتتبع مخزون الأدوية الخاص بك.
+          </CardDescription>
+          <div className="pt-4 flex gap-2">
+            <Input 
+              placeholder="ابحث بالاسم أو الباركود..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
             />
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>الباركود</TableHead>
-              <TableHead>الاسم</TableHead>
-              <TableHead>وحدة البيع</TableHead>
-              <TableHead className="text-center">المخزون</TableHead>
-              <TableHead className="text-center">نقطة إعادة الطلب</TableHead>
-              <TableHead>تاريخ الانتهاء</TableHead>
-              <TableHead className="text-center">سعر البيع</TableHead>
-              <TableHead>الحالة</TableHead>
-              <TableHead><span className="sr-only">الإجراءات</span></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredInventory.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-medium font-mono text-xs">{item.id}</TableCell>
-                <TableCell>{item.tradeName}</TableCell>
-                <TableCell>{item.saleUnit || '-'}</TableCell>
-                <TableCell className="text-center font-mono">{formatStock(item.stock, item.purchaseUnit, item.saleUnit, item.itemsPerPurchaseUnit)}</TableCell>
-                <TableCell className="text-center">{item.reorderPoint}</TableCell>
-                <TableCell>{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
-                <TableCell className="text-center">{item.price.toLocaleString('ar-IQ')} د.ع</TableCell>
-                <TableCell>{getStockStatus(item.stock, item.reorderPoint)}</TableCell>
-                <TableCell>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button aria-haspopup="true" size="icon" variant="ghost">
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Toggle menu</span>
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
-                            <DropdownMenuItem onSelect={() => openEditModal(item)}>
-                                <Pencil className="me-2 h-4 w-4" />
-                                تعديل
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => triggerPrint(item)}>
-                                <Printer className="me-2 h-4 w-4" />
-                                طباعة الباركود
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                             <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive">
-                                      <Trash2 className="me-2 h-4 w-4" />
-                                      حذف
-                                    </button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            سيتم نقل هذا الدواء إلى سلة المحذوفات. يمكنك استعادته لاحقًا.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDelete(item)} className={buttonVariants({ variant: "destructive" })}>
-                                            نعم، قم بالحذف
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </TableCell>
+               <Button variant="outline" onClick={handleImportClick} disabled={isImporting}>
+                  <Upload className="me-2 h-4 w-4" />
+                  استيراد Excel
+              </Button>
+              <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept=".xlsx, .xls"
+              />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>الباركود</TableHead>
+                <TableHead>الاسم</TableHead>
+                <TableHead>وحدة البيع</TableHead>
+                <TableHead className="text-center">المخزون</TableHead>
+                <TableHead className="text-center">نقطة إعادة الطلب</TableHead>
+                <TableHead>تاريخ الانتهاء</TableHead>
+                <TableHead className="text-center">سعر البيع</TableHead>
+                <TableHead>الحالة</TableHead>
+                <TableHead><span className="sr-only">الإجراءات</span></TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        </div>
-      </CardContent>
+            </TableHeader>
+            <TableBody>
+              {filteredInventory.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium font-mono text-xs">{item.id}</TableCell>
+                  <TableCell>{item.tradeName}</TableCell>
+                  <TableCell>{item.saleUnit || '-'}</TableCell>
+                  <TableCell className="text-center font-mono">{formatStock(item.stock, item.purchaseUnit, item.saleUnit, item.itemsPerPurchaseUnit)}</TableCell>
+                  <TableCell className="text-center">{item.reorderPoint}</TableCell>
+                  <TableCell>{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
+                  <TableCell className="text-center">{item.price.toLocaleString('ar-IQ')} د.ع</TableCell>
+                  <TableCell>{getStockStatus(item.stock, item.reorderPoint)}</TableCell>
+                  <TableCell>
+                      <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                              <Button aria-haspopup="true" size="icon" variant="ghost">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Toggle menu</span>
+                              </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
+                              <DropdownMenuItem onSelect={() => openEditModal(item)}>
+                                  <Pencil className="me-2 h-4 w-4" />
+                                  تعديل
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => triggerPrint(item)}>
+                                  <Printer className="me-2 h-4 w-4" />
+                                  طباعة الباركود
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                               <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                      <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive">
+                                        <Trash2 className="me-2 h-4 w-4" />
+                                        حذف
+                                      </button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                          <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                              سيتم نقل هذا الدواء إلى سلة المحذوفات. يمكنك استعادته لاحقًا.
+                                          </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                          <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                          <AlertDialogAction onClick={() => handleDelete(item)} className={buttonVariants({ variant: "destructive" })}>
+                                              نعم، قم بالحذف
+                                          </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                  </AlertDialogContent>
+                              </AlertDialog>
+                          </DropdownMenuContent>
+                      </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          </div>
+        </CardContent>
 
         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>تعديل بيانات الدواء</DialogTitle>
                     <DialogDescription>
-                       قم بتحديث تفاصيل الدواء. ملاحظة: لا يمكن تعديل المخزون من هنا.
+                         قم بتحديث تفاصيل الدواء. ملاحظة: لا يمكن تعديل المخزون من هنا.
                     </DialogDescription>
                 </DialogHeader>
-                 {editingMed && (
-                    <form onSubmit={handleUpdate} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="edit-name">اسم الدواء</Label>
-                            <Input id="edit-name" name="tradeName" defaultValue={editingMed.tradeName} required />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                             <div className="space-y-2">
-                                <Label htmlFor="edit-reorderPoint">نقطة إعادة الطلب</Label>
-                                <Input id="edit-reorderPoint" name="reorderPoint" type="number" defaultValue={editingMed.reorderPoint} required />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="edit-price">سعر البيع (د.ع)</Label>
-                                <Input id="edit-price" name="price" type="number" step="1" defaultValue={editingMed.price} required />
-                            </div>
-                        </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="edit-saleUnit">وحدة البيع</Label>
-                            <Input id="edit-saleUnit" name="saleUnit" defaultValue={editingMed.saleUnit || ''} />
-                        </div>
-                        <DialogFooter>
-                            <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
-                            <Button type="submit" variant="success">حفظ التغييرات</Button>
-                        </DialogFooter>
-                    </form>
-                )}
+                   {editingMed && (
+                      <form onSubmit={handleUpdate} className="space-y-4">
+                          <div className="space-y-2">
+                              <Label htmlFor="edit-name">اسم الدواء</Label>
+                              <Input id="edit-name" name="tradeName" defaultValue={editingMed.tradeName} required />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                               <div className="space-y-2">
+                                  <Label htmlFor="edit-reorderPoint">نقطة إعادة الطلب</Label>
+                                  <Input id="edit-reorderPoint" name="reorderPoint" type="number" defaultValue={editingMed.reorderPoint} required />
+                              </div>
+                              <div className="space-y-2">
+                                  <Label htmlFor="edit-price">سعر البيع (د.ع)</Label>
+                                  <Input id="edit-price" name="price" type="number" step="1" defaultValue={editingMed.price} required />
+                              </div>
+                          </div>
+                           <div className="space-y-2">
+                              <Label htmlFor="edit-saleUnit">وحدة البيع</Label>
+                              <Input id="edit-saleUnit" name="saleUnit" defaultValue={editingMed.saleUnit || ''} />
+                          </div>
+                          <DialogFooter>
+                              <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                              <Button type="submit" variant="success">حفظ التغييرات</Button>
+                          </DialogFooter>
+                      </form>
+                  )}
             </DialogContent>
         </Dialog>
+    </Card>
     </>
   )
 }
