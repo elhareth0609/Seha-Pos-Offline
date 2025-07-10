@@ -186,8 +186,8 @@ export default function SalesPage() {
     if (value.length > 0) {
         const lowercasedFilter = value.toLowerCase();
         const filtered = allInventory.filter((item) =>
-            item.tradeName.toLowerCase().startsWith(lowercasedFilter) ||
-            item.id.toLowerCase().includes(lowercasedFilter)
+            (item.tradeName && item.tradeName.toLowerCase().startsWith(lowercasedFilter)) ||
+            (item.id && item.id.toLowerCase().includes(lowercasedFilter))
         );
         setSuggestions(filtered.slice(0, 5));
     } else {
@@ -218,13 +218,13 @@ export default function SalesPage() {
         }
 
         const lowercasedSearchTerm = searchTerm.toLowerCase();
-        const medicationById = allInventory.find(med => med.id.toLowerCase() === lowercasedSearchTerm);
+        const medicationById = allInventory.find(med => med.id && med.id.toLowerCase() === lowercasedSearchTerm);
         if (medicationById) {
             addToCart(medicationById);
             return;
         }
         
-        const medicationByName = allInventory.find(med => med.tradeName.toLowerCase() === lowercasedSearchTerm);
+        const medicationByName = allInventory.find(med => med.tradeName && med.tradeName.toLowerCase() === lowercasedSearchTerm);
         if (medicationByName) {
             addToCart(medicationByName);
             return;
