@@ -3,6 +3,13 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/hooks/use-auth';
 import AppLayoutClient from './AppLayoutClient';
+import { Tajawal } from 'next/font/google';
+
+const tajawal = Tajawal({
+  subsets: ['arabic'],
+  weight: ['400', '500', '700'],
+  variable: '--font-tajawal',
+});
 
 export const metadata: Metadata = {
   title: 'Midgram',
@@ -17,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head />
-      <body className="font-body antialiased">
+      <body className={`${tajawal.variable} font-body antialiased`}>
         <AuthProvider>
             <AppLayoutClient>
               {children}
