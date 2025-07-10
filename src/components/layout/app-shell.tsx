@@ -249,7 +249,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <span tabIndex={0} className="text-sm text-muted-foreground hidden lg:block cursor-help animate-pulse outline-none">
+                            <span tabIndex={0} className="text-sm text-muted-foreground cursor-help animate-pulse outline-none">
                                 تذكر النسخ الاحتياطي!
                             </span>
                         </TooltipTrigger>
