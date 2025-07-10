@@ -32,7 +32,7 @@ import { sales as fallbackSales, appSettings as fallbackSettings } from '@/lib/d
 import type { Sale, AppSettings } from '@/lib/types';
 import { useReactToPrint } from 'react-to-print';
 import { InvoiceTemplate } from '@/components/ui/invoice';
-import { Printer, DollarSign, TrendingUp, PieChart, ListFilter, ChevronDown } from 'lucide-react';
+import { Printer, DollarSign, TrendingUp, PieChart, ListFilter, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -44,8 +44,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { DateRange } from "react-day-picker"
+import { format, isWithinInterval, parseISO } from "date-fns"
 
 
 export default function ReportsPage() {
@@ -55,6 +59,7 @@ export default function ReportsPage() {
     const [employeeFilter, setEmployeeFilter] = React.useState("all");
     const [isClient, setIsClient] = React.useState(false);
     const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
+    const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
 
     React.useEffect(() => {
         setIsClient(true);
@@ -91,6 +96,12 @@ export default function ReportsPage() {
 
     const filteredSales = sales.filter(sale => {
         const term = searchTerm.toLowerCase().trim();
+        const saleDate = parseISO(sale.date);
+        
+        const dateMatch = !dateRange?.from || !dateRange?.to 
+            ? true 
+            : isWithinInterval(saleDate, { start: dateRange.from, end: dateRange.to });
+
         const searchMatch = !term ? true : (
             sale.id.toLowerCase().includes(term) ||
             (sale.employeeName || '').toLowerCase().startsWith(term) ||
@@ -99,7 +110,7 @@ export default function ReportsPage() {
         );
 
         const employeeMatch = employeeFilter === 'all' || sale.employeeName === employeeFilter;
-        return searchMatch && employeeMatch;
+        return dateMatch && searchMatch && employeeMatch;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     const totalSalesValue = filteredSales.reduce((acc, sale) => acc + (sale.total || 0), 0);
@@ -198,13 +209,49 @@ export default function ReportsPage() {
                 <CardHeader>
                     <CardTitle>سجل المبيعات</CardTitle>
                     <CardDescription>عرض وطباعة جميع فواتير المبيعات السابقة. اضغط على الصف لعرض التفاصيل.</CardDescription>
-                     <div className="pt-4 flex gap-2">
+                     <div className="pt-4 flex flex-wrap gap-2">
                         <Input 
                             placeholder="ابحث برقم الفاتورة، الموظف، المادة، أو اكتب 'مرتجع'..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="max-w-sm"
                         />
+                         <Popover>
+                            <PopoverTrigger asChild>
+                            <Button
+                                id="date"
+                                variant={"outline"}
+                                className={cn(
+                                "w-[300px] justify-start text-left font-normal",
+                                !dateRange && "text-muted-foreground"
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {dateRange?.from ? (
+                                dateRange.to ? (
+                                    <>
+                                    {format(dateRange.from, "LLL dd, y")} -{" "}
+                                    {format(dateRange.to, "LLL dd, y")}
+                                    </>
+                                ) : (
+                                    format(dateRange.from, "LLL dd, y")
+                                )
+                                ) : (
+                                <span>اختر نطاقًا زمنيًا</span>
+                                )}
+                            </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={dateRange?.from}
+                                selected={dateRange}
+                                onSelect={setDateRange}
+                                numberOfMonths={2}
+                            />
+                            </PopoverContent>
+                        </Popover>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" className="gap-1">
