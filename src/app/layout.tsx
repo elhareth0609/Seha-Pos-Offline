@@ -23,11 +23,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" className={tajawal.variable} suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body className={`${tajawal.variable} font-body antialiased`}>
+      <body className="font-body antialiased">
         <AuthProvider>
             <AppLayoutClient>
               {children}
