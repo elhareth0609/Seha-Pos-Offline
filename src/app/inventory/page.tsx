@@ -111,7 +111,7 @@ export default function InventoryPage() {
   }, [])
 
   const sortedInventory = React.useMemo(() => {
-    return [...allInventory].sort((a, b) => a.tradeName.localeCompare(b.tradeName));
+    return [...allInventory].sort((a, b) => (a.tradeName || '').localeCompare(b.tradeName || ''));
   }, [allInventory]);
 
   React.useEffect(() => {
@@ -119,7 +119,7 @@ export default function InventoryPage() {
       if (searchTerm) {
         const lowercasedFilter = searchTerm.toLowerCase();
         const filtered = sortedInventory.filter((item) =>
-            item.tradeName.toLowerCase().startsWith(lowercasedFilter) ||
+            (item.tradeName || '').toLowerCase().startsWith(lowercasedFilter) ||
             item.id.toLowerCase().includes(lowercasedFilter)
         );
         setFilteredInventory(filtered);
@@ -351,13 +351,13 @@ export default function InventoryPage() {
   
   return (
     <>
-      {printingMed && (
-        <div className="hidden">
-          <div ref={printComponentRef}>
-            <Barcode value={printingMed.id} />
-          </div>
-        </div>
-      )}
+      <div className="hidden">
+          {printingMed && (
+              <div ref={printComponentRef}>
+                  <Barcode value={printingMed.id} />
+              </div>
+          )}
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>إدارة المخزون</CardTitle>
@@ -461,7 +461,6 @@ export default function InventoryPage() {
           </Table>
           </div>
         </CardContent>
-
         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
             <DialogContent>
                 <DialogHeader>
@@ -498,7 +497,7 @@ export default function InventoryPage() {
                   )}
             </DialogContent>
         </Dialog>
-    </Card>
+      </Card>
     </>
   )
 }
