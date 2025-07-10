@@ -1,4 +1,6 @@
 
+import { z } from 'zod';
+
 export type UserPermissions = {
     sales: boolean;
     inventory: boolean;
@@ -152,3 +154,26 @@ export type TrashItem = {
   itemType: 'medication' | 'patient' | 'supplier' | 'user';
   data: Medication | Patient | Supplier | User;
 };
+
+// AI Flow Schemas
+const MedicationInfoSchema = z.object({
+  tradeName: z.string().describe('The commercial trade name of the medication.'),
+  dosage: z.string().describe('The dosage strength of the medication (e.g., "500mg", "100mg/5ml").'),
+  dosageForm: z.string().describe('The form of the medication (e.g., "Tablet", "Syrup", "Capsule").'),
+});
+
+export const DoseCalculationInputSchema = z.object({
+  patientAge: z.number().describe('The age of the patient in years.'),
+  medications: z.array(MedicationInfoSchema).describe('A list of medications in the current transaction.'),
+});
+export type DoseCalculationInput = z.infer<typeof DoseCalculationInputSchema>;
+
+export const DoseCalculationSchema = z.object({
+    tradeName: z.string().describe('The trade name of the medication being analyzed.'),
+    suggestedDose: z.string().describe('The suggested dose, frequency, and duration for the patient. For example: "نصف حبة (250mg) مرتين يوميًا لمدة 5 أيام". Be specific and clear.'),
+    warning: z.string().optional().describe('Any critical warnings or contraindications for this age group, if applicable. For example: "لا يستخدم للأطفال أقل من سنتين".'),
+});
+export type DoseCalculation = z.infer<typeof DoseCalculationSchema>;
+
+export const DoseCalculationOutputSchema = z.array(DoseCalculationSchema);
+export type DoseCalculationOutput = z.infer<typeof DoseCalculationOutputSchema>;
