@@ -9,8 +9,8 @@ import SetupPage from '@/components/auth/SetupPage';
 import LoginPage from '@/components/auth/LoginPage';
 
 export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
-    const { loading, isAuthenticated, isSetup } = useAuth();
-    
+    const { loading, isSetup, isAuthenticated } = useAuth();
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-muted/40">

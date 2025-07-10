@@ -2,17 +2,18 @@
 "use client";
 
 import * as React from 'react';
-import { useFirestoreCollection, useFirestoreDocument, db } from './use-firestore';
+import { useLocalStorage } from './use-local-storage';
 import type { User, UserPermissions } from '@/lib/types';
-import { doc, setDoc } from 'firebase/firestore';
+import { users as fallbackUsers } from '@/lib/data';
 
 interface AuthContextType {
   currentUser: User | null;
   users: User[];
+  setUsers: (users: User[] | ((val: User[]) => User[])) => void;
   isAuthenticated: boolean;
   isSetup: boolean;
   loading: boolean;
-  setupAdmin: (name: string, email: string, pin: string, image1DataUri: string, image2DataUri: string) => Promise<void>;
+  setupAdmin: (name: string, email: string, pin: string, image1DataUri: string, image2DataUri: string) => void;
   login: (email: string, pin: string) => Promise<boolean>;
   logout: () => void;
   registerUser: (name: string, email: string, pin: string) => Promise<boolean>;
@@ -52,44 +53,29 @@ const allPermissions: UserPermissions = {
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { data: users, loading: usersLoading, add: addUser, setData: setUser } = useFirestoreCollection<User>('users');
-  const { data: settingsDoc, loading: settingsLoading } = useFirestoreDocument('settings', 'main');
-  
-  const [currentUser, setCurrentUser] = React.useState<User | null>(null);
-  const [isSetup, setIsSetup] = React.useState(false);
+  const [users, setUsers] = useLocalStorage<User[]>('users', fallbackUsers);
+  const [currentUser, setCurrentUser] = useLocalStorage<User | null>('currentUser', null);
   const [loading, setLoading] = React.useState(true);
-  
-  React.useEffect(() => {
-    // Determine setup status once settings are loaded
-    if (!settingsLoading) {
-      setIsSetup(!!settingsDoc);
-    }
-  }, [settingsDoc, settingsLoading]);
+
+  const isSetup = users.length > 0;
 
   React.useEffect(() => {
-    // Overall loading state depends on both users and settings
-    setLoading(usersLoading || settingsLoading);
-  }, [usersLoading, settingsLoading]);
+    setLoading(false);
+  }, []);
 
-
-  const setupAdmin = async (name: string, email: string, pin: string, image1DataUri: string, image2DataUri: string) => {
+  const setupAdmin = (name: string, email: string, pin: string, image1DataUri: string, image2DataUri: string) => {
     const adminUser: User = {
       id: 'ADMIN001',
-      name,
-      email,
+      name: name,
+      email: email,
       role: 'Admin',
-      pin,
+      pin: pin,
       permissions: allPermissions,
       image1DataUri,
-      image2DataUri,
+      image2DataUri
     };
-    // Use `setDoc` with a specific ID for the admin user
-    await setDoc(doc(db, "users", adminUser.id), adminUser);
-    // Also mark setup as complete
-    await setDoc(doc(db, "settings", "main"), { initialized: true });
-
+    setUsers([adminUser]);
     setCurrentUser(adminUser);
-    setIsSetup(true);
   };
   
   const registerUser = async (name: string, email: string, pin: string): Promise<boolean> => {
@@ -98,41 +84,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
       
-      const newUser: Omit<User, 'id'> = {
+      const newUser: User = {
+          id: `USR${Date.now()}`,
           name,
           email,
           pin,
           role: 'Employee',
           permissions: defaultEmployeePermissions,
       };
-      await addUser(newUser);
+      setUsers(prev => [...prev, newUser]);
       return true;
   }
   
   const checkUserExists = async (email: string): Promise<boolean> => {
-      return (users || []).some(u => u && u.email && u.email.toLowerCase() === email.toLowerCase());
+      return users.some(u => u && u.email && u.email.toLowerCase() === email.toLowerCase());
   }
   
   const resetPin = async (email: string, newPin: string): Promise<boolean> => {
-      const userToUpdate = (users || []).find(u => u && u.email && u.email.toLowerCase() === email.toLowerCase());
-      if (userToUpdate) {
-        await setUser(userToUpdate.id, { ...userToUpdate, pin: newPin });
-        return true;
+      let userFound = false;
+      const updatedUsers = users.map(u => {
+          if (u && u.email && u.email.toLowerCase() === email.toLowerCase()) {
+              userFound = true;
+              return { ...u, pin: newPin };
+          }
+          return u;
+      });
+
+      if (userFound) {
+          setUsers(updatedUsers);
+          return true;
       }
       return false;
   }
 
   const updateUserPermissions = async (userId: string, permissions: UserPermissions): Promise<boolean> => {
-      const userToUpdate = (users || []).find(u => u.id === userId);
-      if (userToUpdate && userToUpdate.role === 'Employee') {
-        await setUser(userId, { ...userToUpdate, permissions });
-        return true;
+      let userFound = false;
+      const updatedUsers = users.map(u => {
+          if (u.id === userId && u.role === 'Employee') {
+              userFound = true;
+              return { ...u, permissions };
+          }
+          return u;
+      });
+
+      if (userFound) {
+          setUsers(updatedUsers);
+          return true;
       }
       return false;
   }
 
   const login = async (email: string, pin: string): Promise<boolean> => {
-    const userToLogin = (users || []).find(u => u && u.email && u.email.toLowerCase() === email.toLowerCase() && u.pin === pin);
+    const userToLogin = users.find(u => u && u.email && u.email.toLowerCase() === email.toLowerCase() && u.pin === pin);
     if (userToLogin) {
       setCurrentUser(userToLogin);
       return true;
@@ -143,11 +146,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     setCurrentUser(null);
   };
-  
+
   const isAuthenticated = !!currentUser;
 
   return (
-    <AuthContext.Provider value={{ currentUser, users: users || [], isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, updateUserPermissions }}>
+    <AuthContext.Provider value={{ currentUser, users, setUsers, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, updateUserPermissions }}>
       {children}
     </AuthContext.Provider>
   );
