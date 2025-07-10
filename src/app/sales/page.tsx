@@ -48,9 +48,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import { inventory as fallbackInventory, sales as fallbackSales, appSettings as fallbackSettings } from "@/lib/data"
-import type { Medication, SaleItem, Sale, AppSettings } from "@/lib/types"
-import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, ArrowLeft, ArrowRight, FilePlus } from "lucide-react"
+import { inventory as fallbackInventory, sales as fallbackSales, appSettings as fallbackSettings, patients as fallbackPatients } from "@/lib/data"
+import type { Medication, SaleItem, Sale, AppSettings, Patient } from "@/lib/types"
+import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, ArrowLeft, ArrowRight, FilePlus, UserPlus } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -60,13 +60,6 @@ import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useReactToPrint } from "react-to-print"
 import { InvoiceTemplate } from "@/components/ui/invoice"
 import { useAuth } from "@/hooks/use-auth"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { buttonVariants } from "@/components/ui/button"
 
 
@@ -135,8 +128,8 @@ function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => 
 export default function SalesPage() {
   const [allInventory, setAllInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
   const [sales, setSales] = useLocalStorage<Sale[]>('sales', fallbackSales);
+  const [patients, setPatients] = useLocalStorage<Patient[]>('patients', fallbackPatients);
   const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
-  const { currentUser, users } = useAuth();
   
   const [searchTerm, setSearchTerm] = React.useState("")
   const [suggestions, setSuggestions] = React.useState<Medication[]>([])
@@ -147,7 +140,13 @@ export default function SalesPage() {
   const [saleToPrint, setSaleToPrint] = React.useState<Sale | null>(null);
   const [discount, setDiscount] = React.useState(0);
   const [discountInput, setDiscountInput] = React.useState("0");
-  const [selectedEmployeeId, setSelectedEmployeeId] = React.useState<string | undefined>(currentUser?.id);
+
+  const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
+  const [isPatientModalOpen, setIsPatientModalOpen] = React.useState(false);
+  const [patientSearchTerm, setPatientSearchTerm] = React.useState("");
+  const [newPatientName, setNewPatientName] = React.useState("");
+  const [newPatientPhone, setNewPatientPhone] = React.useState("");
+
 
   const [mode, setMode] = React.useState<'new' | 'review'>('new');
   const [reviewIndex, setReviewIndex] = React.useState(0);
@@ -163,12 +162,6 @@ export default function SalesPage() {
   
   const sortedSales = React.useMemo(() => sales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [sales]);
 
-  React.useEffect(() => {
-    if (currentUser && !selectedEmployeeId) {
-        setSelectedEmployeeId(currentUser.id);
-    }
-  }, [currentUser, selectedEmployeeId]);
-
   const addToCart = React.useCallback((medication: Medication) => {
     if (mode !== 'new') return;
     setCart((prevCart) => {
@@ -180,7 +173,7 @@ export default function SalesPage() {
             : item
         )
       }
-      return [...prevCart, { medicationId: medication.id, name: medication.name, quantity: 1, price: medication.price, purchasePrice: medication.purchasePrice, expirationDate: medication.expirationDate, isReturn: false, saleUnit: medication.saleUnit }]
+      return [...prevCart, { medicationId: medication.id, name: medication.tradeName, quantity: 1, price: medication.price, purchasePrice: medication.purchasePrice, expirationDate: medication.expirationDate, isReturn: false, saleUnit: medication.saleUnit }]
     })
     setSearchTerm("")
     setSuggestions([])
@@ -193,7 +186,7 @@ export default function SalesPage() {
     if (value.length > 0) {
         const lowercasedFilter = value.toLowerCase();
         const filtered = allInventory.filter((item) =>
-            item.name.toLowerCase().startsWith(lowercasedFilter) ||
+            item.tradeName.toLowerCase().startsWith(lowercasedFilter) ||
             item.id.toLowerCase().includes(lowercasedFilter)
         );
         setSuggestions(filtered.slice(0, 5));
@@ -207,7 +200,7 @@ export default function SalesPage() {
     const scannedMedication = allInventory.find(med => med.id === result);
     if (scannedMedication) {
       addToCart(scannedMedication);
-      toast({ title: 'تمت الإضافة إلى السلة', description: `تمت إضافة ${scannedMedication.name} بنجاح.` });
+      toast({ title: 'تمت الإضافة إلى السلة', description: `تمت إضافة ${scannedMedication.tradeName} بنجاح.` });
     } else {
       toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'الباركود الممسوح ضوئيًا لا يتطابق مع أي منتج.' });
     }
@@ -231,7 +224,7 @@ export default function SalesPage() {
             return;
         }
         
-        const medicationByName = allInventory.find(med => med.name.toLowerCase() === lowercasedSearchTerm);
+        const medicationByName = allInventory.find(med => med.tradeName.toLowerCase() === lowercasedSearchTerm);
         if (medicationByName) {
             addToCart(medicationByName);
             return;
@@ -300,10 +293,7 @@ export default function SalesPage() {
       toast({ title: "السلة فارغة", description: "أضف منتجات إلى السلة قبل إتمام العملية.", variant: "destructive" })
       return;
     }
-    if (!selectedEmployeeId) {
-        toast({ title: "لم يتم تحديد الموظف", description: "الرجاء اختيار الموظف البائع من القائمة.", variant: "destructive" });
-        return;
-    }
+    
     for (const itemInCart of cart) {
         if (!itemInCart.isReturn) {
             const med = allInventory.find(m => m.id === itemInCart.medicationId);
@@ -322,14 +312,10 @@ export default function SalesPage() {
     setDiscountInput("0");
     setSearchTerm("");
     setSaleToPrint(null);
+    setSelectedPatient(null);
   }
   
   const handleFinalizeSale = () => {
-    const selectedEmployee = users.find(u => u.id === selectedEmployeeId);
-    if (!selectedEmployee) {
-        toast({ title: "خطأ", description: "الرجاء اختيار الموظف البائع.", variant: "destructive" });
-        return;
-    }
     const updatedInventory = allInventory.map(med => {
         const itemInCart = cart.find(cartItem => cartItem.medicationId === med.id);
         if (itemInCart) {
@@ -349,8 +335,8 @@ export default function SalesPage() {
         total: finalTotal,
         profit: totalProfit,
         discount: discount,
-        employeeId: selectedEmployee.id,
-        employeeName: selectedEmployee.name,
+        patientId: selectedPatient?.id,
+        patientName: selectedPatient?.name,
     };
     setSales(prev => [newSale, ...prev]);
     toast({
@@ -365,10 +351,11 @@ export default function SalesPage() {
   const loadSaleForReview = (index: number) => {
     if (index >= 0 && index < sortedSales.length) {
         const saleToReview = sortedSales[index];
+        const patient = patients.find(p => p.id === saleToReview.patientId);
         setCart(saleToReview.items);
         setDiscount(saleToReview.discount || 0);
         setDiscountInput((saleToReview.discount || 0).toString());
-        setSelectedEmployeeId(saleToReview.employeeId);
+        setSelectedPatient(patient || null);
         setReviewIndex(index);
         setMode('review');
         setSearchTerm('');
@@ -393,8 +380,28 @@ export default function SalesPage() {
   const handleNewInvoiceClick = () => {
     setMode('new');
     resetSale();
-    setSelectedEmployeeId(currentUser?.id);
   };
+
+  const handleAddNewPatient = () => {
+      if (!newPatientName.trim()) {
+          toast({ variant: "destructive", title: "الاسم مطلوب" });
+          return;
+      }
+      const newPatient: Patient = {
+          id: `PAT-${Date.now()}`,
+          name: newPatientName,
+          phone: newPatientPhone,
+      };
+      setPatients(prev => [newPatient, ...prev]);
+      setSelectedPatient(newPatient);
+      toast({ title: "تم إضافة المريض", description: `تم تحديد ${newPatient.name} لهذه الفاتورة.` });
+      setNewPatientName("");
+      setNewPatientPhone("");
+      setPatientSearchTerm("");
+      setIsPatientModalOpen(false);
+  }
+
+  const filteredPatients = patients.filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()));
 
   return (
     <>
@@ -428,7 +435,7 @@ export default function SalesPage() {
                                                     }}
                                                     className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
                                                 >
-                                                    <span>{med.name} {med.saleUnit && `(${med.saleUnit})`}</span>
+                                                    <span>{med.tradeName} {med.saleUnit && `(${med.saleUnit})`}</span>
                                                     <span className="text-sm text-muted-foreground">{med.price.toLocaleString('ar-IQ')} د.ع</span>
                                                 </li>
                                             ))}
@@ -568,24 +575,39 @@ export default function SalesPage() {
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                      <div className="space-y-2">
-                        <Label htmlFor="employee-selector">الموظف البائع</Label>
-                        <Select
-                            value={selectedEmployeeId}
-                            onValueChange={setSelectedEmployeeId}
-                            required
-                            disabled={mode !== 'new'}
-                        >
-                            <SelectTrigger id="employee-selector">
-                                <SelectValue placeholder="اختر الموظف" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {users.map(user => (
-                                    <SelectItem key={user.id} value={user.id}>
-                                        {user.name} ({user.role === 'Admin' ? 'مدير' : 'موظف'})
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Label>صديق الصيدلية (الزبون)</Label>
+                        <Dialog open={isPatientModalOpen} onOpenChange={setIsPatientModalOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" className="w-full justify-start text-left font-normal" disabled={mode !== 'new'}>
+                                    {selectedPatient ? selectedPatient.name : "تحديد صديق الصيدلية"}
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>تحديد أو إضافة صديق للصيدلية</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                    <Input placeholder="ابحث بالاسم..." value={patientSearchTerm} onChange={(e) => setPatientSearchTerm(e.target.value)} />
+                                    <ScrollArea className="h-48 border rounded-md">
+                                        {filteredPatients.map(p => (
+                                            <div key={p.id} onClick={() => { setSelectedPatient(p); setIsPatientModalOpen(false); }}
+                                                className="p-2 hover:bg-accent cursor-pointer">
+                                                {p.name}
+                                            </div>
+                                        ))}
+                                    </ScrollArea>
+                                    <Separator />
+                                    <div className="space-y-2">
+                                        <h4 className="font-medium">أو إضافة جديد</h4>
+                                        <Input placeholder="اسم المريض الجديد" value={newPatientName} onChange={e => setNewPatientName(e.target.value)} />
+                                        <Input placeholder="رقم الهاتف (اختياري)" value={newPatientPhone} onChange={e => setNewPatientPhone(e.target.value)} />
+                                        <Button onClick={handleAddNewPatient} className="w-full" variant="success">
+                                            <UserPlus className="me-2" /> إضافة وتحديد
+                                        </Button>
+                                    </div>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
                      </div>
                     <Separator />
 
@@ -612,7 +634,7 @@ export default function SalesPage() {
                       <>
                         <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
                             <DialogTrigger asChild>
-                                <Button size="lg" className="w-full" onClick={handleCheckout} disabled={cart.length === 0 || !selectedEmployeeId} variant="success">
+                                <Button size="lg" className="w-full" onClick={handleCheckout} disabled={cart.length === 0} variant="success">
                                     إتمام العملية
                                 </Button>
                             </DialogTrigger>
@@ -643,7 +665,7 @@ export default function SalesPage() {
                                     </div>
                                     <Separator/>
                                     <div className="space-y-2 text-sm">
-                                        <div className="flex justify-between"><span>الموظف:</span><span>{users.find(u => u.id === selectedEmployeeId)?.name}</span></div>
+                                        {selectedPatient && <div className="flex justify-between"><span>المريض:</span><span>{selectedPatient.name}</span></div>}
                                         <div className="flex justify-between"><span>المجموع الفرعي:</span><span>{subtotal.toLocaleString('ar-IQ')} د.ع</span></div>
                                         <div className="flex justify-between"><span>الخصم:</span><span>-{discount.toLocaleString('ar-IQ')} د.ع</span></div>
                                          <div className="flex justify-between text-green-600"><span>الربح الصافي:</span><span>{(totalProfit - discount).toLocaleString('ar-IQ')} د.ع</span></div>

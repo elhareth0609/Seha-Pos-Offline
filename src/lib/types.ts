@@ -56,8 +56,8 @@ export type Sale = {
   total: number;
   profit: number;
   discount?: number;
-  employeeId: string;
-  employeeName: string;
+  patientId?: string;
+  patientName?: string;
 };
 
 export type PurchaseOrderItem = {
@@ -126,12 +126,7 @@ export type User = {
 export type Patient = {
   id: string;
   name: string;
-  medications: {
-    medicationId: string;
-    name: string;
-    saleUnit?: string;
-  }[];
-  notes?: string;
+  phone?: string;
 };
 
 

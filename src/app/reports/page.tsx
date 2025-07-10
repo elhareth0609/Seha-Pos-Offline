@@ -35,15 +35,6 @@ import { InvoiceTemplate } from '@/components/ui/invoice';
 import { Printer, DollarSign, TrendingUp, PieChart, ListFilter, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuLabel,
-    DropdownMenuRadioGroup,
-    DropdownMenuRadioItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from '@/lib/utils';
@@ -56,7 +47,6 @@ export default function ReportsPage() {
     const [sales] = useLocalStorage<Sale[]>('sales', fallbackSales);
     const [settings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
     const [searchTerm, setSearchTerm] = React.useState("");
-    const [employeeFilter, setEmployeeFilter] = React.useState("all");
     const [isClient, setIsClient] = React.useState(false);
     const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
     const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
@@ -64,11 +54,6 @@ export default function ReportsPage() {
     React.useEffect(() => {
         setIsClient(true);
     }, []);
-
-    const employees = React.useMemo(() => {
-        const employeeSet = new Set(sales.map(s => s.employeeName).filter(Boolean));
-        return ['all', ...Array.from(employeeSet)];
-    }, [sales]);
 
     const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
     const [selectedSale, setSelectedSale] = React.useState<Sale | null>(null);
@@ -104,13 +89,12 @@ export default function ReportsPage() {
 
         const searchMatch = !term ? true : (
             sale.id.toLowerCase().includes(term) ||
-            (sale.employeeName || '').toLowerCase().startsWith(term) ||
+            (sale.patientName || '').toLowerCase().startsWith(term) ||
             (sale.items || []).some(item => item.name.toLowerCase().startsWith(term)) ||
             (term === 'مرتجع' && (sale.items || []).some(item => item.isReturn))
         );
 
-        const employeeMatch = employeeFilter === 'all' || sale.employeeName === employeeFilter;
-        return dateMatch && searchMatch && employeeMatch;
+        return dateMatch && searchMatch;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     const totalSalesValue = filteredSales.reduce((acc, sale) => acc + (sale.total || 0), 0);
@@ -140,7 +124,7 @@ export default function ReportsPage() {
                                 <TableRow>
                                     <TableHead>رقم الفاتورة</TableHead>
                                     <TableHead>التاريخ والوقت</TableHead>
-                                    <TableHead>الموظف</TableHead>
+                                    <TableHead>المريض</TableHead>
                                     <TableHead className="text-center">عدد الأصناف</TableHead>
                                     <TableHead className="text-left">الإجمالي</TableHead>
                                     <TableHead className="text-left">الربح</TableHead>
@@ -211,7 +195,7 @@ export default function ReportsPage() {
                     <CardDescription>عرض وطباعة جميع فواتير المبيعات السابقة. اضغط على الصف لعرض التفاصيل.</CardDescription>
                      <div className="pt-4 flex flex-wrap gap-2">
                         <Input 
-                            placeholder="ابحث برقم الفاتورة، الموظف، المادة، أو اكتب 'مرتجع'..."
+                            placeholder="ابحث برقم الفاتورة، المريض، المادة، أو اكتب 'مرتجع'..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="max-w-sm"
@@ -252,25 +236,6 @@ export default function ReportsPage() {
                             />
                             </PopoverContent>
                         </Popover>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="gap-1">
-                                    <ListFilter className="h-3.5 w-3.5" />
-                                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                                        تصفية بالموظف
-                                    </span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start">
-                                <DropdownMenuLabel>تصفية حسب الموظف</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuRadioGroup value={employeeFilter} onValueChange={setEmployeeFilter}>
-                                    {employees.map(emp => (
-                                        <DropdownMenuRadioItem key={emp} value={emp}>{emp === 'all' ? 'الكل' : emp}</DropdownMenuRadioItem>
-                                    ))}
-                                </DropdownMenuRadioGroup>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -279,7 +244,7 @@ export default function ReportsPage() {
                             <TableRow>
                                 <TableHead>رقم الفاتورة</TableHead>
                                 <TableHead>التاريخ والوقت</TableHead>
-                                <TableHead>الموظف</TableHead>
+                                <TableHead>المريض</TableHead>
                                 <TableHead className="text-center">الأصناف</TableHead>
                                 <TableHead className="text-left">الإجمالي</TableHead>
                                 <TableHead className="text-left">الربح</TableHead>
@@ -293,7 +258,7 @@ export default function ReportsPage() {
                                     <TableRow onClick={() => toggleRow(sale.id)} className="cursor-pointer">
                                         <TableCell className="font-medium">{sale.id}</TableCell>
                                         <TableCell>{new Date(sale.date).toLocaleString('ar-EG', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric' })}</TableCell>
-                                        <TableCell>{sale.employeeName || 'غير محدد'}</TableCell>
+                                        <TableCell>{sale.patientName || 'غير محدد'}</TableCell>
                                         <TableCell className="text-center">{(sale.items || []).length}</TableCell>
                                         <TableCell className="text-left font-mono">{sale.total.toLocaleString('ar-IQ')} د.ع</TableCell>
                                         <TableCell className="text-left font-mono text-green-600">{((sale.profit || 0) - (sale.discount || 0)).toLocaleString('ar-IQ')} د.ع</TableCell>
