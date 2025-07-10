@@ -30,6 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -244,20 +245,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
-
+              
               {currentUser?.role === 'Admin' && (
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <span tabIndex={0} className="text-sm text-muted-foreground cursor-help animate-pulse outline-none">
-                                تذكر النسخ الاحتياطي!
-                            </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>لحماية بياناتك، قم بعمل نسخة احتياطية بشكل دوري.</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
+                <div className="hidden sm:block">
+                  <TooltipProvider>
+                      <Tooltip>
+                          <TooltipTrigger asChild>
+                              <span tabIndex={0} className="text-sm text-muted-foreground cursor-help animate-pulse outline-none">
+                                  تذكر النسخ الاحتياطي!
+                              </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                              <p>لحماية بياناتك، قم بعمل نسخة احتياطية بشكل دوري.</p>
+                          </TooltipContent>
+                      </Tooltip>
+                  </TooltipProvider>
+                </div>
               )}
             </div>
 
@@ -280,7 +283,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <main className="flex-1">
-          <div className="container py-8">{children}</div>
+          <div className="container py-4">{children}</div>
         </main>
       </div>
     </>
