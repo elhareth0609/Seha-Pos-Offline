@@ -61,6 +61,7 @@ import { useReactToPrint } from 'react-to-print';
 import Barcode from '@/components/ui/barcode';
 import { Progress } from "@/components/ui/progress";
 import { buttonVariants } from "@/components/ui/button";
+import { formatStock } from "@/lib/utils";
 
 
 export default function InventoryPage() {
@@ -110,7 +111,7 @@ export default function InventoryPage() {
   }, [])
 
   const sortedInventory = React.useMemo(() => {
-    return [...allInventory].sort((a, b) => a.name.localeCompare(b.name));
+    return [...allInventory].sort((a, b) => a.tradeName.localeCompare(b.tradeName));
   }, [allInventory]);
 
   React.useEffect(() => {
@@ -118,7 +119,7 @@ export default function InventoryPage() {
       if (searchTerm) {
         const lowercasedFilter = searchTerm.toLowerCase();
         const filtered = sortedInventory.filter((item) =>
-            item.name.toLowerCase().startsWith(lowercasedFilter) ||
+            item.tradeName.toLowerCase().startsWith(lowercasedFilter) ||
             item.id.toLowerCase().includes(lowercasedFilter)
         );
         setFilteredInventory(filtered);
@@ -158,14 +159,14 @@ export default function InventoryPage() {
       const formData = new FormData(e.currentTarget);
       const updatedMed: Medication = {
           ...editingMed,
-          name: formData.get('name') as string,
+          tradeName: formData.get('tradeName') as string,
           reorderPoint: parseInt(formData.get('reorderPoint') as string, 10),
           price: parseFloat(formData.get('price') as string),
           saleUnit: formData.get('saleUnit') as string,
       }
       
       setAllInventory(prev => prev.map(m => m.id === updatedMed.id ? updatedMed : m));
-      toast({ title: "تم تحديث الدواء", description: `تم تحديث بيانات ${updatedMed.name} بنجاح.` });
+      toast({ title: "تم تحديث الدواء", description: `تم تحديث بيانات ${updatedMed.tradeName} بنجاح.` });
       setIsEditModalOpen(false);
       setEditingMed(null);
   }
@@ -238,8 +239,8 @@ export default function InventoryPage() {
                 if (inventoryMap.has(medId)) {
                     // Update existing medication
                     const existingMed = inventoryMap.get(medId)!;
-                    if (existingMed.name !== medName) {
-                        existingMed.name = medName;
+                    if (existingMed.tradeName !== medName) {
+                        existingMed.tradeName = medName;
                         inventoryMap.set(medId, existingMed);
                         updatedCount++;
                     }
@@ -251,13 +252,15 @@ export default function InventoryPage() {
 
                     const newMed: Medication = {
                       id: medId,
-                      name: medName,
+                      tradeName: medName,
                       stock: 0,
                       reorderPoint: 10,
                       price: 0,
                       purchasePrice: 0,
                       expirationDate: formattedExpDate,
-                      saleUnit: 'قطعة', // Default value
+                      purchaseUnit: 'قطعة',
+                      saleUnit: 'قطعة', 
+                      itemsPerPurchaseUnit: 1,
                     };
                     inventoryMap.set(medId, newMed);
                     addedCount++;
@@ -331,7 +334,7 @@ export default function InventoryPage() {
                                     <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-40" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-24 mx-auto" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
@@ -349,7 +352,13 @@ export default function InventoryPage() {
   
   return (
     <>
-    {/* ... (rest of the component is the same, just the delete logic is updated) */}
+    {printingMed && (
+      <div className="hidden">
+        <div ref={printComponentRef}>
+          <Barcode value={printingMed.id} />
+        </div>
+      </div>
+    )}
     <Card>
       <CardHeader>
         <CardTitle>إدارة المخزون</CardTitle>
@@ -396,9 +405,9 @@ export default function InventoryPage() {
             {filteredInventory.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium font-mono text-xs">{item.id}</TableCell>
-                <TableCell>{item.name}</TableCell>
+                <TableCell>{item.tradeName}</TableCell>
                 <TableCell>{item.saleUnit || '-'}</TableCell>
-                <TableCell className="text-center">{item.stock}</TableCell>
+                <TableCell className="text-center font-mono">{formatStock(item.stock, item.purchaseUnit, item.saleUnit, item.itemsPerPurchaseUnit)}</TableCell>
                 <TableCell className="text-center">{item.reorderPoint}</TableCell>
                 <TableCell>{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
                 <TableCell className="text-center">{item.price.toLocaleString('ar-IQ')} د.ع</TableCell>
@@ -466,7 +475,7 @@ export default function InventoryPage() {
                     <form onSubmit={handleUpdate} className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="edit-name">اسم الدواء</Label>
-                            <Input id="edit-name" name="name" defaultValue={editingMed.name} required />
+                            <Input id="edit-name" name="tradeName" defaultValue={editingMed.tradeName} required />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                              <div className="space-y-2">
@@ -490,7 +499,6 @@ export default function InventoryPage() {
                 )}
             </DialogContent>
         </Dialog>
-    </Card>
     </>
   )
 }

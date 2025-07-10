@@ -24,6 +24,7 @@ import { inventory as fallbackInventory, sales as fallbackSales, purchaseOrders 
 import type { Medication, Sale, PurchaseOrder, ReturnOrder } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Repeat, PackageSearch, ArrowUp, ArrowDown, ShoppingCart, Truck, Undo2, RotateCcw } from "lucide-react"
+import { formatStock } from "@/lib/utils"
 
 type TransactionHistoryItem = {
     date: string;
@@ -57,7 +58,7 @@ export default function ItemMovementPage() {
         if (value.length > 0) {
             const lowercasedFilter = value.toLowerCase();
             const filtered = inventory.filter(item => 
-                item.name.toLowerCase().startsWith(lowercasedFilter) || 
+                item.tradeName.toLowerCase().startsWith(lowercasedFilter) || 
                 item.id.toLowerCase().includes(lowercasedFilter)
             );
             setSuggestions(filtered.slice(0, 5));
@@ -77,8 +78,8 @@ export default function ItemMovementPage() {
             .map(item => ({
                 date: item.date,
                 type: 'شراء' as const,
-                quantity: item.quantity,
-                price: item.purchasePrice,
+                quantity: item.totalItems,
+                price: item.purchasePricePerSaleUnit,
                 documentId: item.documentId,
                 actor: item.supplierName,
             }));
@@ -182,7 +183,7 @@ export default function ItemMovementPage() {
                                             onMouseDown={() => handleSelectMed(med)}
                                             className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
                                         >
-                                            <span>{med.name}</span>
+                                            <span>{med.tradeName}</span>
                                             <span className="text-sm text-muted-foreground">الرصيد: {med.stock}</span>
                                         </li>
                                     ))}
@@ -202,8 +203,8 @@ export default function ItemMovementPage() {
                     <div className="space-y-6">
                         <Card className="bg-muted/50">
                             <CardHeader>
-                                <CardTitle>{selectedMed.name}</CardTitle>
-                                <CardDescription>الرصيد الحالي في المخزون: <span className="font-bold text-foreground">{selectedMed.stock}</span></CardDescription>
+                                <CardTitle>{selectedMed.tradeName}</CardTitle>
+                                <CardDescription>الرصيد الحالي في المخزون: <span className="font-bold text-foreground">{formatStock(selectedMed.stock, selectedMed.purchaseUnit, selectedMed.saleUnit, selectedMed.itemsPerPurchaseUnit)}</span></CardDescription>
                             </CardHeader>
                         </Card>
 

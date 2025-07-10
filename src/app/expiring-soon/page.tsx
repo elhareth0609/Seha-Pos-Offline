@@ -22,6 +22,7 @@ import { inventory as fallbackInventory, appSettings as fallbackSettings } from 
 import type { Medication, AppSettings } from "@/lib/types"
 import { differenceInDays, parseISO } from 'date-fns'
 import { useLocalStorage } from "@/hooks/use-local-storage"
+import { formatStock } from "@/lib/utils"
 
 export default function ExpiringSoonPage() {
   const [allInventory, setAllInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
@@ -81,6 +82,7 @@ export default function ExpiringSoonPage() {
           <TableHeader>
             <TableRow>
               <TableHead>الاسم</TableHead>
+              <TableHead>الكمية المتبقية</TableHead>
               <TableHead>تاريخ الانتهاء</TableHead>
               <TableHead>الأيام المتبقية</TableHead>
               <TableHead>الحالة</TableHead>
@@ -89,14 +91,15 @@ export default function ExpiringSoonPage() {
           <TableBody>
             {expiringMedications.length > 0 ? expiringMedications.map((item) => (
               <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.name}</TableCell>
+                <TableCell className="font-medium">{item.tradeName}</TableCell>
+                <TableCell>{formatStock(item.stock, item.purchaseUnit, item.saleUnit, item.itemsPerPurchaseUnit)}</TableCell>
                 <TableCell>{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
                 <TableCell>{formatDaysLeft(item.expirationDate)}</TableCell>
                 <TableCell>{getExpirationBadge(item.expirationDate)}</TableCell>
               </TableRow>
             )) : (
                 <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                         لا توجد أدوية ستنتهي صلاحيتها قريبًا.
                     </TableCell>
                 </TableRow>

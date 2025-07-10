@@ -27,6 +27,7 @@ import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, is
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatStock } from "@/lib/utils";
 
 export default function Dashboard() {
   const [inventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
@@ -310,8 +311,8 @@ export default function Dashboard() {
                       <TableBody>
                           {lowStockItems.length > 0 ? lowStockItems.slice(0,5).map(item => (
                               <TableRow key={item.id}>
-                                  <TableCell>{item.name}</TableCell>
-                                  <TableCell><Badge variant="destructive">{item.stock}</Badge></TableCell>
+                                  <TableCell>{item.tradeName}</TableCell>
+                                  <TableCell><Badge variant="destructive">{formatStock(item.stock, item.purchaseUnit, item.saleUnit, item.itemsPerPurchaseUnit)}</Badge></TableCell>
                                   <TableCell>{item.reorderPoint}</TableCell>
                               </TableRow>
                           )) : (
@@ -345,7 +346,7 @@ export default function Dashboard() {
                       <TableBody>
                           {expiringSoonItems.length > 0 ? expiringSoonItems.slice(0,5).map(item => (
                               <TableRow key={item.id}>
-                                  <TableCell>{item.name}</TableCell>
+                                  <TableCell>{item.tradeName}</TableCell>
                                   <TableCell>{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
                                   <TableCell><Badge variant="secondary" className="bg-yellow-400 text-yellow-900">{differenceInDays(parseISO(item.expirationDate), new Date())} يوم</Badge></TableCell>
                               </TableRow>
@@ -392,5 +393,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    
