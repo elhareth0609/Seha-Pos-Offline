@@ -1,5 +1,9 @@
 
-import type { Medication, Sale, PurchaseOrder, ReturnOrder, Supplier, User, TimeLog, AppSettings, SupplierPayment, Patient, TrashItem } from "./types";
+import type { Medication, Sale, PurchaseOrder, ReturnOrder, Supplier, User, AppSettings, SupplierPayment, Patient, TrashItem } from "./types";
+
+// This file now serves as a schema definition for fallback data, 
+// but is not the primary source of truth anymore.
+// Data is now managed by Firestore.
 
 export const suppliers: Supplier[] = [];
 
@@ -16,8 +20,6 @@ export const purchaseOrders: PurchaseOrder[] = [];
 export const supplierReturns: ReturnOrder[] = [];
 
 export const supplierPayments: SupplierPayment[] = [];
-
-export const timeLogs: TimeLog[] = [];
 
 export const trash: TrashItem[] = [];
 

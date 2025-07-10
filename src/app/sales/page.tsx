@@ -49,20 +49,20 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import { inventory as fallbackInventory, sales as fallbackSales, appSettings as fallbackSettings, patients as fallbackPatients } from "@/lib/data"
 import type { Medication, SaleItem, Sale, AppSettings, Patient } from "@/lib/types"
-import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, ArrowLeft, ArrowRight, FilePlus, UserPlus, Package, Thermometer, BrainCircuit } from "lucide-react"
+import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, ArrowLeft, ArrowRight, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
-import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useReactToPrint } from "react-to-print"
 import { InvoiceTemplate } from "@/components/ui/invoice"
 import { buttonVariants } from "@/components/ui/button"
 import { calculateDose, type DoseCalculation, type DoseCalculationInput } from "@/ai/flows/dose-calculator-flow"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useFirestoreCollection, useFirestoreDocument, useOnlineStatus, writeBatch, doc, db } from '@/hooks/use-firestore'
+import { useLocalStorage } from "@/hooks/use-local-storage"
 
 
 function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => void; onOpenChange: (isOpen: boolean) => void }) {
@@ -229,10 +229,12 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
 }
 
 export default function SalesPage() {
-  const [allInventory, setAllInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
-  const [sales, setSales] = useLocalStorage<Sale[]>('sales', fallbackSales);
-  const [patients, setPatients] = useLocalStorage<Patient[]>('patients', fallbackPatients);
-  const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
+  const { data: allInventory } = useFirestoreCollection<Medication>('inventory');
+  const { data: sales, add: addSale } = useFirestoreCollection<Sale>('sales');
+  const { data: patients, add: addPatient, setData: setPatients } = useFirestoreCollection<Patient>('patients');
+  const { data: settings } = useFirestoreDocument<AppSettings>('settings', 'main');
+  const [offlineSales, setOfflineSales] = useLocalStorage<Sale[]>('offlineSalesQueue', []);
+  const isOnline = useOnlineStatus();
   
   const [searchTerm, setSearchTerm] = React.useState("")
   const [suggestions, setSuggestions] = React.useState<Medication[]>([])
@@ -264,7 +266,35 @@ export default function SalesPage() {
     documentTitle: `invoice-${saleToPrint?.id || ''}`,
   });
   
-  const sortedSales = React.useMemo(() => sales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [sales]);
+  const sortedSales = React.useMemo(() => (sales || []).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [sales]);
+
+  // Sync offline sales when connection is restored
+  React.useEffect(() => {
+    if (isOnline && offlineSales.length > 0) {
+      const syncOfflineSales = async () => {
+        toast({ title: "مزامنة المبيعات غير المتصلة...", description: `جاري مزامنة ${offlineSales.length} فاتورة.` });
+        const batch = writeBatch(db);
+        for (const sale of offlineSales) {
+          const saleRef = doc(db, "sales", sale.id);
+          batch.set(saleRef, sale);
+          // Also update inventory for each item in the sale
+          for (const item of sale.items) {
+            const medRef = doc(db, "inventory", item.medicationId);
+            const medDoc = allInventory?.find(inv => inv.id === item.medicationId);
+            if (medDoc) {
+                const stockChange = item.isReturn ? item.quantity : -item.quantity;
+                batch.update(medRef, { stock: medDoc.stock + stockChange });
+            }
+          }
+        }
+        await batch.commit();
+        setOfflineSales([]); // Clear the queue
+        toast({ title: "اكتملت المزامنة بنجاح!", variant: "success" });
+      };
+      syncOfflineSales();
+    }
+  }, [isOnline, offlineSales, allInventory, setOfflineSales, toast]);
+
 
   const addToCart = React.useCallback((medication: Medication) => {
     if (mode !== 'new') return;
@@ -289,7 +319,7 @@ export default function SalesPage() {
 
     if (value.length > 0) {
         const lowercasedFilter = value.toLowerCase();
-        const filtered = allInventory.filter((item) =>
+        const filtered = (allInventory || []).filter((item) =>
             (item.tradeName && item.tradeName.toLowerCase().startsWith(lowercasedFilter)) ||
             (item.id && item.id.toLowerCase().includes(lowercasedFilter))
         );
@@ -301,7 +331,7 @@ export default function SalesPage() {
 
   const handleScan = React.useCallback((result: string) => {
     if (mode !== 'new') return;
-    const scannedMedication = allInventory.find(med => med.id === result);
+    const scannedMedication = (allInventory || []).find(med => med.id === result);
     if (scannedMedication) {
       addToCart(scannedMedication);
       toast({ title: 'تمت الإضافة إلى السلة', description: `تمت إضافة ${scannedMedication.tradeName} بنجاح.` });
@@ -322,13 +352,13 @@ export default function SalesPage() {
         }
 
         const lowercasedSearchTerm = searchTerm.toLowerCase();
-        const medicationById = allInventory.find(med => med.id && med.id.toLowerCase() === lowercasedSearchTerm);
+        const medicationById = (allInventory || []).find(med => med.id && med.id.toLowerCase() === lowercasedSearchTerm);
         if (medicationById) {
             addToCart(medicationById);
             return;
         }
         
-        const medicationByName = allInventory.find(med => med.tradeName && med.tradeName.toLowerCase() === lowercasedSearchTerm);
+        const medicationByName = (allInventory || []).find(med => med.tradeName && med.tradeName.toLowerCase() === lowercasedSearchTerm);
         if (medicationByName) {
             addToCart(medicationByName);
             return;
@@ -400,7 +430,7 @@ export default function SalesPage() {
     
     for (const itemInCart of cart) {
         if (!itemInCart.isReturn) {
-            const med = allInventory.find(m => m.id === itemInCart.medicationId);
+            const med = (allInventory || []).find(m => m.id === itemInCart.medicationId);
             if (!med || med.stock < itemInCart.quantity) {
                 toast({ variant: 'destructive', title: `كمية غير كافية من ${itemInCart.name}`, description: `الكمية المطلوبة ${itemInCart.quantity}, المتوفر ${med?.stock ?? 0}` });
                 return;
@@ -419,21 +449,10 @@ export default function SalesPage() {
     setSelectedPatient(null);
   }
   
-  const handleFinalizeSale = () => {
-    const updatedInventory = allInventory.map(med => {
-        const itemInCart = cart.find(cartItem => cartItem.medicationId === med.id);
-        if (itemInCart) {
-            const newStock = itemInCart.isReturn 
-                ? med.stock + itemInCart.quantity
-                : med.stock - itemInCart.quantity;
-            return { ...med, stock: newStock };
-        }
-        return med;
-    });
-    setAllInventory(updatedInventory);
-    const newSaleId = `SALE${(sales.length + 1).toString().padStart(3, '0')}`;
+  const handleFinalizeSale = async () => {
+    const saleId = `SALE${Date.now()}`;
     const newSale: Sale = {
-        id: newSaleId,
+        id: saleId,
         date: new Date().toISOString(),
         items: cart,
         total: finalTotal,
@@ -442,11 +461,30 @@ export default function SalesPage() {
         patientId: selectedPatient?.id,
         patientName: selectedPatient?.name,
     };
-    setSales(prev => [newSale, ...prev]);
-    toast({
-      title: "تمت العملية بنجاح",
-      description: `تم تسجيل عملية جديدة بقيمة إجمالية ${finalTotal.toLocaleString('ar-IQ')} د.ع`
-    })
+    
+    if (isOnline) {
+        const batch = writeBatch(db);
+        const saleRef = doc(db, 'sales', newSale.id);
+        batch.set(saleRef, newSale);
+
+        cart.forEach(item => {
+            const medRef = doc(db, 'inventory', item.medicationId);
+            const stockChange = item.isReturn ? item.quantity : -item.quantity;
+            //Firestore transaction would be better here, but for simplicity we use batch
+            const medDoc = allInventory?.find(inv => inv.id === item.medicationId);
+            if(medDoc) {
+                batch.update(medRef, { stock: medDoc.stock + stockChange });
+            }
+        });
+
+        await batch.commit();
+         toast({ title: "تمت العملية بنجاح", description: `تم تسجيل الفاتورة رقم ${newSale.id} ومزامنتها.` });
+    } else {
+        // Offline: Add to queue, don't update local inventory state directly
+        setOfflineSales(prev => [...prev, newSale]);
+        toast({ title: "تم حفظ العملية محلياً", description: `سيتم مزامنة الفاتورة عند عودة الاتصال بالإنترنت.` });
+    }
+    
     setSaleToPrint(newSale);
     setIsCheckoutOpen(false);
     setIsReceiptOpen(true);
@@ -455,7 +493,7 @@ export default function SalesPage() {
   const loadSaleForReview = (index: number) => {
     if (index >= 0 && index < sortedSales.length) {
         const saleToReview = sortedSales[index];
-        const patient = patients.find(p => p.id === saleToReview.patientId);
+        const patient = patients?.find(p => p.id === saleToReview.patientId);
         setCart(saleToReview.items);
         setDiscount(saleToReview.discount || 0);
         setDiscountInput((saleToReview.discount || 0).toString());
@@ -486,18 +524,17 @@ export default function SalesPage() {
     resetSale();
   };
 
-  const handleAddNewPatient = () => {
+  const handleAddNewPatient = async () => {
       if (!newPatientName.trim()) {
           toast({ variant: "destructive", title: "الاسم مطلوب" });
           return;
       }
-      const newPatient: Patient = {
-          id: `PAT-${Date.now()}`,
+      const newPatient: Omit<Patient, 'id'> = {
           name: newPatientName,
           phone: newPatientPhone,
       };
-      setPatients(prev => [newPatient, ...prev]);
-      setSelectedPatient(newPatient);
+      const addedDoc = await addPatient(newPatient);
+      setSelectedPatient({ id: addedDoc.id, ...newPatient});
       toast({ title: "تم إضافة المريض", description: `تم تحديد ${newPatient.name} لهذه الفاتورة.` });
       setNewPatientName("");
       setNewPatientPhone("");
@@ -505,12 +542,12 @@ export default function SalesPage() {
       setIsPatientModalOpen(false);
   }
 
-  const filteredPatients = patients.filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()));
+  const filteredPatients = (patients || []).filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()));
 
   return (
     <>
     <div className="hidden">
-        <InvoiceTemplate ref={printComponentRef} sale={saleToPrint} settings={settings} />
+        <InvoiceTemplate ref={printComponentRef} sale={saleToPrint} settings={settings || null} />
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-12rem)]">
         <div className="lg:col-span-2 flex flex-col gap-4">
@@ -615,7 +652,7 @@ export default function SalesPage() {
                             </TableHeader>
                             <TableBody>
                                 {cart.map((item) => {
-                                const medInInventory = allInventory.find(med => med.id === item.medicationId);
+                                const medInInventory = (allInventory || []).find(med => med.id === item.medicationId);
                                 const stock = medInInventory?.stock ?? 0;
                                 const remainingStock = stock - item.quantity;
                                 const itemTotal = (item.isReturn ? -1 : 1) * item.price * item.quantity;
@@ -692,7 +729,23 @@ export default function SalesPage() {
         <div className="lg:col-span-1">
              <Card className="sticky top-6">
                 <CardHeader>
-                    <CardTitle>ملخص الفاتورة</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle>ملخص الفاتورة</CardTitle>
+                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            {isOnline ? (
+                                <>
+                                <Wifi className="h-4 w-4 text-green-500"/>
+                                <span>متصل</span>
+                                </>
+                            ) : (
+                                <>
+                                <WifiOff className="h-4 w-4 text-destructive"/>
+                                <span>غير متصل</span>
+                                </>
+                            )}
+                            {offlineSales.length > 0 && <span className="text-xs">({offlineSales.length} في الانتظار)</span>}
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                      <div className="space-y-2">
@@ -710,7 +763,7 @@ export default function SalesPage() {
                                 <div className="space-y-4">
                                     <Input placeholder="ابحث بالاسم..." value={patientSearchTerm} onChange={(e) => setPatientSearchTerm(e.target.value)} />
                                     <ScrollArea className="h-48 border rounded-md">
-                                        {filteredPatients.map(p => (
+                                        {(filteredPatients || []).map(p => (
                                             <div key={p.id} onClick={() => { setSelectedPatient(p); setIsPatientModalOpen(false); }}
                                                 className="p-2 hover:bg-accent cursor-pointer">
                                                 {p.name}
@@ -888,7 +941,7 @@ export default function SalesPage() {
                     <DialogDescription>معاينة سريعة قبل الطباعة.</DialogDescription>
                 </DialogHeader>
                 <div className="max-h-[60vh] overflow-y-auto border rounded-md bg-gray-50">
-                    <InvoiceTemplate sale={saleToPrint} settings={settings} ref={null} />
+                    <InvoiceTemplate sale={saleToPrint} settings={settings || null} ref={null} />
                 </div>
                 <DialogFooter>
                     <DialogClose asChild>
