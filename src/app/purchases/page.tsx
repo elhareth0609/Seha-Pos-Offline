@@ -61,6 +61,9 @@ const fileToDataUri = (file: File): Promise<string> => {
     });
 };
 
+const dosageForms = ["حبوب", "كبسول", "شراب", "مرهم", "كريم", "جل", "تحاميل", "حقن", "قطرة", "بخاخ", "لصقة", "مسحوق", "أخرى"];
+
+
 export default function PurchasesPage() {
   const { toast } = useToast()
 
@@ -80,6 +83,7 @@ export default function PurchasesPage() {
   const [scientificName, setScientificName] = React.useState('');
   const [company, setCompany] = React.useState('');
   const [dosageForm, setDosageForm] = React.useState('');
+  const [otherDosageForm, setOtherDosageForm] = React.useState('');
   const [dosage, setDosage] = React.useState('');
   const [details, setDetails] = React.useState('');
   const [purchaseUnit, setPurchaseUnit] = React.useState('باكيت');
@@ -120,7 +124,7 @@ export default function PurchasesPage() {
         po.id.toLowerCase().includes(term) ||
         po.supplierName.toLowerCase().startsWith(term) ||
         po.date.includes(term) ||
-        (po.items || []).some(item => item.name.toLowerCase().startsWith(term))
+        (po.items || []).some(item => (item.name || '').toLowerCase().startsWith(term))
       );
       setFilteredPurchaseOrders(filtered);
     }
@@ -135,7 +139,7 @@ export default function PurchasesPage() {
         ret.id.toLowerCase().includes(term) ||
         ret.supplierName.toLowerCase().startsWith(term) ||
         ret.date.includes(term) ||
-        (ret.items || []).some(item => item.name.toLowerCase().startsWith(term))
+        (ret.items || []).some(item => (item.name || '').toLowerCase().startsWith(term))
       );
       setFilteredSupplierReturns(filtered);
     }
@@ -158,6 +162,7 @@ export default function PurchasesPage() {
     setScientificName('');
     setCompany('');
     setDosageForm('');
+    setOtherDosageForm('');
     setDosage('');
     setDetails('');
     setPurchaseUnit('باكيت');
@@ -185,6 +190,12 @@ export default function PurchasesPage() {
     const supplier = suppliers.find(s => s.id === purchaseSupplierId);
     if (!purchaseId || !supplier || !tradeName.trim()) {
         toast({ variant: "destructive", title: "حقول أساسية ناقصة", description: "رقم القائمة، المورد، والاسم التجاري حقول مطلوبة." });
+        return;
+    }
+
+    const finalDosageForm = dosageForm === 'أخرى' ? otherDosageForm : dosageForm;
+    if (!finalDosageForm) {
+         toast({ variant: "destructive", title: "الشكل الدوائي مطلوب", description: "الرجاء اختيار أو إدخال الشكل الدوائي." });
         return;
     }
 
@@ -231,7 +242,7 @@ export default function PurchasesPage() {
             company,
             details,
             dosage,
-            dosageForm,
+            dosageForm: finalDosageForm,
             imageUrl,
             stock: totalSmallestUnits,
             reorderPoint: 10, // Default value
@@ -460,7 +471,27 @@ export default function PurchasesPage() {
                         <div className="space-y-2"><Label htmlFor="tradeName">الاسم التجاري</Label><Input id="tradeName" required value={tradeName} onChange={e => setTradeName(e.target.value)} /></div>
                         <div className="space-y-2"><Label htmlFor="scientificName">الاسم العلمي</Label><Input id="scientificName" value={scientificName} onChange={e => setScientificName(e.target.value)} /></div>
                         <div className="space-y-2"><Label htmlFor="company">الشركة المصنعة</Label><Input id="company" value={company} onChange={e => setCompany(e.target.value)} /></div>
-                        <div className="space-y-2"><Label htmlFor="dosageForm">الشكل الدوائي</Label><Input id="dosageForm" value={dosageForm} onChange={e => setDosageForm(e.target.value)} /></div>
+                        
+                        <div className="space-y-2">
+                            <Label htmlFor="dosageForm">الشكل الدوائي</Label>
+                            <div className="flex gap-2">
+                                <Select name="dosageForm" value={dosageForm} onValueChange={setDosageForm}>
+                                    <SelectTrigger id="dosageForm"><SelectValue placeholder="اختر شكلاً" /></SelectTrigger>
+                                    <SelectContent>
+                                        {dosageForms.map(df => <SelectItem key={df} value={df}>{df}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                {dosageForm === 'أخرى' && (
+                                    <Input 
+                                        placeholder="أدخل الشكل الدوائي" 
+                                        value={otherDosageForm}
+                                        onChange={e => setOtherDosageForm(e.target.value)}
+                                        className="animate-in fade-in"
+                                    />
+                                )}
+                            </div>
+                        </div>
+
                         <div className="space-y-2"><Label htmlFor="dosage">الجرعة</Label><Input id="dosage" value={dosage} onChange={e => setDosage(e.target.value)} /></div>
                         <div className="space-y-2 md:col-span-2"><Label htmlFor="details">تفاصيل إضافية</Label><Textarea id="details" value={details} onChange={e => setDetails(e.target.value)} /></div>
                          <div className="md:col-span-2 space-y-2">
