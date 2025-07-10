@@ -523,11 +523,11 @@ export default function SalesPage() {
     <div className="hidden">
         <InvoiceTemplate ref={printComponentRef} sale={saleToPrint} settings={settings || null} />
     </div>
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-12rem)]">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-5rem)]">
         <div className="lg:col-span-2 flex flex-col gap-4">
             <Card>
                 <CardHeader className="pb-4">
-                    <CardTitle>اختيار المنتج</CardTitle>
+                    <CardTitle className="text-xl">اختيار المنتج</CardTitle>
                     <div className="flex gap-2 pt-2">
                         <div className="relative flex-1">
                             <Input 
@@ -586,7 +586,7 @@ export default function SalesPage() {
             <Card className="flex-1 flex flex-col">
                  <CardHeader className="py-4">
                     <div className="flex justify-between items-center">
-                        <CardTitle>
+                        <CardTitle className="text-xl">
                           {mode === 'new' ? 'الفاتورة الحالية' : `عرض الفاتورة #${sortedSales[reviewIndex]?.id}`}
                         </CardTitle>
                         <div className="flex items-center gap-2">
@@ -691,7 +691,7 @@ export default function SalesPage() {
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
                             <PackageSearch className="h-16 w-16 mb-4" />
-                            <p>الفاتورة فارغة.</p>
+                            <p className="text-lg">الفاتورة فارغة</p>
                             <p className="text-sm">أضف منتجات لبدء عملية البيع.</p>
                         </div>
                     )}
