@@ -595,7 +595,7 @@ export default function PurchasesPage() {
                                                             <TableCell>{item.name}</TableCell>
                                                             <TableCell>{item.quantityInPurchaseUnits}</TableCell>
                                                             <TableCell className="font-mono">{item.purchasePricePerSaleUnit.toLocaleString('ar-IQ')} د.ع</TableCell>
-                                                            <TableCell className="font-mono text-left">{(item.quantityInPurchaseUnits * item.purchasePricePerSaleUnit * (inventory.find(i=>i.id===item.medicationId)?.itemsPerPurchaseUnit || 1)).toLocaleString('ar-IQ')} د.ع</TableCell>
+                                                            <TableCell className="font-mono text-left">{(item.totalItems * item.purchasePricePerSaleUnit).toLocaleString('ar-IQ')} د.ع</TableCell>
                                                         </TableRow>
                                                     )) : (
                                                       <TableRow>

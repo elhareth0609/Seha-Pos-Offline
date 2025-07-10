@@ -161,6 +161,7 @@ export default function InventoryPage() {
       const updatedMed: Medication = {
           ...editingMed,
           tradeName: formData.get('tradeName') as string,
+          stock: parseInt(formData.get('stock') as string, 10),
           reorderPoint: parseInt(formData.get('reorderPoint') as string, 10),
           price: parseFloat(formData.get('price') as string),
           saleUnit: formData.get('saleUnit') as string,
@@ -318,8 +319,7 @@ export default function InventoryPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>الباركود</TableHead>
-                                <TableHead>الاسم</TableHead>
+                                <TableHead>الاسم التجاري</TableHead>
                                 <TableHead>وحدة البيع</TableHead>
                                 <TableHead className="text-center">المخزون</TableHead>
                                 <TableHead className="text-center">نقطة إعادة الطلب</TableHead>
@@ -332,7 +332,6 @@ export default function InventoryPage() {
                         <TableBody>
                             {Array.from({ length: 8 }).map((_, i) => (
                                 <TableRow key={i}>
-                                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-40" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-24 mx-auto" /></TableCell>
@@ -480,28 +479,34 @@ export default function InventoryPage() {
                 <DialogHeader>
                     <DialogTitle>تعديل بيانات الدواء</DialogTitle>
                     <DialogDescription>
-                         قم بتحديث تفاصيل الدواء. ملاحظة: لا يمكن تعديل المخزون من هنا.
+                         قم بتحديث تفاصيل الدواء.
                     </DialogDescription>
                 </DialogHeader>
                    {editingMed && (
                       <form onSubmit={handleUpdate} className="space-y-4">
                           <div className="space-y-2">
-                              <Label htmlFor="edit-name">اسم الدواء</Label>
+                              <Label htmlFor="edit-name">الاسم التجاري</Label>
                               <Input id="edit-name" name="tradeName" defaultValue={editingMed.tradeName} required />
                           </div>
                           <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="edit-stock">الرصيد الحالي ({editingMed.saleUnit})</Label>
+                                <Input id="edit-stock" name="stock" type="number" defaultValue={editingMed.stock} required />
+                              </div>
                                <div className="space-y-2">
                                   <Label htmlFor="edit-reorderPoint">نقطة إعادة الطلب</Label>
                                   <Input id="edit-reorderPoint" name="reorderPoint" type="number" defaultValue={editingMed.reorderPoint} required />
                               </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
                                   <Label htmlFor="edit-price">سعر البيع (د.ع)</Label>
                                   <Input id="edit-price" name="price" type="number" step="1" defaultValue={editingMed.price} required />
                               </div>
-                          </div>
-                           <div className="space-y-2">
-                              <Label htmlFor="edit-saleUnit">وحدة البيع</Label>
-                              <Input id="edit-saleUnit" name="saleUnit" defaultValue={editingMed.saleUnit || ''} />
+                              <div className="space-y-2">
+                                  <Label htmlFor="edit-saleUnit">وحدة البيع</Label>
+                                  <Input id="edit-saleUnit" name="saleUnit" defaultValue={editingMed.saleUnit || ''} />
+                              </div>
                           </div>
                           <DialogFooter>
                               <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>

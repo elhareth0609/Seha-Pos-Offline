@@ -86,7 +86,7 @@ export default function ItemMovementPage() {
             }));
 
         const saleEvents = sales
-            .flatMap(s => (s.items || []).map(item => ({ ...item, date: s.date, employeeName: s.patientName || 'زبون', documentId: s.id })))
+            .flatMap(s => (s.items || []).map(item => ({ ...item, date: s.date, patientName: s.patientName || 'زبون', documentId: s.id })))
             .filter(item => item.medicationId === med.id)
             .map(item => ({
                 date: item.date,
@@ -94,7 +94,7 @@ export default function ItemMovementPage() {
                 quantity: item.isReturn ? item.quantity : -item.quantity,
                 price: item.price,
                 documentId: item.documentId,
-                actor: item.employeeName,
+                actor: item.patientName,
             }));
 
         const returnsToSupplier = supplierReturns
