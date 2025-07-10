@@ -27,13 +27,12 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useLocalStorage } from '@/hooks/use-local-storage';
-import { sales as fallbackSales, appSettings as fallbackSettings } from '@/lib/data';
+import { useFirestoreCollection, useFirestoreDocument } from '@/hooks/use-firestore';
 import type { Sale, AppSettings } from '@/lib/types';
 import { useReactToPrint } from 'react-to-print';
 import { InvoiceTemplate } from '@/components/ui/invoice';
-import { Printer, DollarSign, TrendingUp, PieChart, ListFilter, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Printer, DollarSign, TrendingUp, PieChart, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
+import { Input } from "@/components/ui/input";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
@@ -44,8 +43,8 @@ import { format, isWithinInterval, parseISO } from "date-fns"
 
 
 export default function ReportsPage() {
-    const [sales] = useLocalStorage<Sale[]>('sales', fallbackSales);
-    const [settings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
+    const { data: sales, loading: salesLoading } = useFirestoreCollection<Sale>('sales');
+    const { data: settings, loading: settingsLoading } = useFirestoreDocument<AppSettings>('settings', 'main');
     const [searchTerm, setSearchTerm] = React.useState("");
     const [isClient, setIsClient] = React.useState(false);
     const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
@@ -79,7 +78,7 @@ export default function ReportsPage() {
         setExpandedRows(newExpandedRows);
     };
 
-    const filteredSales = sales.filter(sale => {
+    const filteredSales = (sales || []).filter(sale => {
         const term = searchTerm.toLowerCase().trim();
         const saleDate = parseISO(sale.date);
         
@@ -101,7 +100,7 @@ export default function ReportsPage() {
     const totalProfit = filteredSales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
     const profitMargin = totalSalesValue > 0 ? (totalProfit / totalSalesValue) * 100 : 0;
 
-    if (!isClient) {
+    if (!isClient || salesLoading || settingsLoading) {
         return (
             <div className="space-y-6">
                  <div className="grid gap-4 md:grid-cols-3">

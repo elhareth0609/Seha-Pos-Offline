@@ -12,7 +12,6 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isSetup: boolean;
   loading: boolean;
-  setIsSetup: React.Dispatch<React.SetStateAction<boolean>>;
   setupAdmin: (name: string, email: string, pin: string, image1DataUri: string, image2DataUri: string) => Promise<void>;
   login: (email: string, pin: string) => Promise<boolean>;
   logout: () => void;
@@ -111,11 +110,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
   
   const checkUserExists = async (email: string): Promise<boolean> => {
-      return users.some(u => u && u.email && u.email.toLowerCase() === email.toLowerCase());
+      return (users || []).some(u => u && u.email && u.email.toLowerCase() === email.toLowerCase());
   }
   
   const resetPin = async (email: string, newPin: string): Promise<boolean> => {
-      const userToUpdate = users.find(u => u && u.email && u.email.toLowerCase() === email.toLowerCase());
+      const userToUpdate = (users || []).find(u => u && u.email && u.email.toLowerCase() === email.toLowerCase());
       if (userToUpdate) {
         await setUser(userToUpdate.id, { ...userToUpdate, pin: newPin });
         return true;
@@ -124,7 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updateUserPermissions = async (userId: string, permissions: UserPermissions): Promise<boolean> => {
-      const userToUpdate = users.find(u => u.id === userId);
+      const userToUpdate = (users || []).find(u => u.id === userId);
       if (userToUpdate && userToUpdate.role === 'Employee') {
         await setUser(userId, { ...userToUpdate, permissions });
         return true;
@@ -133,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const login = async (email: string, pin: string): Promise<boolean> => {
-    const userToLogin = users.find(u => u && u.email && u.email.toLowerCase() === email.toLowerCase() && u.pin === pin);
+    const userToLogin = (users || []).find(u => u && u.email && u.email.toLowerCase() === email.toLowerCase() && u.pin === pin);
     if (userToLogin) {
       setCurrentUser(userToLogin);
       return true;
@@ -148,7 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = !!currentUser;
 
   return (
-    <AuthContext.Provider value={{ currentUser, users: users || [], isAuthenticated, loading, isSetup, setIsSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, updateUserPermissions }}>
+    <AuthContext.Provider value={{ currentUser, users: users || [], isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, updateUserPermissions }}>
       {children}
     </AuthContext.Provider>
   );

@@ -140,6 +140,7 @@ export type TimeLog = {
 };
 
 export type AppSettings = {
+    initialized?: boolean;
     pharmacyName: string;
     pharmacyAddress: string;
     pharmacyPhone: string;

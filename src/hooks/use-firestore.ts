@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   getFirestore,
   collection,
@@ -9,16 +9,11 @@ import {
   addDoc,
   doc,
   setDoc,
-  getDocs,
-  getDoc,
   deleteDoc,
   writeBatch as firestoreWriteBatch,
-  enableNetwork,
-  disableNetwork,
-  terminate
 } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
-import type { DocumentData, QuerySnapshot, Unsubscribe } from 'firebase/firestore';
+import type { DocumentData, QuerySnapshot } from 'firebase/firestore';
 
 export const db = getFirestore(firebaseApp);
 
@@ -85,7 +80,7 @@ export function useFirestoreDocument<T>(collectionName: string, docId: string) {
   }, [collectionName, docId]);
   
   const set = async (newData: T) => {
-    return await setDoc(doc(db, collectionName, docId), newData);
+    return await setDoc(doc(db, collectionName, docId), newData, { merge: true });
   }
 
   return { data, loading, set };
@@ -96,6 +91,8 @@ export function useOnlineStatus() {
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const updateOnlineStatus = () => {
       setIsOnline(navigator.onLine);
     };
