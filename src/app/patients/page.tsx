@@ -142,7 +142,7 @@ export default function PatientsPage() {
   }
 
   const filteredPatients = patients.filter(p => p.name.toLowerCase().startsWith(searchTerm.toLowerCase()));
-  const filteredMeds = inventory.filter(m => m.tradeName.toLowerCase().startsWith(medSearch.toLowerCase()));
+  const filteredMeds = inventory.filter(m => m.tradeName && m.tradeName.toLowerCase().startsWith(medSearch.toLowerCase()));
 
   return (
     <Card>
