@@ -84,7 +84,7 @@ export default function PatientsPage() {
         notes: newPatientNotes,
         medications: selectedMeds.map(medId => {
             const med = inventory.find(m => m.id === medId)!;
-            return { medicationId: med.id, name: med.name, saleUnit: med.saleUnit };
+            return { medicationId: med.id, name: med.tradeName, saleUnit: med.saleUnit };
         })
     };
     
@@ -113,7 +113,7 @@ export default function PatientsPage() {
         notes,
         medications: selectedMeds.map(medId => {
             const med = inventory.find(m => m.id === medId)!;
-            return { medicationId: med.id, name: med.name, saleUnit: med.saleUnit };
+            return { medicationId: med.id, name: med.tradeName, saleUnit: med.saleUnit };
         })
       };
       
@@ -142,7 +142,7 @@ export default function PatientsPage() {
   }
 
   const filteredPatients = patients.filter(p => p.name.toLowerCase().startsWith(searchTerm.toLowerCase()));
-  const filteredMeds = inventory.filter(m => m.name.toLowerCase().startsWith(medSearch.toLowerCase()));
+  const filteredMeds = inventory.filter(m => m.tradeName.toLowerCase().startsWith(medSearch.toLowerCase()));
 
   return (
     <Card>
@@ -183,7 +183,7 @@ export default function PatientsPage() {
                                   {filteredMeds.map(med => (
                                       <div key={med.id} className="flex items-center space-x-2 space-x-reverse">
                                           <Checkbox id={`med-${med.id}`} checked={selectedMeds.includes(med.id)} onCheckedChange={() => handleMedToggle(med.id)} />
-                                          <Label htmlFor={`med-${med.id}`} className="flex-1 cursor-pointer">{med.name} {med.saleUnit && `(${med.saleUnit})`}</Label>
+                                          <Label htmlFor={`med-${med.id}`} className="flex-1 cursor-pointer">{med.tradeName} {med.saleUnit && `(${med.saleUnit})`}</Label>
                                       </div>
                                   ))}
                                 </div>
@@ -302,7 +302,7 @@ export default function PatientsPage() {
                                   {filteredMeds.map(med => (
                                       <div key={`edit-${med.id}`} className="flex items-center space-x-2 space-x-reverse">
                                           <Checkbox id={`edit-med-${med.id}`} checked={selectedMeds.includes(med.id)} onCheckedChange={() => handleMedToggle(med.id)} />
-                                          <Label htmlFor={`edit-med-${med.id}`} className="flex-1 cursor-pointer">{med.name} {med.saleUnit && `(${med.saleUnit})`}</Label>
+                                          <Label htmlFor={`edit-med-${med.id}`} className="flex-1 cursor-pointer">{med.tradeName} {med.saleUnit && `(${med.saleUnit})`}</Label>
                                       </div>
                                   ))}
                                 </div>
