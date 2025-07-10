@@ -32,20 +32,19 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { useLocalStorage } from "@/hooks/use-local-storage"
-import { trash as fallbackTrash } from "@/lib/data"
+import { trash as fallbackTrash, inventory, patients, suppliers, users } from "@/lib/data"
 import type { TrashItem, Medication, Patient, Supplier, User } from "@/lib/types"
 import { Trash2, RotateCcw } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { buttonVariants } from "@/components/ui/button"
-import { useFirestoreCollection } from "@/hooks/use-firestore"
 
 
 export default function TrashPage() {
   const [trash, setTrash] = useLocalStorage<TrashItem[]>('trash', fallbackTrash);
-  const { add: addInventory } = useFirestoreCollection<Medication>('inventory');
-  const { add: addPatient } = useFirestoreCollection<Patient>('patients');
-  const { add: addSupplier } = useFirestoreCollection<Supplier>('suppliers');
-  const { add: addUser } = useFirestoreCollection<User>('users');
+  const [allInventory, setAllInventory] = useLocalStorage<Medication[]>('inventory', inventory);
+  const [allPatients, setAllPatients] = useLocalStorage<Patient[]>('patients', patients);
+  const [allSuppliers, setAllSuppliers] = useLocalStorage<Supplier[]>('suppliers', suppliers);
+  const { users, setUsers } = useAuth();
 
   const { currentUser } = useAuth();
   const { toast } = useToast();
@@ -57,35 +56,28 @@ export default function TrashPage() {
     user: 'موظف',
   }
 
-  const handleRestore = async (itemToRestore: TrashItem) => {
-    // Note: Restoring doesn't preserve the original firestore ID. It creates a new document.
-    // This is a simplification. A more robust system would use soft deletes.
-    try {
-        switch (itemToRestore.itemType) {
-          case 'medication':
-            await addInventory(itemToRestore.data as Omit<Medication, 'id'>);
-            break;
-          case 'patient':
-            await addPatient(itemToRestore.data as Omit<Patient, 'id'>);
-            break;
-           case 'supplier':
-            await addSupplier(itemToRestore.data as Omit<Supplier, 'id'>);
-            break;
-           case 'user':
-            await addUser(itemToRestore.data as Omit<User, 'id'>);
-            break;
-        }
-        setTrash(prev => prev.filter(item => item.id !== itemToRestore.id));
-        toast({ title: "تمت الاستعادة", description: `تمت استعادة "${itemToRestore.data.name}" بنجاح.` });
-    } catch(error) {
-        console.error("Error restoring item: ", error);
-        toast({ variant: 'destructive', title: "خطأ في الاستعادة", description: "لم نتمكن من استعادة العنصر."})
+  const handleRestore = (itemToRestore: TrashItem) => {
+    switch (itemToRestore.itemType) {
+      case 'medication':
+        setAllInventory(prev => [itemToRestore.data as Medication, ...prev]);
+        break;
+      case 'patient':
+        setAllPatients(prev => [itemToRestore.data as Patient, ...prev]);
+        break;
+       case 'supplier':
+        setAllSuppliers(prev => [itemToRestore.data as Supplier, ...prev]);
+        break;
+       case 'user':
+        setUsers(prev => [itemToRestore.data as User, ...prev]);
+        break;
     }
+    setTrash(prev => prev.filter(item => item.id !== itemToRestore.id));
+    toast({ title: "تمت الاستعادة", description: `تمت استعادة "${itemToRestore.data.name}" بنجاح.` });
   };
 
   const handlePermanentDelete = (itemToDelete: TrashItem) => {
     setTrash(prev => prev.filter(item => item.id !== itemToDelete.id));
-    toast({ variant: 'destructive', title: "تم الحذف نهائياً", description: `تم حذف "${itemToDelete.data.name}" بشكل دائم من قائمة المحذوفات.` });
+    toast({ variant: 'destructive', title: "تم الحذف نهائياً", description: `تم حذف "${itemToDelete.data.name}" بشكل دائم.` });
   };
 
   const handleClearTrash = () => {

@@ -10,6 +10,17 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card"
+import { useLocalStorage } from "@/hooks/use-local-storage"
+import {
+  suppliers as fallbackSuppliers,
+  purchaseOrders as fallbackPurchaseOrders,
+  supplierReturns as fallbackSupplierReturns,
+  supplierPayments as fallbackSupplierPayments,
+  trash as fallbackTrash,
+} from "@/lib/data"
+import type { Supplier, PurchaseOrder, ReturnOrder, SupplierPayment, TrashItem } from "@/lib/types"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Button } from "@/components/ui/button"
 import {
     Dialog,
     DialogContent,
@@ -39,19 +50,13 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Textarea } from "@/components/ui/textarea"
-import type { Supplier, PurchaseOrder, ReturnOrder, SupplierPayment, TrashItem } from "@/lib/types"
 import { DollarSign, FileText, Truck, Undo2, Wallet, Scale, MoreHorizontal, Pencil, Trash2, PlusCircle } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { useFirestoreCollection, useFirestoreDocument } from "@/hooks/use-firestore"
-import { Skeleton } from "@/components/ui/skeleton"
-import { useLocalStorage } from "@/hooks/use-local-storage"
-import { trash as fallbackTrash } from "@/lib/data"
 
 
 type StatementItem = {
@@ -64,10 +69,10 @@ type StatementItem = {
 };
 
 export default function SuppliersPage() {
-  const { data: suppliers, add: addSupplier, setData: setSupplierData } = useFirestoreCollection<Supplier>('suppliers');
-  const { data: purchaseOrders, setData: setPurchaseOrdersData } = useFirestoreCollection<PurchaseOrder>('purchaseOrders');
-  const { data: supplierReturns, setData: setSupplierReturnsData } = useFirestoreCollection<ReturnOrder>('supplierReturns');
-  const { data: supplierPayments, add: addSupplierPayment } = useFirestoreCollection<SupplierPayment>('supplierPayments');
+  const [suppliers, setSuppliers] = useLocalStorage<Supplier[]>('suppliers', fallbackSuppliers);
+  const [purchaseOrders, setPurchaseOrders] = useLocalStorage<PurchaseOrder[]>('purchaseOrders', fallbackPurchaseOrders);
+  const [supplierReturns, setSupplierReturns] = useLocalStorage<ReturnOrder[]>('supplierReturns', fallbackSupplierReturns);
+  const [supplierPayments, setSupplierPayments] = useLocalStorage<SupplierPayment[]>('supplierPayments', fallbackSupplierPayments);
   const [trash, setTrash] = useLocalStorage<TrashItem[]>('trash', fallbackTrash);
 
   const [isClient, setIsClient] = React.useState(false)
@@ -84,7 +89,7 @@ export default function SuppliersPage() {
     setIsClient(true)
   }, [])
   
-  const handleAddSupplier = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAddSupplier = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const name = formData.get("supplierName") as string;
@@ -93,16 +98,18 @@ export default function SuppliersPage() {
         toast({ variant: "destructive", title: "اسم المورد مطلوب" });
         return;
     }
-    const newSupplier: Omit<Supplier, 'id'> = {
+    const newSupplier: Supplier = {
+        id: `SUP${Date.now()}`,
         name,
         contactPerson: contact,
     };
-    await addSupplier(newSupplier);
+    setSuppliers(prev => [newSupplier, ...prev]);
+
     setIsAddDialogOpen(false);
     toast({ title: "تمت إضافة المورد بنجاح" });
   };
 
-  const handleUpdateSupplier = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleUpdateSupplier = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!editingSupplier) return;
 
@@ -112,11 +119,12 @@ export default function SuppliersPage() {
 
     const updatedSupplier: Supplier = { ...editingSupplier, name, contactPerson };
 
-    await setSupplierData(updatedSupplier.id, updatedSupplier);
+    setSuppliers(prev => prev.map(s => s.id === updatedSupplier.id ? updatedSupplier : s));
     
-    // This part is tricky without transactions and can be slow. 
-    // For now, we assume names don't need to be updated in historical records.
-    
+    // Update supplier name in related records for consistency
+    setPurchaseOrders(prev => prev.map(po => po.supplierId === updatedSupplier.id ? { ...po, supplierName: updatedSupplier.name } : po));
+    setSupplierReturns(prev => prev.map(ret => ret.supplierId === updatedSupplier.id ? { ...ret, supplierName: updatedSupplier.name } : ret));
+
     toast({ title: "تم تحديث بيانات المورد" });
     setIsEditDialogOpen(false);
     setEditingSupplier(null);
@@ -144,11 +152,12 @@ export default function SuppliersPage() {
       data: supplier,
     };
     setTrash(prev => [newTrashItem, ...prev]);
-    // deleteDoc(doc(db, "suppliers", supplier.id)); // Hard delete if needed
+
+    setSuppliers(prev => prev.filter(s => s.id !== supplier.id));
     toast({ title: "تم نقل المورد إلى سلة المحذوفات" });
   }
 
-  const handleAddPayment = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAddPayment = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selectedSupplier) return;
 
@@ -161,21 +170,22 @@ export default function SuppliersPage() {
         return;
     }
 
-    const newPayment: Omit<SupplierPayment, 'id'> = {
+    const newPayment: SupplierPayment = {
+        id: `PAY-${Date.now()}`,
         supplierId: selectedSupplier.id,
         amount,
         date: new Date().toISOString(),
         notes,
     };
     
-    await addSupplierPayment(newPayment);
+    setSupplierPayments(prev => [newPayment, ...prev]);
     toast({ title: 'تم تسجيل الدفعة بنجاح!' });
     setIsPaymentDialogOpen(false);
     setSelectedSupplier(null);
   }
 
   const supplierAccounts = React.useMemo(() => {
-    if (!isClient || !suppliers || !purchaseOrders || !supplierReturns || !supplierPayments) return [];
+    if (!isClient) return [];
     return suppliers.map(supplier => {
       const purchases = purchaseOrders.filter(po => po.supplierId === supplier.id && po.status === "Received");
       const returns = supplierReturns.filter(ret => ret.supplierId === supplier.id);

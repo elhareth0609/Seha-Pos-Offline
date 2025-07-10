@@ -1,10 +1,6 @@
 
 import type { Medication, Sale, PurchaseOrder, ReturnOrder, Supplier, User, AppSettings, SupplierPayment, Patient, TrashItem } from "./types";
 
-// This file now serves as a schema definition for fallback data, 
-// but is not the primary source of truth anymore.
-// Data is now managed by Firestore.
-
 export const suppliers: Supplier[] = [];
 
 export const inventory: Medication[] = [];

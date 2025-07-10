@@ -27,7 +27,8 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useFirestoreCollection, useFirestoreDocument } from '@/hooks/use-firestore';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { sales as fallbackSales, appSettings as fallbackSettings } from '@/lib/data';
 import type { Sale, AppSettings } from '@/lib/types';
 import { useReactToPrint } from 'react-to-print';
 import { InvoiceTemplate } from '@/components/ui/invoice';
@@ -43,8 +44,8 @@ import { format, isWithinInterval, parseISO } from "date-fns"
 
 
 export default function ReportsPage() {
-    const { data: sales, loading: salesLoading } = useFirestoreCollection<Sale>('sales');
-    const { data: settings, loading: settingsLoading } = useFirestoreDocument<AppSettings>('settings', 'main');
+    const [sales] = useLocalStorage<Sale[]>('sales', fallbackSales);
+    const [settings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
     const [searchTerm, setSearchTerm] = React.useState("");
     const [isClient, setIsClient] = React.useState(false);
     const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
@@ -100,7 +101,7 @@ export default function ReportsPage() {
     const totalProfit = filteredSales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
     const profitMargin = totalSalesValue > 0 ? (totalProfit / totalSalesValue) * 100 : 0;
 
-    if (!isClient || salesLoading || settingsLoading) {
+    if (!isClient) {
         return (
             <div className="space-y-6">
                  <div className="grid gap-4 md:grid-cols-3">

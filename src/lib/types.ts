@@ -60,6 +60,8 @@ export type Sale = {
   discount?: number;
   patientId?: string;
   patientName?: string;
+  employeeId: string;
+  employeeName: string;
 };
 
 export type PurchaseOrderItem = {
