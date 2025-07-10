@@ -16,7 +16,7 @@ interface AuthContextType {
   setupAdmin: (name: string, email: string, pin: string, image1DataUri: string, image2DataUri: string) => void;
   login: (email: string, pin: string) => Promise<boolean>;
   logout: () => void;
-  registerUser: (name: string, email: string, pin: string, image1DataUri: string, image2DataUri: string) => Promise<boolean>;
+  registerUser: (name: string, email: string, pin: string) => Promise<boolean>;
   resetPin: (email: string, newPin: string) => Promise<boolean>;
   checkUserExists: (email: string) => Promise<boolean>;
   updateUserPermissions: (userId: string, permissions: UserPermissions) => Promise<boolean>;
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(adminUser);
   };
   
-  const registerUser = async (name: string, email: string, pin: string, image1DataUri: string, image2DataUri: string): Promise<boolean> => {
+  const registerUser = async (name: string, email: string, pin: string): Promise<boolean> => {
       const userExists = users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
       if (userExists) {
         return false;
@@ -90,9 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email,
           pin,
           role: 'Employee',
-          permissions: defaultEmployeePermissions,
-          image1DataUri,
-          image2DataUri,
+          permissions: defaultEmployeePermissions
       };
       setUsers(prev => [...prev, newUser]);
       return true;
