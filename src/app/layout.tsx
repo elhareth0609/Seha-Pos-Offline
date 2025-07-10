@@ -14,6 +14,7 @@ const tajawal = Tajawal({
 export const metadata: Metadata = {
   title: 'Midgram',
   description: 'نظام إدارة صيدلية للمبيعات والمخزون والمشتريات.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
@@ -23,7 +24,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <head />
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+      </head>
       <body className={`${tajawal.variable} font-body antialiased`}>
         <AuthProvider>
             <AppLayoutClient>
