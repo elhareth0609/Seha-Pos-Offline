@@ -51,7 +51,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import { inventory as fallbackInventory, sales as fallbackSales, appSettings as fallbackSettings, patients as fallbackPatients } from "@/lib/data"
 import type { Medication, SaleItem, Sale, AppSettings, Patient } from "@/lib/types"
-import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, ArrowLeft, ArrowRight, FilePlus, UserPlus, Package } from "lucide-react"
+import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, ArrowLeft, ArrowRight, FilePlus, UserPlus, Package, Thermometer, BrainCircuit } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -61,6 +61,8 @@ import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useReactToPrint } from "react-to-print"
 import { InvoiceTemplate } from "@/components/ui/invoice"
 import { buttonVariants } from "@/components/ui/button"
+import { calculateDose, type DoseCalculation, type DoseCalculationInput } from "@/ai/flows/dose-calculator-flow"
+import { Skeleton } from "@/components/ui/skeleton"
 
 
 function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => void; onOpenChange: (isOpen: boolean) => void }) {
@@ -124,6 +126,107 @@ function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => 
   );
 }
 
+function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
+    const [patientAge, setPatientAge] = React.useState('');
+    const [isLoading, setIsLoading] = React.useState(false);
+    const [results, setResults] = React.useState<DoseCalculation[] | null>(null);
+    const { toast } = useToast();
+
+    const handleCalculate = async () => {
+        const age = parseInt(patientAge, 10);
+        if (isNaN(age) || age <= 0) {
+            toast({ variant: 'destructive', title: 'عمر غير صالح', description: 'الرجاء إدخال عمر صحيح.' });
+            return;
+        }
+        
+        setIsLoading(true);
+        setResults(null);
+
+        const medicationsInput: DoseCalculationInput['medications'] = cartItems
+            .filter(item => !item.isReturn)
+            .map(item => ({
+                tradeName: item.name,
+                dosage: item.saleUnit || 'N/A',
+                dosageForm: 'N/A' // Placeholder as we don't have this field yet
+            }));
+            
+        try {
+            const response = await calculateDose({ patientAge: age, medications: medicationsInput });
+            setResults(response);
+        } catch (error) {
+            console.error(error);
+            toast({ variant: 'destructive', title: 'حدث خطأ', description: 'لم نتمكن من حساب الجرعة. الرجاء المحاولة مرة أخرى.' });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <DialogContent className="sm:max-w-3xl">
+            <DialogHeader>
+                <DialogTitle>مساعد الجرعات الذكي</DialogTitle>
+                <DialogDescription>
+                   أدخل عمر المريض للحصول على اقتراحات للجرعات بناءً على الأدوية في الفاتورة.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div className="flex items-end gap-2">
+                    <div className="flex-1 space-y-2">
+                        <Label htmlFor="patient-age">عمر المريض (بالسنوات)</Label>
+                        <Input id="patient-age" type="number" value={patientAge} onChange={(e) => setPatientAge(e.target.value)} placeholder="مثال: 5" />
+                    </div>
+                    <Button onClick={handleCalculate} disabled={isLoading || cartItems.length === 0}>
+                        {isLoading ? <BrainCircuit className="me-2 h-4 w-4 animate-spin" /> : <Thermometer className="me-2 h-4 w-4" />}
+                        حساب الجرعات
+                    </Button>
+                </div>
+                
+                {isLoading && (
+                    <div className="space-y-2 pt-4">
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-8 w-full" />
+                    </div>
+                )}
+                
+                {results && (
+                     <div className="space-y-4 pt-4">
+                        <Alert variant="destructive">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>تنبيه هام</AlertTitle>
+                            <AlertDescription>
+                                هذه النتائج هي مجرد اقتراحات من الذكاء الاصطناعي ولا تغني عن خبرة الصيدلي وقراره النهائي. يجب التحقق من الجرعات دائمًا.
+                            </AlertDescription>
+                        </Alert>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>الدواء</TableHead>
+                                    <TableHead>الجرعة المقترحة</TableHead>
+                                    <TableHead>ملاحظات</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {results.map((res, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell className="font-medium">{res.tradeName}</TableCell>
+                                        <TableCell>{res.suggestedDose}</TableCell>
+                                        <TableCell className="text-destructive">{res.warning}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                     </div>
+                )}
+            </div>
+             <DialogFooter>
+                <DialogClose asChild>
+                    <Button variant="outline">إغلاق</Button>
+                </DialogClose>
+            </DialogFooter>
+        </DialogContent>
+    );
+}
 
 export default function SalesPage() {
   const [allInventory, setAllInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
@@ -140,6 +243,7 @@ export default function SalesPage() {
   const [saleToPrint, setSaleToPrint] = React.useState<Sale | null>(null);
   const [discount, setDiscount] = React.useState(0);
   const [discountInput, setDiscountInput] = React.useState("0");
+  const [isDosingAssistantOpen, setIsDosingAssistantOpen] = React.useState(false);
 
   const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
   const [isPatientModalOpen, setIsPatientModalOpen] = React.useState(false);
@@ -649,52 +753,62 @@ export default function SalesPage() {
                 <CardFooter className="flex flex-col items-stretch gap-2">
                     {mode === 'new' ? (
                       <>
-                        <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-                            <DialogTrigger asChild>
-                                <Button size="lg" className="w-full" onClick={handleCheckout} disabled={cart.length === 0} variant="success">
-                                    إتمام العملية
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>تأكيد الفاتورة</DialogTitle>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                    <div className="max-h-64 overflow-y-auto p-1">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>المنتج</TableHead>
-                                                    <TableHead className="text-center">الكمية</TableHead>
-                                                    <TableHead className="text-left">السعر</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {cart.map(item => (
-                                                    <TableRow key={item.medicationId} className={cn(item.isReturn && "text-destructive")}>
-                                                        <TableCell>{item.name} {item.saleUnit && `(${item.saleUnit})`} {item.isReturn && "(مرتجع)"}</TableCell>
-                                                        <TableCell className="text-center">{item.quantity}</TableCell>
-                                                        <TableCell className="text-left">{((item.isReturn ? -1 : 1) * item.price * item.quantity).toLocaleString('ar-IQ')} د.ع</TableCell>
+                        <div className="flex gap-2">
+                            <Dialog open={isDosingAssistantOpen} onOpenChange={setIsDosingAssistantOpen}>
+                                <DialogTrigger asChild>
+                                    <Button size="lg" variant="outline" className="w-1/4" disabled={cart.length === 0} aria-label="مساعد الجرعات">
+                                        <Thermometer />
+                                    </Button>
+                                </DialogTrigger>
+                                <DosingAssistant cartItems={cart} />
+                            </Dialog>
+                            <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
+                                <DialogTrigger asChild>
+                                    <Button size="lg" className="flex-1" onClick={handleCheckout} disabled={cart.length === 0} variant="success">
+                                        إتمام العملية
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>تأكيد الفاتورة</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-4">
+                                        <div className="max-h-64 overflow-y-auto p-1">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>المنتج</TableHead>
+                                                        <TableHead className="text-center">الكمية</TableHead>
+                                                        <TableHead className="text-left">السعر</TableHead>
                                                     </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {cart.map(item => (
+                                                        <TableRow key={item.medicationId} className={cn(item.isReturn && "text-destructive")}>
+                                                            <TableCell>{item.name} {item.saleUnit && `(${item.saleUnit})`} {item.isReturn && "(مرتجع)"}</TableCell>
+                                                            <TableCell className="text-center">{item.quantity}</TableCell>
+                                                            <TableCell className="text-left">{((item.isReturn ? -1 : 1) * item.price * item.quantity).toLocaleString('ar-IQ')} د.ع</TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                        <Separator/>
+                                        <div className="space-y-2 text-sm">
+                                            {selectedPatient && <div className="flex justify-between"><span>المريض:</span><span>{selectedPatient.name}</span></div>}
+                                            <div className="flex justify-between"><span>المجموع الفرعي:</span><span>{subtotal.toLocaleString('ar-IQ')} د.ع</span></div>
+                                            <div className="flex justify-between"><span>الخصم:</span><span>-{discount.toLocaleString('ar-IQ')} د.ع</span></div>
+                                             <div className="flex justify-between text-green-600"><span>الربح الصافي:</span><span>{(totalProfit - discount).toLocaleString('ar-IQ')} د.ع</span></div>
+                                            <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>{finalTotal.toLocaleString('ar-IQ')} د.ع</span></div>
+                                        </div>
                                     </div>
-                                    <Separator/>
-                                    <div className="space-y-2 text-sm">
-                                        {selectedPatient && <div className="flex justify-between"><span>المريض:</span><span>{selectedPatient.name}</span></div>}
-                                        <div className="flex justify-between"><span>المجموع الفرعي:</span><span>{subtotal.toLocaleString('ar-IQ')} د.ع</span></div>
-                                        <div className="flex justify-between"><span>الخصم:</span><span>-{discount.toLocaleString('ar-IQ')} د.ع</span></div>
-                                         <div className="flex justify-between text-green-600"><span>الربح الصافي:</span><span>{(totalProfit - discount).toLocaleString('ar-IQ')} د.ع</span></div>
-                                        <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>{finalTotal.toLocaleString('ar-IQ')} د.ع</span></div>
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
-                                    <Button onClick={handleFinalizeSale} variant="success">تأكيد البيع</Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
+                                    <DialogFooter>
+                                        <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
+                                        <Button onClick={handleFinalizeSale} variant="success">تأكيد البيع</Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
                          <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button variant="outline" className="w-full" disabled={cart.length === 0}>
