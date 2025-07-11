@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 
 export type UserPermissions = {
@@ -43,13 +42,13 @@ export type Medication = {
 export type SaleItem = {
   medicationId: string;
   name: string; // This will be tradeName for display
+  scientificNames?: string[];
   quantity: number;
   price: number;
   purchasePrice: number;
   expirationDate?: string;
   isReturn?: boolean;
   saleUnit?: string;
-  scientificNames?: string[];
 };
 
 export type Sale = {
@@ -158,6 +157,7 @@ export type TrashItem = {
   itemType: 'medication' | 'patient' | 'supplier' | 'user';
   data: Medication | Patient | Supplier | User;
 };
+
 
 // AI Flow Schemas
 const MedicationInfoSchema = z.object({

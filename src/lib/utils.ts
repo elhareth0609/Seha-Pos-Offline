@@ -29,5 +29,9 @@ export function formatStock(
     result += `${saleUnits} ${saleUnit}`;
   }
 
-  return result || `0 ${saleUnit}`;
+  if (!result && totalItems === 0) {
+      return `0 ${saleUnit}`;
+  }
+
+  return result || `${totalItems} ${saleUnit}`;
 }
