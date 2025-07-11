@@ -158,9 +158,12 @@ export default function InventoryPage() {
       if (!editingMed) return;
 
       const formData = new FormData(e.currentTarget);
+      const scientificNamesStr = formData.get('scientificNames') as string;
+
       const updatedMed: Medication = {
           ...editingMed,
           tradeName: formData.get('tradeName') as string,
+          scientificNames: scientificNamesStr.split(',').map(name => name.trim()).filter(Boolean),
           stock: parseInt(formData.get('stock') as string, 10),
           reorderPoint: parseInt(formData.get('reorderPoint') as string, 10),
           price: parseFloat(formData.get('price') as string),
@@ -485,8 +488,12 @@ export default function InventoryPage() {
                    {editingMed && (
                       <form onSubmit={handleUpdate} className="space-y-4">
                           <div className="space-y-2">
-                              <Label htmlFor="edit-name">الاسم التجاري</Label>
-                              <Input id="edit-name" name="tradeName" defaultValue={editingMed.tradeName} required />
+                              <Label htmlFor="edit-tradeName">الاسم التجاري</Label>
+                              <Input id="edit-tradeName" name="tradeName" defaultValue={editingMed.tradeName} required />
+                          </div>
+                          <div className="space-y-2">
+                              <Label htmlFor="edit-scientificNames">الأسماء العلمية (مفصولة بفاصلة)</Label>
+                              <Input id="edit-scientificNames" name="scientificNames" defaultValue={(editingMed.scientificNames || []).join(', ')} />
                           </div>
                           <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">

@@ -662,8 +662,6 @@ export default function SalesPage() {
                             <TableBody>
                                 {cart.map((item) => {
                                 const medInInventory = (allInventory || []).find(med => med.id === item.medicationId);
-                                const stock = medInInventory?.stock ?? 0;
-                                const remainingStock = stock - item.quantity;
                                 const itemTotal = (item.isReturn ? -1 : 1) * item.price * item.quantity;
                                 const isBelowCost = item.price < item.purchasePrice;
                                 const itemProfit = (item.price - item.purchasePrice) * item.quantity;
