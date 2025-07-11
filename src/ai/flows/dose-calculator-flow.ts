@@ -23,7 +23,7 @@ Patient's Age: {{patientAge}} years old.
 
 Medications to process:
 {{#each medications}}
-- **{{tradeName}}** ({{#if scientificNames}}Scientific Names: {{join scientificNames ", "}}{{/if}}) ({{dosage}} {{dosageForm}})
+- **{{tradeName}}** ({{#if scientificNames}}Scientific Names: {{#each scientificNames}}{{.}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}}) ({{dosage}} {{dosageForm}})
 {{/each}}
 
 Your response MUST be a valid JSON object matching the output schema.
