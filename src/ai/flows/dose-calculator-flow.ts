@@ -33,9 +33,10 @@ Here are your tasks, please perform them in order and provide the output in Arab
 1.  **Drug Interaction Check:** Analyze all medications in the list for potential interactions with each other. Pay close attention to the individual scientific names in compound drugs. If you find any, describe them clearly in the 'interactions' array. If there are no interactions, return an empty array.
 
 2.  **Individual Medication Analysis:** For each medication, create a corresponding object in the 'medicationAnalysis' array with the following details:
-    a.  **suggestedDose:** Calculate and suggest an appropriate dose, frequency, and duration based on the patient's age. For compound drugs, the dose should be appropriate for the combination of active ingredients.
-    b.  **usageInstructions:** Provide important advice on how to take the medication (e.g., "يؤخذ بعد الطعام", "يجب إكمال كورس العلاج كاملاً").
-    c.  **warning:** Include any critical warnings or contraindications specific to this age group (e.g., "لا يستخدم للأطفال أقل من سنتين").
+    a.  **tradeName:** Use the provided trade name for the medication.
+    b.  **suggestedDose:** Calculate and suggest an appropriate dose, frequency, and duration based on the patient's age. For compound drugs, the dose should be appropriate for the combination of active ingredients.
+    c.  **usageInstructions:** Provide important advice on how to take the medication (e.g., "يؤخذ بعد الطعام", "يجب إكمال كورس العلاج كاملاً").
+    d.  **warning:** Include any critical warnings or contraindications specific to this age group (e.g., "لا يستخدم للأطفال أقل من سنتين").
 
 Example of a good response for a compound drug:
 {
