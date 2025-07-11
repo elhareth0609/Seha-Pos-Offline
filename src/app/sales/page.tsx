@@ -45,12 +45,13 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import { inventory as fallbackInventory, sales as fallbackSales, appSettings as fallbackSettings, patients as fallbackPatients } from "@/lib/data"
-import type { Medication, SaleItem, Sale, AppSettings, Patient } from "@/lib/types"
+import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput } from "@/lib/types"
 import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, ArrowLeft, ArrowRight, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
@@ -62,7 +63,7 @@ import { useReactToPrint } from "react-to-print"
 import { InvoiceTemplate } from "@/components/ui/invoice"
 import { useAuth } from "@/hooks/use-auth"
 import { buttonVariants } from "@/components/ui/button"
-import { calculateDose, type DoseCalculation, type DoseCalculationInput } from "@/ai/flows/dose-calculator-flow"
+import { calculateDose, type DoseCalculationInput } from "@/ai/flows/dose-calculator-flow"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useOnlineStatus } from "@/hooks/use-online-status"
 
@@ -131,7 +132,7 @@ function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => 
 function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
     const [patientAge, setPatientAge] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
-    const [results, setResults] = React.useState<DoseCalculation[] | null>(null);
+    const [results, setResults] = React.useState<DoseCalculationOutput | null>(null);
     const { toast } = useToast();
 
     const handleCalculate = async () => {
@@ -148,7 +149,7 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
             .filter(item => !item.isReturn)
             .map(item => ({
                 tradeName: item.name,
-                dosage: item.saleUnit || 'N/A',
+                dosage: item.saleUnit || 'N/A', // This is not ideal, but we lack dosage field in SaleItem
                 dosageForm: 'N/A' // Placeholder as we don't have this field yet
             }));
             
@@ -168,7 +169,7 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
             <DialogHeader>
                 <DialogTitle>مساعد الجرعات الذكي</DialogTitle>
                 <DialogDescription>
-                   أدخل عمر المريض للحصول على اقتراحات للجرعات بناءً على الأدوية في الفاتورة.
+                   أدخل عمر المريض للحصول على اقتراحات للجرعات، تعليمات الاستخدام، وكشف التفاعلات الدوائية.
                 </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -179,7 +180,7 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
                     </div>
                     <Button onClick={handleCalculate} disabled={isLoading || cartItems.length === 0}>
                         {isLoading ? <BrainCircuit className="me-2 h-4 w-4 animate-spin" /> : <Thermometer className="me-2 h-4 w-4" />}
-                        حساب الجرعات
+                        حساب وتحليل
                     </Button>
                 </div>
                 
@@ -197,23 +198,56 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
                             <AlertTriangle className="h-4 w-4" />
                             <AlertTitle>تنبيه هام</AlertTitle>
                             <AlertDescription>
-                                هذه النتائج هي مجرد اقتراحات من الذكاء الاصطناعي ولا تغني عن خبرة الصيدلي وقراره النهائي. يجب التحقق من الجرعات دائمًا.
+                                هذه النتائج هي مجرد اقتراحات من الذكاء الاصطناعي ولا تغني عن خبرة الصيدلي وقراره النهائي. يجب التحقق من الجرعات والتفاعلات دائمًا.
                             </AlertDescription>
                         </Alert>
+                        
+                        {results.interactions && results.interactions.length > 0 && (
+                            <div className="mt-4">
+                                <h3 className="font-semibold text-lg text-destructive mb-2">تفاعلات دوائية محتملة:</h3>
+                                <ul className="list-disc list-inside space-y-1 rounded-md border border-destructive/50 bg-destructive/5 p-4 text-destructive">
+                                    {results.interactions.map((interaction, index) => (
+                                        <li key={index}>{interaction}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
                         <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>الدواء</TableHead>
                                     <TableHead>الجرعة المقترحة</TableHead>
-                                    <TableHead>ملاحظات</TableHead>
+                                    <TableHead>تحذيرات / تعليمات</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {results.map((res, index) => (
+                                {results.medicationAnalysis.map((res, index) => (
                                     <TableRow key={index}>
                                         <TableCell className="font-medium">{res.tradeName}</TableCell>
                                         <TableCell>{res.suggestedDose}</TableCell>
-                                        <TableCell className="text-destructive">{res.warning}</TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-destructive font-medium">{res.warning}</span>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                            <AlertTriangle className="text-yellow-500" />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-80">
+                                                        <div className="grid gap-4">
+                                                            <div className="space-y-2">
+                                                                <h4 className="font-medium leading-none">تعليمات الاستخدام</h4>
+                                                                <p className="text-sm text-muted-foreground">
+                                                                    {res.usageInstructions}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>

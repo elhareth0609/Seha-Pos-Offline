@@ -171,12 +171,19 @@ export const DoseCalculationInputSchema = z.object({
 });
 export type DoseCalculationInput = z.infer<typeof DoseCalculationInputSchema>;
 
-export const DoseCalculationSchema = z.object({
+export const MedicationAnalysisSchema = z.object({
     tradeName: z.string().describe('The trade name of the medication being analyzed.'),
     suggestedDose: z.string().describe('The suggested dose, frequency, and duration for the patient. For example: "نصف حبة (250mg) مرتين يوميًا لمدة 5 أيام". Be specific and clear.'),
+    usageInstructions: z.string().describe('Important instructions on how to take the medication, such as with or without food.'),
     warning: z.string().optional().describe('Any critical warnings or contraindications for this age group, if applicable. For example: "لا يستخدم للأطفال أقل من سنتين".'),
 });
-export type DoseCalculation = z.infer<typeof DoseCalculationSchema>;
+export type MedicationAnalysis = z.infer<typeof MedicationAnalysisSchema>;
 
-export const DoseCalculationOutputSchema = z.array(DoseCalculationSchema);
+export const DoseCalculationOutputSchema = z.object({
+    interactions: z.array(z.string()).describe('A list of strings, each describing a potential interaction between the provided drugs. Empty if no interactions are found.'),
+    medicationAnalysis: z.array(MedicationAnalysisSchema).describe('An array containing the analysis for each individual medication.'),
+});
 export type DoseCalculationOutput = z.infer<typeof DoseCalculationOutputSchema>;
+
+// This is a helper type for the frontend, not used in the flow itself
+export type DoseCalculation = z.infer<typeof MedicationAnalysisSchema>;
