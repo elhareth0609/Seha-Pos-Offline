@@ -80,7 +80,7 @@ export default function PurchasesPage() {
   const [purchaseSupplierId, setPurchaseSupplierId] = React.useState('');
   const [purchaseMedicationId, setPurchaseMedicationId] = React.useState('');
   const [tradeName, setTradeName] = React.useState('');
-  const [scientificName, setScientificName] = React.useState('');
+  const [scientificNames, setScientificNames] = React.useState('');
   const [company, setCompany] = React.useState('');
   const [dosageForm, setDosageForm] = React.useState('');
   const [otherDosageForm, setOtherDosageForm] = React.useState('');
@@ -160,7 +160,7 @@ export default function PurchasesPage() {
   const resetForm = () => {
     setPurchaseMedicationId('');
     setTradeName('');
-    setScientificName('');
+    setScientificNames('');
     setCompany('');
     setDosageForm('');
     setOtherDosageForm('');
@@ -233,6 +233,8 @@ export default function PurchasesPage() {
     if (imageFile) {
         imageUrl = await fileToDataUri(imageFile);
     }
+    
+    const scientificNamesArray = scientificNames.split(',').map(name => name.trim()).filter(Boolean);
 
     // --- Inventory Update ---
     let newInventory = [...inventory];
@@ -243,7 +245,7 @@ export default function PurchasesPage() {
         existingMed.stock += totalSmallestUnits;
         // Optionally update other details if they've changed
         existingMed.tradeName = tradeName;
-        existingMed.scientificName = scientificName;
+        existingMed.scientificNames = scientificNamesArray;
         existingMed.price = sellingPrice;
         existingMed.purchasePrice = purchasePricePerSaleUnit;
         existingMed.expirationDate = expirationDate;
@@ -254,7 +256,7 @@ export default function PurchasesPage() {
         const newMedication: Medication = {
             id: medicationId,
             tradeName,
-            scientificName,
+            scientificNames: scientificNamesArray,
             company,
             details,
             dosage,
@@ -485,7 +487,7 @@ export default function PurchasesPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2"><Label htmlFor="medicationId">الباركود (يترك فارغاً للتوليد)</Label><Input id="medicationId" value={purchaseMedicationId} onChange={e => setPurchaseMedicationId(e.target.value)} /></div>
                         <div className="space-y-2"><Label htmlFor="tradeName">الاسم التجاري</Label><Input id="tradeName" required value={tradeName} onChange={e => setTradeName(e.target.value)} /></div>
-                        <div className="space-y-2"><Label htmlFor="scientificName">الاسم العلمي</Label><Input id="scientificName" value={scientificName} onChange={e => setScientificName(e.target.value)} /></div>
+                        <div className="space-y-2"><Label htmlFor="scientificNames">الاسم العلمي (يفصل بينها بفاصلة ,)</Label><Input id="scientificNames" value={scientificNames} onChange={e => setScientificNames(e.target.value)} /></div>
                         <div className="space-y-2"><Label htmlFor="company">الشركة المصنعة</Label><Input id="company" value={company} onChange={e => setCompany(e.target.value)} /></div>
                         
                         <div className="space-y-2">

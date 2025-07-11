@@ -18,7 +18,7 @@ export type UserPermissions = {
 export type Medication = {
   id: string; // Barcode
   tradeName: string; // الاسم التجاري
-  scientificName?: string; // الاسم العلمي
+  scientificNames?: string[]; // الاسماء العلمية
   company?: string; // الشركة
   details?: string; // تفاصيل
   dosage?: string; // الجرعة
@@ -49,6 +49,7 @@ export type SaleItem = {
   expirationDate?: string;
   isReturn?: boolean;
   saleUnit?: string;
+  scientificNames?: string[];
 };
 
 export type Sale = {
@@ -161,6 +162,7 @@ export type TrashItem = {
 // AI Flow Schemas
 const MedicationInfoSchema = z.object({
   tradeName: z.string().describe('The commercial trade name of the medication.'),
+  scientificNames: z.array(z.string()).optional().describe('The active scientific names of the medication.'),
   dosage: z.string().describe('The dosage strength of the medication (e.g., "500mg", "100mg/5ml").'),
   dosageForm: z.string().describe('The form of the medication (e.g., "Tablet", "Syrup", "Capsule").'),
 });

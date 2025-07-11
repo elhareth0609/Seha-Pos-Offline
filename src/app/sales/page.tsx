@@ -149,6 +149,7 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
             .filter(item => !item.isReturn)
             .map(item => ({
                 tradeName: item.name,
+                scientificNames: item.scientificNames || [],
                 dosage: item.saleUnit || 'N/A', // This is not ideal, but we lack dosage field in SaleItem
                 dosageForm: 'N/A' // Placeholder as we don't have this field yet
             }));
@@ -315,7 +316,7 @@ export default function SalesPage() {
             : item
         )
       }
-      return [...prevCart, { medicationId: medication.id, name: medication.tradeName, quantity: 1, price: medication.price, purchasePrice: medication.purchasePrice, expirationDate: medication.expirationDate, isReturn: false, saleUnit: medication.saleUnit }]
+      return [...prevCart, { medicationId: medication.id, name: medication.tradeName, scientificNames: medication.scientificNames, quantity: 1, price: medication.price, purchasePrice: medication.purchasePrice, expirationDate: medication.expirationDate, isReturn: false, saleUnit: medication.saleUnit }]
     })
     setSearchTerm("")
     setSuggestions([])
@@ -684,7 +685,7 @@ export default function SalesPage() {
                                                 <div className="flex-1">
                                                     <div className="font-medium">{item.name}</div>
                                                     <div className="text-xs text-muted-foreground">
-                                                        {medInInventory?.scientificName} {medInInventory?.dosage && `(${medInInventory.dosage})`}
+                                                        {(item.scientificNames || []).join(', ')} {medInInventory?.dosage && `(${medInInventory.dosage})`}
                                                     </div>
                                                     <div className="text-xs text-muted-foreground">{medInInventory?.company}</div>
                                                     <div className="text-xs text-muted-foreground mt-1 flex items-center gap-x-2">
