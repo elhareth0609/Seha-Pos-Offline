@@ -80,54 +80,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const getScopedData = React.useCallback((): ScopedDataContextType => {
-    const pharmacyId = currentUser?.pharmacyId;
-    const emptySetter = () => { console.warn("Attempted to set data without a valid pharmacy context."); };
+        const pharmacyId = currentUser?.pharmacyId;
 
-    if (!pharmacyId) {
-        return {
-            inventory: [[], emptySetter as any], sales: [[], emptySetter as any],
-            suppliers: [[], emptySetter as any], patients: [[], emptySetter as any],
-            trash: [[], emptySetter as any], payments: [[], emptySetter as any],
-            purchaseOrders: [[], emptySetter as any], supplierReturns: [[], emptySetter as any],
-            timeLogs: [[], emptySetter as any], settings: [fallbackAppSettings, emptySetter as any],
+        const emptySetter = () => { console.warn("Attempted to set data without a valid pharmacy context."); };
+        const createSetter = <T,>(setter: React.Dispatch<React.SetStateAction<{ [key: string]: T[] }>>, fallback: T[]) => 
+            (value: T[] | ((val: T[]) => T[])) => 
+                setter(prev => ({ ...prev, [pharmacyId!]: typeof value === 'function' ? value(prev[pharmacyId!] || fallback) : value }));
+
+        const setScopedInventory = createSetter(setAllInventory, []);
+        const setScopedSales = createSetter(setAllSales, []);
+        const setScopedSuppliers = createSetter(setAllSuppliers, []);
+        const setScopedPatients = createSetter(setAllPatients, []);
+        const setScopedTrash = createSetter(setAllTrash, []);
+        const setScopedPayments = createSetter(setAllPayments, []);
+        const setScopedPurchaseOrders = createSetter(setAllPurchaseOrders, []);
+        const setScopedSupplierReturns = createSetter(setAllSupplierReturns, []);
+        const setScopedTimeLogs = createSetter(setAllTimeLogs, []);
+        const setScopedSettings = (value: AppSettings | ((val: AppSettings) => AppSettings)) => {
+            setAllAppSettings(p => ({ ...p, [pharmacyId!]: typeof value === 'function' ? value(p[pharmacyId!] || fallbackAppSettings) : value }));
         };
-    }
-    
-    const createSetter = <T,>(setter: React.Dispatch<React.SetStateAction<{ [key: string]: T[] }>>, fallback: T[]) => 
-      React.useCallback((value: T[] | ((val: T[]) => T[])) => 
-          setter(prev => ({ ...prev, [pharmacyId]: typeof value === 'function' ? value(prev[pharmacyId] || fallback) : value })), [setter, pharmacyId]);
+        
+        if (!pharmacyId) {
+            return {
+                inventory: [[], emptySetter as any], sales: [[], emptySetter as any],
+                suppliers: [[], emptySetter as any], patients: [[], emptySetter as any],
+                trash: [[], emptySetter as any], payments: [[], emptySetter as any],
+                purchaseOrders: [[], emptySetter as any], supplierReturns: [[], emptySetter as any],
+                timeLogs: [[], emptySetter as any], settings: [fallbackAppSettings, emptySetter as any],
+            };
+        }
 
-    const setScopedInventory = createSetter(setAllInventory, []);
-    const setScopedSales = createSetter(setAllSales, []);
-    const setScopedSuppliers = createSetter(setAllSuppliers, []);
-    const setScopedPatients = createSetter(setAllPatients, []);
-    const setScopedTrash = createSetter(setAllTrash, []);
-    const setScopedPayments = createSetter(setAllPayments, []);
-    const setScopedPurchaseOrders = createSetter(setAllPurchaseOrders, []);
-    const setScopedSupplierReturns = createSetter(setAllSupplierReturns, []);
-    const setScopedTimeLogs = createSetter(setAllTimeLogs, []);
-    
-    const setScopedSettings = React.useCallback((value: AppSettings | ((val: AppSettings) => AppSettings)) => {
-        setAllAppSettings(p => ({ ...p, [pharmacyId]: typeof value === 'function' ? value(p[pharmacyId] || fallbackAppSettings) : value }))
-    }, [pharmacyId, setAllAppSettings]);
-
-    return {
-        inventory: [allInventory[pharmacyId] || [], setScopedInventory],
-        sales: [allSales[pharmacyId] || [], setScopedSales],
-        suppliers: [allSuppliers[pharmacyId] || [], setScopedSuppliers],
-        patients: [allPatients[pharmacyId] || [], setScopedPatients],
-        trash: [allTrash[pharmacyId] || [], setScopedTrash],
-        payments: [allPayments[pharmacyId] || [], setScopedPayments],
-        purchaseOrders: [allPurchaseOrders[pharmacyId] || [], setScopedPurchaseOrders],
-        supplierReturns: [allSupplierReturns[pharmacyId] || [], setScopedSupplierReturns],
-        timeLogs: [allTimeLogs[pharmacyId] || [], setScopedTimeLogs],
-        settings: [allAppSettings[pharmacyId] || fallbackAppSettings, setScopedSettings],
-    };
-}, [
-    currentUser?.pharmacyId, 
-    allInventory, allSales, allSuppliers, allPatients, allTrash, allPayments, allPurchaseOrders, allSupplierReturns, allTimeLogs, allAppSettings,
-    setAllInventory, setAllSales, setAllSuppliers, setAllPatients, setAllTrash, setAllPayments, setAllPurchaseOrders, setAllSupplierReturns, setAllTimeLogs, setAllAppSettings
-]);
+        return {
+            inventory: [allInventory[pharmacyId] || [], setScopedInventory],
+            sales: [allSales[pharmacyId] || [], setScopedSales],
+            suppliers: [allSuppliers[pharmacyId] || [], setScopedSuppliers],
+            patients: [allPatients[pharmacyId] || [], setScopedPatients],
+            trash: [allTrash[pharmacyId] || [], setScopedTrash],
+            payments: [allPayments[pharmacyId] || [], setScopedPayments],
+            purchaseOrders: [allPurchaseOrders[pharmacyId] || [], setScopedPurchaseOrders],
+            supplierReturns: [allSupplierReturns[pharmacyId] || [], setScopedSupplierReturns],
+            timeLogs: [allTimeLogs[pharmacyId] || [], setScopedTimeLogs],
+            settings: [allAppSettings[pharmacyId] || fallbackAppSettings, setScopedSettings],
+        };
+    }, [currentUser?.pharmacyId, allAppSettings, allInventory, allSales, allSuppliers, allPatients, allTrash, allPayments, allPurchaseOrders, allSupplierReturns, allTimeLogs, setAllAppSettings, setAllInventory, setAllSales, setAllSuppliers, setAllPatients, setAllTrash, setAllPayments, setAllPurchaseOrders, setAllSupplierReturns, setAllTimeLogs]);
 
 
   const setupAdmin = async (name: string, email: string, pin: string) => {
@@ -352,3 +347,5 @@ export function useAuth() {
   }
   return context;
 }
+
+    
