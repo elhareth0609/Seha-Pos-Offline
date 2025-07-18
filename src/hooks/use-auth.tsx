@@ -20,6 +20,7 @@ interface AuthContextType {
   resetPin: (email: string, newPin: string) => Promise<boolean>;
   checkUserExists: (email: string) => Promise<boolean>;
   deleteUser: (userId: string) => Promise<boolean>;
+  updateUser: (userId: string, name: string, email: string, pin?: string) => Promise<boolean>;
   updateUserPermissions: (userId: string, permissions: UserPermissions) => Promise<boolean>;
   updateUserHourlyRate: (userId: string, rate: number) => Promise<boolean>;
 }
@@ -123,6 +124,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return false;
   }
 
+  const updateUser = async (userId: string, name: string, email: string, pin?: string): Promise<boolean> => {
+      const emailExists = users.some(u => u.id !== userId && u.email && u.email.toLowerCase() === email.toLowerCase());
+      if (emailExists) {
+          return false; // Email is already taken by another user
+      }
+      
+      setUsers(prevUsers => prevUsers.map(u => {
+          if (u.id === userId) {
+              return {
+                  ...u,
+                  name: name,
+                  email: email,
+                  pin: pin || u.pin, // Only update PIN if a new one is provided
+              };
+          }
+          return u;
+      }));
+      return true;
+  };
+
   const updateUserPermissions = async (userId: string, permissions: UserPermissions): Promise<boolean> => {
       let userFound = false;
       const updatedUsers = users.map(u => {
@@ -202,7 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = !!currentUser;
 
   return (
-    <AuthContext.Provider value={{ currentUser, users, setUsers, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, deleteUser, updateUserPermissions, updateUserHourlyRate }}>
+    <AuthContext.Provider value={{ currentUser, users, setUsers, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate }}>
       {children}
     </AuthContext.Provider>
   );

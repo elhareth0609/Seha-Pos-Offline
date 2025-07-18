@@ -41,16 +41,22 @@ import {
     DialogClose,
     DialogDescription
 } from "@/components/ui/dialog"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 import { Skeleton } from '@/components/ui/skeleton'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { useAuth } from '@/hooks/use-auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, Clock, Wallet } from 'lucide-react'
+import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, Clock, Wallet, MoreVertical, Pencil } from 'lucide-react'
 import { clearAllDBData } from '@/hooks/use-local-storage'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import Image from 'next/image'
 import { differenceInMinutes, formatDistanceStrict } from 'date-fns'
 import { ar } from 'date-fns/locale'
@@ -74,6 +80,19 @@ const addUserSchema = z.object({
 });
 
 type AddUserFormValues = z.infer<typeof addUserSchema>;
+
+const editUserSchema = z.object({
+    name: z.string().min(3, { message: "الرجاء إدخال اسم مكون من 3 أحرف على الأقل." }),
+    email: z.string().email({ message: "الرجاء إدخال بريد إلكتروني صالح."}),
+    pin: z.string().optional().refine(val => val === '' || /^\d{4}$/.test(val!), { message: "يجب أن يتكون رمز PIN من 4 أرقام." }),
+    confirmPin: z.string().optional(),
+}).refine(data => data.pin === data.confirmPin, {
+    message: "رموز PIN غير متطابقة",
+    path: ["confirmPin"],
+});
+
+type EditUserFormValues = z.infer<typeof editUserSchema>;
+
 
 const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: string }[] = [
     { key: 'sales', label: 'الوصول إلى قسم المبيعات' },
@@ -159,11 +178,12 @@ export default function SettingsPage() {
     const [sales] = useLocalStorage<Sale[]>('sales', fallbackSales);
     const [timeLogs] = useLocalStorage<TimeLog[]>('timeLogs', fallbackTimeLogs);
     const [isClient, setIsClient] = React.useState(false);
-    const { currentUser, users, deleteUser, updateUserPermissions, updateUserHourlyRate } = useAuth();
+    const { currentUser, users, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate } = useAuth();
     
     const [isAddUserOpen, setIsAddUserOpen] = React.useState(false);
     const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = React.useState(false);
     const [isTimeLogDialogOpen, setIsTimeLogDialogOpen] = React.useState(false);
+    const [isEditUserDialogOpen, setIsEditUserDialogOpen] = React.useState(false);
     const [editingUser, setEditingUser] = React.useState<User | null>(null);
     const [currentUserPermissions, setCurrentUserPermissions] = React.useState<UserPermissions | null>(null);
     const [currentUserHourlyRate, setCurrentUserHourlyRate] = React.useState<string>("");
@@ -172,6 +192,11 @@ export default function SettingsPage() {
         resolver: zodResolver(settingsSchema),
         defaultValues: { ...fallbackSettings },
     });
+    
+     const editUserForm = useForm<EditUserFormValues>({
+        resolver: zodResolver(editUserSchema),
+        defaultValues: { name: "", email: "", pin: "", confirmPin: "" }
+    });
 
     React.useEffect(() => {
         setIsClient(true);
@@ -179,12 +204,35 @@ export default function SettingsPage() {
             settingsForm.reset({ ...fallbackSettings, ...settings });
         }
     }, [settings, settingsForm]);
+    
+    React.useEffect(() => {
+        if (editingUser) {
+            editUserForm.reset({
+                name: editingUser.name,
+                email: editingUser.email,
+                pin: '',
+                confirmPin: '',
+            });
+        }
+    }, [editingUser, editUserForm]);
+
 
     const onSettingsSubmit = (data: SettingsFormValues) => {
         setSettings(data);
         toast({
             title: "تم حفظ الإعدادات بنجاح!",
         })
+    }
+    
+    const onEditUserSubmit = async (data: EditUserFormValues) => {
+        if (!editingUser) return;
+        const success = await updateUser(editingUser.id, data.name, data.email, data.pin || undefined);
+        if (success) {
+            toast({ title: "تم تحديث بيانات الموظف بنجاح" });
+            setIsEditUserDialogOpen(false);
+        } else {
+            toast({ variant: 'destructive', title: "خطأ", description: "البريد الإلكتروني قد يكون مستخدماً بالفعل." });
+        }
     }
 
     const handleClearData = async () => {
@@ -219,7 +267,7 @@ export default function SettingsPage() {
             data: userToDelete,
         };
         setTrash(prev => [newTrashItem, ...prev]);
-        deleteUser(userToDelete.id); // Use central delete function
+        deleteUser(userToDelete.id);
         toast({ title: "تم نقل الموظف إلى سلة المحذوفات" });
     }
     
@@ -231,6 +279,11 @@ export default function SettingsPage() {
         setCurrentUserPermissions(permissions);
         setIsPermissionsDialogOpen(true);
     };
+    
+    const openEditDialog = (user: User) => {
+        setEditingUser(user);
+        setIsEditUserDialogOpen(true);
+    }
 
     const handlePermissionChange = (key: keyof UserPermissions, checked: boolean) => {
         if (currentUserPermissions) {
@@ -445,51 +498,46 @@ export default function SettingsPage() {
                                     </TableCell>
                                     <TableCell className="text-left">
                                         {user.role !== 'Admin' && (
-                                            <div className="flex items-center justify-start gap-0">
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={() => openPermissionsDialog(user)}>
-                                                                <ShieldCheck className="h-4 w-4" />
-                                                            </Button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            <p>إدارة الصلاحيات</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
-
-                                                <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                         <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                                                        <Trash2 className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>حذف الموظف</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
-                                                            <AlertDialogDescription>
-                                                                سيتم نقل الموظف {user.name} إلى سلة المحذوفات.
-                                                            </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => handleDeleteUser(user)} className="bg-destructive hover:bg-destructive/90">
-                                                                نعم، قم بالحذف
-                                                            </AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
-                                            </div>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                        <MoreVertical className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onSelect={() => openEditDialog(user)}>
+                                                        <Pencil className="me-2 h-4 w-4" />
+                                                        تعديل البيانات
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onSelect={() => openPermissionsDialog(user)}>
+                                                        <ShieldCheck className="me-2 h-4 w-4" />
+                                                        إدارة الصلاحيات
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive">
+                                                                <Trash2 className="me-2 h-4 w-4" />
+                                                                حذف
+                                                            </button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    سيتم نقل الموظف {user.name} إلى سلة المحذوفات.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                                                <AlertDialogAction onClick={() => handleDeleteUser(user)} className="bg-destructive hover:bg-destructive/90">
+                                                                    نعم، قم بالحذف
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         )}
                                     </TableCell>
                                 </TableRow>
@@ -558,6 +606,37 @@ export default function SettingsPage() {
                     </DialogClose>
                     <Button onClick={handleSavePermissions} variant="success">حفظ الصلاحيات</Button>
                 </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        
+        <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>تعديل بيانات الموظف: {editingUser?.name}</DialogTitle>
+                    <DialogDescription>
+                        تحديث اسم، بريد إلكتروني، أو رمز PIN للموظف.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...editUserForm}>
+                    <form onSubmit={editUserForm.handleSubmit(onEditUserSubmit)} className="space-y-4 py-2">
+                         <FormField control={editUserForm.control} name="name" render={({ field }) => (
+                            <FormItem><FormLabel>الاسم</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={editUserForm.control} name="email" render={({ field }) => (
+                            <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={editUserForm.control} name="pin" render={({ field }) => (
+                            <FormItem><FormLabel>رمز PIN الجديد (اختياري)</FormLabel><FormControl><Input type="password" inputMode="numeric" maxLength={4} {...field} placeholder="اتركه فارغًا لعدم التغيير" /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={editUserForm.control} name="confirmPin" render={({ field }) => (
+                            <FormItem><FormLabel>تأكيد رمز PIN الجديد</FormLabel><FormControl><Input type="password" inputMode="numeric" maxLength={4} {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <DialogFooter className="pt-4">
+                            <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                            <Button type="submit" variant="success">حفظ التغييرات</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
             </DialogContent>
         </Dialog>
         
