@@ -38,7 +38,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { DateRange } from "react-day-picker"
-import { format, isWithinInterval, parseISO } from "date-fns"
+import { format, isWithinInterval, parseISO, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths } from "date-fns"
 import { useAuth } from '@/hooks/use-auth';
 
 
@@ -83,9 +83,9 @@ export default function ReportsPage() {
         const term = searchTerm.toLowerCase().trim();
         const saleDate = parseISO(sale.date);
         
-        const dateMatch = !dateRange?.from || !dateRange?.to 
+        const dateMatch = !dateRange?.from 
             ? true 
-            : isWithinInterval(saleDate, { start: dateRange.from, end: dateRange.to });
+            : isWithinInterval(saleDate, { start: dateRange.from, end: dateRange.to || dateRange.from });
 
         const searchMatch = !term ? true : (
             sale.id.toLowerCase().includes(term) ||
@@ -206,7 +206,7 @@ export default function ReportsPage() {
                                 id="date"
                                 variant={"outline"}
                                 className={cn(
-                                "w-[300px] justify-start text-left font-normal",
+                                "w-auto justify-start text-left font-normal",
                                 !dateRange && "text-muted-foreground"
                                 )}
                             >
@@ -225,15 +225,27 @@ export default function ReportsPage() {
                                 )}
                             </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                initialFocus
-                                mode="range"
-                                defaultMonth={dateRange?.from}
-                                selected={dateRange}
-                                onSelect={setDateRange}
-                                numberOfMonths={2}
-                            />
+                            <PopoverContent className="flex p-0" align="start">
+                                 <div className="p-3">
+                                    <div className="space-y-2">
+                                        <Button onClick={() => setDateRange({ from: new Date(), to: new Date() })} variant="ghost" className="w-full justify-start">اليوم</Button>
+                                        <Button onClick={() => setDateRange({ from: addDays(new Date(), -1), to: addDays(new Date(), -1) })} variant="ghost" className="w-full justify-start">الأمس</Button>
+                                        <Button onClick={() => setDateRange({ from: startOfWeek(new Date(), { weekStartsOn: 6 }), to: endOfWeek(new Date(), { weekStartsOn: 6 }) })} variant="ghost" className="w-full justify-start">هذا الأسبوع</Button>
+                                        <Button onClick={() => setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })} variant="ghost" className="w-full justify-start">هذا الشهر</Button>
+                                        <Button onClick={() => setDateRange({ from: startOfMonth(subMonths(new Date(), 1)), to: endOfMonth(subMonths(new Date(), 1)) })} variant="ghost" className="w-full justify-start">الشهر الماضي</Button>
+                                        <Button onClick={() => setDateRange(undefined)} variant="ghost" className="w-full justify-start text-destructive">إزالة الفلتر</Button>
+                                    </div>
+                                </div>
+                                <div className="border-r">
+                                    <Calendar
+                                        initialFocus
+                                        mode="range"
+                                        defaultMonth={dateRange?.from}
+                                        selected={dateRange}
+                                        onSelect={setDateRange}
+                                        numberOfMonths={1}
+                                    />
+                                </div>
                             </PopoverContent>
                         </Popover>
                     </div>
@@ -343,3 +355,4 @@ export default function ReportsPage() {
         </div>
     )
 }
+
