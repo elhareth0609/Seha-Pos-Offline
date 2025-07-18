@@ -21,10 +21,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { useLocalStorage } from "@/hooks/use-local-storage"
-import { patients as fallbackPatients, trash as fallbackTrash } from "@/lib/data"
 import type { Patient, TrashItem } from "@/lib/types"
-import { PlusCircle, UserPlus, Users, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import { PlusCircle, UserPlus, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -43,11 +41,13 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useAuth } from "@/hooks/use-auth"
 
 
 export default function PatientsPage() {
-  const [patients, setPatients] = useLocalStorage<Patient[]>('patients', fallbackPatients);
-  const [trash, setTrash] = useLocalStorage<TrashItem[]>('trash', fallbackTrash);
+  const { scopedData } = useAuth();
+  const [patients, setPatients] = scopedData.patients;
+  const [trash, setTrash] = scopedData.trash;
   
   const [searchTerm, setSearchTerm] = React.useState("");
   const { toast } = useToast()
@@ -119,7 +119,7 @@ export default function PatientsPage() {
       toast({ title: "تم نقل المريض إلى سلة المحذوفات."});
   }
 
-  const filteredPatients = patients.filter(p => 
+  const filteredPatients = (patients || []).filter(p => 
     p.name.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
     (p.phone && p.phone.includes(searchTerm))
   );
