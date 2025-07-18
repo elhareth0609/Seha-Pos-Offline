@@ -85,9 +85,9 @@ export default function PurchasesPage() {
   const [otherDosageForm, setOtherDosageForm] = React.useState('');
   const [dosage, setDosage] = React.useState('');
   const [details, setDetails] = React.useState('');
-  const [purchaseUnit, setPurchaseUnit] = React.useState('باكيت');
-  const [saleUnit, setSaleUnit] = React.useState('شريط');
-  const [itemsPerPurchaseUnit, setItemsPerPurchaseUnit] = React.useState('10');
+  const [purchaseUnit, setPurchaseUnit] = React.useState('قطعة');
+  const [saleUnit, setSaleUnit] = React.useState('قطعة');
+  const [itemsPerPurchaseUnit, setItemsPerPurchaseUnit] = React.useState('1');
   const [quantityInPurchaseUnits, setQuantityInPurchaseUnits] = React.useState('');
   const [expirationDate, setExpirationDate] = React.useState('');
   const [purchasePricePerPurchaseUnit, setPurchasePricePerPurchaseUnit] = React.useState('');
@@ -168,9 +168,9 @@ export default function PurchasesPage() {
     setOtherDosageForm('');
     setDosage('');
     setDetails('');
-    setPurchaseUnit('باكيت');
-    setSaleUnit('شريط');
-    setItemsPerPurchaseUnit('10');
+    setPurchaseUnit('قطعة');
+    setSaleUnit('قطعة');
+    setItemsPerPurchaseUnit('1');
     setQuantityInPurchaseUnits('');
     setExpirationDate('');
     setPurchasePricePerPurchaseUnit('');
@@ -509,12 +509,7 @@ export default function PurchasesPage() {
                             </div>
                         </div>
                      </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="space-y-2"><Label htmlFor="purchaseUnit">وحدة الشراء</Label><Input id="purchaseUnit" value={purchaseUnit} onChange={e => setPurchaseUnit(e.target.value)} /></div>
-                        <div className="space-y-2"><Label htmlFor="saleUnit">وحدة البيع</Label><Input id="saleUnit" value={saleUnit} onChange={e => setSaleUnit(e.target.value)} /></div>
-                        <div className="space-y-2"><Label htmlFor="itemsPerPurchaseUnit">العدد بالوحدة</Label><Input id="itemsPerPurchaseUnit" type="number" value={itemsPerPurchaseUnit} onChange={e => setItemsPerPurchaseUnit(e.target.value)} /></div>
-                        <div className="space-y-2"><Label htmlFor="quantityInPurchaseUnits">الكمية المستلمة</Label><Input id="quantityInPurchaseUnits" type="number" required value={quantityInPurchaseUnits} onChange={e => setQuantityInPurchaseUnits(e.target.value)} /></div>
-                    </div>
+                    
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2"><Label htmlFor="purchasePricePerPurchaseUnit">سعر الشراء (للوحدة الكاملة)</Label><Input id="purchasePricePerPurchaseUnit" type="number" required value={purchasePricePerPurchaseUnit} onChange={e => setPurchasePricePerPurchaseUnit(e.target.value)} /></div>
                         <div className="space-y-2"><Label htmlFor="wholesalePrice">سعر البيع (للوحدة الكاملة)</Label><Input id="wholesalePrice" type="number" required value={wholesalePrice} onChange={e => setWholesalePrice(e.target.value)} /></div>
