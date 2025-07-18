@@ -189,17 +189,20 @@ export default function LoginPage() {
                 {users.length > 1 && (
                     <div className="p-4 border-t">
                         <p className="text-xs text-muted-foreground mb-2">أو قم بتسجيل الدخول كمستخدم آخر:</p>
-                        <div className="flex flex-wrap gap-2 justify-center">
+                        <div className="flex flex-wrap gap-4 justify-center">
                             {users.filter(u => u.id !== selectedUser).map(user => (
-                                <button key={user.id} onClick={() => handleUserSelect(user.id)} className="p-0.5 border-2 border-transparent rounded-full hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary">
-                                {user.image1DataUri ? (
-                                    <Image src={user.image1DataUri} alt={user.name} width={40} height={40} className="rounded-full object-cover" title={user.name} />
-                                ) : (
-                                     <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground" title={user.name}>
-                                        <User className="h-5 w-5" />
-                                     </div>
-                                )}
-                                </button>
+                                <div key={user.id} className="flex flex-col items-center gap-1">
+                                    <button onClick={() => handleUserSelect(user.id)} className="p-0.5 border-2 border-transparent rounded-full hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary">
+                                        {user.image1DataUri ? (
+                                            <Image src={user.image1DataUri} alt={user.name} width={40} height={40} className="rounded-full object-cover" />
+                                        ) : (
+                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                                                <User className="h-5 w-5" />
+                                            </div>
+                                        )}
+                                    </button>
+                                    <span className="text-xs font-medium text-muted-foreground">{user.name}</span>
+                                </div>
                             ))}
                         </div>
                     </div>
