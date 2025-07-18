@@ -479,7 +479,7 @@ export default function SalesPage() {
     for (const medId in stockRequirements) {
         const medInInventory = allInventory.find(m => m.id === medId);
         if (!medInInventory || medInInventory.stock < stockRequirements[medId]) {
-            toast({ variant: 'destructive', title: `كمية غير كافية من ${medInInventory?.tradeName || medId}`, description: `الكمية المطلوبة ${stockRequirements[medId]} أجزاء, المتوفر ${medInVENTORY?.stock ?? 0}` });
+            toast({ variant: 'destructive', title: `كمية غير كافية من ${medInInventory?.tradeName || medId}`, description: `الكمية المطلوبة ${stockRequirements[medId]} أجزاء, المتوفر ${medInInventory?.stock ?? 0}` });
             return;
         }
     }
@@ -536,7 +536,7 @@ export default function SalesPage() {
     setSaleToPrint(newSale);
     setIsCheckoutOpen(false);
     setIsReceiptOpen(true);
-  }
+  };
 
   const loadSaleForReview = (index: number) => {
     if (index >= 0 && index < sortedSales.length) {
@@ -988,7 +988,7 @@ export default function SalesPage() {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-      </div>
+    </div>
     </>
   )
 }
