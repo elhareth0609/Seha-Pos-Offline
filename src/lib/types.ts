@@ -203,3 +203,5 @@ export type PatientsData = { [pharmacyId: string]: Patient[] };
 export type TrashData = { [pharmacyId: string]: TrashItem[] };
 export type PaymentsData = { [pharmacyId: string]: SupplierPayment[] };
 export type TimeLogsData = { [pharmacyId: string]: TimeLog[] };
+export type PurchaseOrdersData = { [pharmacyId: string]: PurchaseOrder[] };
+export type ReturnsData = { [pharmacyId: string]: ReturnOrder[] };

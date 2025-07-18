@@ -40,17 +40,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { useLocalStorage } from "@/hooks/use-local-storage"
-import { 
-    purchaseOrders as fallbackPurchaseOrders, 
-    inventory as fallbackInventory, 
-    suppliers as fallbackSuppliers, 
-    supplierReturns as fallbackSupplierReturns 
-} from "@/lib/data"
 import type { PurchaseOrder, Medication, Supplier, ReturnOrder, PurchaseOrderItem, ReturnOrderItem } from "@/lib/types"
 import { PlusCircle, ChevronDown, Trash2, UploadCloud, X } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/hooks/use-auth";
 
 const fileToDataUri = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -66,11 +60,15 @@ const dosageForms = ["حبوب", "كبسول", "شراب", "مرهم", "كريم
 
 export default function PurchasesPage() {
   const { toast } = useToast()
+  const { getScopedData } = useAuth();
+  
+  const {
+      inventory: [inventory, setInventory],
+      suppliers: [suppliers, setSuppliers],
+      purchaseOrders: [purchaseOrders, setPurchaseOrders],
+      supplierReturns: [supplierReturns, setSupplierReturns],
+  } = getScopedData();
 
-  const [inventory, setInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
-  const [suppliers, setSuppliers] = useLocalStorage<Supplier[]>('suppliers', fallbackSuppliers);
-  const [purchaseOrders, setPurchaseOrders] = useLocalStorage<PurchaseOrder[]>('purchaseOrders', fallbackPurchaseOrders);
-  const [supplierReturns, setSupplierReturns] = useLocalStorage<ReturnOrder[]>('supplierReturns', fallbackSupplierReturns);
 
   const [isAddSupplierOpen, setIsAddSupplierOpen] = React.useState(false);
   const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
@@ -477,7 +475,7 @@ export default function PurchasesPage() {
                         </div>
                         <Select name="supplierId" required value={purchaseSupplierId} onValueChange={setPurchaseSupplierId}>
                             <SelectTrigger id="supplierId"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
-                            <SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                            <SelectContent>{(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
                 </div>
@@ -652,7 +650,7 @@ export default function PurchasesPage() {
                         <Select value={returnSupplierId} onValueChange={setReturnSupplierId} required disabled={isReturnInfoLocked}>
                             <SelectTrigger id="return-supplierId"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
                             <SelectContent>
-                                {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                {(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>

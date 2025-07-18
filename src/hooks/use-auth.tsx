@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useLocalStorage } from './use-local-storage';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, InventoryData, SalesData, SuppliersData, PatientsData, TrashData, PaymentsData, TimeLogsData } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, InventoryData, SalesData, SuppliersData, PatientsData, TrashData, PaymentsData, TimeLogsData, PurchaseOrdersData, ReturnsData, PurchaseOrder, ReturnOrder } from '@/lib/types';
 import { users as fallbackUsers, appSettings as fallbackAppSettings } from '@/lib/data';
 import { useRouter } from 'next/navigation';
 
@@ -36,6 +36,8 @@ export interface ScopedDataContextType {
     patients: [Patient[], (value: Patient[] | ((val: Patient[]) => Patient[])) => void];
     trash: [TrashItem[], (value: TrashItem[] | ((val: TrashItem[]) => TrashItem[])) => void];
     payments: [SupplierPayment[], (value: SupplierPayment[] | ((val: SupplierPayment[]) => SupplierPayment[])) => void];
+    purchaseOrders: [PurchaseOrder[], (value: PurchaseOrder[] | ((val: PurchaseOrder[]) => PurchaseOrder[])) => void];
+    supplierReturns: [ReturnOrder[], (value: ReturnOrder[] | ((val: ReturnOrder[]) => ReturnOrder[])) => void];
     timeLogs: [TimeLog[], (value: TimeLog[] | ((val: TimeLog[]) => TimeLog[])) => void];
     settings: [AppSettings, (value: AppSettings | ((val: AppSettings) => AppSettings)) => void];
 }
@@ -64,6 +66,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [allPatients, setAllPatients] = useLocalStorage<PatientsData>('patients', {});
   const [allTrash, setAllTrash] = useLocalStorage<TrashData>('trash', {});
   const [allPayments, setAllPayments] = useLocalStorage<PaymentsData>('supplierPayments', {});
+  const [allPurchaseOrders, setAllPurchaseOrders] = useLocalStorage<PurchaseOrdersData>('purchaseOrders', {});
+  const [allSupplierReturns, setAllSupplierReturns] = useLocalStorage<ReturnsData>('supplierReturns', {});
   
   const [activeTimeLogId, setActiveTimeLogId] = useLocalStorage<string | null>('activeTimeLogId', null);
   const [loading, setLoading] = React.useState(true);
@@ -84,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               inventory: [[], emptySetter as any], sales: [[], emptySetter as any],
               suppliers: [[], emptySetter as any], patients: [[], emptySetter as any],
               trash: [[], emptySetter as any], payments: [[], emptySetter as any],
+              purchaseOrders: [[], emptySetter as any], supplierReturns: [[], emptySetter as any],
               timeLogs: [[], emptySetter as any], settings: [fallbackAppSettings, emptySetter as any],
           };
       }
@@ -99,10 +104,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           patients: [allPatients[pharmacyId] || [], createSetter(setAllPatients, [])],
           trash: [allTrash[pharmacyId] || [], createSetter(setAllTrash, [])],
           payments: [allPayments[pharmacyId] || [], createSetter(setAllPayments, [])],
+          purchaseOrders: [allPurchaseOrders[pharmacyId] || [], createSetter(setAllPurchaseOrders, [])],
+          supplierReturns: [allSupplierReturns[pharmacyId] || [], createSetter(setAllSupplierReturns, [])],
           timeLogs: [allTimeLogs[pharmacyId] || [], createSetter(setAllTimeLogs, [])],
           settings: [allAppSettings[pharmacyId] || fallbackAppSettings, (value) => setAllAppSettings(p => ({ ...p, [pharmacyId]: typeof value === 'function' ? value(p[pharmacyId] || fallbackAppSettings) : value }))],
       };
-  }, [currentUser, allInventory, allSales, allSuppliers, allPatients, allTrash, allPayments, allTimeLogs, allAppSettings, setAllInventory, setAllSales, setAllSuppliers, setAllPatients, setAllTrash, setAllPayments, setAllTimeLogs, setAllAppSettings]);
+  }, [currentUser, allInventory, allSales, allSuppliers, allPatients, allTrash, allPayments, allPurchaseOrders, allSupplierReturns, allTimeLogs, allAppSettings, setAllInventory, setAllSales, setAllSuppliers, setAllPatients, setAllTrash, setAllPayments, setAllPurchaseOrders, setAllSupplierReturns, setAllTimeLogs, setAllAppSettings]);
 
 
   const setupAdmin = async (name: string, email: string, pin: string) => {
@@ -144,6 +151,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAllPatients(prev => ({...prev, [pharmacyId]: []}));
     setAllTrash(prev => ({...prev, [pharmacyId]: []}));
     setAllPayments(prev => ({...prev, [pharmacyId]: []}));
+    setAllPurchaseOrders(prev => ({...prev, [pharmacyId]: []}));
+    setAllSupplierReturns(prev => ({...prev, [pharmacyId]: []}));
     setAllTimeLogs(prev => ({...prev, [pharmacyId]: []}));
 
     setUsers(prev => [...prev, newAdmin]);
@@ -288,6 +297,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAllTrash(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
         setAllPayments(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
         setAllTimeLogs(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
+        setAllPurchaseOrders(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
+        setAllSupplierReturns(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
         setAllAppSettings(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
 
     } else if (currentUser?.role === 'Admin' && userToDelete.role === 'Employee' && currentUser.pharmacyId && userToDelete.pharmacyId === currentUser.pharmacyId) {
@@ -323,5 +334,3 @@ export function useAuth() {
   }
   return context;
 }
-
-    
