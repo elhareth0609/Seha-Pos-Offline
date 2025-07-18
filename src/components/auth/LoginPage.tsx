@@ -26,6 +26,7 @@ import {
     DialogTitle,
     DialogTrigger,
     DialogClose,
+    DialogFooter,
 } from "@/components/ui/dialog";
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
