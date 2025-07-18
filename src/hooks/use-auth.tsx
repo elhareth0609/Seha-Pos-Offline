@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useLocalStorage } from './use-local-storage';
-import type { User, UserPermissions, TimeLog, AppSettings } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, InventoryData, SalesData, SuppliersData, PatientsData, TrashData, PaymentsData, TimeLogsData } from '@/lib/types';
 import { users as fallbackUsers, timeLogs as fallbackTimeLogs, appSettings as fallbackAppSettings } from '@/lib/data';
 
 interface AuthContextType {
@@ -25,7 +25,21 @@ interface AuthContextType {
   updateUserPermissions: (userId: string, permissions: UserPermissions) => Promise<boolean>;
   updateUserHourlyRate: (userId: string, rate: number) => Promise<boolean>;
   toggleUserStatus: (userId: string) => Promise<boolean>;
+  // Data accessors scoped to the current pharmacy
+  getScopedData: () => ScopedDataContextType;
 }
+
+// Helper types for scoped data
+export interface ScopedDataContextType {
+    inventory: InventoryData;
+    sales: SalesData;
+    suppliers: SuppliersData;
+    patients: PatientsData;
+    trash: TrashData;
+    payments: PaymentsData;
+    timeLogs: TimeLogsData;
+}
+
 
 const AuthContext = React.createContext<AuthContextType | null>(null);
 
@@ -39,10 +53,19 @@ const adminPermissions: UserPermissions = {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useLocalStorage<User[]>('users', fallbackUsers);
-  const [timeLogs, setTimeLogs] = useLocalStorage<TimeLog[]>('timeLogs', fallbackTimeLogs);
-  const [activeTimeLogId, setActiveTimeLogId] = useLocalStorage<string | null>('activeTimeLogId', null);
   const [currentUser, setCurrentUser] = useLocalStorage<User | null>('currentUser', null);
   const [appSettings, setAppSettings] = useLocalStorage<AppSettings>('appSettings', fallbackAppSettings);
+  
+  // These hooks now manage the *entire* dataset for all pharmacies
+  const [allTimeLogs, setAllTimeLogs] = useLocalStorage<TimeLogsData>('timeLogs', {});
+  const [allInventory, setAllInventory] = useLocalStorage<InventoryData>('inventory', {});
+  const [allSales, setAllSales] = useLocalStorage<SalesData>('sales', {});
+  const [allSuppliers, setAllSuppliers] = useLocalStorage<SuppliersData>('suppliers', {});
+  const [allPatients, setAllPatients] = useLocalStorage<PatientsData>('patients', {});
+  const [allTrash, setAllTrash] = useLocalStorage<TrashData>('trash', {});
+  const [allPayments, setAllPayments] = useLocalStorage<PaymentsData>('supplierPayments', {});
+  
+  const [activeTimeLogId, setActiveTimeLogId] = useLocalStorage<string | null>('activeTimeLogId', null);
   const [loading, setLoading] = React.useState(true);
 
   const isSetup = appSettings.initialized === true;
@@ -50,6 +73,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     setLoading(false);
   }, []);
+
+  const getScopedData = (): ScopedDataContextType => {
+      const pharmacyId = currentUser?.pharmacyId;
+      if (!pharmacyId) {
+          // Return empty data if no pharmacy context (e.g., for SuperAdmin)
+          return {
+              inventory: { data: [], setter: () => {} },
+              sales: { data: [], setter: () => {} },
+              suppliers: { data: [], setter: () => {} },
+              patients: { data: [], setter: () => {} },
+              trash: { data: [], setter: () => {} },
+              payments: { data: [], setter: () => {} },
+              timeLogs: { data: [], setter: () => {} },
+          };
+      }
+      
+      return {
+          inventory: { data: allInventory[pharmacyId] || [], setter: (val) => setAllInventory(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val })) },
+          sales: { data: allSales[pharmacyId] || [], setter: (val) => setAllSales(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val })) },
+          suppliers: { data: allSuppliers[pharmacyId] || [], setter: (val) => setAllSuppliers(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val })) },
+          patients: { data: allPatients[pharmacyId] || [], setter: (val) => setAllPatients(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val })) },
+          trash: { data: allTrash[pharmacyId] || [], setter: (val) => setAllTrash(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val })) },
+          payments: { data: allPayments[pharmacyId] || [], setter: (val) => setAllPayments(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val })) },
+          timeLogs: { data: allTimeLogs[pharmacyId] || [], setter: (val) => setAllTimeLogs(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val })) },
+      }
+  };
+
 
   const setupAdmin = (name: string, email: string, pin: string) => {
     const superAdmin: User = {
@@ -70,9 +120,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const userExists = users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
     if (userExists) return false;
 
+    const pharmacyId = `PHARM_${Date.now()}`;
     const newAdmin: User = {
       id: `ADMIN_${Date.now()}`,
-      pharmacyId: `PHARM_${Date.now()}`,
+      pharmacyId: pharmacyId,
       name,
       email,
       pin,
@@ -145,7 +196,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           return u;
       }));
-      // Also update current user if they are the one being edited
       if (currentUser?.id === userId) {
           setCurrentUser(prev => prev ? { ...prev, name, email, pin: pin || prev.pin } : null);
       }
@@ -206,14 +256,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const userToLogin = users.find(u => u && u.email && u.email.toLowerCase() === email.toLowerCase() && u.pin === pin);
     if (userToLogin && userToLogin.status === 'active') {
       setCurrentUser(userToLogin);
-      if (userToLogin.role !== 'SuperAdmin') {
+      if (userToLogin.role !== 'SuperAdmin' && userToLogin.pharmacyId) {
           const newTimeLog: TimeLog = {
             id: `TL${Date.now()}`,
             userId: userToLogin.id,
-            pharmacyId: userToLogin.pharmacyId!,
+            pharmacyId: userToLogin.pharmacyId,
             clockIn: new Date().toISOString(),
           };
-          setTimeLogs(prev => [newTimeLog, ...prev]);
+          setAllTimeLogs(prev => ({
+              ...prev,
+              [userToLogin.pharmacyId!]: [...(prev[userToLogin.pharmacyId!] || []), newTimeLog]
+          }));
           setActiveTimeLogId(newTimeLog.id);
       }
       return true;
@@ -222,12 +275,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    if (activeTimeLogId) {
-        setTimeLogs(prevLogs => prevLogs.map(log => 
-            log.id === activeTimeLogId 
-                ? { ...log, clockOut: new Date().toISOString() }
-                : log
-        ));
+    if (activeTimeLogId && currentUser?.pharmacyId) {
+        const pharmacyId = currentUser.pharmacyId;
+        setAllTimeLogs(prev => ({
+            ...prev,
+            [pharmacyId]: (prev[pharmacyId] || []).map(log => 
+                log.id === activeTimeLogId 
+                    ? { ...log, clockOut: new Date().toISOString() }
+                    : log
+            )
+        }));
         setActiveTimeLogId(null);
     }
     setCurrentUser(null);
@@ -235,25 +292,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const deleteUser = async (userId: string, permanent: boolean = false): Promise<boolean> => {
     const userToDelete = users.find(u => u.id === userId);
-    if (!userToDelete || userToDelete.role === 'SuperAdmin') {
-        return false;
-    }
+    if (!userToDelete) return false;
+    
+    // SuperAdmin cannot be deleted this way
+    if (userToDelete.role === 'SuperAdmin') return false;
+
     if (permanent && currentUser?.role === 'SuperAdmin') {
+        const pharmacyIdToDelete = userToDelete.pharmacyId;
         // Permanent deletion of admin and their associated data
-        setUsers(prev => prev.filter(u => u.pharmacyId !== userToDelete.pharmacyId));
-        // Note: This needs cascading delete logic for all other data stores (inventory, sales, etc.)
-        // This is a simplified version. A real-world scenario would be more complex.
-    } else {
-        // Soft delete (move to trash)
+        setUsers(prev => prev.filter(u => u.pharmacyId !== pharmacyIdToDelete));
+
+        // Delete all data associated with this pharmacy
+        setAllInventory(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
+        setAllSales(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
+        setAllSuppliers(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
+        setAllPatients(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
+        setAllTrash(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
+        setAllPayments(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
+        setAllTimeLogs(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
+
+    } else if (currentUser?.role === 'Admin' && userToDelete.role === 'Employee') {
+        // Soft delete (move to trash) by Admin for their employee
+        const { trash, setter: setTrash } = getScopedData().trash;
+        const newTrashItem = {
+             id: `TRASH-${Date.now()}`,
+             pharmacyId: currentUser.pharmacyId!,
+             deletedAt: new Date().toISOString(),
+             itemType: 'user' as const,
+             data: userToDelete,
+        };
+        setTrash([...trash, newTrashItem]);
         setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
+    } else {
+      return false; // Prevent unauthorized deletion
     }
+
     return true;
   };
   
   const isAuthenticated = !!currentUser;
 
   return (
-    <AuthContext.Provider value={{ currentUser, users, setUsers, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus }}>
+    <AuthContext.Provider value={{ currentUser, users, setUsers, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, getScopedData }}>
       {children}
     </AuthContext.Provider>
   );
