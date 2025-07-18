@@ -15,8 +15,9 @@ export default function SetupPage() {
     const setupRun = React.useRef(false);
     
     React.useEffect(() => {
-        // Prevent this effect from running twice in strict mode or on re-renders.
-        if (isSetup || setupRun.current) return;
+        if (isSetup || setupRun.current) {
+            return;
+        }
         setupRun.current = true;
 
         const runSetup = async () => {
@@ -24,10 +25,10 @@ export default function SetupPage() {
                 await setupAdmin('Super Admin', 'superadmin@midgram.com', '0000');
                 toast({ 
                     title: 'اكتمل الإعداد!', 
-                    description: `تم إعداد حساب المدير العام الافتراضي. سيتم إعادة تحميل الصفحة.`,
+                    description: `تم إعداد حساب المدير العام الافتراضي. يمكنك الآن تسجيل الدخول.`,
                     duration: 5000,
                 });
-                setTimeout(() => window.location.reload(), 2000);
+                // No longer reloading the page, the state change in AuthProvider will handle the UI update.
             } catch (error) {
                  toast({ variant: 'destructive', title: 'خطأ', description: 'حدثت مشكلة أثناء إعداد الحساب.' });
             }
