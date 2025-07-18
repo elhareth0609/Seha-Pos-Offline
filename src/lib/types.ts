@@ -125,6 +125,7 @@ export type User = {
   permissions?: UserPermissions;
   image1DataUri?: string;
   image2DataUri?: string;
+  hourlyRate?: number;
 };
 
 export type Patient = {

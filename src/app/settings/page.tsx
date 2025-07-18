@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from 'react'
@@ -18,8 +17,8 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { Textarea } from "@/components/ui/textarea"
 import { useLocalStorage } from '@/hooks/use-local-storage'
-import { appSettings as fallbackSettings, trash as fallbackTrash, sales as fallbackSales } from '@/lib/data'
-import type { AppSettings, User, UserPermissions, TrashItem, Sale } from '@/lib/types'
+import { appSettings as fallbackSettings, trash as fallbackTrash, sales as fallbackSales, timeLogs as fallbackTimeLogs } from '@/lib/data'
+import type { AppSettings, User, UserPermissions, TrashItem, Sale, TimeLog } from '@/lib/types'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -46,12 +45,14 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useAuth } from '@/hooks/use-auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Trash2, PlusCircle, ShieldCheck, User as UserIcon } from 'lucide-react'
+import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, Clock, DollarSign, Wallet } from 'lucide-react'
 import { clearAllDBData } from '@/hooks/use-local-storage'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import Image from 'next/image'
+import { differenceInMinutes, formatDistanceStrict } from 'date-fns'
+import { ar } from 'date-fns/locale'
 
 
 const settingsSchema = z.object({
@@ -155,13 +156,16 @@ export default function SettingsPage() {
     const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
     const [trash, setTrash] = useLocalStorage<TrashItem[]>('trash', fallbackTrash);
     const [sales] = useLocalStorage<Sale[]>('sales', fallbackSales);
+    const [timeLogs] = useLocalStorage<TimeLog[]>('timeLogs', fallbackTimeLogs);
     const [isClient, setIsClient] = React.useState(false);
-    const { currentUser, users, setUsers, registerUser, updateUserPermissions } = useAuth();
+    const { currentUser, users, setUsers, registerUser, updateUserPermissions, updateUserHourlyRate } = useAuth();
     
     const [isAddUserOpen, setIsAddUserOpen] = React.useState(false);
     const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = React.useState(false);
+    const [isTimeLogDialogOpen, setIsTimeLogDialogOpen] = React.useState(false);
     const [editingUser, setEditingUser] = React.useState<User | null>(null);
     const [currentUserPermissions, setCurrentUserPermissions] = React.useState<UserPermissions | null>(null);
+    const [currentUserHourlyRate, setCurrentUserHourlyRate] = React.useState<string>("");
 
     const settingsForm = useForm<SettingsFormValues>({
         resolver: zodResolver(settingsSchema),
@@ -247,6 +251,32 @@ export default function SettingsPage() {
         }
     };
 
+    const openTimeLogDialog = (user: User) => {
+        setEditingUser(user);
+        setCurrentUserHourlyRate(String(user.hourlyRate || 0));
+        setIsTimeLogDialogOpen(true);
+    };
+    
+    const handleSaveHourlyRate = async () => {
+        if (!editingUser) return;
+        const rate = parseFloat(currentUserHourlyRate);
+        if (isNaN(rate) || rate < 0) {
+            toast({ variant: 'destructive', title: 'معدل غير صالح', description: 'الرجاء إدخال رقم موجب.' });
+            return;
+        }
+        await updateUserHourlyRate(editingUser.id, rate);
+        toast({ title: 'تم تحديث سعر الساعة' });
+    };
+
+    const userTimeLogs = editingUser ? timeLogs.filter(log => log.userId === editingUser.id) : [];
+    const totalMinutes = userTimeLogs.reduce((acc, log) => {
+        if (log.clockOut) {
+            return acc + differenceInMinutes(new Date(log.clockOut), new Date(log.clockIn));
+        }
+        return acc;
+    }, 0);
+    const totalHours = totalMinutes / 60;
+    const totalSalary = totalHours * (editingUser?.hourlyRate || 0);
 
     if (!isClient || !currentUser) {
         return (
@@ -384,8 +414,8 @@ export default function SettingsPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>الاسم</TableHead>
-                                <TableHead>البريد الإلكتروني</TableHead>
                                 <TableHead>الدور</TableHead>
+                                <TableHead>سعر الساعة</TableHead>
                                 <TableHead className="text-left">الإجراءات</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -393,20 +423,24 @@ export default function SettingsPage() {
                             {users.map(user => (
                                 <TableRow key={user.id}>
                                     <TableCell className="font-medium flex items-center gap-2">
-                                        {user.image1DataUri ? (
-                                            <Image src={user.image1DataUri} alt={user.name} width={32} height={32} className="rounded-full object-cover" />
-                                        ) : (
-                                            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
-                                                <UserIcon className="h-4 w-4" />
-                                            </div>
-                                        )}
-                                        {user.name}
+                                        <button onClick={() => openTimeLogDialog(user)} className="flex items-center gap-2 text-right hover:text-primary">
+                                            {user.image1DataUri ? (
+                                                <Image src={user.image1DataUri} alt={user.name} width={32} height={32} className="rounded-full object-cover" />
+                                            ) : (
+                                                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                                                    <UserIcon className="h-4 w-4" />
+                                                </div>
+                                            )}
+                                            {user.name}
+                                        </button>
                                     </TableCell>
-                                    <TableCell>{user.email || 'N/A'}</TableCell>
                                     <TableCell>
                                         <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'}>
                                             {user.role === 'Admin' ? 'مدير' : 'موظف'}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell className="font-mono">
+                                        {(user.hourlyRate || 0).toLocaleString('ar-IQ')} د.ع
                                     </TableCell>
                                     <TableCell className="text-left">
                                         {user.role !== 'Admin' && (
@@ -522,6 +556,70 @@ export default function SettingsPage() {
                         <Button variant="outline" onClick={() => { setEditingUser(null); setCurrentUserPermissions(null); }}>إلغاء</Button>
                     </DialogClose>
                     <Button onClick={handleSavePermissions} variant="success">حفظ الصلاحيات</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        
+        <Dialog open={isTimeLogDialogOpen} onOpenChange={setIsTimeLogDialogOpen}>
+            <DialogContent className="sm:max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>سجل دوام الموظف: {editingUser?.name}</DialogTitle>
+                    <DialogDescription>
+                        عرض سجلات الدخول والخروج وحساب الراتب المستحق.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
+                    <div className="md:col-span-2 space-y-4">
+                        <div className="flex items-center gap-2">
+                            <Label htmlFor="hourlyRate">سعر الساعة (د.ع):</Label>
+                            <Input id="hourlyRate" type="number" value={currentUserHourlyRate} onChange={(e) => setCurrentUserHourlyRate(e.target.value)} className="w-24"/>
+                            <Button onClick={handleSaveHourlyRate} size="sm">حفظ</Button>
+                        </div>
+                        <div className="max-h-64 overflow-y-auto border rounded-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>تاريخ الدخول</TableHead>
+                                    <TableHead>تاريخ الخروج</TableHead>
+                                    <TableHead>المدة</TableHead>
+                                    <TableHead>الأجر</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {userTimeLogs.map(log => {
+                                    const duration = log.clockOut ? formatDistanceStrict(new Date(log.clockOut), new Date(log.clockIn), { locale: ar, unit: 'minute' }) : "جارٍ العمل";
+                                    const minutes = log.clockOut ? differenceInMinutes(new Date(log.clockOut), new Date(log.clockIn)) : 0;
+                                    const salary = (minutes / 60) * (editingUser?.hourlyRate || 0);
+
+                                    return (
+                                        <TableRow key={log.id}>
+                                            <TableCell>{new Date(log.clockIn).toLocaleString('ar-EG')}</TableCell>
+                                            <TableCell>{log.clockOut ? new Date(log.clockOut).toLocaleString('ar-EG') : '-'}</TableCell>
+                                            <TableCell>{duration}</TableCell>
+                                            <TableCell>{salary.toLocaleString('ar-IQ')} د.ع</TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                        </div>
+                    </div>
+                     <div className="md:col-span-1 space-y-4 rounded-md bg-muted p-4">
+                        <h3 className="font-semibold text-lg text-center">الملخص</h3>
+                        <div className="space-y-2">
+                             <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4"/> إجمالي الساعات:</span>
+                                <span className="font-bold">{totalHours.toFixed(2)} ساعة</span>
+                            </div>
+                            <div className="flex justify-between items-center text-lg">
+                                <span className="text-muted-foreground flex items-center gap-2"><Wallet className="h-5 w-5"/> إجمالي الراتب:</span>
+                                <span className="font-bold text-green-600">{totalSalary.toLocaleString('ar-IQ')} د.ع</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsTimeLogDialogOpen(false)}>إغلاق</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

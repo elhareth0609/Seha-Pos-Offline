@@ -1,10 +1,9 @@
-
 "use client";
 
 import * as React from 'react';
 import { useLocalStorage } from './use-local-storage';
-import type { User, UserPermissions } from '@/lib/types';
-import { users as fallbackUsers } from '@/lib/data';
+import type { User, UserPermissions, TimeLog } from '@/lib/types';
+import { users as fallbackUsers, timeLogs as fallbackTimeLogs } from '@/lib/data';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -20,6 +19,7 @@ interface AuthContextType {
   resetPin: (email: string, newPin: string) => Promise<boolean>;
   checkUserExists: (email: string) => Promise<boolean>;
   updateUserPermissions: (userId: string, permissions: UserPermissions) => Promise<boolean>;
+  updateUserHourlyRate: (userId: string, rate: number) => Promise<boolean>;
 }
 
 const AuthContext = React.createContext<AuthContextType | null>(null);
@@ -54,6 +54,8 @@ const allPermissions: UserPermissions = {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useLocalStorage<User[]>('users', fallbackUsers);
+  const [timeLogs, setTimeLogs] = useLocalStorage<TimeLog[]>('timeLogs', fallbackTimeLogs);
+  const [activeTimeLogId, setActiveTimeLogId] = useLocalStorage<string | null>('activeTimeLogId', null);
   const [currentUser, setCurrentUser] = useLocalStorage<User | null>('currentUser', null);
   const [loading, setLoading] = React.useState(true);
 
@@ -72,7 +74,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       pin: pin,
       permissions: allPermissions,
       image1DataUri,
-      image2DataUri
+      image2DataUri,
+      hourlyRate: 0,
     };
     setUsers([adminUser]);
     setCurrentUser(adminUser);
@@ -91,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           pin,
           role: 'Employee',
           permissions: defaultEmployeePermissions,
+          hourlyRate: 0,
       };
       setUsers(prev => [...prev, newUser]);
       return true;
@@ -133,24 +137,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return false;
   }
+  
+    const updateUserHourlyRate = async (userId: string, rate: number): Promise<boolean> => {
+        let userFound = false;
+        const updatedUsers = users.map(u => {
+            if (u.id === userId) {
+                userFound = true;
+                return { ...u, hourlyRate: rate };
+            }
+            return u;
+        });
+
+        if (userFound) {
+            setUsers(updatedUsers);
+            if (currentUser?.id === userId) {
+                setCurrentUser(prev => prev ? { ...prev, hourlyRate: rate } : null);
+            }
+            return true;
+        }
+        return false;
+    };
+
 
   const login = async (email: string, pin: string): Promise<boolean> => {
     const userToLogin = users.find(u => u && u.email && u.email.toLowerCase() === email.toLowerCase() && u.pin === pin);
     if (userToLogin) {
       setCurrentUser(userToLogin);
+      // Create a new time log entry
+      const newTimeLog: TimeLog = {
+        id: `TL${Date.now()}`,
+        userId: userToLogin.id,
+        clockIn: new Date().toISOString(),
+      };
+      setTimeLogs(prev => [newTimeLog, ...prev]);
+      setActiveTimeLogId(newTimeLog.id);
       return true;
     }
     return false;
   };
 
   const logout = () => {
+    if (activeTimeLogId) {
+        setTimeLogs(prevLogs => prevLogs.map(log => 
+            log.id === activeTimeLogId 
+                ? { ...log, clockOut: new Date().toISOString() }
+                : log
+        ));
+        setActiveTimeLogId(null);
+    }
     setCurrentUser(null);
   };
 
   const isAuthenticated = !!currentUser;
 
   return (
-    <AuthContext.Provider value={{ currentUser, users, setUsers, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, updateUserPermissions }}>
+    <AuthContext.Provider value={{ currentUser, users, setUsers, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, updateUserPermissions, updateUserHourlyRate }}>
       {children}
     </AuthContext.Provider>
   );
