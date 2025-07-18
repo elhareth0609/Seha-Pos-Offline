@@ -555,348 +555,347 @@ export default function SalesPage() {
 
   return (
     <>
-    <div className="hidden">
-        <InvoiceTemplate ref={printComponentRef} sale={saleToPrint} settings={settings || null} />
-    </div>
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full md:h-[calc(100vh-6rem)]">
-        <div className="lg:col-span-2 flex flex-col gap-4">
-            <Card>
-                <CardHeader className="pb-4">
-                    <CardTitle className="text-xl">اختيار المنتج</CardTitle>
-                    <div className="flex gap-2 pt-2">
-                        <div className="relative flex-1">
-                            <Input 
-                            placeholder="امسح الباركود أو ابحث بالاسم..."
-                            value={searchTerm}
-                            onChange={handleSearchChange}
-                            onKeyDown={handleSearchKeyDown}
-                            autoFocus
-                            disabled={mode !== 'new'}
-                            />
-                            {suggestions.length > 0 && mode === 'new' && (
-                                <Card className="absolute z-50 w-full mt-1 bg-background shadow-lg border">
-                                    <CardContent className="p-0">
-                                        <ul className="divide-y divide-border">
-                                            {suggestions.map(med => (
-                                                <li key={med.id} 
-                                                    onMouseDown={(e) => {
-                                                        e.preventDefault();
-                                                        addToCart(med)
-                                                    }}
-                                                    className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        {med.imageUrl ? (
-                                                            <Image src={med.imageUrl} alt={med.tradeName || ''} width={32} height={32} className="rounded-sm object-cover h-8 w-8" />
-                                                        ) : (
-                                                            <div className="h-8 w-8 flex items-center justify-center rounded-sm bg-muted text-muted-foreground">
-                                                                <Package className="h-4 w-4" />
-                                                            </div>
-                                                        )}
-                                                        <span>{med.tradeName} {med.saleUnit && `(${med.saleUnit})`}</span>
-                                                    </div>
-                                                    <span className="text-sm text-muted-foreground">{med.price.toLocaleString('ar-IQ')} د.ع</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </CardContent>
-                                </Card>
-                            )}
-                        </div>
-                        <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
-                            <DialogTrigger asChild>
-                                <Button variant="outline" className="shrink-0" disabled={mode !== 'new'}><ScanLine className="me-2"/> مسح</Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                <DialogTitle>مسح باركود المنتج</DialogTitle>
-                                </DialogHeader>
-                                <BarcodeScanner onScan={handleScan} onOpenChange={setIsScannerOpen}/>
-                            </DialogContent>
-                        </Dialog>
-                    </div>
-                </CardHeader>
-            </Card>
+      <div className="hidden">
+          <InvoiceTemplate ref={printComponentRef} sale={saleToPrint} settings={settings || null} />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full md:h-[calc(100vh-6rem)]">
+          <div className="lg:col-span-2 flex flex-col gap-4">
+              <Card>
+                  <CardHeader className="pb-4">
+                      <CardTitle className="text-xl">اختيار المنتج</CardTitle>
+                      <div className="flex gap-2 pt-2">
+                          <div className="relative flex-1">
+                              <Input 
+                              placeholder="امسح الباركود أو ابحث بالاسم..."
+                              value={searchTerm}
+                              onChange={handleSearchChange}
+                              onKeyDown={handleSearchKeyDown}
+                              autoFocus
+                              disabled={mode !== 'new'}
+                              />
+                              {suggestions.length > 0 && mode === 'new' && (
+                                  <Card className="absolute z-50 w-full mt-1 bg-background shadow-lg border">
+                                      <CardContent className="p-0">
+                                          <ul className="divide-y divide-border">
+                                              {suggestions.map(med => (
+                                                  <li key={med.id} 
+                                                      onMouseDown={(e) => {
+                                                          e.preventDefault();
+                                                          addToCart(med)
+                                                      }}
+                                                      className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
+                                                  >
+                                                      <div className="flex items-center gap-3">
+                                                          {med.imageUrl ? (
+                                                              <Image src={med.imageUrl} alt={med.tradeName || ''} width={32} height={32} className="rounded-sm object-cover h-8 w-8" />
+                                                          ) : (
+                                                              <div className="h-8 w-8 flex items-center justify-center rounded-sm bg-muted text-muted-foreground">
+                                                                  <Package className="h-4 w-4" />
+                                                              </div>
+                                                          )}
+                                                          <span>{med.tradeName} {med.saleUnit && `(${med.saleUnit})`}</span>
+                                                      </div>
+                                                      <span className="text-sm text-muted-foreground">{med.price.toLocaleString('ar-IQ')} د.ع</span>
+                                                  </li>
+                                              ))}
+                                          </ul>
+                                      </CardContent>
+                                  </Card>
+                              )}
+                          </div>
+                          <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
+                              <DialogTrigger asChild>
+                                  <Button variant="outline" className="shrink-0" disabled={mode !== 'new'}><ScanLine className="me-2"/> مسح</Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                  <DialogHeader>
+                                  <DialogTitle>مسح باركود المنتج</DialogTitle>
+                                  </DialogHeader>
+                                  <BarcodeScanner onScan={handleScan} onOpenChange={setIsScannerOpen}/>
+                              </DialogContent>
+                          </Dialog>
+                      </div>
+                  </CardHeader>
+              </Card>
 
-            <Card className="flex-1 flex flex-col">
-                 <CardHeader className="py-4">
-                    <div className="flex justify-between items-center">
-                        <CardTitle className="text-xl">
-                          {mode === 'new' ? 'الفاتورة الحالية' : `عرض الفاتورة #${sortedSales[reviewIndex]?.id}`}
-                        </CardTitle>
-                        <div className="flex items-center gap-2">
-                            {mode === 'review' ? (
-                                <>
-                                    <Button onClick={handleNewInvoiceClick} variant="secondary">
-                                        <FilePlus className="me-2"/> فاتورة جديدة
-                                    </Button>
-                                    <Button onClick={handlePreviousInvoice} variant="outline" size="icon" disabled={reviewIndex >= sortedSales.length - 1}>
-                                       <span className="sr-only">السابق</span> <ArrowRight/>
-                                    </Button>
-                                    <Button onClick={handleNextInvoice} variant="outline" size="icon" disabled={reviewIndex <= 0}>
-                                        <span className="sr-only">التالي</span> <ArrowLeft/>
-                                    </Button>
-                                </>
-                            ) : (
-                                <Button onClick={handlePreviousInvoice} variant="outline" disabled={sortedSales.length === 0}>
-                                    <ArrowRight className="me-2"/> مراجعة
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="p-0 flex-1">
-                    <ScrollArea className="h-full">
-                    {cart.length > 0 ? (
-                        <Table>
-                            <TableHeader className="sticky top-0 bg-background z-10">
-                                <TableRow>
-                                    <TableHead className="w-12 text-center"><ArrowLeftRight className="h-4 w-4 mx-auto"/></TableHead>
-                                    <TableHead>المنتج</TableHead>
-                                    <TableHead className="w-[120px] text-center">الكمية</TableHead>
-                                    <TableHead className="w-[120px] text-center">السعر</TableHead>
-                                    <TableHead className="text-left w-[100px]">الإجمالي</TableHead>
-                                    <TableHead className="w-12"></TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {cart.map((item) => {
-                                const medInInventory = (allInventory || []).find(med => med.id === item.medicationId);
-                                const itemTotal = (item.isReturn ? -1 : 1) * item.price * item.quantity;
-                                const isBelowCost = item.price < item.purchasePrice;
-                                const itemProfit = (item.price - item.purchasePrice) * item.quantity;
+              <Card className="flex-1 flex flex-col">
+                   <CardHeader className="py-4">
+                      <div className="flex justify-between items-center">
+                          <CardTitle className="text-xl">
+                            {mode === 'new' ? 'الفاتورة الحالية' : `عرض الفاتورة #${sortedSales[reviewIndex]?.id}`}
+                          </CardTitle>
+                          <div className="flex items-center gap-2">
+                              {mode === 'review' ? (
+                                  <>
+                                      <Button onClick={handleNewInvoiceClick} variant="secondary">
+                                          <FilePlus className="me-2"/> فاتورة جديدة
+                                      </Button>
+                                      <Button onClick={handlePreviousInvoice} variant="outline" size="icon" disabled={reviewIndex >= sortedSales.length - 1}>
+                                         <span className="sr-only">السابق</span> <ArrowRight/>
+                                      </Button>
+                                      <Button onClick={handleNextInvoice} variant="outline" size="icon" disabled={reviewIndex <= 0}>
+                                          <span className="sr-only">التالي</span> <ArrowLeft/>
+                                      </Button>
+                                  </>
+                              ) : (
+                                  <Button onClick={handlePreviousInvoice} variant="outline" disabled={sortedSales.length === 0}>
+                                      <ArrowRight className="me-2"/> مراجعة
+                                  </Button>
+                              )}
+                          </div>
+                      </div>
+                  </CardHeader>
+                  <CardContent className="p-0 flex-1">
+                      <ScrollArea className="h-full">
+                      {cart.length > 0 ? (
+                          <Table>
+                              <TableHeader className="sticky top-0 bg-background z-10">
+                                  <TableRow>
+                                      <TableHead className="w-12 text-center"><ArrowLeftRight className="h-4 w-4 mx-auto"/></TableHead>
+                                      <TableHead>المنتج</TableHead>
+                                      <TableHead className="w-[120px] text-center">الكمية</TableHead>
+                                      <TableHead className="w-[120px] text-center">السعر</TableHead>
+                                      <TableHead className="text-left w-[100px]">الإجمالي</TableHead>
+                                      <TableHead className="w-12"></TableHead>
+                                  </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                  {cart.map((item) => {
+                                  const medInInventory = (allInventory || []).find(med => med.id === item.medicationId);
+                                  const itemTotal = (item.isReturn ? -1 : 1) * item.price * item.quantity;
+                                  const isBelowCost = item.price < item.purchasePrice;
+                                  const itemProfit = (item.price - item.purchasePrice) * item.quantity;
 
-                                return (
-                                    <TableRow key={`${item.medicationId}-${item.isReturn}`} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
-                                        <TableCell className="text-center">
-                                            <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" disabled={mode !== 'new'}/>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-start gap-3">
-                                                {medInInventory?.imageUrl ? (
-                                                    <Image src={medInInventory.imageUrl} alt={item.name} width={48} height={48} className="rounded-md object-cover h-12 w-12" />
-                                                ) : (
-                                                    <div className="h-12 w-12 flex items-center justify-center rounded-md bg-muted text-muted-foreground">
-                                                        <Package className="h-6 w-6" />
-                                                    </div>
-                                                )}
-                                                <div className="flex-1">
-                                                    <div className="font-medium">{item.name}</div>
-                                                    <div className="text-xs text-muted-foreground">
-                                                        {(item.scientificNames || []).join(', ')} {medInInventory?.dosage && `(${medInInventory.dosage})`}
-                                                    </div>
-                                                    <div className="text-xs text-muted-foreground">{medInInventory?.company}</div>
-                                                    <div className="text-xs text-muted-foreground mt-1 flex items-center gap-x-2">
-                                                        <span>الكلفة: {item.purchasePrice.toLocaleString('ar-IQ')} د.ع</span>
-                                                        <span className={cn("font-medium", itemProfit >= 0 ? "text-green-600" : "text-destructive")}>
-                                                          | الربح: {itemProfit.toLocaleString('ar-IQ')} د.ع
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                        <div className="flex items-center justify-center gap-2">
-                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity - 1)} disabled={mode !== 'new'}><MinusCircle className="h-4 w-4" /></Button>
-                                            <span>{item.quantity}</span>
-                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity + 1)} disabled={mode !== 'new'}><PlusCircle className="h-4 w-4" /></Button>
-                                        </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="relative">
-                                                <Input type="number" value={item.price} onChange={(e) => updatePrice(item.medicationId, parseFloat(e.target.value))} className={cn("w-24 h-9 text-center", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} step="1" min="0" disabled={mode !== 'new'} />
-                                                {isBelowCost && !item.isReturn && (
-                                                  <div className="absolute -top-2 -right-2 text-destructive" title="السعر أقل من الكلفة!">
-                                                    <AlertTriangle className="h-4 w-4" />
+                                  return (
+                                      <TableRow key={`${item.medicationId}-${item.isReturn}`} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
+                                          <TableCell className="text-center">
+                                              <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" disabled={mode !== 'new'}/>
+                                          </TableCell>
+                                          <TableCell>
+                                              <div className="flex items-start gap-3">
+                                                  {medInInventory?.imageUrl ? (
+                                                      <Image src={medInInventory.imageUrl} alt={item.name} width={48} height={48} className="rounded-md object-cover h-12 w-12" />
+                                                  ) : (
+                                                      <div className="h-12 w-12 flex items-center justify-center rounded-md bg-muted text-muted-foreground">
+                                                          <Package className="h-6 w-6" />
+                                                      </div>
+                                                  )}
+                                                  <div className="flex-1">
+                                                      <div className="font-medium">{item.name}</div>
+                                                      <div className="text-xs text-muted-foreground">
+                                                          {(item.scientificNames || []).join(', ')} {medInInventory?.dosage && `(${medInInventory.dosage})`}
+                                                      </div>
+                                                      <div className="text-xs text-muted-foreground">{medInInventory?.company}</div>
+                                                      <div className="text-xs text-muted-foreground mt-1 flex items-center gap-x-2">
+                                                          <span>الكلفة: {item.purchasePrice.toLocaleString('ar-IQ')} د.ع</span>
+                                                          <span className={cn("font-medium", itemProfit >= 0 ? "text-green-600" : "text-destructive")}>
+                                                            | الربح: {itemProfit.toLocaleString('ar-IQ')} د.ع
+                                                          </span>
+                                                      </div>
                                                   </div>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-left font-mono">{itemTotal.toLocaleString('ar-IQ')} د.ع</TableCell>
-                                        <TableCell className="text-left">
-                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)} disabled={mode !== 'new'}><X className="h-4 w-4" /></Button>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                                })}
-                            </TableBody>
-                        </Table>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
-                            <PackageSearch className="h-16 w-16 mb-4" />
-                            <p className="text-lg">الفاتورة فارغة</p>
-                            <p className="text-sm">أضف منتجات لبدء عملية البيع.</p>
-                        </div>
-                    )}
-                    </ScrollArea>
-                </CardContent>
-            </Card>
-        </div>
+                                              </div>
+                                          </TableCell>
+                                          <TableCell>
+                                          <div className="flex items-center justify-center gap-2">
+                                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity - 1)} disabled={mode !== 'new'}><MinusCircle className="h-4 w-4" /></Button>
+                                              <span>{item.quantity}</span>
+                                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity + 1)} disabled={mode !== 'new'}><PlusCircle className="h-4 w-4" /></Button>
+                                          </div>
+                                          </TableCell>
+                                          <TableCell>
+                                              <div className="relative">
+                                                  <Input type="number" value={item.price} onChange={(e) => updatePrice(item.medicationId, parseFloat(e.target.value))} className={cn("w-24 h-9 text-center", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} step="1" min="0" disabled={mode !== 'new'} />
+                                                  {isBelowCost && !item.isReturn && (
+                                                    <div className="absolute -top-2 -right-2 text-destructive" title="السعر أقل من الكلفة!">
+                                                      <AlertTriangle className="h-4 w-4" />
+                                                    </div>
+                                                  )}
+                                              </div>
+                                          </TableCell>
+                                          <TableCell className="text-left font-mono">{itemTotal.toLocaleString('ar-IQ')} د.ع</TableCell>
+                                          <TableCell className="text-left">
+                                              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)} disabled={mode !== 'new'}><X className="h-4 w-4" /></Button>
+                                          </TableCell>
+                                      </TableRow>
+                                  );
+                                  })}
+                              </TableBody>
+                          </Table>
+                      ) : (
+                          <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
+                              <PackageSearch className="h-16 w-16 mb-4" />
+                              <p className="text-lg">الفاتورة فارغة</p>
+                              <p className="text-sm">أضف منتجات لبدء عملية البيع.</p>
+                          </div>
+                      )}
+                      </ScrollArea>
+                  </CardContent>
+              </Card>
+          </div>
 
-        <div className="lg:col-span-1">
-             <Card className="sticky top-6">
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle>ملخص الفاتورة</CardTitle>
-                    </div>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                     <div className="space-y-2">
-                        <Label>صديق الصيدلية (الزبون)</Label>
-                        <Dialog open={isPatientModalOpen} onOpenChange={setIsPatientModalOpen}>
-                            <DialogTrigger asChild>
-                                <Button variant="outline" className="w-full justify-start text-left font-normal" disabled={mode !== 'new'}>
-                                    {selectedPatient ? selectedPatient.name : "تحديد صديق الصيدلية"}
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>تحديد أو إضافة صديق للصيدلية</DialogTitle>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                    <Input placeholder="ابحث بالاسم..." value={patientSearchTerm} onChange={(e) => setPatientSearchTerm(e.target.value)} />
-                                    <ScrollArea className="h-48 border rounded-md">
-                                        {(filteredPatients || []).map(p => (
-                                            <div key={p.id} onClick={() => { setSelectedPatient(p); setIsPatientModalOpen(false); }}
-                                                className="p-2 hover:bg-accent cursor-pointer">
-                                                {p.name}
-                                            </div>
-                                        ))}
-                                    </ScrollArea>
-                                    <Separator />
-                                    <div className="space-y-2">
-                                        <h4 className="font-medium">أو إضافة جديد</h4>
-                                        <Input placeholder="اسم المريض الجديد" value={newPatientName} onChange={e => setNewPatientName(e.target.value)} />
-                                        <Input placeholder="رقم الهاتف (اختياري)" value={newPatientPhone} onChange={e => setNewPatientPhone(e.target.value)} />
-                                        <Button onClick={handleAddNewPatient} className="w-full" variant="success">
-                                            <UserPlus className="me-2" /> إضافة وتحديد
-                                        </Button>
-                                    </div>
-                                </div>
-                            </DialogContent>
-                        </Dialog>
-                     </div>
-                    <Separator />
+          <div className="lg:col-span-1">
+               <Card className="sticky top-6">
+                  <CardHeader>
+                      <div className="flex justify-between items-center">
+                          <CardTitle>ملخص الفاتورة</CardTitle>
+                      </div>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-4">
+                       <div className="space-y-2">
+                          <Label>صديق الصيدلية (الزبون)</Label>
+                          <Dialog open={isPatientModalOpen} onOpenChange={setIsPatientModalOpen}>
+                              <DialogTrigger asChild>
+                                  <Button variant="outline" className="w-full justify-start text-left font-normal" disabled={mode !== 'new'}>
+                                      {selectedPatient ? selectedPatient.name : "تحديد صديق الصيدلية"}
+                                  </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                  <DialogHeader>
+                                      <DialogTitle>تحديد أو إضافة صديق للصيدلية</DialogTitle>
+                                  </DialogHeader>
+                                  <div className="space-y-4">
+                                      <Input placeholder="ابحث بالاسم..." value={patientSearchTerm} onChange={(e) => setPatientSearchTerm(e.target.value)} />
+                                      <ScrollArea className="h-48 border rounded-md">
+                                          {(filteredPatients || []).map(p => (
+                                              <div key={p.id} onClick={() => { setSelectedPatient(p); setIsPatientModalOpen(false); }}
+                                                  className="p-2 hover:bg-accent cursor-pointer">
+                                                  {p.name}
+                                              </div>
+                                          ))}
+                                      </ScrollArea>
+                                      <Separator />
+                                      <div className="space-y-2">
+                                          <h4 className="font-medium">أو إضافة جديد</h4>
+                                          <Input placeholder="اسم المريض الجديد" value={newPatientName} onChange={e => setNewPatientName(e.target.value)} />
+                                          <Input placeholder="رقم الهاتف (اختياري)" value={newPatientPhone} onChange={e => setNewPatientPhone(e.target.value)} />
+                                          <Button onClick={handleAddNewPatient} className="w-full" variant="success">
+                                              <UserPlus className="me-2" /> إضافة وتحديد
+                                          </Button>
+                                      </div>
+                                  </div>
+                              </DialogContent>
+                          </Dialog>
+                       </div>
+                      <Separator />
 
-                    <div className="flex justify-between w-full text-md">
-                        <span>المجموع الفرعي</span>
-                        <span>{subtotal.toLocaleString('ar-IQ')} د.ع</span>
-                    </div>
-                     <div className="flex justify-between w-full text-md text-green-600">
-                        <span className="flex items-center gap-1"><TrendingUp className="h-4 w-4" /> الربح المتوقع</span>
-                        <span className="font-semibold">{totalProfit.toLocaleString('ar-IQ')} د.ع</span>
-                    </div>
-                    <div className="flex items-center justify-between w-full">
-                        <Label htmlFor="discount" className="text-md shrink-0 me-2">خصم</Label>
-                        <Input id="discount" type="text" value={discountInput} onChange={handleDiscountChange} className="h-9 w-full bg-background ltr:text-left rtl:text-right" placeholder="0" disabled={mode !== 'new'}/>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between w-full text-lg font-semibold">
-                        <span>الإجمالي</span>
-                        <span className={finalTotal < 0 ? 'text-destructive' : ''}>{finalTotal.toLocaleString('ar-IQ')} د.ع</span>
-                    </div>
-                </CardContent>
-                <CardFooter className="flex flex-col items-stretch gap-2">
-                    {mode === 'new' ? (
-                      <>
-                        <div className="flex gap-2">
-                            <Dialog open={isDosingAssistantOpen} onOpenChange={setIsDosingAssistantOpen}>
-                                <DialogTrigger asChild>
-                                    <Button size="lg" variant="outline" className="w-1/4 relative" disabled={!isOnline || cart.length === 0} aria-label="مساعد الجرعات">
-                                        <Thermometer />
-                                        {isOnline ? (
-                                            <Wifi className="absolute top-1 right-1 h-3 w-3 text-green-500" />
-                                        ) : (
-                                            <WifiOff className="absolute top-1 right-1 h-3 w-3 text-muted-foreground" />
-                                        )}
-                                    </Button>
-                                </DialogTrigger>
-                                <DosingAssistant cartItems={cart} />
-                            </Dialog>
-                            <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-                                <DialogTrigger asChild>
-                                    <Button size="lg" className="flex-1" onClick={handleCheckout} disabled={cart.length === 0} variant="success">
-                                        إتمام العملية
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>تأكيد الفاتورة</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="space-y-4">
-                                        <div className="max-h-64 overflow-y-auto p-1">
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead>المنتج</TableHead>
-                                                        <TableHead className="text-center">الكمية</TableHead>
-                                                        <TableHead className="text-left">السعر</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {cart.map(item => (
-                                                        <TableRow key={item.medicationId} className={cn(item.isReturn && "text-destructive")}>
-                                                            <TableCell>{item.name} {item.saleUnit && `(${item.saleUnit})`} {item.isReturn && "(مرتجع)"}</TableCell>
-                                                            <TableCell className="text-center">{item.quantity}</TableCell>
-                                                            <TableCell className="text-left">{((item.isReturn ? -1 : 1) * item.price * item.quantity).toLocaleString('ar-IQ')} د.ع</TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                        </div>
-                                        <Separator/>
-                                        <div className="space-y-2 text-sm">
-                                            {selectedPatient && <div className="flex justify-between"><span>المريض:</span><span>{selectedPatient.name}</span></div>}
-                                            <div className="flex justify-between"><span>المجموع الفرعي:</span><span>{subtotal.toLocaleString('ar-IQ')} د.ع</span></div>
-                                            <div className="flex justify-between"><span>الخصم:</span><span>-{discount.toLocaleString('ar-IQ')} د.ع</span></div>
-                                             <div className="flex justify-between text-green-600"><span>الربح الصافي:</span><span>{(totalProfit - discount).toLocaleString('ar-IQ')} د.ع</span></div>
-                                            <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>{finalTotal.toLocaleString('ar-IQ')} د.ع</span></div>
-                                        </div>
-                                    </div>
-                                    <DialogFooter>
-                                        <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
-                                        <Button onClick={handleFinalizeSale} variant="success">تأكيد البيع</Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-                        </div>
-                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="outline" className="w-full" disabled={cart.length === 0}>
-                                    <X className="me-2"/>
-                                    إلغاء الفاتورة
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>هل أنت متأكد من إلغاء الفاتورة؟</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        سيتم حذف جميع الأصناف من السلة الحالية.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>تراجع</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => {
-                                        resetSale();
-                                        toast({ title: "تم إلغاء الفاتورة" });
-                                    }} className={buttonVariants({ variant: "destructive" })}>نعم، قم بالإلغاء</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                      </>
-                    ) : (
-                        <Button onClick={() => {
-                            setSaleToPrint(sortedSales[reviewIndex]);
-                            setIsPrintReviewOpen(true);
-                        }} className="w-full">
-                            <Printer className="me-2 h-4 w-4" />
-                            طباعة الفاتورة
-                        </Button>
-                    )}
-                </CardFooter>
-            </Card>
-        </div>
-
+                      <div className="flex justify-between w-full text-md">
+                          <span>المجموع الفرعي</span>
+                          <span>{subtotal.toLocaleString('ar-IQ')} د.ع</span>
+                      </div>
+                       <div className="flex justify-between w-full text-md text-green-600">
+                          <span className="flex items-center gap-1"><TrendingUp className="h-4 w-4" /> الربح المتوقع</span>
+                          <span className="font-semibold">{totalProfit.toLocaleString('ar-IQ')} د.ع</span>
+                      </div>
+                      <div className="flex items-center justify-between w-full">
+                          <Label htmlFor="discount" className="text-md shrink-0 me-2">خصم</Label>
+                          <Input id="discount" type="text" value={discountInput} onChange={handleDiscountChange} className="h-9 w-full bg-background ltr:text-left rtl:text-right" placeholder="0" disabled={mode !== 'new'}/>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between w-full text-lg font-semibold">
+                          <span>الإجمالي</span>
+                          <span className={finalTotal < 0 ? 'text-destructive' : ''}>{finalTotal.toLocaleString('ar-IQ')} د.ع</span>
+                      </div>
+                  </CardContent>
+                  <CardFooter className="flex flex-col items-stretch gap-2">
+                      {mode === 'new' ? (
+                        <>
+                          <div className="flex gap-2">
+                              <Dialog open={isDosingAssistantOpen} onOpenChange={setIsDosingAssistantOpen}>
+                                  <DialogTrigger asChild>
+                                      <Button size="lg" variant="outline" className="w-1/4 relative" disabled={!isOnline || cart.length === 0} aria-label="مساعد الجرعات">
+                                          <Thermometer />
+                                          {isOnline ? (
+                                              <Wifi className="absolute top-1 right-1 h-3 w-3 text-green-500" />
+                                          ) : (
+                                              <WifiOff className="absolute top-1 right-1 h-3 w-3 text-muted-foreground" />
+                                          )}
+                                      </Button>
+                                  </DialogTrigger>
+                                  <DosingAssistant cartItems={cart} />
+                              </Dialog>
+                              <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
+                                  <DialogTrigger asChild>
+                                      <Button size="lg" className="flex-1" onClick={handleCheckout} disabled={cart.length === 0} variant="success">
+                                          إتمام العملية
+                                      </Button>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                      <DialogHeader>
+                                          <DialogTitle>تأكيد الفاتورة</DialogTitle>
+                                      </DialogHeader>
+                                      <div className="space-y-4">
+                                          <div className="max-h-64 overflow-y-auto p-1">
+                                              <Table>
+                                                  <TableHeader>
+                                                      <TableRow>
+                                                          <TableHead>المنتج</TableHead>
+                                                          <TableHead className="text-center">الكمية</TableHead>
+                                                          <TableHead className="text-left">السعر</TableHead>
+                                                      </TableRow>
+                                                  </TableHeader>
+                                                  <TableBody>
+                                                      {cart.map(item => (
+                                                          <TableRow key={item.medicationId} className={cn(item.isReturn && "text-destructive")}>
+                                                              <TableCell>{item.name} {item.saleUnit && `(${item.saleUnit})`} {item.isReturn && "(مرتجع)"}</TableCell>
+                                                              <TableCell className="text-center">{item.quantity}</TableCell>
+                                                              <TableCell className="text-left">{((item.isReturn ? -1 : 1) * item.price * item.quantity).toLocaleString('ar-IQ')} د.ع</TableCell>
+                                                          </TableRow>
+                                                      ))}
+                                                  </TableBody>
+                                              </Table>
+                                          </div>
+                                          <Separator/>
+                                          <div className="space-y-2 text-sm">
+                                              {selectedPatient && <div className="flex justify-between"><span>المريض:</span><span>{selectedPatient.name}</span></div>}
+                                              <div className="flex justify-between"><span>المجموع الفرعي:</span><span>{subtotal.toLocaleString('ar-IQ')} د.ع</span></div>
+                                              <div className="flex justify-between"><span>الخصم:</span><span>-{discount.toLocaleString('ar-IQ')} د.ع</span></div>
+                                               <div className="flex justify-between text-green-600"><span>الربح الصافي:</span><span>{(totalProfit - discount).toLocaleString('ar-IQ')} د.ع</span></div>
+                                              <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>{finalTotal.toLocaleString('ar-IQ')} د.ع</span></div>
+                                          </div>
+                                      </div>
+                                      <DialogFooter>
+                                          <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
+                                          <Button onClick={handleFinalizeSale} variant="success">تأكيد البيع</Button>
+                                      </DialogFooter>
+                                  </DialogContent>
+                              </Dialog>
+                          </div>
+                           <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                  <Button variant="outline" className="w-full" disabled={cart.length === 0}>
+                                      <X className="me-2"/>
+                                      إلغاء الفاتورة
+                                  </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                      <AlertDialogTitle>هل أنت متأكد من إلغاء الفاتورة؟</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                          سيتم حذف جميع الأصناف من السلة الحالية.
+                                      </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                      <AlertDialogCancel>تراجع</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => {
+                                          resetSale();
+                                          toast({ title: "تم إلغاء الفاتورة" });
+                                      }} className={buttonVariants({ variant: "destructive" })}>نعم، قم بالإلغاء</AlertDialogAction>
+                                  </AlertDialogFooter>
+                              </AlertDialogContent>
+                          </AlertDialog>
+                        </>
+                      ) : (
+                          <Button onClick={() => {
+                              setSaleToPrint(sortedSales[reviewIndex]);
+                              setIsPrintReviewOpen(true);
+                          }} className="w-full">
+                              <Printer className="me-2 h-4 w-4" />
+                              طباعة الفاتورة
+                          </Button>
+                      )}
+                  </CardFooter>
+              </Card>
+          </div>
         <Dialog open={isReceiptOpen} onOpenChange={(open) => {
             if (!open) {
                 if (mode === 'new') {
@@ -952,5 +951,7 @@ export default function SalesPage() {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-    </div>
-    </
+      </div>
+    </>
+  )
+}
