@@ -558,7 +558,7 @@ export default function SalesPage() {
     <div className="hidden">
         <InvoiceTemplate ref={printComponentRef} sale={saleToPrint} settings={settings || null} />
     </div>
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-5rem)]">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full md:h-[calc(100vh-6rem)]">
         <div className="lg:col-span-2 flex flex-col gap-4">
             <Card>
                 <CardHeader className="pb-4">
@@ -953,6 +953,4 @@ export default function SalesPage() {
             </DialogContent>
         </Dialog>
     </div>
-    </>
-  )
-}
+    </

@@ -31,10 +31,4 @@ export default function RootLayout({
         <AuthProvider>
             <AppLayoutClient>
               {children}
-            </AppLayoutClient>
-            <Toaster />
-        </AuthProvider>
-      </body>
-    </html>
-  );
-}
+            </App
