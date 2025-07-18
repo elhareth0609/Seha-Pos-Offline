@@ -10,14 +10,7 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card"
-import { useLocalStorage } from "@/hooks/use-local-storage"
-import {
-  suppliers as fallbackSuppliers,
-  purchaseOrders as fallbackPurchaseOrders,
-  supplierReturns as fallbackSupplierReturns,
-  supplierPayments as fallbackSupplierPayments,
-  trash as fallbackTrash,
-} from "@/lib/data"
+import { useAuth } from "@/hooks/use-auth"
 import type { Supplier, PurchaseOrder, ReturnOrder, SupplierPayment, TrashItem } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
@@ -69,11 +62,12 @@ type StatementItem = {
 };
 
 export default function SuppliersPage() {
-  const [suppliers, setSuppliers] = useLocalStorage<Supplier[]>('suppliers', fallbackSuppliers);
-  const [purchaseOrders, setPurchaseOrders] = useLocalStorage<PurchaseOrder[]>('purchaseOrders', fallbackPurchaseOrders);
-  const [supplierReturns, setSupplierReturns] = useLocalStorage<ReturnOrder[]>('supplierReturns', fallbackSupplierReturns);
-  const [supplierPayments, setSupplierPayments] = useLocalStorage<SupplierPayment[]>('supplierPayments', fallbackSupplierPayments);
-  const [trash, setTrash] = useLocalStorage<TrashItem[]>('trash', fallbackTrash);
+  const { getScopedData } = useAuth();
+  const [suppliers, setSuppliers] = getScopedData().suppliers;
+  const [purchaseOrders, setPurchaseOrders] = getScopedData().payments;
+  const [supplierReturns] = getScopedData().payments;
+  const [supplierPayments, setSupplierPayments] = getScopedData().payments;
+  const [trash, setTrash] = getScopedData().trash;
 
   const [isClient, setIsClient] = React.useState(false)
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
@@ -121,9 +115,8 @@ export default function SuppliersPage() {
 
     setSuppliers(prev => prev.map(s => s.id === updatedSupplier.id ? updatedSupplier : s));
     
-    // Update supplier name in related records for consistency
-    setPurchaseOrders(prev => prev.map(po => po.supplierId === updatedSupplier.id ? { ...po, supplierName: updatedSupplier.name } : po));
-    setSupplierReturns(prev => prev.map(ret => ret.supplierId === updatedSupplier.id ? { ...ret, supplierName: updatedSupplier.name } : ret));
+    // setPurchaseOrders(prev => prev.map(po => po.supplierId === updatedSupplier.id ? { ...po, supplierName: updatedSupplier.name } : po));
+    // setSupplierReturns(prev => prev.map(ret => ret.supplierId === updatedSupplier.id ? { ...ret, supplierName: updatedSupplier.name } : ret));
 
     toast({ title: "تم تحديث بيانات المورد" });
     setIsEditDialogOpen(false);
@@ -226,7 +219,7 @@ export default function SuppliersPage() {
           if (trans.transType === 'شراء') {
               debit = trans.amount;
               runningBalance += trans.amount;
-          } else { // Return or Payment
+          } else {
               credit = trans.amount;
               runningBalance -= trans.amount;
           }

@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useLocalStorage } from './use-local-storage';
-import type { User, UserPermissions, TimeLog, AppSettings, InventoryData, SalesData, SuppliersData, PatientsData, TrashData, PaymentsData, TimeLogsData } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, InventoryData, SalesData, SuppliersData, PatientsData, TrashData, PaymentsData, TimeLogsData } from '@/lib/types';
 import { users as fallbackUsers, appSettings as fallbackAppSettings } from '@/lib/data';
 
 interface AuthContextType {
@@ -25,22 +25,19 @@ interface AuthContextType {
   updateUserPermissions: (userId: string, permissions: UserPermissions) => Promise<boolean>;
   updateUserHourlyRate: (userId: string, rate: number) => Promise<boolean>;
   toggleUserStatus: (userId: string) => Promise<boolean>;
-  // Data accessors scoped to the current pharmacy
   getScopedData: () => ScopedDataContextType;
 }
 
-// Helper types for scoped data
 export interface ScopedDataContextType {
-    inventory: { data: Medication[], setter: (value: Medication[] | ((val: Medication[]) => Medication[])) => void };
-    sales: { data: Sale[], setter: (value: Sale[] | ((val: Sale[]) => Sale[])) => void };
-    suppliers: { data: Supplier[], setter: (value: Supplier[] | ((val: Supplier[]) => Supplier[])) => void };
-    patients: { data: Patient[], setter: (value: Patient[] | ((val: Patient[]) => Patient[])) => void };
-    trash: { data: TrashItem[], setter: (value: TrashItem[] | ((val: TrashItem[]) => TrashItem[])) => void };
-    payments: { data: SupplierPayment[], setter: (value: SupplierPayment[] | ((val: SupplierPayment[]) => SupplierPayment[])) => void };
-    timeLogs: { data: TimeLog[], setter: (value: TimeLog[] | ((val: TimeLog[]) => TimeLog[])) => void };
-    settings: { data: AppSettings | null, setter: (value: AppSettings | ((val: AppSettings | null) => AppSettings | null)) => void };
+    inventory: [Medication[], (value: Medication[] | ((val: Medication[]) => Medication[])) => void];
+    sales: [Sale[], (value: Sale[] | ((val: Sale[]) => Sale[])) => void];
+    suppliers: [Supplier[], (value: Supplier[] | ((val: Supplier[]) => Supplier[])) => void];
+    patients: [Patient[], (value: Patient[] | ((val: Patient[]) => Patient[])) => void];
+    trash: [TrashItem[], (value: TrashItem[] | ((val: TrashItem[]) => TrashItem[])) => void];
+    payments: [SupplierPayment[], (value: SupplierPayment[] | ((val: SupplierPayment[]) => SupplierPayment[])) => void];
+    timeLogs: [TimeLog[], (value: TimeLog[] | ((val: TimeLog[]) => TimeLog[])) => void];
+    settings: [AppSettings, (value: AppSettings | ((val: AppSettings) => AppSettings)) => void];
 }
-
 
 const AuthContext = React.createContext<AuthContextType | null>(null);
 
@@ -56,11 +53,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useLocalStorage<User[]>('users', fallbackUsers);
   const [currentUser, setCurrentUser] = useLocalStorage<User | null>('currentUser', null);
   
-  // App settings now stores settings for ALL pharmacies, keyed by pharmacyId
   const [allAppSettings, setAllAppSettings] = useLocalStorage<{ [key: string]: AppSettings }>('allAppSettings', {});
   const [globalSettings, setGlobalSettings] = useLocalStorage<{initialized?: boolean}>('globalSettings', {});
 
-  // These hooks now manage the *entire* dataset for all pharmacies
   const [allTimeLogs, setAllTimeLogs] = useLocalStorage<TimeLogsData>('timeLogs', {});
   const [allInventory, setAllInventory] = useLocalStorage<InventoryData>('inventory', {});
   const [allSales, setAllSales] = useLocalStorage<SalesData>('sales', {});
@@ -81,28 +76,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const getScopedData = (): ScopedDataContextType => {
       const pharmacyId = currentUser?.pharmacyId;
       if (!pharmacyId) {
-          // Return empty data if no pharmacy context
+          const emptySetter = () => { console.warn("Attempted to set data without a valid pharmacy context."); };
           return {
-              inventory: { data: [], setter: () => {} },
-              sales: { data: [], setter: () => {} },
-              suppliers: { data: [], setter: () => {} },
-              patients: { data: [], setter: () => {} },
-              trash: { data: [], setter: () => {} },
-              payments: { data: [], setter: () => {} },
-              timeLogs: { data: [], setter: () => {} },
-              settings: { data: null, setter: () => {} },
+              inventory: [[], emptySetter as any],
+              sales: [[], emptySetter as any],
+              suppliers: [[], emptySetter as any],
+              patients: [[], emptySetter as any],
+              trash: [[], emptySetter as any],
+              payments: [[], emptySetter as any],
+              timeLogs: [[], emptySetter as any],
+              settings: [fallbackAppSettings, emptySetter as any],
           };
       }
       
       return {
-          inventory: { data: allInventory[pharmacyId] || [], setter: (val) => setAllInventory(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val })) },
-          sales: { data: allSales[pharmacyId] || [], setter: (val) => setAllSales(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val })) },
-          suppliers: { data: allSuppliers[pharmacyId] || [], setter: (val) => setAllSuppliers(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val })) },
-          patients: { data: allPatients[pharmacyId] || [], setter: (val) => setAllPatients(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val })) },
-          trash: { data: allTrash[pharmacyId] || [], setter: (val) => setAllTrash(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val })) },
-          payments: { data: allPayments[pharmacyId] || [], setter: (val) => setAllPayments(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val })) },
-          timeLogs: { data: allTimeLogs[pharmacyId] || [], setter: (val) => setAllTimeLogs(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val })) },
-          settings: { data: allAppSettings[pharmacyId] || fallbackAppSettings, setter: (val) => setAllAppSettings(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || fallbackAppSettings) : val }))},
+          inventory: [allInventory[pharmacyId] || [], (val) => setAllInventory(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val }))],
+          sales: [allSales[pharmacyId] || [], (val) => setAllSales(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val }))],
+          suppliers: [allSuppliers[pharmacyId] || [], (val) => setAllSuppliers(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val }))],
+          patients: [allPatients[pharmacyId] || [], (val) => setAllPatients(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val }))],
+          trash: [allTrash[pharmacyId] || [], (val) => setAllTrash(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val }))],
+          payments: [allPayments[pharmacyId] || [], (val) => setAllPayments(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val }))],
+          timeLogs: [allTimeLogs[pharmacyId] || [], (val) => setAllTimeLogs(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val }))],
+          settings: [allAppSettings[pharmacyId] || fallbackAppSettings, (val) => setAllAppSettings(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || fallbackAppSettings) : val }))],
       }
   };
 
@@ -140,7 +135,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       hourlyRate: 0,
     };
     
-    // ** CRITICAL FIX ** : Initialize all data stores for the new pharmacy
     setAllAppSettings(prev => ({...prev, [pharmacyId]: {...fallbackAppSettings, pharmacyName: `${name}'s Pharmacy`}}));
     setAllInventory(prev => ({...prev, [pharmacyId]: []}));
     setAllSales(prev => ({...prev, [pharmacyId]: []}));
@@ -274,7 +268,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     if (userToLogin && userToLogin.status === 'active') {
       setCurrentUser(userToLogin);
-      // ** CRITICAL FIX **: Only start a time log if it's a pharmacy user.
       if (userToLogin.role !== 'SuperAdmin' && userToLogin.pharmacyId) {
           const newTimeLog: TimeLog = {
             id: `TL${Date.now()}`,
@@ -313,15 +306,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const userToDelete = users.find(u => u.id === userId);
     if (!userToDelete) return false;
     
-    // SuperAdmin cannot be deleted this way
     if (userToDelete.role === 'SuperAdmin') return false;
 
     if (permanent && currentUser?.role === 'SuperAdmin' && userToDelete.pharmacyId) {
         const pharmacyIdToDelete = userToDelete.pharmacyId;
-        // Permanent deletion of admin and their associated data
         setUsers(prev => prev.filter(u => u.pharmacyId !== pharmacyIdToDelete));
 
-        // Delete all data associated with this pharmacy
         setAllInventory(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
         setAllSales(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
         setAllSuppliers(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
@@ -332,11 +322,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAllAppSettings(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
 
     } else if (currentUser?.role === 'Admin' && userToDelete.role === 'Employee' && currentUser.pharmacyId) {
-        // Soft delete (move to trash) by Admin for their employee
-        const { trash, setter: setTrash } = getScopedData().trash;
+        const [trash, setTrash] = getScopedData().trash;
         const newTrashItem: TrashItem = {
              id: `TRASH-${Date.now()}`,
-             pharmacyId: currentUser.pharmacyId,
              deletedAt: new Date().toISOString(),
              itemType: 'user' as const,
              data: userToDelete,
@@ -344,7 +332,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setTrash([...trash, newTrashItem]);
         setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
     } else {
-      return false; // Prevent unauthorized deletion
+      return false;
     }
 
     return true;

@@ -19,10 +19,9 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { inventory as fallbackInventory, sales as fallbackSales, appSettings as fallbackSettings } from "@/lib/data";
 import type { Medication, Sale, AppSettings } from "@/lib/types";
-import { DollarSign, Clock, TrendingDown, FileText, Calendar, CalendarDays, TrendingUp, PieChart } from "lucide-react";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, isWithinInterval, isToday } from 'date-fns';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -30,9 +29,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatStock } from "@/lib/utils";
 
 export default function Dashboard() {
-  const [inventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
-  const [sales] = useLocalStorage<Sale[]>('sales', fallbackSales);
-  const [settings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
+  const { getScopedData } = useAuth();
+  const [inventory] = getScopedData().inventory;
+  const [sales] = getScopedData().sales;
+  const [settings] = getScopedData().settings;
   const [isClient, setIsClient] = React.useState(false);
   const [timeFilter, setTimeFilter] = React.useState<'today' | 'week' | 'month' | 'all'>('month');
   
@@ -60,7 +60,7 @@ export default function Dashboard() {
     const stats: { [medId: string]: { name: string; quantity: number } } = {};
 
     sales.forEach(sale => {
-        sale.items.forEach(item => {
+        (sale.items || []).forEach(item => {
             if (item.isReturn) return; 
 
             if (!stats[item.medicationId]) {
@@ -88,7 +88,6 @@ export default function Dashboard() {
     const now = new Date();
     const weekStart = startOfWeek(now, { weekStartsOn: 6 }); // Saturday
     const monthStart = startOfMonth(now);
-    const todayStart = startOfToday();
 
     const filteredSales = sales.filter(sale => {
         const saleDate = parseISO(sale.date);
