@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { LogIn, User, ShieldAlert } from 'lucide-react';
+import { LogIn, User, ShieldAlert, PackagePlus } from 'lucide-react';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -206,73 +206,97 @@ export default function LoginPage() {
     const currentUser = pharmacyUsers.find(u => u.id === selectedUser);
 
     return (
-        <div className="relative flex items-center justify-center min-h-screen bg-muted/40 p-4">
-            <Card className="w-full max-w-sm text-center shadow-2xl animate-in fade-in zoom-in-95">
-                <CardHeader>
-                    {currentUser?.image1DataUri ? (
-                       <Image src={currentUser.image1DataUri} alt={currentUser.name} width={96} height={96} className="mx-auto rounded-full object-cover h-24 w-24 border-4 border-background shadow-lg" />
-                    ) : (
-                        <div className="mx-auto mb-4 bg-primary/10 p-4 rounded-full h-24 w-24 flex items-center justify-center border-4 border-background shadow-lg">
-                            <User className="h-12 w-12 text-primary" />
+        <div className="flex items-center justify-center min-h-screen bg-muted/40 p-4">
+            <div className="container grid lg:grid-cols-2 gap-16 items-center">
+                <div className="hidden lg:flex flex-col items-start text-right">
+                    <div className="flex items-center gap-3 mb-4">
+                        <PackagePlus className="h-14 w-14 text-primary" />
+                        <h1 className="text-5xl font-bold">Midgram</h1>
+                    </div>
+                    <p className="text-xl text-muted-foreground mt-2">
+                        نظام إدارة صيدليات متكامل، مصمم لتبسيط عملياتك اليومية من المبيعات والمخزون إلى المشتريات والتقارير المالية.
+                    </p>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="ghost" className="mt-8 gap-2 p-0 h-auto text-muted-foreground hover:text-primary">
+                                <ShieldAlert className="h-5 w-5" />
+                                بوابة دخول مسؤولي الشركة
+                            </Button>
+                        </DialogTrigger>
+                        <SuperAdminLoginDialog />
+                    </Dialog>
+                </div>
+
+                <Card className="w-full max-w-sm mx-auto text-center shadow-2xl animate-in fade-in zoom-in-95">
+                    <CardHeader>
+                        {currentUser?.image1DataUri ? (
+                           <Image src={currentUser.image1DataUri} alt={currentUser.name} width={96} height={96} className="mx-auto rounded-full object-cover h-24 w-24 border-4 border-background shadow-lg" />
+                        ) : (
+                            <div className="mx-auto mb-4 bg-primary/10 p-4 rounded-full h-24 w-24 flex items-center justify-center border-4 border-background shadow-lg">
+                                <User className="h-12 w-12 text-primary" />
+                            </div>
+                        )}
+                        <CardTitle className="text-2xl pt-2">{currentUser?.name || 'تسجيل الدخول'}</CardTitle>
+                        <CardDescription>
+                           الرجاء إدخال رمز PIN للمتابعة.
+                        </CardDescription>
+                    </CardHeader>
+                    <form onSubmit={handleSubmit}>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2 text-right">
+                                <Label htmlFor="login-pin">رمز PIN</Label>
+                                <Input id="login-pin" type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={4} required placeholder="••••" autoFocus/>
+                            </div>
+                        </CardContent>
+                        <CardFooter className="flex-col gap-4">
+                            <Button type="submit" className="w-full">
+                                <LogIn className="me-2 h-4 w-4" />
+                                تسجيل الدخول
+                            </Button>
+                             <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="link" size="sm" className="text-muted-foreground p-0 h-auto">
+                                        هل نسيت رمز PIN؟
+                                    </Button>
+                                </AlertDialogTrigger>
+                               <ForgotPinDialog />
+                            </AlertDialog>
+                        </CardFooter>
+                    </form>
+                    {pharmacyUsers.length > 1 && (
+                        <div className="p-4 border-t">
+                            <p className="text-xs text-muted-foreground mb-2">أو قم بتسجيل الدخول كمستخدم آخر:</p>
+                            <div className="flex flex-wrap gap-4 justify-center">
+                                {pharmacyUsers.filter(u => u.id !== selectedUser).map(user => (
+                                    <div key={user.id} className="flex flex-col items-center gap-1">
+                                        <button onClick={() => handleUserSelect(user.id)} className="p-0.5 border-2 border-transparent rounded-full hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary">
+                                            {user.image1DataUri ? (
+                                                <Image src={user.image1DataUri} alt={user.name} width={40} height={40} className="rounded-full object-cover" />
+                                            ) : (
+                                                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                                                    <User className="h-5 w-5" />
+                                                </div>
+                                            )}
+                                        </button>
+                                        <span className="text-xs font-medium text-muted-foreground">{user.name}</span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
-                    <CardTitle className="text-2xl pt-2">{currentUser?.name || 'تسجيل الدخول'}</CardTitle>
-                    <CardDescription>
-                       الرجاء إدخال رمز PIN للمتابعة.
-                    </CardDescription>
-                </CardHeader>
-                <form onSubmit={handleSubmit}>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2 text-right">
-                            <Label htmlFor="login-pin">رمز PIN</Label>
-                            <Input id="login-pin" type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={4} required placeholder="••••" autoFocus/>
-                        </div>
-                    </CardContent>
-                    <CardFooter className="flex-col gap-4">
-                        <Button type="submit" className="w-full">
-                            <LogIn className="me-2 h-4 w-4" />
-                            تسجيل الدخول
-                        </Button>
-                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="link" size="sm" className="text-muted-foreground p-0 h-auto">
-                                    هل نسيت رمز PIN؟
-                                </Button>
-                            </AlertDialogTrigger>
-                           <ForgotPinDialog />
-                        </AlertDialog>
-                    </CardFooter>
-                </form>
-                {pharmacyUsers.length > 1 && (
-                    <div className="p-4 border-t">
-                        <p className="text-xs text-muted-foreground mb-2">أو قم بتسجيل الدخول كمستخدم آخر:</p>
-                        <div className="flex flex-wrap gap-4 justify-center">
-                            {pharmacyUsers.filter(u => u.id !== selectedUser).map(user => (
-                                <div key={user.id} className="flex flex-col items-center gap-1">
-                                    <button onClick={() => handleUserSelect(user.id)} className="p-0.5 border-2 border-transparent rounded-full hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary">
-                                        {user.image1DataUri ? (
-                                            <Image src={user.image1DataUri} alt={user.name} width={40} height={40} className="rounded-full object-cover" />
-                                        ) : (
-                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
-                                                <User className="h-5 w-5" />
-                                            </div>
-                                        )}
-                                    </button>
-                                    <span className="text-xs font-medium text-muted-foreground">{user.name}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </Card>
-            <Dialog>
-                <DialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="absolute bottom-4 left-4 text-muted-foreground opacity-50 hover:opacity-100">
-                        <ShieldAlert className="h-5 w-5" />
-                    </Button>
-                </DialogTrigger>
-                <SuperAdminLoginDialog />
-            </Dialog>
+                </Card>
+                 <div className="lg:hidden mt-8 text-center">
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-primary">
+                                <ShieldAlert className="h-5 w-5" />
+                                بوابة دخول مسؤولي الشركة
+                            </Button>
+                        </DialogTrigger>
+                        <SuperAdminLoginDialog />
+                    </Dialog>
+                </div>
+            </div>
         </div>
     );
 }
