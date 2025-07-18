@@ -29,10 +29,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatStock } from "@/lib/utils";
 
 export default function Dashboard() {
-  const { getScopedData } = useAuth();
-  const [inventory] = getScopedData().inventory;
-  const [sales] = getScopedData().sales;
-  const [settings] = getScopedData().settings;
+  const { scopedData } = useAuth();
+  const [inventory] = scopedData.inventory;
+  const [sales] = scopedData.sales;
+  const [settings] = scopedData.settings;
   const [isClient, setIsClient] = React.useState(false);
   const [timeFilter, setTimeFilter] = React.useState<'today' | 'week' | 'month' | 'all'>('month');
   
