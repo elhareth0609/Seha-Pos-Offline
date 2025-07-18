@@ -3,8 +3,8 @@
 
 import * as React from 'react';
 import { useLocalStorage } from './use-local-storage';
-import type { User, UserPermissions, TimeLog } from '@/lib/types';
-import { users as fallbackUsers, timeLogs as fallbackTimeLogs } from '@/lib/data';
+import type { User, UserPermissions, TimeLog, AppSettings } from '@/lib/types';
+import { users as fallbackUsers, timeLogs as fallbackTimeLogs, appSettings as fallbackAppSettings } from '@/lib/data';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -42,9 +42,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [timeLogs, setTimeLogs] = useLocalStorage<TimeLog[]>('timeLogs', fallbackTimeLogs);
   const [activeTimeLogId, setActiveTimeLogId] = useLocalStorage<string | null>('activeTimeLogId', null);
   const [currentUser, setCurrentUser] = useLocalStorage<User | null>('currentUser', null);
+  const [appSettings, setAppSettings] = useLocalStorage<AppSettings>('appSettings', fallbackAppSettings);
   const [loading, setLoading] = React.useState(true);
 
-  const isSetup = users.length > 0;
+  const isSetup = appSettings.initialized === true;
 
   React.useEffect(() => {
     setLoading(false);
@@ -61,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString(),
     };
     setUsers([superAdmin]);
+    setAppSettings(prev => ({...prev, initialized: true}));
     setCurrentUser(superAdmin);
   };
   
@@ -143,6 +145,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           return u;
       }));
+      // Also update current user if they are the one being edited
+      if (currentUser?.id === userId) {
+          setCurrentUser(prev => prev ? { ...prev, name, email, pin: pin || prev.pin } : null);
+      }
       return true;
   };
 

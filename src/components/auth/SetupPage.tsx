@@ -2,38 +2,38 @@
 'use client';
 
 import * as React from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { KeyRound, PackagePlus } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PackagePlus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function SetupPage() {
-    const { setupAdmin } = useAuth();
+    const { setupAdmin, isSetup } = useAuth();
     const { toast } = useToast();
-
-    // The component will now automatically trigger the setup with default credentials
-    // on first mount, removing the form.
+    const router = useRouter();
+    const setupRun = React.useRef(false);
+    
     React.useEffect(() => {
+        // Prevent this effect from running twice in strict mode or on re-renders.
+        if (isSetup || setupRun.current) return;
+        setupRun.current = true;
+
         const runSetup = async () => {
             try {
-                // Use default credentials for the initial setup.
                 await setupAdmin('Super Admin', 'superadmin@midgram.com', '0000');
                 toast({ 
                     title: 'اكتمل الإعداد!', 
                     description: `تم إعداد حساب المدير العام الافتراضي. سيتم إعادة تحميل الصفحة.`,
                     duration: 5000,
                 });
-                // Reload to reflect the new state (isSetup will be true)
                 setTimeout(() => window.location.reload(), 2000);
             } catch (error) {
                  toast({ variant: 'destructive', title: 'خطأ', description: 'حدثت مشكلة أثناء إعداد الحساب.' });
             }
         };
         runSetup();
-    }, [setupAdmin, toast]);
+    }, [isSetup, setupAdmin, toast, router]);
 
 
     return (

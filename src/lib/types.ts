@@ -134,6 +134,7 @@ export type User = {
   hourlyRate?: number;
   pharmacyId?: string; // Null/undefined for SuperAdmin, set for Admins and Employees
   createdAt: string; // ISO date string
+  image1DataUri?: string;
 };
 
 export type Patient = {
@@ -153,7 +154,7 @@ export type TimeLog = {
 };
 
 export type AppSettings = {
-    pharmacyId: string;
+    pharmacyId?: string;
     initialized?: boolean;
     pharmacyName: string;
     pharmacyAddress: string;
