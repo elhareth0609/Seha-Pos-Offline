@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import type { Medication, Sale, User } from '@/lib/types';
 import { DollarSign, TrendingUp, PieChart, TrendingDown, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { formatStock } from '@/lib/utils';
 
 export default function SuperAdminReportsPage() {
     const { currentUser, users, scopedData: allData } = useAuth();
@@ -110,7 +111,7 @@ export default function SuperAdminReportsPage() {
                                 <DollarSign className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{selectedPharmacyData.totalRevenue.toLocaleString('ar-IQ')} د.ع</div>
+                                <div className="text-2xl font-bold font-mono">{selectedPharmacyData.totalRevenue.toLocaleString('ar-IQ')} د.ع</div>
                             </CardContent>
                         </Card>
                         <Card>
@@ -119,7 +120,7 @@ export default function SuperAdminReportsPage() {
                                 <TrendingUp className="h-4 w-4 text-green-600" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-green-600">{selectedPharmacyData.totalProfit.toLocaleString('ar-IQ')} د.ع</div>
+                                <div className="text-2xl font-bold text-green-600 font-mono">{selectedPharmacyData.totalProfit.toLocaleString('ar-IQ')} د.ع</div>
                             </CardContent>
                         </Card>
                         <Card>
@@ -128,7 +129,7 @@ export default function SuperAdminReportsPage() {
                                 <PieChart className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{selectedPharmacyData.profitMargin.toFixed(2)}%</div>
+                                <div className="text-2xl font-bold font-mono">{selectedPharmacyData.profitMargin.toFixed(2)}%</div>
                             </CardContent>
                         </Card>
                     </div>
@@ -141,7 +142,7 @@ export default function SuperAdminReportsPage() {
                                     <TableHeader><TableRow><TableHead>الدواء</TableHead><TableHead>الكمية المباعة</TableHead></TableRow></TableHeader>
                                     <TableBody>
                                         {selectedPharmacyData.topSoldArray.map(item => (
-                                            <TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell>{item.quantity}</TableCell></TableRow>
+                                            <TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell className="font-mono">{item.quantity}</TableCell></TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
@@ -156,8 +157,8 @@ export default function SuperAdminReportsPage() {
                                         {selectedPharmacyData.lowStockItems.map(item => (
                                             <TableRow key={item.id}>
                                                 <TableCell>{item.tradeName}</TableCell>
-                                                <TableCell><Badge variant="destructive">{item.stock}</Badge></TableCell>
-                                                <TableCell>{item.reorderPoint}</TableCell>
+                                                <TableCell><Badge variant="destructive" className="font-mono">{formatStock(item.stock, item.purchaseUnit, item.saleUnit, item.itemsPerPurchaseUnit)}</Badge></TableCell>
+                                                <TableCell className="font-mono">{item.reorderPoint}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>

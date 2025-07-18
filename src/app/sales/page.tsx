@@ -64,6 +64,7 @@ import { buttonVariants } from "@/components/ui/button"
 import { calculateDose, type DoseCalculationInput } from "@/ai/flows/dose-calculator-flow"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useOnlineStatus } from "@/hooks/use-online-status"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 
 function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => void; onOpenChange: (isOpen: boolean) => void }) {
@@ -148,8 +149,8 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
             .map(item => ({
                 tradeName: item.name,
                 scientificNames: item.scientificNames || [],
-                dosage: item.saleUnit || 'N/A', // This is not ideal, but we lack dosage field in SaleItem
-                dosageForm: 'N/A' // Placeholder as we don't have this field yet
+                dosage: item.dosage || 'N/A',
+                dosageForm: item.dosageForm || 'N/A'
             }));
             
         try {
@@ -301,24 +302,49 @@ export default function SalesPage() {
     documentTitle: `invoice-${saleToPrint?.id || ''}`,
   });
   
-  const sortedSales = React.useMemo(() => sales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [sales]);
+  const sortedSales = React.useMemo(() => (sales || []).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [sales]);
 
-  const addToCart = React.useCallback((medication: Medication) => {
+  const addToCart = React.useCallback((medication: Medication, saleType: 'retail' | 'wholesale') => {
     if (mode !== 'new') return;
+    
+    if (saleType === 'retail' && !medication.allowRetailSale) {
+        toast({ variant: 'destructive', title: 'البيع الجزئي غير مسموح', description: `لا يمكن بيع ${medication.tradeName} كأجزاء.` });
+        return;
+    }
+
     setCart((prevCart) => {
-      const existingItem = prevCart.find(item => item.medicationId === medication.id && !item.isReturn)
+      const uniqueId = `${medication.id}-${saleType}`;
+      const existingItem = prevCart.find(item => item.uniqueId === uniqueId && !item.isReturn)
+      
+      const price = saleType === 'retail' ? medication.price : medication.wholesalePrice;
+      
       if (existingItem) {
         return prevCart.map(item =>
-          item.medicationId === medication.id && !item.isReturn
+          item.uniqueId === uniqueId && !item.isReturn
             ? { ...item, quantity: item.quantity + 1 }
             : item
         )
       }
-      return [...prevCart, { medicationId: medication.id, name: medication.tradeName, scientificNames: medication.scientificNames, quantity: 1, price: medication.price, purchasePrice: medication.purchasePrice, expirationDate: medication.expirationDate, isReturn: false, saleUnit: medication.saleUnit }]
+      return [...prevCart, { 
+          uniqueId: uniqueId,
+          medicationId: medication.id, 
+          name: medication.tradeName, 
+          scientificNames: medication.scientificNames, 
+          quantity: 1, 
+          price: price || 0,
+          purchasePrice: medication.purchasePrice, 
+          expirationDate: medication.expirationDate, 
+          isReturn: false, 
+          saleUnit: saleType === 'retail' ? medication.saleUnit : medication.purchaseUnit,
+          dosage: medication.dosage,
+          dosageForm: medication.dosageForm,
+          saleType: saleType,
+          itemsPerUnit: medication.itemsPerPurchaseUnit || 1
+        }]
     })
     setSearchTerm("")
     setSuggestions([])
-  }, [mode])
+  }, [mode, toast])
   
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -326,7 +352,7 @@ export default function SalesPage() {
 
     if (value.length > 0) {
         const lowercasedFilter = value.toLowerCase();
-        const filtered = allInventory.filter((item) =>
+        const filtered = (allInventory || []).filter((item) =>
             (item.tradeName && item.tradeName.toLowerCase().startsWith(lowercasedFilter)) ||
             (item.id && item.id.toLowerCase().includes(lowercasedFilter))
         );
@@ -340,34 +366,39 @@ export default function SalesPage() {
     if (mode !== 'new') return;
     const scannedMedication = allInventory.find(med => med.id === result);
     if (scannedMedication) {
-      addToCart(scannedMedication);
+      addToCart(scannedMedication, 'retail'); // Default to retail on scan
       toast({ title: 'تمت الإضافة إلى السلة', description: `تمت إضافة ${scannedMedication.tradeName} بنجاح.` });
     } else {
       toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'الباركود الممسوح ضوئيًا لا يتطابق مع أي منتج.' });
     }
     setIsScannerOpen(false);
-  }, [addToCart, toast, allInventory, mode]);
+  }, [addToCart, allInventory, mode, toast]);
 
   const handleSearchKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
     if (mode !== 'new') return;
     if (event.key === 'Enter') {
         event.preventDefault();
 
-        if (suggestions.length > 0) {
-            addToCart(suggestions[0]);
+        if (suggestions.length === 1) {
+            addToCart(suggestions[0], 'retail'); // Default to retail
+            return;
+        }
+
+        if (suggestions.length > 1) {
+            // Keep suggestions open
             return;
         }
 
         const lowercasedSearchTerm = searchTerm.toLowerCase();
         const medicationById = allInventory.find(med => med.id && med.id.toLowerCase() === lowercasedSearchTerm);
         if (medicationById) {
-            addToCart(medicationById);
+            addToCart(medicationById, 'retail'); // Default to retail
             return;
         }
         
         const medicationByName = allInventory.find(med => med.tradeName && med.tradeName.toLowerCase() === lowercasedSearchTerm);
         if (medicationByName) {
-            addToCart(medicationByName);
+            addToCart(medicationByName, 'retail'); // Default to retail
             return;
         }
 
@@ -375,36 +406,36 @@ export default function SalesPage() {
             toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'يرجى التأكد من المعرف أو البحث بالاسم.' });
         }
     }
-  }, [suggestions, allInventory, searchTerm, addToCart, toast, mode]);
+  }, [suggestions, allInventory, searchTerm, addToCart, mode, toast]);
 
-  const updateQuantity = (medicationId: string, quantity: number) => {
+  const updateQuantity = (uniqueId: string, quantity: number) => {
     if (mode !== 'new') return;
     if (quantity <= 0) {
-      removeFromCart(medicationId)
+      removeFromCart(uniqueId)
     } else {
-      setCart(cart => cart.map(item => item.medicationId === medicationId ? { ...item, quantity } : item))
+      setCart(cart => cart.map(item => item.uniqueId === uniqueId ? { ...item, quantity } : item))
     }
   }
   
-  const updatePrice = (medicationId: string, newPrice: number) => {
+  const updatePrice = (uniqueId: string, newPrice: number) => {
     if (mode !== 'new') return;
     if (newPrice < 0) return;
     setCart(cart => cart.map(item => 
-      item.medicationId === medicationId 
+      item.uniqueId === uniqueId 
         ? { ...item, price: isNaN(newPrice) ? 0 : newPrice } 
         : item
     ));
   };
 
-  const removeFromCart = (medicationId: string) => {
+  const removeFromCart = (uniqueId: string) => {
     if (mode !== 'new') return;
-    setCart(cart => cart.filter(item => item.medicationId !== medicationId))
+    setCart(cart => cart.filter(item => item.uniqueId !== uniqueId))
   }
 
-  const toggleReturn = (medicationId: string) => {
+  const toggleReturn = (uniqueId: string) => {
     if (mode !== 'new') return;
     setCart(cart => cart.map(item => 
-      item.medicationId === medicationId 
+      item.uniqueId === uniqueId 
         ? { ...item, isReturn: !item.isReturn } 
         : item
     ));
@@ -423,7 +454,8 @@ export default function SalesPage() {
   }, 0);
 
   const totalProfit = cart.reduce((acc, item) => {
-      const itemProfit = (item.price - item.purchasePrice) * item.quantity;
+      const itemsToDeduct = item.saleType === 'retail' ? 1 : item.itemsPerUnit;
+      const itemProfit = (item.price - (item.purchasePrice * itemsToDeduct)) * item.quantity;
       return item.isReturn ? acc - itemProfit : acc + itemProfit;
   }, 0);
 
@@ -435,15 +467,23 @@ export default function SalesPage() {
       return;
     }
     
-    for (const itemInCart of cart) {
-        if (!itemInCart.isReturn) {
-            const med = allInventory.find(m => m.id === itemInCart.medicationId);
-            if (!med || med.stock < itemInCart.quantity) {
-                toast({ variant: 'destructive', title: `كمية غير كافية من ${itemInCart.name}`, description: `الكمية المطلوبة ${itemInCart.quantity}, المتوفر ${med?.stock ?? 0}` });
-                return;
-            }
+    // Consolidate stock checks
+    const stockRequirements: { [key: string]: number } = {};
+    for (const item of cart) {
+        if (!item.isReturn) {
+            const itemsToDeduct = item.saleType === 'retail' ? item.quantity : item.quantity * item.itemsPerUnit;
+            stockRequirements[item.medicationId] = (stockRequirements[item.medicationId] || 0) + itemsToDeduct;
         }
     }
+
+    for (const medId in stockRequirements) {
+        const medInInventory = allInventory.find(m => m.id === medId);
+        if (!medInInventory || medInInventory.stock < stockRequirements[medId]) {
+            toast({ variant: 'destructive', title: `كمية غير كافية من ${medInInventory?.tradeName || medId}`, description: `الكمية المطلوبة ${stockRequirements[medId]} أجزاء, المتوفر ${medInVENTORY?.stock ?? 0}` });
+            return;
+        }
+    }
+
     setIsCheckoutOpen(true);
   }
 
@@ -475,19 +515,21 @@ export default function SalesPage() {
         employeeName: currentUser.name,
     };
     
-    const updatedInventory = allInventory.map(med => {
-        const itemInCart = cart.find(cartItem => cartItem.medicationId === med.id);
-        if (itemInCart) {
-            const newStock = itemInCart.isReturn 
-                ? med.stock + itemInCart.quantity
-                : med.stock - itemInCart.quantity;
-            return { ...med, stock: newStock };
+    const updatedInventory = [...allInventory];
+    for (const itemInCart of cart) {
+        const medIndex = updatedInventory.findIndex(m => m.id === itemInCart.medicationId);
+        if (medIndex > -1) {
+            const itemsToChange = itemInCart.saleType === 'retail' 
+                ? itemInCart.quantity 
+                : itemInCart.quantity * itemInCart.itemsPerUnit;
+            
+            const stockChange = itemInCart.isReturn ? itemsToChange : -itemsToChange;
+            updatedInventory[medIndex].stock += stockChange;
         }
-        return med;
-    });
+    }
 
     setAllInventory(updatedInventory);
-    setSales(prev => [newSale, ...prev]);
+    setSales(prev => [newSale, ...(prev || [])]);
 
     toast({ title: "تمت العملية بنجاح", description: `تم تسجيل الفاتورة رقم ${newSale.id}` });
     
@@ -499,7 +541,7 @@ export default function SalesPage() {
   const loadSaleForReview = (index: number) => {
     if (index >= 0 && index < sortedSales.length) {
         const saleToReview = sortedSales[index];
-        const patient = patients.find(p => p.id === saleToReview.patientId);
+        const patient = (patients || []).find(p => p.id === saleToReview.patientId);
         setCart(saleToReview.items);
         setDiscount(saleToReview.discount || 0);
         setDiscountInput((saleToReview.discount || 0).toString());
@@ -540,7 +582,7 @@ export default function SalesPage() {
           name: newPatientName,
           phone: newPatientPhone,
       };
-      setPatients(prev => [newPatient, ...prev]);
+      setPatients(prev => [newPatient, ...(prev || [])]);
       setSelectedPatient(newPatient);
       toast({ title: "تم إضافة المريض", description: `تم تحديد ${newPatient.name} لهذه الفاتورة.` });
       setNewPatientName("");
@@ -549,7 +591,7 @@ export default function SalesPage() {
       setIsPatientModalOpen(false);
   }
 
-  const filteredPatients = patients.filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()));
+  const filteredPatients = (patients || []).filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()));
 
   return (
     <>
@@ -576,13 +618,7 @@ export default function SalesPage() {
                                       <CardContent className="p-0">
                                           <ul className="divide-y divide-border">
                                               {suggestions.map(med => (
-                                                  <li key={med.id} 
-                                                      onMouseDown={(e) => {
-                                                          e.preventDefault();
-                                                          addToCart(med)
-                                                      }}
-                                                      className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
-                                                  >
+                                                  <li key={med.id} className="p-3 hover:bg-accent rounded-md flex justify-between items-center">
                                                       <div className="flex items-center gap-3">
                                                           {med.imageUrl ? (
                                                               <Image src={med.imageUrl} alt={med.tradeName || ''} width={32} height={32} className="rounded-sm object-cover h-8 w-8" />
@@ -591,9 +627,12 @@ export default function SalesPage() {
                                                                   <Package className="h-4 w-4" />
                                                               </div>
                                                           )}
-                                                          <span>{med.tradeName} {med.saleUnit && `(${med.saleUnit})`}</span>
+                                                          <span>{med.tradeName}</span>
                                                       </div>
-                                                      <span className="text-sm text-muted-foreground">{med.price.toLocaleString('ar-IQ')} د.ع</span>
+                                                      <div className="flex gap-2">
+                                                        <Button size="sm" variant="outline" onClick={() => addToCart(med, 'wholesale')}>كامل</Button>
+                                                        <Button size="sm" variant="outline" onClick={() => addToCart(med, 'retail')} disabled={!med.allowRetailSale}>جزء</Button>
+                                                      </div>
                                                   </li>
                                               ))}
                                           </ul>
@@ -653,7 +692,7 @@ export default function SalesPage() {
                                       <TableHead>المنتج</TableHead>
                                       <TableHead className="w-[120px] text-center">الكمية</TableHead>
                                       <TableHead className="w-[120px] text-center">السعر</TableHead>
-                                      <TableHead className="text-left w-[100px]">الإجمالي</TableHead>
+                                      <TableHead className="text-left w-[120px]">الإجمالي</TableHead>
                                       <TableHead className="w-12"></TableHead>
                                   </TableRow>
                               </TableHeader>
@@ -661,13 +700,14 @@ export default function SalesPage() {
                                   {cart.map((item) => {
                                   const medInInventory = allInventory.find(med => med.id === item.medicationId);
                                   const itemTotal = (item.isReturn ? -1 : 1) * item.price * item.quantity;
-                                  const isBelowCost = item.price < item.purchasePrice;
-                                  const itemProfit = (item.price - item.purchasePrice) * item.quantity;
+                                  const itemsToDeduct = item.saleType === 'retail' ? 1 : item.itemsPerUnit;
+                                  const isBelowCost = item.price < (item.purchasePrice * itemsToDeduct);
+                                  const itemProfit = (item.price - (item.purchasePrice * itemsToDeduct)) * item.quantity;
 
                                   return (
-                                      <TableRow key={`${item.medicationId}-${item.isReturn}`} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
+                                      <TableRow key={item.uniqueId} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
                                           <TableCell className="text-center">
-                                              <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" disabled={mode !== 'new'}/>
+                                              <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.uniqueId!)} aria-label="Mark as return" disabled={mode !== 'new'}/>
                                           </TableCell>
                                           <TableCell>
                                               <div className="flex items-start gap-3">
@@ -681,13 +721,12 @@ export default function SalesPage() {
                                                   <div className="flex-1">
                                                       <div className="font-medium">{item.name}</div>
                                                       <div className="text-xs text-muted-foreground">
-                                                          {(item.scientificNames || []).join(', ')} {medInInventory?.dosage && `(${medInInventory.dosage})`}
+                                                         {item.saleUnit}
                                                       </div>
-                                                      <div className="text-xs text-muted-foreground">{medInInventory?.company}</div>
                                                       <div className="text-xs text-muted-foreground mt-1 flex items-center gap-x-2">
-                                                          <span>الكلفة: {item.purchasePrice.toLocaleString('ar-IQ')} د.ع</span>
+                                                          <span className="font-mono">الكلفة: {(item.purchasePrice * itemsToDeduct).toLocaleString('ar-IQ')} د.ع</span>
                                                           <span className={cn("font-medium", itemProfit >= 0 ? "text-green-600" : "text-destructive")}>
-                                                            | الربح: {itemProfit.toLocaleString('ar-IQ')} د.ع
+                                                            | الربح: <span className="font-mono">{itemProfit.toLocaleString('ar-IQ')} د.ع</span>
                                                           </span>
                                                       </div>
                                                   </div>
@@ -695,14 +734,14 @@ export default function SalesPage() {
                                           </TableCell>
                                           <TableCell>
                                           <div className="flex items-center justify-center gap-2">
-                                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity - 1)} disabled={mode !== 'new'}><MinusCircle className="h-4 w-4" /></Button>
-                                              <span>{item.quantity}</span>
-                                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity + 1)} disabled={mode !== 'new'}><PlusCircle className="h-4 w-4" /></Button>
+                                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.uniqueId!, item.quantity - 1)} disabled={mode !== 'new'}><MinusCircle className="h-4 w-4" /></Button>
+                                              <span className="font-mono">{item.quantity}</span>
+                                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.uniqueId!, item.quantity + 1)} disabled={mode !== 'new'}><PlusCircle className="h-4 w-4" /></Button>
                                           </div>
                                           </TableCell>
                                           <TableCell>
                                               <div className="relative">
-                                                  <Input type="number" value={item.price} onChange={(e) => updatePrice(item.medicationId, parseFloat(e.target.value))} className={cn("w-24 h-9 text-center", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} step="1" min="0" disabled={mode !== 'new'} />
+                                                  <Input type="number" value={item.price} onChange={(e) => updatePrice(item.uniqueId!, parseFloat(e.target.value))} className={cn("w-24 h-9 text-center font-mono", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} step="1" min="0" disabled={mode !== 'new'} />
                                                   {isBelowCost && !item.isReturn && (
                                                     <div className="absolute -top-2 -right-2 text-destructive" title="السعر أقل من الكلفة!">
                                                       <AlertTriangle className="h-4 w-4" />
@@ -712,7 +751,7 @@ export default function SalesPage() {
                                           </TableCell>
                                           <TableCell className="text-left font-mono">{itemTotal.toLocaleString('ar-IQ')} د.ع</TableCell>
                                           <TableCell className="text-left">
-                                              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)} disabled={mode !== 'new'}><X className="h-4 w-4" /></Button>
+                                              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.uniqueId!)} disabled={mode !== 'new'}><X className="h-4 w-4" /></Button>
                                           </TableCell>
                                       </TableRow>
                                   );
@@ -754,7 +793,7 @@ export default function SalesPage() {
                                   <div className="space-y-4">
                                       <Input placeholder="ابحث بالاسم..." value={patientSearchTerm} onChange={(e) => setPatientSearchTerm(e.target.value)} />
                                       <ScrollArea className="h-48 border rounded-md">
-                                          {filteredPatients.map(p => (
+                                          {(filteredPatients || []).map(p => (
                                               <div key={p.id} onClick={() => { setSelectedPatient(p); setIsPatientModalOpen(false); }}
                                                   className="p-2 hover:bg-accent cursor-pointer">
                                                   {p.name}
@@ -778,22 +817,22 @@ export default function SalesPage() {
 
                       <div className="flex justify-between w-full text-md">
                           <span>المجموع الفرعي</span>
-                          <span>{subtotal.toLocaleString('ar-IQ')} د.ع</span>
+                          <span className="font-mono">{subtotal.toLocaleString('ar-IQ')} د.ع</span>
                       </div>
                        <div className="flex justify-between w-full text-md text-green-600">
                           <span className="flex items-center gap-1"><TrendingUp className="h-4 w-4" /> الربح المتوقع</span>
-                          <span className="font-semibold">{totalProfit.toLocaleString('ar-IQ')} د.ع</span>
+                          <span className="font-semibold font-mono">{totalProfit.toLocaleString('ar-IQ')} د.ع</span>
                       </div>
                       <div className="flex items-center justify-between w-full">
                           <Label htmlFor="discount" className="text-md shrink-0 me-2">خصم</Label>
-                          <Input id="discount" type="text" value={discountInput} onChange={handleDiscountChange} className="h-9 w-full bg-background ltr:text-left rtl:text-right" placeholder="0" disabled={mode !== 'new'}/>
+                          <Input id="discount" type="text" value={discountInput} onChange={handleDiscountChange} className="h-9 w-full bg-background ltr:text-left rtl:text-right font-mono" placeholder="0" disabled={mode !== 'new'}/>
                       </div>
                       <Separator />
                       <div className="flex justify-between w-full text-lg font-semibold">
                           <span>الإجمالي</span>
-                          <span className={finalTotal < 0 ? 'text-destructive' : ''}>{finalTotal.toLocaleString('ar-IQ')} د.ع</span>
+                          <span className={cn("font-mono", finalTotal < 0 ? 'text-destructive' : '')}>{finalTotal.toLocaleString('ar-IQ')} د.ع</span>
                       </div>
-                  </CardContent>
+                  </CardFooter>
                   <CardFooter className="flex flex-col items-stretch gap-2">
                       {mode === 'new' ? (
                         <>
@@ -833,17 +872,17 @@ export default function SalesPage() {
                                                   </TableHeader>
                                                   <TableBody>
                                                       {cart.map(item => (
-                                                          <TableRow key={item.medicationId} className={cn(item.isReturn && "text-destructive")}>
+                                                          <TableRow key={item.uniqueId} className={cn(item.isReturn && "text-destructive")}>
                                                               <TableCell>{item.name} {item.saleUnit && `(${item.saleUnit})`} {item.isReturn && "(مرتجع)"}</TableCell>
-                                                              <TableCell className="text-center">{item.quantity}</TableCell>
-                                                              <TableCell className="text-left">{((item.isReturn ? -1 : 1) * item.price * item.quantity).toLocaleString('ar-IQ')} د.ع</TableCell>
+                                                              <TableCell className="text-center font-mono">{item.quantity}</TableCell>
+                                                              <TableCell className="text-left font-mono">{((item.isReturn ? -1 : 1) * item.price * item.quantity).toLocaleString('ar-IQ')} د.ع</TableCell>
                                                           </TableRow>
                                                       ))}
                                                   </TableBody>
                                               </Table>
                                           </div>
                                           <Separator/>
-                                          <div className="space-y-2 text-sm">
+                                          <div className="space-y-2 text-sm font-mono">
                                               {selectedPatient && <div className="flex justify-between"><span>المريض:</span><span>{selectedPatient.name}</span></div>}
                                               <div className="flex justify-between"><span>المجموع الفرعي:</span><span>{subtotal.toLocaleString('ar-IQ')} د.ع</span></div>
                                               <div className="flex justify-between"><span>الخصم:</span><span>-{discount.toLocaleString('ar-IQ')} د.ع</span></div>

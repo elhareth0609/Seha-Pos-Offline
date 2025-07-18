@@ -16,33 +16,34 @@ export type UserPermissions = {
 };
 
 export type Medication = {
-  id: string; // Barcode
-  tradeName: string; // الاسم التجاري
-  scientificNames?: string[]; // الاسماء العلمية
-  company?: string; // الشركة
-  details?: string; // تفاصيل
-  dosage?: string; // الجرعة
-  dosageForm?: string; // الشكل الدوائي
-  imageUrl?: string; // صورة الدواء
+  id: string; 
+  tradeName: string; 
+  scientificNames?: string[]; 
+  company?: string; 
+  details?: string; 
+  dosage?: string; 
+  dosageForm?: string; 
+  imageUrl?: string; 
   
-  // Stock is always in the smallest unit (saleUnit)
   stock: number;
   reorderPoint: number;
   
-  price: number; // Selling price for ONE saleUnit
-  purchasePrice: number; // Purchase price for ONE saleUnit
+  price: number; 
+  wholesalePrice?: number;
+  purchasePrice: number; 
   
   expirationDate: string;
 
-  // Unit management
-  purchaseUnit: string; // e.g., 'باكيت'
-  saleUnit: string; // e.g., 'شريط'
-  itemsPerPurchaseUnit: number; // e.g., 5 (شرائط in a باكيت)
+  purchaseUnit: string; 
+  saleUnit: string; 
+  itemsPerPurchaseUnit: number; 
+  allowRetailSale?: boolean;
 };
 
 export type SaleItem = {
+  uniqueId?: string;
   medicationId: string;
-  name: string; // This will be tradeName for display
+  name: string; 
   scientificNames?: string[];
   quantity: number;
   price: number;
@@ -50,6 +51,10 @@ export type SaleItem = {
   expirationDate?: string;
   isReturn?: boolean;
   saleUnit?: string;
+  dosage?: string;
+  dosageForm?: string;
+  saleType: 'retail' | 'wholesale';
+  itemsPerUnit: number;
 };
 
 export type Sale = {

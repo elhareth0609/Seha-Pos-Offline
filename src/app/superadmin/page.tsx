@@ -38,13 +38,13 @@ function AdminRow({ admin, onDelete, onToggleStatus, pharmacyData }: { admin: Us
             <TableCell>{admin.email}</TableCell>
             <TableCell>
                 <div className="flex items-center gap-2">
-                    <span>{showPin ? admin.pin : '••••'}</span>
+                    <span className="font-mono">{showPin ? admin.pin : '••••'}</span>
                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowPin(p => !p)}>
                         {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                 </div>
             </TableCell>
-            <TableCell>{pharmacyData.employeeCount}</TableCell>
+            <TableCell className="font-mono">{pharmacyData.employeeCount}</TableCell>
             <TableCell className="font-mono">{pharmacyData.totalSales.toLocaleString('ar-IQ')} د.ع</TableCell>
             <TableCell>
                 <Badge variant={admin.status === 'active' ? 'secondary' : 'destructive'} className={admin.status === 'active' ? 'bg-green-100 text-green-800' : ''}>
@@ -145,7 +145,7 @@ export default function SuperAdminPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="container mx-auto py-8 space-y-6">
             <div className="flex justify-between items-start">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">لوحة تحكم الشركة</h1>
@@ -168,15 +168,15 @@ export default function SuperAdminPage() {
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">عدد الصيدليات</CardTitle><Building className="h-4 w-4 text-muted-foreground" /></CardHeader>
-                    <CardContent><div className="text-2xl font-bold">{pharmacyAdmins.length}</div></CardContent>
+                    <CardContent><div className="text-2xl font-bold font-mono">{pharmacyAdmins.length}</div></CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">إجمالي الموظفين</CardTitle><Users className="h-4 w-4 text-muted-foreground" /></CardHeader>
-                    <CardContent><div className="text-2xl font-bold">{totalEmployees}</div></CardContent>
+                    <CardContent><div className="text-2xl font-bold font-mono">{totalEmployees}</div></CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">إجمالي المبيعات</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader>
-                    <CardContent><div className="text-2xl font-bold">{totalSales.toLocaleString('ar-IQ')} د.ع</div></CardContent>
+                    <CardContent><div className="text-2xl font-bold font-mono">{totalSales.toLocaleString('ar-IQ')} د.ع</div></CardContent>
                 </Card>
             </div>
 

@@ -45,6 +45,7 @@ import { PlusCircle, ChevronDown, Trash2, UploadCloud, X } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth";
+import { Switch } from "@/components/ui/switch"
 
 const fileToDataUri = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -91,6 +92,9 @@ export default function PurchasesPage() {
   const [expirationDate, setExpirationDate] = React.useState('');
   const [purchasePricePerPurchaseUnit, setPurchasePricePerPurchaseUnit] = React.useState('');
   const [sellingPricePerSaleUnit, setSellingPricePerSaleUnit] = React.useState('');
+  const [wholesalePrice, setWholesalePrice] = React.useState('');
+  const [allowRetailSale, setAllowRetailSale] = React.useState(true);
+
   const [imageFile, setImageFile] = React.useState<File | null>(null);
   const [imagePreview, setImagePreview] = React.useState<string | null>(null);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
@@ -119,7 +123,7 @@ export default function PurchasesPage() {
     if (!term) {
       setFilteredPurchaseOrders(purchaseOrders);
     } else {
-      const filtered = purchaseOrders.filter(po => 
+      const filtered = (purchaseOrders || []).filter(po => 
         po.id.toLowerCase().includes(term) ||
         po.supplierName.toLowerCase().startsWith(term) ||
         po.date.includes(term) ||
@@ -134,7 +138,7 @@ export default function PurchasesPage() {
     if (!term) {
       setFilteredSupplierReturns(supplierReturns);
     } else {
-      const filtered = supplierReturns.filter(ret => 
+      const filtered = (supplierReturns || []).filter(ret => 
         ret.id.toLowerCase().includes(term) ||
         ret.supplierName.toLowerCase().startsWith(term) ||
         ret.date.includes(term) ||
@@ -171,6 +175,8 @@ export default function PurchasesPage() {
     setExpirationDate('');
     setPurchasePricePerPurchaseUnit('');
     setSellingPricePerSaleUnit('');
+    setWholesalePrice('');
+    setAllowRetailSale(true);
     handleRemoveImage();
     document.getElementById('medicationId')?.focus();
   };
@@ -193,12 +199,10 @@ export default function PurchasesPage() {
 
   const handleAddPurchase = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const form = event.currentTarget;
     
-    // --- Data Validation ---
-    const allNumeric = [itemsPerPurchaseUnit, quantityInPurchaseUnits, purchasePricePerPurchaseUnit, sellingPricePerSaleUnit];
-    if (allNumeric.some(val => isNaN(parseFloat(val)) || parseFloat(val) <= 0)) {
-        toast({ variant: "destructive", title: "قيم غير صحيحة", description: "الكميات والأسعار يجب أن تكون أرقامًا موجبة." });
+    const allNumeric = [itemsPerPurchaseUnit, quantityInPurchaseUnits, purchasePricePerPurchaseUnit, sellingPricePerSaleUnit, wholesalePrice];
+    if (allNumeric.some(val => isNaN(parseFloat(val)) || parseFloat(val) < 0)) {
+        toast({ variant: "destructive", title: "قيم غير صحيحة", description: "الكميات والأسعار يجب أن تكون أرقامًا." });
         return;
     }
     const supplier = suppliers.find(s => s.id === purchaseSupplierId);
@@ -214,17 +218,14 @@ export default function PurchasesPage() {
     }
 
     let medicationId = purchaseMedicationId.trim();
-    const isNewGenerated = !medicationId;
-    if (isNewGenerated) {
-        medicationId = Date.now().toString(); // Generate a unique ID if barcode is empty
+    if (!medicationId) {
+        medicationId = Date.now().toString();
     }
 
-    // --- Calculations ---
     const itemsPerUnit = parseInt(itemsPerPurchaseUnit, 10);
     const quantity = parseInt(quantityInPurchaseUnits, 10);
     const totalSmallestUnits = quantity * itemsPerUnit;
     const purchasePricePerSaleUnit = parseFloat(purchasePricePerPurchaseUnit) / itemsPerUnit;
-    const sellingPrice = parseFloat(sellingPricePerSaleUnit);
     const itemTotalPurchaseCost = quantity * parseFloat(purchasePricePerPurchaseUnit);
     
     let imageUrl: string | undefined = undefined;
@@ -234,48 +235,43 @@ export default function PurchasesPage() {
     
     const scientificNamesArray = scientificNames.split(',').map(name => name.trim()).filter(Boolean);
 
-    // --- Inventory Update ---
-    let newInventory = [...inventory];
+    let newInventory = [...(inventory || [])];
     let medicationIndex = newInventory.findIndex(m => m.id === medicationId);
 
-    if (medicationIndex !== -1) { // Existing Medication
+    const medicationData: Medication = {
+      id: medicationId,
+      tradeName,
+      scientificNames: scientificNamesArray,
+      company,
+      details,
+      dosage,
+      dosageForm: finalDosageForm,
+      imageUrl: imageUrl,
+      stock: totalSmallestUnits,
+      reorderPoint: 10,
+      price: parseFloat(sellingPricePerSaleUnit),
+      wholesalePrice: parseFloat(wholesalePrice),
+      purchasePrice: purchasePricePerSaleUnit,
+      expirationDate,
+      purchaseUnit,
+      saleUnit,
+      itemsPerPurchaseUnit: itemsPerUnit,
+      allowRetailSale: allowRetailSale,
+    };
+
+    if (medicationIndex !== -1) {
         const existingMed = newInventory[medicationIndex];
-        existingMed.stock += totalSmallestUnits;
-        // Optionally update other details if they've changed
-        existingMed.tradeName = tradeName;
-        existingMed.scientificNames = scientificNamesArray;
-        existingMed.price = sellingPrice;
-        existingMed.purchasePrice = purchasePricePerSaleUnit;
-        existingMed.expirationDate = expirationDate;
-        existingMed.imageUrl = imageUrl || existingMed.imageUrl; // Keep old image if no new one
-        newInventory[medicationIndex] = existingMed;
+        medicationData.stock += existingMed.stock;
+        medicationData.imageUrl = imageUrl || existingMed.imageUrl;
+        newInventory[medicationIndex] = medicationData;
         toast({ title: "تم تحديث الرصيد", description: `تمت إضافة ${totalSmallestUnits} ${saleUnit} إلى رصيد ${tradeName}.` });
-    } else { // New Medication
-        const newMedication: Medication = {
-            id: medicationId,
-            tradeName,
-            scientificNames: scientificNamesArray,
-            company,
-            details,
-            dosage,
-            dosageForm: finalDosageForm,
-            imageUrl,
-            stock: totalSmallestUnits,
-            reorderPoint: 10, // Default value
-            price: sellingPrice,
-            purchasePrice: purchasePricePerSaleUnit,
-            expirationDate,
-            purchaseUnit,
-            saleUnit,
-            itemsPerPurchaseUnit: itemsPerUnit,
-        };
-        newInventory.unshift(newMedication);
+    } else {
+        newInventory.unshift(medicationData);
         toast({ title: "تم استلام الدواء", description: `تمت إضافة ${tradeName} إلى المخزون.` });
     }
     setInventory(newInventory);
 
-    // --- Purchase Order Update ---
-    let newPurchaseOrders = [...purchaseOrders];
+    let newPurchaseOrders = [...(purchaseOrders || [])];
     let purchaseOrderIndex = newPurchaseOrders.findIndex(po => po.id === purchaseId);
     
     const newPurchaseItem: PurchaseOrderItem = {
@@ -320,7 +316,7 @@ export default function PurchasesPage() {
         name,
         contactPerson: contact,
     };
-    setSuppliers(prev => [newSupplier, ...prev]);
+    setSuppliers(prev => [newSupplier, ...(prev || [])]);
     setPurchaseSupplierId(newSupplier.id); // Select the new supplier automatically
 
     setIsAddSupplierOpen(false);
@@ -332,7 +328,7 @@ export default function PurchasesPage() {
     setReturnMedSearchTerm(value);
     if (value.length > 0) {
         const lowercasedFilter = value.toLowerCase();
-        const filtered = inventory.filter(med => 
+        const filtered = (inventory || []).filter(med => 
             (med.tradeName.toLowerCase().startsWith(lowercasedFilter) || med.id.includes(lowercasedFilter)) && med.stock > 0
         );
         setReturnMedSuggestions(filtered.slice(0, 5));
@@ -379,7 +375,6 @@ export default function PurchasesPage() {
     setReturnCart(prev => [...prev, newItem]);
     setIsReturnInfoLocked(true);
     
-    // Reset item form
     setSelectedMedForReturn(null);
     setReturnMedSearchTerm("");
     setReturnItemQuantity("1");
@@ -401,7 +396,7 @@ export default function PurchasesPage() {
     if (!supplier) return;
 
     let totalAmount = 0;
-    const newInventory = [...inventory];
+    const newInventory = [...(inventory || [])];
 
     returnCart.forEach(item => {
         totalAmount += item.quantity * item.purchasePrice;
@@ -421,11 +416,10 @@ export default function PurchasesPage() {
     };
     
     setInventory(newInventory);
-    setSupplierReturns(prev => [newReturnOrder, ...prev]);
+    setSupplierReturns(prev => [newReturnOrder, ...(prev || [])]);
     
     toast({ title: "تم تسجيل الاسترجاع بنجاح", description: `تم تسجيل قائمة الاسترجاع رقم ${returnSlipId}.`});
     
-    // Reset form
     setReturnSlipId("");
     setReturnSupplierId("");
     setReturnCart([]);
@@ -449,8 +443,7 @@ export default function PurchasesPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-4" onSubmit={handleAddPurchase}>
-                {/* Invoice and Supplier Info */}
+            <form className="space-y-6" onSubmit={handleAddPurchase}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="purchaseId">رقم قائمة الشراء</Label>
@@ -480,39 +473,11 @@ export default function PurchasesPage() {
                     </div>
                 </div>
                 
-                <div className="border-t pt-4 space-y-4">
-                    {/* Medication Details */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2"><Label htmlFor="medicationId">الباركود (يترك فارغاً للتوليد)</Label><Input id="medicationId" value={purchaseMedicationId} onChange={e => setPurchaseMedicationId(e.target.value)} /></div>
-                        <div className="space-y-2"><Label htmlFor="tradeName">الاسم التجاري</Label><Input id="tradeName" required value={tradeName} onChange={e => setTradeName(e.target.value)} /></div>
-                        <div className="space-y-2"><Label htmlFor="scientificNames">الاسم العلمي (يفصل بينها بفاصلة ,)</Label><Input id="scientificNames" value={scientificNames} onChange={e => setScientificNames(e.target.value)} /></div>
-                        <div className="space-y-2"><Label htmlFor="company">الشركة المصنعة</Label><Input id="company" value={company} onChange={e => setCompany(e.target.value)} /></div>
-                        
-                        <div className="space-y-2">
-                            <Label htmlFor="dosageForm">الشكل الدوائي</Label>
-                            <div className="flex gap-2">
-                                <Select name="dosageForm" value={dosageForm} onValueChange={setDosageForm}>
-                                    <SelectTrigger id="dosageForm"><SelectValue placeholder="اختر شكلاً" /></SelectTrigger>
-                                    <SelectContent>
-                                        {dosageForms.map(df => <SelectItem key={df} value={df}>{df}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                {dosageForm === 'أخرى' && (
-                                    <Input 
-                                        placeholder="أدخل الشكل الدوائي" 
-                                        value={otherDosageForm}
-                                        onChange={e => setOtherDosageForm(e.target.value)}
-                                        className="animate-in fade-in"
-                                    />
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="space-y-2"><Label htmlFor="dosage">الجرعة</Label><Input id="dosage" value={dosage} onChange={e => setDosage(e.target.value)} /></div>
-                        <div className="space-y-2 md:col-span-2"><Label htmlFor="details">تفاصيل إضافية</Label><Textarea id="details" value={details} onChange={e => setDetails(e.target.value)} /></div>
-                         <div className="md:col-span-2 space-y-2">
+                <div className="border-t pt-6 space-y-4">
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                         <div className="md:col-span-1 space-y-2">
                              <Label>صورة الدواء</Label>
-                            <div className="relative border-2 border-dashed border-muted-foreground/50 rounded-lg p-4 text-center hover:border-primary transition-colors">
+                            <div className="relative border-2 border-dashed border-muted-foreground/50 rounded-lg p-4 h-full flex flex-col justify-center items-center text-center hover:border-primary transition-colors">
                                 {imagePreview ? (
                                     <>
                                         <Image src={imagePreview} alt="Preview" width={100} height={100} className="mx-auto rounded-md object-cover h-24 w-24" />
@@ -526,8 +491,24 @@ export default function PurchasesPage() {
                                 <Input id="image" ref={imageInputRef} type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                             </div>
                          </div>
-                    </div>
-                     {/* Unit and Pricing Details */}
+                        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2"><Label htmlFor="medicationId">الباركود (يترك فارغاً للتوليد)</Label><Input id="medicationId" value={purchaseMedicationId} onChange={e => setPurchaseMedicationId(e.target.value)} /></div>
+                            <div className="space-y-2"><Label htmlFor="tradeName">الاسم التجاري</Label><Input id="tradeName" required value={tradeName} onChange={e => setTradeName(e.target.value)} /></div>
+                            <div className="space-y-2 sm:col-span-2"><Label htmlFor="scientificNames">الاسم العلمي (يفصل بينها بفاصلة ,)</Label><Input id="scientificNames" value={scientificNames} onChange={e => setScientificNames(e.target.value)} /></div>
+                            <div className="space-y-2"><Label htmlFor="company">الشركة المصنعة</Label><Input id="company" value={company} onChange={e => setCompany(e.target.value)} /></div>
+                            <div className="space-y-2"><Label htmlFor="dosage">الجرعة (مثال: 500mg)</Label><Input id="dosage" value={dosage} onChange={e => setDosage(e.target.value)} /></div>
+                            <div className="space-y-2 sm:col-span-2">
+                                <Label htmlFor="dosageForm">الشكل الدوائي</Label>
+                                <div className="flex gap-2">
+                                    <Select name="dosageForm" value={dosageForm} onValueChange={setDosageForm}>
+                                        <SelectTrigger id="dosageForm"><SelectValue placeholder="اختر شكلاً" /></SelectTrigger>
+                                        <SelectContent>{dosageForms.map(df => <SelectItem key={df} value={df}>{df}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                    {dosageForm === 'أخرى' && (<Input placeholder="أدخل الشكل الدوائي" value={otherDosageForm} onChange={e => setOtherDosageForm(e.target.value)} className="animate-in fade-in"/>)}
+                                </div>
+                            </div>
+                        </div>
+                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="space-y-2"><Label htmlFor="purchaseUnit">وحدة الشراء</Label><Input id="purchaseUnit" value={purchaseUnit} onChange={e => setPurchaseUnit(e.target.value)} /></div>
                         <div className="space-y-2"><Label htmlFor="saleUnit">وحدة البيع</Label><Input id="saleUnit" value={saleUnit} onChange={e => setSaleUnit(e.target.value)} /></div>
@@ -535,10 +516,17 @@ export default function PurchasesPage() {
                         <div className="space-y-2"><Label htmlFor="quantityInPurchaseUnits">الكمية المستلمة</Label><Input id="quantityInPurchaseUnits" type="number" required value={quantityInPurchaseUnits} onChange={e => setQuantityInPurchaseUnits(e.target.value)} /></div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2"><Label htmlFor="expirationDate">تاريخ الانتهاء</Label><Input id="expirationDate" type="date" required value={expirationDate} onChange={e => setExpirationDate(e.target.value)} /></div>
-                        <div className="space-y-2"><Label htmlFor="purchasePricePerPurchaseUnit">سعر الشراء (للوحدة الكبيرة)</Label><Input id="purchasePricePerPurchaseUnit" type="number" required value={purchasePricePerPurchaseUnit} onChange={e => setPurchasePricePerPurchaseUnit(e.target.value)} /></div>
-                        <div className="space-y-2"><Label htmlFor="sellingPricePerSaleUnit">سعر البيع (للوحدة الصغيرة)</Label><Input id="sellingPricePerSaleUnit" type="number" required value={sellingPricePerSaleUnit} onChange={e => setSellingPricePerSaleUnit(e.target.value)} /></div>
+                        <div className="space-y-2"><Label htmlFor="purchasePricePerPurchaseUnit">سعر الشراء (للوحدة الكاملة)</Label><Input id="purchasePricePerPurchaseUnit" type="number" required value={purchasePricePerPurchaseUnit} onChange={e => setPurchasePricePerPurchaseUnit(e.target.value)} /></div>
+                        <div className="space-y-2"><Label htmlFor="wholesalePrice">سعر البيع (للوحدة الكاملة)</Label><Input id="wholesalePrice" type="number" required value={wholesalePrice} onChange={e => setWholesalePrice(e.target.value)} /></div>
+                        <div className="space-y-2"><Label htmlFor="sellingPricePerSaleUnit">سعر البيع (للجزء الواحد)</Label><Input id="sellingPricePerSaleUnit" type="number" required value={sellingPricePerSaleUnit} onChange={e => setSellingPricePerSaleUnit(e.target.value)} /></div>
                     </div>
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                         <div className="space-y-2"><Label htmlFor="expirationDate">تاريخ الانتهاء</Label><Input id="expirationDate" type="date" required value={expirationDate} onChange={e => setExpirationDate(e.target.value)} /></div>
+                          <div className="flex items-center space-x-2 space-x-reverse pt-6">
+                            <Switch id="allow-retail-sale" checked={allowRetailSale} onCheckedChange={setAllowRetailSale} />
+                            <Label htmlFor="allow-retail-sale">السماح بالبيع الجزئي (كأجزاء)</Label>
+                        </div>
+                     </div>
                 </div>
 
               <Button type="submit" className="w-full" variant="success">إضافة للمخزون والقائمة</Button>
@@ -575,9 +563,9 @@ export default function PurchasesPage() {
                     {filteredPurchaseOrders.length > 0 ? filteredPurchaseOrders.map(po => (
                         <React.Fragment key={po.id}>
                             <TableRow onClick={() => toggleRow(po.id)} className="cursor-pointer border-b">
-                                <TableCell>{po.id}</TableCell>
+                                <TableCell className="font-mono">{po.id}</TableCell>
                                 <TableCell>{po.supplierName}</TableCell>
-                                <TableCell>{new Date(po.date).toLocaleDateString('ar-EG')}</TableCell>
+                                <TableCell className="font-mono">{new Date(po.date).toLocaleDateString('ar-EG')}</TableCell>
                                 <TableCell className="font-mono">{po.totalAmount.toLocaleString('ar-IQ')} د.ع</TableCell>
                                 <TableCell>
                                     <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", expandedRows.has(po.id) && "rotate-180")} />
@@ -601,7 +589,7 @@ export default function PurchasesPage() {
                                                     {(po.items || []).length > 0 ? po.items.map((item) => (
                                                         <TableRow key={item.medicationId}>
                                                             <TableCell>{item.name}</TableCell>
-                                                            <TableCell>{item.quantityInPurchaseUnits}</TableCell>
+                                                            <TableCell className="font-mono">{item.quantityInPurchaseUnits}</TableCell>
                                                             <TableCell className="font-mono">{item.purchasePricePerSaleUnit.toLocaleString('ar-IQ')} د.ع</TableCell>
                                                             <TableCell className="font-mono text-left">{(item.totalItems * item.purchasePricePerSaleUnit).toLocaleString('ar-IQ')} د.ع</TableCell>
                                                         </TableRow>
@@ -674,7 +662,7 @@ export default function PurchasesPage() {
                                                 className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
                                             >
                                                 <span>{med.tradeName}</span>
-                                                <span className="text-sm text-muted-foreground">الرصيد: {med.stock}</span>
+                                                <span className="text-sm text-muted-foreground font-mono">الرصيد: {med.stock}</span>
                                             </li>
                                         ))}
                                     </ul>
@@ -684,7 +672,7 @@ export default function PurchasesPage() {
                     </div>
                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="return-quantity">الكمية المرتجعة</Label>
+                            <Label htmlFor="return-quantity">الكمية المرتجعة (بالجزء)</Label>
                             <Input id="return-quantity" type="number" value={returnItemQuantity} onChange={e => setReturnItemQuantity(e.target.value)} required min="1" disabled={!selectedMedForReturn} />
                         </div>
                         <div className="space-y-2">
@@ -712,9 +700,9 @@ export default function PurchasesPage() {
                         {returnCart.map(item => (
                           <TableRow key={item.medicationId}>
                             <TableCell>{item.name}</TableCell>
-                            <TableCell>{item.quantity}</TableCell>
+                            <TableCell className="font-mono">{item.quantity}</TableCell>
                             <TableCell>{item.reason}</TableCell>
-                            <TableCell>{(item.quantity * item.purchasePrice).toLocaleString('ar-IQ')} د.ع</TableCell>
+                            <TableCell className="font-mono">{(item.quantity * item.purchasePrice).toLocaleString('ar-IQ')} د.ع</TableCell>
                             <TableCell>
                               <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleRemoveFromReturnCart(item.medicationId)}>
                                 <Trash2 className="h-4 w-4" />
@@ -763,9 +751,9 @@ export default function PurchasesPage() {
                     {filteredSupplierReturns.length > 0 ? filteredSupplierReturns.map(ret => (
                         <React.Fragment key={ret.id}>
                             <TableRow onClick={() => toggleRow(ret.id)} className="cursor-pointer">
-                                <TableCell>{ret.id}</TableCell>
+                                <TableCell className="font-mono">{ret.id}</TableCell>
                                 <TableCell>{ret.supplierName}</TableCell>
-                                <TableCell>{new Date(ret.date).toLocaleDateString('ar-EG')}</TableCell>
+                                <TableCell className="font-mono">{new Date(ret.date).toLocaleDateString('ar-EG')}</TableCell>
                                 <TableCell className="font-mono">{ret.totalAmount.toLocaleString('ar-IQ')} د.ع</TableCell>
                                 <TableCell>
                                     <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", expandedRows.has(ret.id) && "rotate-180")} />
@@ -790,7 +778,7 @@ export default function PurchasesPage() {
                                                     {(ret.items || []).length > 0 ? ret.items.map((item) => (
                                                         <TableRow key={item.medicationId}>
                                                             <TableCell>{item.name}</TableCell>
-                                                            <TableCell>{item.quantity}</TableCell>
+                                                            <TableCell className="font-mono">{item.quantity}</TableCell>
                                                             <TableCell className="font-mono">{item.purchasePrice.toLocaleString('ar-IQ')} د.ع</TableCell>
                                                             <TableCell>{item.reason}</TableCell>
                                                             <TableCell className="font-mono text-left">{(item.quantity * item.purchasePrice).toLocaleString('ar-IQ')} د.ع</TableCell>

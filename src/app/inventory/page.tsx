@@ -62,6 +62,7 @@ import { Progress } from "@/components/ui/progress";
 import { buttonVariants } from "@/components/ui/button";
 import { formatStock } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { Switch } from "@/components/ui/switch"
 
 
 export default function InventoryPage() {
@@ -113,7 +114,7 @@ export default function InventoryPage() {
   }, [])
 
   const sortedInventory = React.useMemo(() => {
-    return [...allInventory].sort((a, b) => (a.tradeName || '').localeCompare(b.tradeName || ''));
+    return [...(allInventory || [])].sort((a, b) => (a.tradeName || '').localeCompare(b.tradeName || ''));
   }, [allInventory]);
 
   React.useEffect(() => {
@@ -144,8 +145,8 @@ export default function InventoryPage() {
         itemType: 'medication',
         data: med,
       };
-      setTrash(prev => [newTrashItem, ...prev]);
-      setAllInventory(prev => prev.filter(m => m.id !== med.id));
+      setTrash(prev => [newTrashItem, ...(prev || [])]);
+      setAllInventory(prev => (prev || []).filter(m => m.id !== med.id));
       toast({ title: "تم نقل الدواء إلى سلة المحذوفات" });
   }
 
@@ -168,10 +169,12 @@ export default function InventoryPage() {
           stock: parseInt(formData.get('stock') as string, 10),
           reorderPoint: parseInt(formData.get('reorderPoint') as string, 10),
           price: parseFloat(formData.get('price') as string),
+          wholesalePrice: parseFloat(formData.get('wholesalePrice') as string),
           saleUnit: formData.get('saleUnit') as string,
+          allowRetailSale: (formData.get('allowRetailSale') as string) === 'on'
       }
       
-      setAllInventory(prev => prev.map(m => m.id === updatedMed.id ? updatedMed : m));
+      setAllInventory(prev => (prev || []).map(m => m.id === updatedMed.id ? updatedMed : m));
       toast({ title: "تم تحديث الدواء", description: `تم تحديث بيانات ${updatedMed.tradeName} بنجاح.` });
       setIsEditModalOpen(false);
       setEditingMed(null);
@@ -225,7 +228,7 @@ export default function InventoryPage() {
           return;
         }
 
-        const inventoryMap = new Map(allInventory.map(item => [item.id, item]));
+        const inventoryMap = new Map((allInventory || []).map(item => [item.id, item]));
         let updatedCount = 0;
         let addedCount = 0;
         const CHUNK_SIZE = 200;
@@ -262,11 +265,13 @@ export default function InventoryPage() {
                       stock: 0,
                       reorderPoint: 10,
                       price: 0,
+                      wholesalePrice: 0,
                       purchasePrice: 0,
                       expirationDate: formattedExpDate,
                       purchaseUnit: 'قطعة',
                       saleUnit: 'قطعة', 
                       itemsPerPurchaseUnit: 1,
+                      allowRetailSale: true,
                     };
                     inventoryMap.set(medId, newMed);
                     addedCount++;
@@ -424,9 +429,9 @@ export default function InventoryPage() {
                   </TableCell>
                   <TableCell>{item.saleUnit || '-'}</TableCell>
                   <TableCell className="text-center font-mono">{formatStock(item.stock, item.purchaseUnit, item.saleUnit, item.itemsPerPurchaseUnit)}</TableCell>
-                  <TableCell className="text-center">{item.reorderPoint}</TableCell>
-                  <TableCell>{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
-                  <TableCell className="text-center">{item.price.toLocaleString('ar-IQ')} د.ع</TableCell>
+                  <TableCell className="text-center font-mono">{item.reorderPoint}</TableCell>
+                  <TableCell className="font-mono">{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
+                  <TableCell className="text-center font-mono">{item.price.toLocaleString('ar-IQ')} د.ع</TableCell>
                   <TableCell>{getStockStatus(item.stock, item.reorderPoint)}</TableCell>
                   <TableCell>
                       <DropdownMenu>
@@ -508,12 +513,22 @@ export default function InventoryPage() {
                           </div>
                           <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                  <Label htmlFor="edit-price">سعر البيع (د.ع)</Label>
+                                  <Label htmlFor="edit-price">سعر البيع (للجزء)</Label>
                                   <Input id="edit-price" name="price" type="number" step="1" defaultValue={editingMed.price} required />
                               </div>
                               <div className="space-y-2">
+                                  <Label htmlFor="edit-wholesalePrice">سعر البيع (كامل)</Label>
+                                  <Input id="edit-wholesalePrice" name="wholesalePrice" type="number" step="1" defaultValue={editingMed.wholesalePrice} required />
+                              </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
                                   <Label htmlFor="edit-saleUnit">وحدة البيع</Label>
                                   <Input id="edit-saleUnit" name="saleUnit" defaultValue={editingMed.saleUnit || ''} />
+                              </div>
+                              <div className="flex items-center space-x-2 space-x-reverse pt-6">
+                                <Switch name="allowRetailSale" id="edit-allowRetailSale" defaultChecked={editingMed.allowRetailSale} />
+                                <Label htmlFor="edit-allowRetailSale">السماح بالبيع الجزئي</Label>
                               </div>
                           </div>
                           <DialogFooter>
