@@ -17,31 +17,17 @@ export type UserPermissions = {
 
 export type Medication = {
   id: string; 
-  tradeName: string; 
-  scientificNames?: string[]; 
-  company?: string; 
-  details?: string; 
-  dosage?: string; 
-  dosageForm?: string; 
-  imageUrl?: string; 
-  
+  name: string; 
+  scientificNames?: string[];
   stock: number;
   reorderPoint: number;
-  
   price: number; 
-  wholesalePrice?: number;
   purchasePrice: number; 
-  
   expirationDate: string;
-
-  purchaseUnit: string; 
-  saleUnit: string; 
-  itemsPerPurchaseUnit: number; 
-  allowRetailSale?: boolean;
+  saleUnit?: string;
 };
 
 export type SaleItem = {
-  uniqueId?: string;
   medicationId: string;
   name: string; 
   scientificNames?: string[];
@@ -51,10 +37,6 @@ export type SaleItem = {
   expirationDate?: string;
   isReturn?: boolean;
   saleUnit?: string;
-  dosage?: string;
-  dosageForm?: string;
-  saleType: 'retail' | 'wholesale';
-  itemsPerUnit: number;
 };
 
 export type Sale = {
@@ -73,9 +55,8 @@ export type Sale = {
 export type PurchaseOrderItem = {
   medicationId: string;
   name: string; // tradeName
-  quantityInPurchaseUnits: number; // How many purchaseUnits (e.g., packets)
-  totalItems: number; // Total smallest units (e.g., strips)
-  purchasePricePerSaleUnit: number; // Price per smallest unit
+  quantity: number;
+  purchasePrice: number;
 };
 
 export type PurchaseOrder = {

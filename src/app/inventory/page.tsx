@@ -60,9 +60,7 @@ import { useReactToPrint } from 'react-to-print';
 import Barcode from '@/components/ui/barcode';
 import { Progress } from "@/components/ui/progress";
 import { buttonVariants } from "@/components/ui/button";
-import { formatStock } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
-import { Switch } from "@/components/ui/switch"
 
 
 export default function InventoryPage() {
@@ -114,7 +112,7 @@ export default function InventoryPage() {
   }, [])
 
   const sortedInventory = React.useMemo(() => {
-    return [...(allInventory || [])].sort((a, b) => (a.tradeName || '').localeCompare(b.tradeName || ''));
+    return [...(allInventory || [])].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   }, [allInventory]);
 
   React.useEffect(() => {
@@ -122,7 +120,7 @@ export default function InventoryPage() {
       if (searchTerm) {
         const lowercasedFilter = searchTerm.toLowerCase();
         const filtered = sortedInventory.filter((item) =>
-            (item.tradeName || '').toLowerCase().startsWith(lowercasedFilter) ||
+            (item.name || '').toLowerCase().startsWith(lowercasedFilter) ||
             (item.id && item.id.toLowerCase().includes(lowercasedFilter))
         );
         setFilteredInventory(filtered);
@@ -160,22 +158,17 @@ export default function InventoryPage() {
       if (!editingMed) return;
 
       const formData = new FormData(e.currentTarget);
-      const scientificNamesStr = formData.get('scientificNames') as string;
-
+      
       const updatedMed: Medication = {
           ...editingMed,
-          tradeName: formData.get('tradeName') as string,
-          scientificNames: scientificNamesStr.split(',').map(name => name.trim()).filter(Boolean),
-          stock: parseInt(formData.get('stock') as string, 10),
+          name: formData.get('name') as string,
           reorderPoint: parseInt(formData.get('reorderPoint') as string, 10),
           price: parseFloat(formData.get('price') as string),
-          wholesalePrice: parseFloat(formData.get('wholesalePrice') as string),
           saleUnit: formData.get('saleUnit') as string,
-          allowRetailSale: (formData.get('allowRetailSale') as string) === 'on'
       }
       
       setAllInventory(prev => (prev || []).map(m => m.id === updatedMed.id ? updatedMed : m));
-      toast({ title: "تم تحديث الدواء", description: `تم تحديث بيانات ${updatedMed.tradeName} بنجاح.` });
+      toast({ title: "تم تحديث الدواء", description: `تم تحديث بيانات ${updatedMed.name} بنجاح.` });
       setIsEditModalOpen(false);
       setEditingMed(null);
   }
@@ -248,8 +241,8 @@ export default function InventoryPage() {
                 if (inventoryMap.has(medId)) {
                     // Update existing medication
                     const existingMed = inventoryMap.get(medId)!;
-                    if (existingMed.tradeName !== medName) {
-                        existingMed.tradeName = medName;
+                    if (existingMed.name !== medName) {
+                        existingMed.name = medName;
                         inventoryMap.set(medId, existingMed);
                         updatedCount++;
                     }
@@ -261,17 +254,13 @@ export default function InventoryPage() {
 
                     const newMed: Medication = {
                       id: medId,
-                      tradeName: medName,
+                      name: medName,
                       stock: 0,
                       reorderPoint: 10,
                       price: 0,
-                      wholesalePrice: 0,
                       purchasePrice: 0,
                       expirationDate: formattedExpDate,
-                      purchaseUnit: 'قطعة',
                       saleUnit: 'قطعة', 
-                      itemsPerPurchaseUnit: 1,
-                      allowRetailSale: true,
                     };
                     inventoryMap.set(medId, newMed);
                     addedCount++;
@@ -328,7 +317,8 @@ export default function InventoryPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>الاسم التجاري</TableHead>
+                                <TableHead>الباركود</TableHead>
+                                <TableHead>الاسم</TableHead>
                                 <TableHead>وحدة البيع</TableHead>
                                 <TableHead className="text-center">المخزون</TableHead>
                                 <TableHead className="text-center">نقطة إعادة الطلب</TableHead>
@@ -341,9 +331,10 @@ export default function InventoryPage() {
                         <TableBody>
                             {Array.from({ length: 8 }).map((_, i) => (
                                 <TableRow key={i}>
+                                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-40" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-24 mx-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
@@ -399,7 +390,8 @@ export default function InventoryPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>الاسم التجاري</TableHead>
+                <TableHead>الباركود</TableHead>
+                <TableHead>الاسم</TableHead>
                 <TableHead>وحدة البيع</TableHead>
                 <TableHead className="text-center">المخزون</TableHead>
                 <TableHead className="text-center">نقطة إعادة الطلب</TableHead>
@@ -412,23 +404,10 @@ export default function InventoryPage() {
             <TableBody>
               {filteredInventory.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                        {item.imageUrl ? (
-                            <Image src={item.imageUrl} alt={item.tradeName || 'Medication'} width={40} height={40} className="rounded-md object-cover h-10 w-10" />
-                        ) : (
-                            <div className="h-10 w-10 flex items-center justify-center rounded-md bg-muted text-muted-foreground">
-                                <Package className="h-5 w-5" />
-                            </div>
-                        )}
-                        <div>
-                            <div className="font-medium">{item.tradeName}</div>
-                            <div className="text-xs text-muted-foreground font-mono">{item.id}</div>
-                        </div>
-                    </div>
-                  </TableCell>
+                  <TableCell className="font-mono text-xs">{item.id}</TableCell>
+                  <TableCell>{item.name}</TableCell>
                   <TableCell>{item.saleUnit || '-'}</TableCell>
-                  <TableCell className="text-center font-mono">{formatStock(item.stock, item.purchaseUnit, item.saleUnit, item.itemsPerPurchaseUnit)}</TableCell>
+                  <TableCell className="text-center font-mono">{item.stock}</TableCell>
                   <TableCell className="text-center font-mono">{item.reorderPoint}</TableCell>
                   <TableCell className="font-mono">{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
                   <TableCell className="text-center font-mono">{item.price.toLocaleString('ar-IQ')} د.ع</TableCell>
@@ -488,48 +467,28 @@ export default function InventoryPage() {
                 <DialogHeader>
                     <DialogTitle>تعديل بيانات الدواء</DialogTitle>
                     <DialogDescription>
-                         قم بتحديث تفاصيل الدواء.
+                         قم بتحديث تفاصيل الدواء. ملاحظة: لا يمكن تعديل المخزون من هنا.
                     </DialogDescription>
                 </DialogHeader>
                    {editingMed && (
                       <form onSubmit={handleUpdate} className="space-y-4">
                           <div className="space-y-2">
-                              <Label htmlFor="edit-tradeName">الاسم التجاري</Label>
-                              <Input id="edit-tradeName" name="tradeName" defaultValue={editingMed.tradeName} required />
-                          </div>
-                          <div className="space-y-2">
-                              <Label htmlFor="edit-scientificNames">الأسماء العلمية (مفصولة بفاصلة)</Label>
-                              <Input id="edit-scientificNames" name="scientificNames" defaultValue={(editingMed.scientificNames || []).join(', ')} />
+                              <Label htmlFor="edit-name">اسم الدواء</Label>
+                              <Input id="edit-name" name="name" defaultValue={editingMed.name} required />
                           </div>
                           <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="edit-stock">الرصيد الحالي ({editingMed.saleUnit})</Label>
-                                <Input id="edit-stock" name="stock" type="number" defaultValue={editingMed.stock} required />
-                              </div>
                                <div className="space-y-2">
                                   <Label htmlFor="edit-reorderPoint">نقطة إعادة الطلب</Label>
                                   <Input id="edit-reorderPoint" name="reorderPoint" type="number" defaultValue={editingMed.reorderPoint} required />
                               </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                  <Label htmlFor="edit-price">سعر البيع (للجزء)</Label>
+                                  <Label htmlFor="edit-price">سعر البيع (د.ع)</Label>
                                   <Input id="edit-price" name="price" type="number" step="1" defaultValue={editingMed.price} required />
                               </div>
-                              <div className="space-y-2">
-                                  <Label htmlFor="edit-wholesalePrice">سعر البيع (كامل)</Label>
-                                  <Input id="edit-wholesalePrice" name="wholesalePrice" type="number" step="1" defaultValue={editingMed.wholesalePrice} required />
-                              </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                  <Label htmlFor="edit-saleUnit">وحدة البيع</Label>
-                                  <Input id="edit-saleUnit" name="saleUnit" defaultValue={editingMed.saleUnit || ''} />
-                              </div>
-                              <div className="flex items-center space-x-2 space-x-reverse pt-6">
-                                <Switch name="allowRetailSale" id="edit-allowRetailSale" defaultChecked={editingMed.allowRetailSale} />
-                                <Label htmlFor="edit-allowRetailSale">السماح بالبيع الجزئي</Label>
-                              </div>
+                           <div className="space-y-2">
+                              <Label htmlFor="edit-saleUnit">وحدة البيع</Label>
+                              <Input id="edit-saleUnit" name="saleUnit" defaultValue={editingMed.saleUnit || ''} />
                           </div>
                           <DialogFooter>
                               <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>

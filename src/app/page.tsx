@@ -26,7 +26,6 @@ import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, is
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatStock } from "@/lib/utils";
 
 export default function Dashboard() {
   const { scopedData } = useAuth();
@@ -187,7 +186,7 @@ export default function Dashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold font-mono">
               {totalRevenue.toLocaleString('ar-IQ')} د.ع
             </div>
             <p className="text-xs text-muted-foreground">
@@ -201,7 +200,7 @@ export default function Dashboard() {
             <PieChart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold font-mono">
               {profitMargin.toFixed(2)}%
             </div>
             <p className="text-xs text-muted-foreground">
@@ -215,7 +214,7 @@ export default function Dashboard() {
             <TrendingDown className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{lowStockItems.length}</div>
+            <div className="text-2xl font-bold font-mono">{lowStockItems.length}</div>
             <p className="text-xs text-muted-foreground">
               أصناف تحتاج لإعادة طلب
             </p>
@@ -227,7 +226,7 @@ export default function Dashboard() {
             <Clock className="h-4 w-4 text-amber-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{expiringSoonItems.length}</div>
+            <div className="text-2xl font-bold font-mono">{expiringSoonItems.length}</div>
             <p className="text-xs text-muted-foreground">
               ستنتهي صلاحيتها خلال {expirationThreshold} يومًا
             </p>
@@ -258,17 +257,17 @@ export default function Dashboard() {
                         <span className="text-sm font-medium">إجمالي المبيعات</span>
                         <DollarSign className="h-5 w-5" />
                     </div>
-                    <div className="text-3xl font-bold">
+                    <div className="text-3xl font-bold font-mono">
                         {salesPerformance.totalRevenue.toLocaleString('ar-IQ')} د.ع
                     </div>
-                    <p className="text-xs text-muted-foreground">من {salesPerformance.invoiceCount} فاتورة</p>
+                    <p className="text-xs text-muted-foreground font-mono">من {salesPerformance.invoiceCount} فاتورة</p>
                 </div>
                 <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
                     <div className="flex items-center justify-between text-muted-foreground">
                         <span className="text-sm font-medium">صافي الربح</span>
                         <TrendingUp className="h-5 w-5 text-green-600" />
                     </div>
-                    <div className="text-3xl font-bold text-green-600">
+                    <div className="text-3xl font-bold text-green-600 font-mono">
                         {salesPerformance.totalProfit.toLocaleString('ar-IQ')} د.ع
                     </div>
                     <p className="text-xs text-muted-foreground">الربح بعد طرح تكلفة البضاعة والخصومات</p>
@@ -278,7 +277,7 @@ export default function Dashboard() {
                         <span className="text-sm font-medium">هامش الربح</span>
                         <PieChart className="h-5 w-5" />
                     </div>
-                    <div className="text-3xl font-bold">
+                    <div className="text-3xl font-bold font-mono">
                         {salesPerformance.profitMargin.toFixed(1)}%
                     </div>
                     <p className="text-xs text-muted-foreground">نسبة الربح الصافي من الإيرادات</p>
@@ -310,9 +309,9 @@ export default function Dashboard() {
                       <TableBody>
                           {lowStockItems.length > 0 ? lowStockItems.slice(0,5).map(item => (
                               <TableRow key={item.id}>
-                                  <TableCell>{item.tradeName}</TableCell>
-                                  <TableCell><Badge variant="destructive">{formatStock(item.stock, item.purchaseUnit, item.saleUnit, item.itemsPerPurchaseUnit)}</Badge></TableCell>
-                                  <TableCell>{item.reorderPoint}</TableCell>
+                                  <TableCell>{item.name}</TableCell>
+                                  <TableCell><Badge variant="destructive" className="font-mono">{item.stock}</Badge></TableCell>
+                                  <TableCell className="font-mono">{item.reorderPoint}</TableCell>
                               </TableRow>
                           )) : (
                               <TableRow>
@@ -345,9 +344,9 @@ export default function Dashboard() {
                       <TableBody>
                           {expiringSoonItems.length > 0 ? expiringSoonItems.slice(0,5).map(item => (
                               <TableRow key={item.id}>
-                                  <TableCell>{item.tradeName}</TableCell>
-                                  <TableCell>{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
-                                  <TableCell><Badge variant="secondary" className="bg-yellow-400 text-yellow-900">{differenceInDays(parseISO(item.expirationDate), new Date())} يوم</Badge></TableCell>
+                                  <TableCell>{item.name}</TableCell>
+                                  <TableCell className="font-mono">{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
+                                  <TableCell><Badge variant="secondary" className="bg-yellow-400 text-yellow-900 font-mono">{differenceInDays(parseISO(item.expirationDate), new Date())} يوم</Badge></TableCell>
                               </TableRow>
                           )) : (
                               <TableRow>

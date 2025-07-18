@@ -20,7 +20,6 @@ import {
 import { Badge } from "@/components/ui/badge"
 import type { Medication, AppSettings } from "@/lib/types"
 import { differenceInDays, parseISO } from 'date-fns'
-import { formatStock } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 
 export default function ExpiringSoonPage() {
@@ -91,10 +90,10 @@ export default function ExpiringSoonPage() {
           <TableBody>
             {expiringMedications.length > 0 ? expiringMedications.map((item) => (
               <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.tradeName}</TableCell>
-                <TableCell>{formatStock(item.stock, item.purchaseUnit, item.saleUnit, item.itemsPerPurchaseUnit)}</TableCell>
-                <TableCell>{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
-                <TableCell>{formatDaysLeft(item.expirationDate)}</TableCell>
+                <TableCell className="font-medium">{item.name}</TableCell>
+                <TableCell className="font-mono">{item.stock}</TableCell>
+                <TableCell className="font-mono">{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
+                <TableCell className="font-mono">{formatDaysLeft(item.expirationDate)}</TableCell>
                 <TableCell>{getExpirationBadge(item.expirationDate)}</TableCell>
               </TableRow>
             )) : (

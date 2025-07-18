@@ -2,7 +2,6 @@
 "use client"
 
 import * as React from "react"
-import Image from 'next/image';
 import {
   Card,
   CardContent,
@@ -22,8 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import type { Medication, Sale, PurchaseOrder, ReturnOrder } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Repeat, PackageSearch, ArrowUp, ArrowDown, ShoppingCart, Truck, Undo2, RotateCcw, Package } from "lucide-react"
-import { formatStock } from "@/lib/utils"
+import { Repeat, PackageSearch, ArrowUp, ArrowDown, ShoppingCart, Truck, Undo2, RotateCcw } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 
 type TransactionHistoryItem = {
@@ -59,7 +57,7 @@ export default function ItemMovementPage() {
         if (value.length > 0) {
             const lowercasedFilter = value.toLowerCase();
             const filtered = inventory.filter(item => 
-                (item.tradeName || '').toLowerCase().startsWith(lowercasedFilter) || 
+                (item.name || '').toLowerCase().startsWith(lowercasedFilter) || 
                 (item.id || '').toLowerCase().includes(lowercasedFilter)
             );
             setSuggestions(filtered.slice(0, 5));
@@ -79,8 +77,8 @@ export default function ItemMovementPage() {
             .map(item => ({
                 date: item.date,
                 type: 'شراء' as const,
-                quantity: item.totalItems,
-                price: item.purchasePricePerSaleUnit,
+                quantity: item.quantity,
+                price: item.purchasePrice,
                 documentId: item.documentId,
                 actor: item.supplierName,
             }));
@@ -184,8 +182,8 @@ export default function ItemMovementPage() {
                                             onMouseDown={() => handleSelectMed(med)}
                                             className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
                                         >
-                                            <span>{med.tradeName}</span>
-                                            <span className="text-sm text-muted-foreground">الرصيد: {med.stock}</span>
+                                            <span>{med.name}</span>
+                                            <span className="text-sm text-muted-foreground font-mono">الرصيد: {med.stock}</span>
                                         </li>
                                     ))}
                                 </ul>
@@ -204,19 +202,8 @@ export default function ItemMovementPage() {
                     <div className="space-y-6">
                         <Card className="bg-muted/50">
                             <CardHeader>
-                                <div className="flex items-start gap-4">
-                                     {selectedMed.imageUrl ? (
-                                        <Image src={selectedMed.imageUrl} alt={selectedMed.tradeName || 'Medication'} width={80} height={80} className="rounded-lg object-cover h-20 w-20" />
-                                    ) : (
-                                        <div className="h-20 w-20 flex items-center justify-center rounded-lg bg-muted-foreground/10 text-muted-foreground">
-                                            <Package className="h-10 w-10" />
-                                        </div>
-                                    )}
-                                    <div>
-                                        <CardTitle>{selectedMed.tradeName}</CardTitle>
-                                        <CardDescription>الرصيد الحالي في المخزون: <span className="font-bold text-foreground">{formatStock(selectedMed.stock, selectedMed.purchaseUnit, selectedMed.saleUnit, selectedMed.itemsPerPurchaseUnit)}</span></CardDescription>
-                                    </div>
-                                </div>
+                                <CardTitle>{selectedMed.name}</CardTitle>
+                                <CardDescription>الرصيد الحالي في المخزون: <span className="font-bold text-foreground font-mono">{selectedMed.stock}</span></CardDescription>
                             </CardHeader>
                         </Card>
 
@@ -225,7 +212,7 @@ export default function ItemMovementPage() {
                                 <TableRow>
                                     <TableHead>التاريخ</TableHead>
                                     <TableHead>النوع</TableHead>
-                                    <TableHead>الكمية (وحدة بيع)</TableHead>
+                                    <TableHead>الكمية</TableHead>
                                     <TableHead>رصيد المخزون</TableHead>
                                     <TableHead>السعر</TableHead>
                                     <TableHead>المصدر/الوجهة</TableHead>
@@ -235,18 +222,18 @@ export default function ItemMovementPage() {
                             <TableBody>
                                 {transactions.length > 0 ? transactions.map((item, index) => (
                                     <TableRow key={index}>
-                                        <TableCell>{new Date(item.date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</TableCell>
+                                        <TableCell className="font-mono">{new Date(item.date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</TableCell>
                                         <TableCell>{getTypeBadge(item.type)}</TableCell>
-                                        <TableCell className={`font-medium ${item.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        <TableCell className={`font-medium font-mono ${item.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
                                             <div className="flex items-center gap-1">
                                                 {item.quantity > 0 ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
                                                 {Math.abs(item.quantity)}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="font-mono">{formatStock(item.balance, selectedMed.purchaseUnit, selectedMed.saleUnit, selectedMed.itemsPerPurchaseUnit)}</TableCell>
+                                        <TableCell className="font-mono">{item.balance}</TableCell>
                                         <TableCell className="font-mono">{item.price.toLocaleString('ar-IQ')} د.ع</TableCell>
                                         <TableCell>{item.actor}</TableCell>
-                                        <TableCell>{item.documentId}</TableCell>
+                                        <TableCell className="font-mono">{item.documentId}</TableCell>
                                     </TableRow>
                                 )) : (
                                     <TableRow>
