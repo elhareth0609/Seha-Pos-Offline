@@ -56,7 +56,7 @@ import { clearAllDBData } from '@/hooks/use-local-storage'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import Image from 'next/image'
-import { differenceInMinutes, format, formatDistanceStrict, isWithinInterval, parseISO } from 'date-fns'
+import { addDays, differenceInMinutes, endOfMonth, endOfWeek, format, formatDistanceStrict, isWithinInterval, parseISO, startOfMonth, startOfWeek, subMonths } from 'date-fns'
 import { ar } from 'date-fns/locale'
 import { appSettings as fallbackSettings } from '@/lib/data'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -698,15 +698,27 @@ export default function SettingsPage() {
                                 )}
                             </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                initialFocus
-                                mode="range"
-                                defaultMonth={dateRange?.from}
-                                selected={dateRange}
-                                onSelect={setDateRange}
-                                numberOfMonths={2}
-                            />
+                            <PopoverContent className="flex p-0" align="start">
+                                <div className="p-3">
+                                    <div className="space-y-2">
+                                        <Button onClick={() => setDateRange({ from: new Date(), to: new Date() })} variant="ghost" className="w-full justify-start">اليوم</Button>
+                                        <Button onClick={() => setDateRange({ from: addDays(new Date(), -1), to: addDays(new Date(), -1) })} variant="ghost" className="w-full justify-start">الأمس</Button>
+                                        <Button onClick={() => setDateRange({ from: startOfWeek(new Date(), { weekStartsOn: 6 }), to: endOfWeek(new Date(), { weekStartsOn: 6 }) })} variant="ghost" className="w-full justify-start">هذا الأسبوع</Button>
+                                        <Button onClick={() => setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })} variant="ghost" className="w-full justify-start">هذا الشهر</Button>
+                                        <Button onClick={() => setDateRange({ from: startOfMonth(subMonths(new Date(), 1)), to: endOfMonth(subMonths(new Date(), 1)) })} variant="ghost" className="w-full justify-start">الشهر الماضي</Button>
+                                        <Button onClick={() => setDateRange(undefined)} variant="ghost" className="w-full justify-start text-destructive">إزالة الفلتر</Button>
+                                    </div>
+                                </div>
+                                <div className="border-r">
+                                    <Calendar
+                                        initialFocus
+                                        mode="range"
+                                        defaultMonth={dateRange?.from}
+                                        selected={dateRange}
+                                        onSelect={setDateRange}
+                                        numberOfMonths={1}
+                                    />
+                                </div>
                             </PopoverContent>
                         </Popover>
                         <div className="max-h-64 overflow-y-auto border rounded-md">
