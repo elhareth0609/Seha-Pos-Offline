@@ -218,9 +218,8 @@ export default function LoginPage() {
                     </p>
                     <Dialog>
                         <DialogTrigger asChild>
-                            <Button variant="ghost" className="mt-8 gap-2 p-0 h-auto text-muted-foreground hover:text-primary">
+                            <Button variant="ghost" className="mt-8 gap-2 p-0 h-auto text-muted-foreground hover:text-primary opacity-50 hover:opacity-100">
                                 <ShieldAlert className="h-5 w-5" />
-                                بوابة دخول مسؤولي الشركة
                             </Button>
                         </DialogTrigger>
                         <SuperAdminLoginDialog />
@@ -288,9 +287,8 @@ export default function LoginPage() {
                  <div className="lg:hidden mt-8 text-center">
                     <Dialog>
                         <DialogTrigger asChild>
-                            <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-primary">
+                            <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-primary opacity-50 hover:opacity-100">
                                 <ShieldAlert className="h-5 w-5" />
-                                بوابة دخول مسؤولي الشركة
                             </Button>
                         </DialogTrigger>
                         <SuperAdminLoginDialog />
