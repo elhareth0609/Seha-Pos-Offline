@@ -832,7 +832,7 @@ export default function SalesPage() {
                           <span>الإجمالي</span>
                           <span className={cn("font-mono", finalTotal < 0 ? 'text-destructive' : '')}>{finalTotal.toLocaleString('ar-IQ')} د.ع</span>
                       </div>
-                  </CardFooter>
+                  </CardContent>
                   <CardFooter className="flex flex-col items-stretch gap-2">
                       {mode === 'new' ? (
                         <>
