@@ -18,7 +18,7 @@ import type { User } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MoreVertical, PlusCircle, Trash2, Pencil, ToggleLeft, ToggleRight, ShieldAlert, Settings } from 'lucide-react';
+import { MoreVertical, PlusCircle, Trash2, Pencil, ToggleLeft, ToggleRight, ShieldAlert, Settings, LogOut } from 'lucide-react';
 import Link from 'next/link';
 
 const addAdminSchema = z.object({
@@ -30,7 +30,7 @@ const addAdminSchema = z.object({
 type AddAdminFormValues = z.infer<typeof addAdminSchema>;
 
 export default function SuperAdminPage() {
-    const { currentUser, users, createPharmacyAdmin, deleteUser, updateUser, toggleUserStatus } = useAuth();
+    const { currentUser, users, createPharmacyAdmin, deleteUser, updateUser, toggleUserStatus, logout } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const [isAddAdminOpen, setIsAddAdminOpen] = React.useState(false);
@@ -90,6 +90,10 @@ export default function SuperAdminPage() {
                                 <Settings className="me-2"/>
                                 إعدادات الحساب
                             </Link>
+                        </Button>
+                        <Button variant="secondary" onClick={logout}>
+                            <LogOut className="me-2"/>
+                            تسجيل الخروج
                         </Button>
                         <Dialog open={isAddAdminOpen} onOpenChange={setIsAddAdminOpen}>
                             <DialogTrigger asChild>
