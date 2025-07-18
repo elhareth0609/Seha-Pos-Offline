@@ -568,26 +568,24 @@ export default function PurchasesPage() {
                         <TableHead>المورد</TableHead>
                         <TableHead>التاريخ</TableHead>
                         <TableHead>الإجمالي</TableHead>
-                        <TableHead>الحالة</TableHead>
                         <TableHead className="w-12"></TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {filteredPurchaseOrders.length > 0 ? filteredPurchaseOrders.map(po => (
                         <React.Fragment key={po.id}>
-                            <TableRow onClick={() => toggleRow(po.id)} className="cursor-pointer">
+                            <TableRow onClick={() => toggleRow(po.id)} className="cursor-pointer border-b">
                                 <TableCell>{po.id}</TableCell>
                                 <TableCell>{po.supplierName}</TableCell>
                                 <TableCell>{new Date(po.date).toLocaleDateString('ar-EG')}</TableCell>
                                 <TableCell className="font-mono">{po.totalAmount.toLocaleString('ar-IQ')} د.ع</TableCell>
-                                <TableCell>{po.status}</TableCell>
                                 <TableCell>
                                     <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", expandedRows.has(po.id) && "rotate-180")} />
                                 </TableCell>
                             </TableRow>
                             {expandedRows.has(po.id) && (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="p-0">
+                                    <TableCell colSpan={5} className="p-0">
                                         <div className="p-4 bg-muted/50">
                                             <h4 className="mb-2 font-semibold">أصناف القائمة:</h4>
                                             <Table>
@@ -621,7 +619,7 @@ export default function PurchasesPage() {
                         </React.Fragment>
                     )) : (
                       <TableRow>
-                          <TableCell colSpan={6} className="text-center h-24">
+                          <TableCell colSpan={5} className="text-center h-24">
                               لا توجد نتائج مطابقة للبحث.
                           </TableCell>
                       </TableRow>
