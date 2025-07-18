@@ -176,7 +176,7 @@ export default function LoginPage() {
             toast({
                 variant: 'destructive',
                 title: 'بيانات الدخول غير صحيحة',
-                description: 'الرجاء التأكد من البريد الإلكتروني ورمز PIN.'
+                description: 'الرجاء التأكد من البريد الإلكتروني ورمز PIN أو أن الحساب فعال.'
             });
             setPin('');
         }
@@ -241,3 +241,5 @@ export default function LoginPage() {
         </div>
     );
 }
+
+    

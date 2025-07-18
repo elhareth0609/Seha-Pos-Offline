@@ -5,6 +5,7 @@ import * as React from 'react';
 import { useLocalStorage } from './use-local-storage';
 import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, InventoryData, SalesData, SuppliersData, PatientsData, TrashData, PaymentsData, TimeLogsData } from '@/lib/types';
 import { users as fallbackUsers, appSettings as fallbackAppSettings } from '@/lib/data';
+import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -13,7 +14,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isSetup: boolean;
   loading: boolean;
-  setupAdmin: (name: string, email: string, pin: string) => void;
+  setupAdmin: (name: string, email: string, pin: string) => Promise<boolean>;
   createPharmacyAdmin: (name: string, email: string, pin: string) => Promise<boolean>;
   login: (email: string, pin: string) => Promise<boolean>;
   logout: () => void;
@@ -66,44 +67,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const [activeTimeLogId, setActiveTimeLogId] = useLocalStorage<string | null>('activeTimeLogId', null);
   const [loading, setLoading] = React.useState(true);
-
+  const router = useRouter();
+  
   const isSetup = globalSettings.initialized === true;
 
   React.useEffect(() => {
     setLoading(false);
   }, []);
 
-  const getScopedData = (): ScopedDataContextType => {
+  const getScopedData = React.useCallback((): ScopedDataContextType => {
       const pharmacyId = currentUser?.pharmacyId;
+      const emptySetter = () => { console.warn("Attempted to set data without a valid pharmacy context."); };
+
       if (!pharmacyId) {
-          const emptySetter = () => { console.warn("Attempted to set data without a valid pharmacy context."); };
           return {
-              inventory: [[], emptySetter as any],
-              sales: [[], emptySetter as any],
-              suppliers: [[], emptySetter as any],
-              patients: [[], emptySetter as any],
-              trash: [[], emptySetter as any],
-              payments: [[], emptySetter as any],
-              timeLogs: [[], emptySetter as any],
-              settings: [fallbackAppSettings, emptySetter as any],
+              inventory: [[], emptySetter as any], sales: [[], emptySetter as any],
+              suppliers: [[], emptySetter as any], patients: [[], emptySetter as any],
+              trash: [[], emptySetter as any], payments: [[], emptySetter as any],
+              timeLogs: [[], emptySetter as any], settings: [fallbackAppSettings, emptySetter as any],
           };
       }
       
+      const createSetter = <T,>(setter: React.Dispatch<React.SetStateAction<{ [key: string]: T[] }>>, fallback: T[]) => 
+        (value: T[] | ((val: T[]) => T[])) => 
+            setter(prev => ({ ...prev, [pharmacyId]: typeof value === 'function' ? value(prev[pharmacyId] || fallback) : value }));
+
       return {
-          inventory: [allInventory[pharmacyId] || [], (val) => setAllInventory(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val }))],
-          sales: [allSales[pharmacyId] || [], (val) => setAllSales(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val }))],
-          suppliers: [allSuppliers[pharmacyId] || [], (val) => setAllSuppliers(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val }))],
-          patients: [allPatients[pharmacyId] || [], (val) => setAllPatients(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val }))],
-          trash: [allTrash[pharmacyId] || [], (val) => setAllTrash(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val }))],
-          payments: [allPayments[pharmacyId] || [], (val) => setAllPayments(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val }))],
-          timeLogs: [allTimeLogs[pharmacyId] || [], (val) => setAllTimeLogs(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val }))],
-          settings: [allAppSettings[pharmacyId] || fallbackAppSettings, (val) => setAllAppSettings(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || fallbackAppSettings) : val }))],
-      }
-  };
+          inventory: [allInventory[pharmacyId] || [], createSetter(setAllInventory, [])],
+          sales: [allSales[pharmacyId] || [], createSetter(setAllSales, [])],
+          suppliers: [allSuppliers[pharmacyId] || [], createSetter(setAllSuppliers, [])],
+          patients: [allPatients[pharmacyId] || [], createSetter(setAllPatients, [])],
+          trash: [allTrash[pharmacyId] || [], createSetter(setAllTrash, [])],
+          payments: [allPayments[pharmacyId] || [], createSetter(setAllPayments, [])],
+          timeLogs: [allTimeLogs[pharmacyId] || [], createSetter(setAllTimeLogs, [])],
+          settings: [allAppSettings[pharmacyId] || fallbackAppSettings, (value) => setAllAppSettings(p => ({ ...p, [pharmacyId]: typeof value === 'function' ? value(p[pharmacyId] || fallbackAppSettings) : value }))],
+      };
+  }, [currentUser, allInventory, allSales, allSuppliers, allPatients, allTrash, allPayments, allTimeLogs, allAppSettings, setAllInventory, setAllSales, setAllSuppliers, setAllPatients, setAllTrash, setAllPayments, setAllTimeLogs, setAllAppSettings]);
 
 
-  const setupAdmin = (name: string, email: string, pin: string) => {
-    if (isSetup) return;
+  const setupAdmin = async (name: string, email: string, pin: string) => {
+    if (isSetup) return false;
     const superAdmin: User = {
       id: 'SUPERADMIN001',
       name: name,
@@ -115,6 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     setUsers([superAdmin]);
     setGlobalSettings({initialized: true});
+    return true;
   };
   
   const createPharmacyAdmin = async (name: string, email: string, pin: string): Promise<boolean> => {
@@ -125,9 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const newAdmin: User = {
       id: `ADMIN_${pharmacyId}`,
       pharmacyId: pharmacyId,
-      name,
-      email,
-      pin,
+      name, email, pin,
       role: 'Admin',
       status: 'active',
       permissions: adminPermissions,
@@ -156,9 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const newUser: User = {
           id: `USR${Date.now()}`,
           pharmacyId: currentUser.pharmacyId,
-          name,
-          email,
-          pin,
+          name, email, pin,
           role: 'Employee',
           status: 'active',
           permissions: defaultEmployeePermissions,
@@ -192,18 +192,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateUser = async (userId: string, name: string, email: string, pin?: string): Promise<boolean> => {
       const emailExists = users.some(u => u.id !== userId && u.email && u.email.toLowerCase() === email.toLowerCase());
-      if (emailExists) {
-          return false;
-      }
+      if (emailExists) return false;
       
       setUsers(prevUsers => prevUsers.map(u => {
           if (u.id === userId) {
-              return {
-                  ...u,
-                  name: name,
-                  email: email,
-                  pin: pin || u.pin,
-              };
+              return { ...u, name: name, email: email, pin: pin || u.pin };
           }
           return u;
       }));
@@ -214,54 +207,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateUserPermissions = async (userId: string, permissions: UserPermissions): Promise<boolean> => {
-      let userFound = false;
-      const updatedUsers = users.map(u => {
-          if (u.id === userId && u.role === 'Employee') {
-              userFound = true;
-              return { ...u, permissions };
-          }
-          return u;
-      });
-
-      if (userFound) {
-          setUsers(updatedUsers);
-          return true;
-      }
-      return false;
+      setUsers(prev => prev.map(u => u.id === userId && u.role === 'Employee' ? { ...u, permissions } : u));
+      return true;
   }
   
-    const updateUserHourlyRate = async (userId: string, rate: number): Promise<boolean> => {
-        let userFound = false;
-        const updatedUsers = users.map(u => {
-            if (u.id === userId) {
-                userFound = true;
-                return { ...u, hourlyRate: rate };
-            }
-            return u;
-        });
-
-        if (userFound) {
-            setUsers(updatedUsers);
-            if (currentUser?.id === userId) {
-                setCurrentUser(prev => prev ? { ...prev, hourlyRate: rate } : null);
-            }
-            return true;
-        }
-        return false;
-    };
+  const updateUserHourlyRate = async (userId: string, rate: number): Promise<boolean> => {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, hourlyRate: rate } : u));
+      if (currentUser?.id === userId) {
+          setCurrentUser(prev => prev ? { ...prev, hourlyRate: rate } : null);
+      }
+      return true;
+  };
     
-    const toggleUserStatus = async (userId: string): Promise<boolean> => {
-        let userFound = false;
-        setUsers(prev => prev.map(u => {
-            if(u.id === userId) {
-                userFound = true;
-                return {...u, status: u.status === 'active' ? 'suspended' : 'active'};
-            }
-            return u;
-        }));
-        return userFound;
-    }
-
+  const toggleUserStatus = async (userId: string): Promise<boolean> => {
+      let userFound = false;
+      setUsers(prev => prev.map(u => {
+          if(u.id === userId) {
+              userFound = true;
+              return {...u, status: u.status === 'active' ? 'suspended' : 'active'};
+          }
+          return u;
+      }));
+      return userFound;
+  }
 
   const login = async (email: string, pin: string): Promise<boolean> => {
     const userToLogin = users.find(u => u && u.email && u.email.toLowerCase() === email.toLowerCase() && u.pin === pin);
@@ -300,6 +268,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setActiveTimeLogId(null);
     }
     setCurrentUser(null);
+    router.push('/');
   };
 
   const deleteUser = async (userId: string, permanent: boolean = false): Promise<boolean> => {
@@ -321,7 +290,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAllTimeLogs(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
         setAllAppSettings(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
 
-    } else if (currentUser?.role === 'Admin' && userToDelete.role === 'Employee' && currentUser.pharmacyId) {
+    } else if (currentUser?.role === 'Admin' && userToDelete.role === 'Employee' && currentUser.pharmacyId && userToDelete.pharmacyId === currentUser.pharmacyId) {
         const [trash, setTrash] = getScopedData().trash;
         const newTrashItem: TrashItem = {
              id: `TRASH-${Date.now()}`,
@@ -354,3 +323,5 @@ export function useAuth() {
   }
   return context;
 }
+
+    
