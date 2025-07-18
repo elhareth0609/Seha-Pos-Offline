@@ -215,23 +215,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <PackagePlus className="h-6 w-6 text-primary" />
                 <span>Midgram</span>
               </Link>
-
-              {currentUser?.role === 'SuperAdmin' && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                        <Link href="/superadmin">
-                          <Settings className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                        </Link>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>لوحة تحكم الشركة</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
             </div>
 
             <div className="flex flex-1 items-center justify-center gap-6">

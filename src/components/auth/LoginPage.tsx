@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { LogIn, User } from 'lucide-react';
+import { LogIn, User, ShieldAlert } from 'lucide-react';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -18,7 +18,61 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogClose,
+} from "@/components/ui/dialog";
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+
+function SuperAdminLoginDialog() {
+    const { login } = useAuth();
+    const router = useRouter();
+    const { toast } = useToast();
+    const [email, setEmail] = React.useState('');
+    const [pin, setPin] = React.useState('');
+
+    const handleSuperAdminLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const success = await login(email, pin);
+        if (success) {
+            router.push('/superadmin');
+        } else {
+            toast({ variant: 'destructive', title: 'بيانات الدخول غير صحيحة' });
+        }
+    };
+
+    return (
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>تسجيل دخول المدير العام</DialogTitle>
+                <DialogDescription>
+                    هذه البوابة مخصصة لمسؤولي الشركة فقط.
+                </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSuperAdminLogin} className="space-y-4 py-2">
+                <div className="space-y-2">
+                    <Label htmlFor="superadmin-email">البريد الإلكتروني</Label>
+                    <Input id="superadmin-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="superadmin-pin">رمز PIN</Label>
+                    <Input id="superadmin-pin" type="password" value={pin} onChange={(e) => setPin(e.target.value)} maxLength={4} required />
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose>
+                    <Button type="submit">دخول</Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+    );
+}
+
 
 function ForgotPinDialog() {
     const { resetPin, checkUserExists } = useAuth();
@@ -116,15 +170,17 @@ export default function LoginPage() {
     const { toast } = useToast();
     const [selectedUser, setSelectedUser] = React.useState<string>("");
     
+    const pharmacyUsers = users.filter(u => u.role !== 'SuperAdmin');
+
     React.useEffect(() => {
-        if (users.length > 0 && !selectedUser) {
-            setSelectedUser(users[0].id)
-            setEmail(users[0].email || '')
+        if (pharmacyUsers.length > 0 && !selectedUser) {
+            setSelectedUser(pharmacyUsers[0].id)
+            setEmail(pharmacyUsers[0].email || '')
         }
-    }, [users, selectedUser])
+    }, [pharmacyUsers, selectedUser])
 
     const handleUserSelect = (userId: string) => {
-        const user = users.find(u => u.id === userId);
+        const user = pharmacyUsers.find(u => u.id === userId);
         if (user) {
             setSelectedUser(user.id);
             setEmail(user.email || '');
@@ -146,10 +202,10 @@ export default function LoginPage() {
         }
     };
     
-    const currentUser = users.find(u => u.id === selectedUser);
+    const currentUser = pharmacyUsers.find(u => u.id === selectedUser);
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-muted/40 p-4">
+        <div className="relative flex items-center justify-center min-h-screen bg-muted/40 p-4">
             <Card className="w-full max-w-sm text-center shadow-2xl animate-in fade-in zoom-in-95">
                 <CardHeader>
                     {currentUser?.image1DataUri ? (
@@ -186,11 +242,11 @@ export default function LoginPage() {
                         </AlertDialog>
                     </CardFooter>
                 </form>
-                {users.length > 1 && (
+                {pharmacyUsers.length > 1 && (
                     <div className="p-4 border-t">
                         <p className="text-xs text-muted-foreground mb-2">أو قم بتسجيل الدخول كمستخدم آخر:</p>
                         <div className="flex flex-wrap gap-4 justify-center">
-                            {users.filter(u => u.id !== selectedUser).map(user => (
+                            {pharmacyUsers.filter(u => u.id !== selectedUser).map(user => (
                                 <div key={user.id} className="flex flex-col items-center gap-1">
                                     <button onClick={() => handleUserSelect(user.id)} className="p-0.5 border-2 border-transparent rounded-full hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary">
                                         {user.image1DataUri ? (
@@ -208,6 +264,14 @@ export default function LoginPage() {
                     </div>
                 )}
             </Card>
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="absolute bottom-4 left-4 text-muted-foreground opacity-50 hover:opacity-100">
+                        <ShieldAlert className="h-5 w-5" />
+                    </Button>
+                </DialogTrigger>
+                <SuperAdminLoginDialog />
+            </Dialog>
         </div>
     );
 }
