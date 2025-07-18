@@ -18,7 +18,8 @@ import type { User } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MoreVertical, PlusCircle, Trash2, Pencil, ToggleLeft, ToggleRight, ShieldAlert } from 'lucide-react';
+import { MoreVertical, PlusCircle, Trash2, Pencil, ToggleLeft, ToggleRight, ShieldAlert, Settings } from 'lucide-react';
+import Link from 'next/link';
 
 const addAdminSchema = z.object({
     name: z.string().min(3, { message: "الاسم مطلوب" }),
@@ -83,33 +84,41 @@ export default function SuperAdminPage() {
                         <CardTitle>لوحة تحكم الشركة</CardTitle>
                         <CardDescription>إدارة حسابات مديري الصيدليات المسجلة في النظام.</CardDescription>
                     </div>
-                     <Dialog open={isAddAdminOpen} onOpenChange={setIsAddAdminOpen}>
-                        <DialogTrigger asChild>
-                            <Button><PlusCircle className="me-2"/> إنشاء حساب مدير جديد</Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>إنشاء حساب مدير صيدلية</DialogTitle>
-                            </DialogHeader>
-                            <Form {...addAdminForm}>
-                                <form onSubmit={addAdminForm.handleSubmit(handleAddAdmin)} className="space-y-4 py-2">
-                                     <FormField control={addAdminForm.control} name="name" render={({ field }) => (
-                                        <FormItem><FormLabel>اسم المدير</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                     <FormField control={addAdminForm.control} name="email" render={({ field }) => (
-                                        <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                    <FormField control={addAdminForm.control} name="pin" render={({ field }) => (
-                                        <FormItem><FormLabel>رمز PIN (4 أرقام)</FormLabel><FormControl><Input type="password" inputMode="numeric" maxLength={4} {...field} /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                    <DialogFooter className="pt-4">
-                                        <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
-                                        <Button type="submit" variant="success">إنشاء الحساب</Button>
-                                    </DialogFooter>
-                                </form>
-                            </Form>
-                        </DialogContent>
-                    </Dialog>
+                     <div className="flex items-center gap-2">
+                        <Button variant="outline" asChild>
+                            <Link href="/superadmin/account">
+                                <Settings className="me-2"/>
+                                إعدادات الحساب
+                            </Link>
+                        </Button>
+                        <Dialog open={isAddAdminOpen} onOpenChange={setIsAddAdminOpen}>
+                            <DialogTrigger asChild>
+                                <Button><PlusCircle className="me-2"/> إنشاء حساب مدير جديد</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>إنشاء حساب مدير صيدلية</DialogTitle>
+                                </DialogHeader>
+                                <Form {...addAdminForm}>
+                                    <form onSubmit={addAdminForm.handleSubmit(handleAddAdmin)} className="space-y-4 py-2">
+                                         <FormField control={addAdminForm.control} name="name" render={({ field }) => (
+                                            <FormItem><FormLabel>اسم المدير</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                        )} />
+                                         <FormField control={addAdminForm.control} name="email" render={({ field }) => (
+                                            <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                                        )} />
+                                        <FormField control={addAdminForm.control} name="pin" render={({ field }) => (
+                                            <FormItem><FormLabel>رمز PIN (4 أرقام)</FormLabel><FormControl><Input type="password" inputMode="numeric" maxLength={4} {...field} /></FormControl><FormMessage /></FormItem>
+                                        )} />
+                                        <DialogFooter className="pt-4">
+                                            <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                                            <Button type="submit" variant="success">إنشاء الحساب</Button>
+                                        </DialogFooter>
+                                    </form>
+                                </Form>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <Table>

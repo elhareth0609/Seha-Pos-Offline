@@ -10,7 +10,7 @@ import LoginPage from '@/components/auth/LoginPage';
 import { usePathname } from 'next/navigation';
 
 export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
-    const { loading, isSetup, isAuthenticated } = useAuth();
+    const { loading, isSetup, isAuthenticated, currentUser } = useAuth();
     const pathname = usePathname();
 
     if (loading) {
@@ -25,9 +25,13 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
         return <SetupPage />;
     }
     
-    // Allow direct access to superadmin page if it's the current path
-    if (pathname === '/superadmin') {
-        return <>{children}</>;
+    // Allow direct access to superadmin pages if the user is SuperAdmin
+    if (pathname.startsWith('/superadmin')) {
+        if (isAuthenticated && currentUser?.role === 'SuperAdmin') {
+            return <>{children}</>;
+        }
+        // If not authenticated or not a superadmin, redirect to login
+        return <LoginPage />;
     }
 
     if (!isAuthenticated) {
