@@ -18,7 +18,7 @@ import type { User } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MoreVertical, PlusCircle, Trash2, Pencil, ToggleLeft, ToggleRight, ShieldAlert, Settings, LogOut } from 'lucide-react';
+import { MoreVertical, PlusCircle, Trash2, Pencil, ToggleLeft, ToggleRight, ShieldAlert, Settings, LogOut, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
 const addAdminSchema = z.object({
@@ -29,8 +29,70 @@ const addAdminSchema = z.object({
 
 type AddAdminFormValues = z.infer<typeof addAdminSchema>;
 
+function AdminRow({ admin, onDelete, onToggleStatus }: { admin: User, onDelete: (user: User) => void, onToggleStatus: (user: User) => void }) {
+    const [showPin, setShowPin] = React.useState(false);
+
+    return (
+         <TableRow>
+            <TableCell className="font-medium">{admin.name}</TableCell>
+            <TableCell>{admin.email}</TableCell>
+            <TableCell>
+                <div className="flex items-center gap-2">
+                    <span>{showPin ? admin.pin : '••••'}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowPin(p => !p)}>
+                        {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                </div>
+            </TableCell>
+            <TableCell>
+                <Badge variant={admin.status === 'active' ? 'secondary' : 'destructive'} className={admin.status === 'active' ? 'bg-green-100 text-green-800' : ''}>
+                    {admin.status === 'active' ? 'فعال' : 'معلق'}
+                </Badge>
+            </TableCell>
+            <TableCell>{new Date(admin.createdAt || Date.now()).toLocaleDateString('ar-EG')}</TableCell>
+            <TableCell className="text-left">
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>إجراءات</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onSelect={() => onToggleStatus(admin)}>
+                            {admin.status === 'active' ? <ToggleLeft className="me-2"/> : <ToggleRight className="me-2" />}
+                            {admin.status === 'active' ? 'تعليق الحساب' : 'إعادة تفعيل'}
+                        </DropdownMenuItem>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive">
+                                    <Trash2 className="me-2" /> حذف نهائي
+                                </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        هذا الإجراء لا يمكن التراجع عنه. سيتم حذف حساب المدير <span className="font-bold">{admin.name}</span> وكل بيانات صيدليته نهائيًا.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => onDelete(admin)} className="bg-destructive hover:bg-destructive/90">
+                                        نعم، قم بالحذف
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </TableCell>
+        </TableRow>
+    )
+}
+
 export default function SuperAdminPage() {
-    const { currentUser, users, createPharmacyAdmin, deleteUser, updateUser, toggleUserStatus, logout } = useAuth();
+    const { currentUser, users, createPharmacyAdmin, deleteUser, toggleUserStatus, logout } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const [isAddAdminOpen, setIsAddAdminOpen] = React.useState(false);
@@ -130,6 +192,7 @@ export default function SuperAdminPage() {
                             <TableRow>
                                 <TableHead>اسم المدير</TableHead>
                                 <TableHead>البريد الإلكتروني</TableHead>
+                                <TableHead>رمز PIN</TableHead>
                                 <TableHead>الحالة</TableHead>
                                 <TableHead>تاريخ الإنشاء</TableHead>
                                 <TableHead className="text-left">الإجراءات</TableHead>
@@ -137,53 +200,12 @@ export default function SuperAdminPage() {
                         </TableHeader>
                         <TableBody>
                             {pharmacyAdmins.map(admin => (
-                                <TableRow key={admin.id}>
-                                    <TableCell className="font-medium">{admin.name}</TableCell>
-                                    <TableCell>{admin.email}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={admin.status === 'active' ? 'secondary' : 'destructive'} className={admin.status === 'active' ? 'bg-green-100 text-green-800' : ''}>
-                                            {admin.status === 'active' ? 'فعال' : 'معلق'}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>{new Date(admin.createdAt || Date.now()).toLocaleDateString('ar-EG')}</TableCell>
-                                    <TableCell className="text-left">
-                                         <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>إجراءات</DropdownMenuLabel>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem onSelect={() => handleToggleStatus(admin)}>
-                                                    {admin.status === 'active' ? <ToggleLeft className="me-2"/> : <ToggleRight className="me-2" />}
-                                                    {admin.status === 'active' ? 'تعليق الحساب' : 'إعادة تفعيل'}
-                                                </DropdownMenuItem>
-                                                <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                        <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive">
-                                                            <Trash2 className="me-2" /> حذف نهائي
-                                                        </button>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
-                                                            <AlertDialogDescription>
-                                                                هذا الإجراء لا يمكن التراجع عنه. سيتم حذف حساب المدير <span className="font-bold">{admin.name}</span> وكل بيانات صيدليته نهائيًا.
-                                                            </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => handleDeleteAdmin(admin)} className="bg-destructive hover:bg-destructive/90">
-                                                                نعم، قم بالحذف
-                                                            </AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
-
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
+                                <AdminRow 
+                                    key={admin.id} 
+                                    admin={admin} 
+                                    onDelete={handleDeleteAdmin} 
+                                    onToggleStatus={handleToggleStatus} 
+                                />
                             ))}
                         </TableBody>
                     </Table>

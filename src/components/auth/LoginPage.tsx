@@ -10,15 +10,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { LogIn, ShieldAlert, PackagePlus } from 'lucide-react';
 import {
-    AlertDialog,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -71,96 +62,6 @@ function SuperAdminLoginDialog() {
             </form>
         </DialogContent>
     );
-}
-
-
-function ForgotPinDialog() {
-    const { resetPin, checkUserExists } = useAuth();
-    const { toast } = useToast();
-    
-    const [step, setStep] = React.useState<'email' | 'reset'>('email');
-    const [email, setEmail] = React.useState('');
-    const [newPin, setNewPin] = React.useState('');
-    const [confirmPin, setConfirmPin] = React.useState('');
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
-    
-    const handleContinue = async () => {
-        if (!email) {
-            toast({ variant: 'destructive', title: 'الرجاء إدخال البريد الإلكتروني' });
-            return;
-        }
-        const userExists = await checkUserExists(email);
-        if (userExists) {
-            setStep('reset');
-        } else {
-            toast({ variant: 'destructive', title: 'المستخدم غير موجود', description: 'لم يتم العثور على حساب بهذا البريد الإلكتروني.' });
-        }
-    }
-
-    const handleResetPin = async () => {
-        if (!/^\d{4}$/.test(newPin)) {
-            toast({ variant: 'destructive', title: 'رمز PIN غير صالح', description: 'يجب أن يتكون رمز PIN من 4 أرقام بالضبط.' });
-            return;
-        }
-        if (newPin !== confirmPin) {
-            toast({ variant: 'destructive', title: 'رموز PIN غير متطابقة' });
-            return;
-        }
-
-        setIsSubmitting(true);
-        const success = await resetPin(email, newPin);
-        if (success) {
-            toast({ title: 'تم إعادة تعيين الرمز بنجاح', description: 'يمكنك الآن تسجيل الدخول باستخدام الرمز الجديد.' });
-            document.getElementById('forgot-pin-cancel')?.click();
-        } else {
-            toast({ variant: 'destructive', title: 'حدث خطأ', description: 'لم نتمكن من إعادة تعيين الرمز. الرجاء المحاولة مرة أخرى.' });
-        }
-        setIsSubmitting(false);
-    }
-    
-    const resetState = () => {
-        setStep('email');
-        setEmail('');
-        setNewPin('');
-        setConfirmPin('');
-    }
-
-    return (
-        <AlertDialogContent onEscapeKeyDown={resetState} onPointerDownOutside={resetState}>
-            <AlertDialogHeader>
-                <AlertDialogTitle>إعادة تعيين رمز PIN</AlertDialogTitle>
-            </AlertDialogHeader>
-            {step === 'email' ? (
-                <div className="space-y-4 pt-2">
-                    <p className="text-sm text-muted-foreground">أدخل بريدك الإلكتروني للعثور على حسابك.</p>
-                    <div className="space-y-2">
-                        <Label htmlFor="reset-email">البريد الإلكتروني</Label>
-                        <Input id="reset-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" />
-                    </div>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel id="forgot-pin-cancel" onClick={resetState}>إلغاء</AlertDialogCancel>
-                        <Button onClick={handleContinue}>متابعة</Button>
-                    </AlertDialogFooter>
-                </div>
-            ) : (
-                <div className="space-y-4 pt-2">
-                     <p className="text-sm text-muted-foreground">أدخل رمز PIN الجديد لحساب <span className="font-medium text-foreground">{email}</span>.</p>
-                     <div className="space-y-2">
-                        <Label htmlFor="new-pin">رمز PIN الجديد (4 أرقام)</Label>
-                        <Input id="new-pin" type="password" value={newPin} onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))} maxLength={4} />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="confirm-new-pin">تأكيد الرمز الجديد</Label>
-                        <Input id="confirm-new-pin" type="password" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))} maxLength={4} />
-                    </div>
-                     <AlertDialogFooter>
-                        <AlertDialogCancel id="forgot-pin-cancel" onClick={resetState}>إلغاء</AlertDialogCancel>
-                        <Button onClick={handleResetPin} disabled={isSubmitting}>إعادة تعيين الرمز</Button>
-                    </AlertDialogFooter>
-                </div>
-            )}
-        </AlertDialogContent>
-    )
 }
 
 export default function LoginPage() {
@@ -226,14 +127,6 @@ export default function LoginPage() {
                                 <LogIn className="me-2 h-4 w-4" />
                                 تسجيل الدخول
                             </Button>
-                             <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="link" size="sm" className="text-muted-foreground p-0 h-auto">
-                                        هل نسيت رمز PIN؟
-                                    </Button>
-                                </AlertDialogTrigger>
-                               <ForgotPinDialog />
-                            </AlertDialog>
                         </CardFooter>
                     </form>
                 </Card>
@@ -241,5 +134,3 @@ export default function LoginPage() {
         </div>
     );
 }
-
-    
