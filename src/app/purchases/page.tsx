@@ -60,14 +60,14 @@ const dosageForms = ["حبوب", "كبسول", "شراب", "مرهم", "كريم
 
 export default function PurchasesPage() {
   const { toast } = useToast()
-  const { getScopedData } = useAuth();
+  const { scopedData } = useAuth();
   
   const {
       inventory: [inventory, setInventory],
       suppliers: [suppliers, setSuppliers],
       purchaseOrders: [purchaseOrders, setPurchaseOrders],
       supplierReturns: [supplierReturns, setSupplierReturns],
-  } = getScopedData();
+  } = scopedData;
 
 
   const [isAddSupplierOpen, setIsAddSupplierOpen] = React.useState(false);
