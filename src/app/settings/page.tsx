@@ -17,8 +17,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { Textarea } from "@/components/ui/textarea"
-import { useLocalStorage } from '@/hooks/use-local-storage'
-import { appSettings as fallbackSettings, trash as fallbackTrash, sales as fallbackSales, timeLogs as fallbackTimeLogs } from '@/lib/data'
 import type { AppSettings, User, UserPermissions, TrashItem, Sale, TimeLog } from '@/lib/types'
 import {
     AlertDialog,
@@ -60,6 +58,7 @@ import { Label } from '@/components/ui/label'
 import Image from 'next/image'
 import { differenceInMinutes, formatDistanceStrict } from 'date-fns'
 import { ar } from 'date-fns/locale'
+import { appSettings as fallbackSettings } from '@/lib/data'
 
 
 const settingsSchema = z.object({
@@ -173,12 +172,11 @@ function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (o
 
 export default function SettingsPage() {
     const { toast } = useToast()
-    const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
-    const [trash, setTrash] = useLocalStorage<TrashItem[]>('trash', fallbackTrash);
-    const [sales] = useLocalStorage<Sale[]>('sales', fallbackSales);
-    const [timeLogs] = useLocalStorage<TimeLog[]>('timeLogs', fallbackTimeLogs);
+    const { currentUser, users, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate, getScopedData } = useAuth();
+    
+    const { settings: [settings, setSettings], trash: [, setTrash], sales: [sales], timeLogs: [timeLogs] } = getScopedData();
+
     const [isClient, setIsClient] = React.useState(false);
-    const { currentUser, users, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate } = useAuth();
     
     const [isAddUserOpen, setIsAddUserOpen] = React.useState(false);
     const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = React.useState(false);
@@ -226,7 +224,7 @@ export default function SettingsPage() {
     
     const onEditUserSubmit = async (data: EditUserFormValues) => {
         if (!editingUser) return;
-        const success = await updateUser(editingUser.id, data.name, data.email, data.pin || undefined);
+        const success = await updateUser(editingUser.id, data.name, data.email!, data.pin || undefined);
         if (success) {
             toast({ title: "تم تحديث بيانات الموظف بنجاح" });
             setIsEditUserDialogOpen(false);
@@ -266,7 +264,7 @@ export default function SettingsPage() {
             itemType: 'user',
             data: userToDelete,
         };
-        setTrash(prev => [newTrashItem, ...prev]);
+        setTrash(prev => [...prev, newTrashItem]);
         deleteUser(userToDelete.id);
         toast({ title: "تم نقل الموظف إلى سلة المحذوفات" });
     }
@@ -322,6 +320,7 @@ export default function SettingsPage() {
         toast({ title: 'تم تحديث سعر الساعة' });
     };
 
+    const pharmacyUsers = users.filter(u => u.pharmacyId === currentUser?.pharmacyId && u.role !== 'SuperAdmin');
     const userTimeLogs = editingUser ? timeLogs.filter(log => log.userId === editingUser.id) : [];
     const totalMinutes = userTimeLogs.reduce((acc, log) => {
         if (log.clockOut) {
@@ -474,7 +473,7 @@ export default function SettingsPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {users.map(user => (
+                            {pharmacyUsers.map(user => (
                                 <TableRow key={user.id}>
                                     <TableCell className="font-medium flex items-center gap-2">
                                         <button onClick={() => openTimeLogDialog(user)} className="flex items-center gap-2 text-right hover:text-primary">
@@ -517,7 +516,7 @@ export default function SettingsPage() {
                                                     <AlertDialog>
                                                         <AlertDialogTrigger asChild>
                                                             <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive">
-                                                                <Trash2 className="me-2 h-4 w-4" />
+                                                                <Trash2 className="me-2" />
                                                                 حذف
                                                             </button>
                                                         </AlertDialogTrigger>
