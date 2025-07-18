@@ -172,9 +172,9 @@ function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (o
 
 export default function SettingsPage() {
     const { toast } = useToast()
-    const { currentUser, users, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate, getScopedData } = useAuth();
+    const { currentUser, users, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate, scopedData } = useAuth();
     
-    const { settings: [settings, setSettings], trash: [, setTrash], sales: [sales], timeLogs: [timeLogs] } = getScopedData();
+    const { settings: [settings, setSettings], trash: [, setTrash], sales: [sales], timeLogs: [timeLogs] } = scopedData;
 
     const [isClient, setIsClient] = React.useState(false);
     
@@ -706,3 +706,4 @@ export default function SettingsPage() {
     </div>
   )
 }
+
