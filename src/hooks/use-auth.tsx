@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { useLocalStorage } from './use-local-storage';
 import type { User, UserPermissions, TimeLog, AppSettings, InventoryData, SalesData, SuppliersData, PatientsData, TrashData, PaymentsData, TimeLogsData } from '@/lib/types';
-import { users as fallbackUsers, timeLogs as fallbackTimeLogs, appSettings as fallbackAppSettings } from '@/lib/data';
+import { users as fallbackUsers, appSettings as fallbackAppSettings } from '@/lib/data';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -31,13 +31,14 @@ interface AuthContextType {
 
 // Helper types for scoped data
 export interface ScopedDataContextType {
-    inventory: InventoryData;
-    sales: SalesData;
-    suppliers: SuppliersData;
-    patients: PatientsData;
-    trash: TrashData;
-    payments: PaymentsData;
-    timeLogs: TimeLogsData;
+    inventory: { data: Medication[], setter: (value: Medication[] | ((val: Medication[]) => Medication[])) => void };
+    sales: { data: Sale[], setter: (value: Sale[] | ((val: Sale[]) => Sale[])) => void };
+    suppliers: { data: Supplier[], setter: (value: Supplier[] | ((val: Supplier[]) => Supplier[])) => void };
+    patients: { data: Patient[], setter: (value: Patient[] | ((val: Patient[]) => Patient[])) => void };
+    trash: { data: TrashItem[], setter: (value: TrashItem[] | ((val: TrashItem[]) => TrashItem[])) => void };
+    payments: { data: SupplierPayment[], setter: (value: SupplierPayment[] | ((val: SupplierPayment[]) => SupplierPayment[])) => void };
+    timeLogs: { data: TimeLog[], setter: (value: TimeLog[] | ((val: TimeLog[]) => TimeLog[])) => void };
+    settings: { data: AppSettings | null, setter: (value: AppSettings | ((val: AppSettings | null) => AppSettings | null)) => void };
 }
 
 
@@ -54,8 +55,11 @@ const adminPermissions: UserPermissions = {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useLocalStorage<User[]>('users', fallbackUsers);
   const [currentUser, setCurrentUser] = useLocalStorage<User | null>('currentUser', null);
-  const [appSettings, setAppSettings] = useLocalStorage<AppSettings>('appSettings', fallbackAppSettings);
   
+  // App settings now stores settings for ALL pharmacies, keyed by pharmacyId
+  const [allAppSettings, setAllAppSettings] = useLocalStorage<{ [key: string]: AppSettings }>('allAppSettings', {});
+  const [globalSettings, setGlobalSettings] = useLocalStorage<{initialized?: boolean}>('globalSettings', {});
+
   // These hooks now manage the *entire* dataset for all pharmacies
   const [allTimeLogs, setAllTimeLogs] = useLocalStorage<TimeLogsData>('timeLogs', {});
   const [allInventory, setAllInventory] = useLocalStorage<InventoryData>('inventory', {});
@@ -68,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [activeTimeLogId, setActiveTimeLogId] = useLocalStorage<string | null>('activeTimeLogId', null);
   const [loading, setLoading] = React.useState(true);
 
-  const isSetup = appSettings.initialized === true;
+  const isSetup = globalSettings.initialized === true;
 
   React.useEffect(() => {
     setLoading(false);
@@ -77,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const getScopedData = (): ScopedDataContextType => {
       const pharmacyId = currentUser?.pharmacyId;
       if (!pharmacyId) {
-          // Return empty data if no pharmacy context (e.g., for SuperAdmin)
+          // Return empty data if no pharmacy context
           return {
               inventory: { data: [], setter: () => {} },
               sales: { data: [], setter: () => {} },
@@ -86,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               trash: { data: [], setter: () => {} },
               payments: { data: [], setter: () => {} },
               timeLogs: { data: [], setter: () => {} },
+              settings: { data: null, setter: () => {} },
           };
       }
       
@@ -97,11 +102,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           trash: { data: allTrash[pharmacyId] || [], setter: (val) => setAllTrash(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val })) },
           payments: { data: allPayments[pharmacyId] || [], setter: (val) => setAllPayments(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val })) },
           timeLogs: { data: allTimeLogs[pharmacyId] || [], setter: (val) => setAllTimeLogs(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || []) : val })) },
+          settings: { data: allAppSettings[pharmacyId] || fallbackAppSettings, setter: (val) => setAllAppSettings(p => ({ ...p, [pharmacyId]: typeof val === 'function' ? val(p[pharmacyId] || fallbackAppSettings) : val }))},
       }
   };
 
 
   const setupAdmin = (name: string, email: string, pin: string) => {
+    if (isSetup) return;
     const superAdmin: User = {
       id: 'SUPERADMIN001',
       name: name,
@@ -112,8 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString(),
     };
     setUsers([superAdmin]);
-    setAppSettings(prev => ({...prev, initialized: true}));
-    setCurrentUser(superAdmin);
+    setGlobalSettings({initialized: true});
   };
   
   const createPharmacyAdmin = async (name: string, email: string, pin: string): Promise<boolean> => {
@@ -122,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const pharmacyId = `PHARM_${Date.now()}`;
     const newAdmin: User = {
-      id: `ADMIN_${Date.now()}`,
+      id: `ADMIN_${pharmacyId}`,
       pharmacyId: pharmacyId,
       name,
       email,
@@ -133,6 +139,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString(),
       hourlyRate: 0,
     };
+    
+    // ** CRITICAL FIX ** : Initialize all data stores for the new pharmacy
+    setAllAppSettings(prev => ({...prev, [pharmacyId]: {...fallbackAppSettings, pharmacyName: `${name}'s Pharmacy`}}));
+    setAllInventory(prev => ({...prev, [pharmacyId]: []}));
+    setAllSales(prev => ({...prev, [pharmacyId]: []}));
+    setAllSuppliers(prev => ({...prev, [pharmacyId]: []}));
+    setAllPatients(prev => ({...prev, [pharmacyId]: []}));
+    setAllTrash(prev => ({...prev, [pharmacyId]: []}));
+    setAllPayments(prev => ({...prev, [pharmacyId]: []}));
+    setAllTimeLogs(prev => ({...prev, [pharmacyId]: []}));
+
     setUsers(prev => [...prev, newAdmin]);
     return true;
   };
@@ -254,8 +271,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, pin: string): Promise<boolean> => {
     const userToLogin = users.find(u => u && u.email && u.email.toLowerCase() === email.toLowerCase() && u.pin === pin);
+    
     if (userToLogin && userToLogin.status === 'active') {
       setCurrentUser(userToLogin);
+      // ** CRITICAL FIX **: Only start a time log if it's a pharmacy user.
       if (userToLogin.role !== 'SuperAdmin' && userToLogin.pharmacyId) {
           const newTimeLog: TimeLog = {
             id: `TL${Date.now()}`,
@@ -297,7 +316,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // SuperAdmin cannot be deleted this way
     if (userToDelete.role === 'SuperAdmin') return false;
 
-    if (permanent && currentUser?.role === 'SuperAdmin') {
+    if (permanent && currentUser?.role === 'SuperAdmin' && userToDelete.pharmacyId) {
         const pharmacyIdToDelete = userToDelete.pharmacyId;
         // Permanent deletion of admin and their associated data
         setUsers(prev => prev.filter(u => u.pharmacyId !== pharmacyIdToDelete));
@@ -310,13 +329,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAllTrash(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
         setAllPayments(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
         setAllTimeLogs(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
+        setAllAppSettings(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
 
-    } else if (currentUser?.role === 'Admin' && userToDelete.role === 'Employee') {
+    } else if (currentUser?.role === 'Admin' && userToDelete.role === 'Employee' && currentUser.pharmacyId) {
         // Soft delete (move to trash) by Admin for their employee
         const { trash, setter: setTrash } = getScopedData().trash;
-        const newTrashItem = {
+        const newTrashItem: TrashItem = {
              id: `TRASH-${Date.now()}`,
-             pharmacyId: currentUser.pharmacyId!,
+             pharmacyId: currentUser.pharmacyId,
              deletedAt: new Date().toISOString(),
              itemType: 'user' as const,
              data: userToDelete,

@@ -17,7 +17,6 @@ export type UserPermissions = {
 
 export type Medication = {
   id: string; // Barcode
-  pharmacyId: string; // To scope data per pharmacy
   tradeName: string; // الاسم التجاري
   scientificNames?: string[]; // الاسماء العلمية
   company?: string; // الشركة
@@ -55,7 +54,6 @@ export type SaleItem = {
 
 export type Sale = {
   id:string;
-  pharmacyId: string;
   date: string;
   items: SaleItem[];
   total: number;
@@ -77,7 +75,6 @@ export type PurchaseOrderItem = {
 
 export type PurchaseOrder = {
   id: string;
-  pharmacyId: string;
   supplierId: string;
   supplierName: string;
   date: string;
@@ -96,7 +93,6 @@ export type ReturnOrderItem = {
 
 export type ReturnOrder = {
   id: string;
-  pharmacyId: string;
   supplierId: string;
   supplierName: string;
   date: string;
@@ -107,7 +103,6 @@ export type ReturnOrder = {
 
 export type SupplierPayment = {
     id: string;
-    pharmacyId: string;
     date: string;
     supplierId: string;
     amount: number;
@@ -116,7 +111,6 @@ export type SupplierPayment = {
 
 export type Supplier = {
   id: string;
-  pharmacyId: string;
   name: string;
   contactPerson?: string;
   phone?: string;
@@ -139,7 +133,6 @@ export type User = {
 
 export type Patient = {
   id: string;
-  pharmacyId: string;
   name: string;
   phone?: string;
 };
@@ -154,7 +147,6 @@ export type TimeLog = {
 };
 
 export type AppSettings = {
-    pharmacyId?: string;
     initialized?: boolean;
     pharmacyName: string;
     pharmacyAddress: string;
@@ -166,7 +158,6 @@ export type AppSettings = {
 
 export type TrashItem = {
   id: string; // Unique ID for the trash entry
-  pharmacyId: string;
   deletedAt: string; // ISO date string
   itemType: 'medication' | 'patient' | 'supplier' | 'user';
   data: Medication | Patient | Supplier | User;
@@ -203,3 +194,12 @@ export type DoseCalculationOutput = z.infer<typeof DoseCalculationOutputSchema>;
 
 // This is a helper type for the frontend, not used in the flow itself
 export type DoseCalculation = z.infer<typeof MedicationAnalysisSchema>;
+
+// Types for multi-pharmacy data stores
+export type InventoryData = { [pharmacyId: string]: Medication[] };
+export type SalesData = { [pharmacyId: string]: Sale[] };
+export type SuppliersData = { [pharmacyId: string]: Supplier[] };
+export type PatientsData = { [pharmacyId: string]: Patient[] };
+export type TrashData = { [pharmacyId: string]: TrashItem[] };
+export type PaymentsData = { [pharmacyId: string]: SupplierPayment[] };
+export type TimeLogsData = { [pharmacyId: string]: TimeLog[] };

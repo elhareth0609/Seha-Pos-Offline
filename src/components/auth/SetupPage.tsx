@@ -28,7 +28,7 @@ export default function SetupPage() {
                     description: `تم إعداد حساب المدير العام الافتراضي. يمكنك الآن تسجيل الدخول.`,
                     duration: 5000,
                 });
-                // No longer reloading the page, the state change in AuthProvider will handle the UI update.
+                // The state change in AuthProvider will handle the UI update.
             } catch (error) {
                  toast({ variant: 'destructive', title: 'خطأ', description: 'حدثت مشكلة أثناء إعداد الحساب.' });
             }
