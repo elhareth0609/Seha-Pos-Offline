@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { PackagePlus, LogIn, User } from 'lucide-react';
+import { LogIn, User } from 'lucide-react';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -117,11 +117,11 @@ export default function LoginPage() {
     const [selectedUser, setSelectedUser] = React.useState<string>("");
     
     React.useEffect(() => {
-        if (users.length > 0) {
+        if (users.length > 0 && !selectedUser) {
             setSelectedUser(users[0].id)
             setEmail(users[0].email || '')
         }
-    }, [users])
+    }, [users, selectedUser])
 
     const handleUserSelect = (userId: string) => {
         const user = users.find(u => u.id === userId);

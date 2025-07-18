@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -18,6 +19,7 @@ interface AuthContextType {
   registerUser: (name: string, email: string, pin: string) => Promise<boolean>;
   resetPin: (email: string, newPin: string) => Promise<boolean>;
   checkUserExists: (email: string) => Promise<boolean>;
+  deleteUser: (userId: string) => Promise<boolean>;
   updateUserPermissions: (userId: string, permissions: UserPermissions) => Promise<boolean>;
   updateUserHourlyRate: (userId: string, rate: number) => Promise<boolean>;
 }
@@ -188,10 +190,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(null);
   };
 
+  const deleteUser = async (userId: string): Promise<boolean> => {
+    const userToDelete = users.find(u => u.id === userId);
+    if (!userToDelete || userToDelete.role === 'Admin') {
+        return false;
+    }
+    setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
+    return true;
+  };
+  
   const isAuthenticated = !!currentUser;
 
   return (
-    <AuthContext.Provider value={{ currentUser, users, setUsers, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, updateUserPermissions, updateUserHourlyRate }}>
+    <AuthContext.Provider value={{ currentUser, users, setUsers, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, deleteUser, updateUserPermissions, updateUserHourlyRate }}>
       {children}
     </AuthContext.Provider>
   );

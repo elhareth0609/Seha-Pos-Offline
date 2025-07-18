@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from 'react'
@@ -45,7 +46,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useAuth } from '@/hooks/use-auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, Clock, DollarSign, Wallet } from 'lucide-react'
+import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, Clock, Wallet } from 'lucide-react'
 import { clearAllDBData } from '@/hooks/use-local-storage'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -158,7 +159,7 @@ export default function SettingsPage() {
     const [sales] = useLocalStorage<Sale[]>('sales', fallbackSales);
     const [timeLogs] = useLocalStorage<TimeLog[]>('timeLogs', fallbackTimeLogs);
     const [isClient, setIsClient] = React.useState(false);
-    const { currentUser, users, setUsers, registerUser, updateUserPermissions, updateUserHourlyRate } = useAuth();
+    const { currentUser, users, deleteUser, updateUserPermissions, updateUserHourlyRate } = useAuth();
     
     const [isAddUserOpen, setIsAddUserOpen] = React.useState(false);
     const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = React.useState(false);
@@ -199,13 +200,13 @@ export default function SettingsPage() {
         }
     }
 
-    const handleDeleteUser = (user: User) => {
-        if (user.role === 'Admin') {
+    const handleDeleteUser = (userToDelete: User) => {
+        if (userToDelete.role === 'Admin') {
             toast({ variant: 'destructive', title: 'خطأ', description: 'لا يمكن حذف حساب المدير.' });
             return;
         }
 
-        const hasSales = sales.some(sale => sale.employeeId === user.id);
+        const hasSales = sales.some(sale => sale.employeeId === userToDelete.id);
         if (hasSales) {
             toast({ variant: 'destructive', title: 'لا يمكن الحذف', description: 'هذا الموظف مرتبط بسجلات مبيعات ولا يمكن حذفه.' });
             return;
@@ -215,10 +216,10 @@ export default function SettingsPage() {
             id: `TRASH-${Date.now()}`,
             deletedAt: new Date().toISOString(),
             itemType: 'user',
-            data: user,
+            data: userToDelete,
         };
         setTrash(prev => [newTrashItem, ...prev]);
-        setUsers(prev => prev.filter(u => u.id !== user.id));
+        deleteUser(userToDelete.id); // Use central delete function
         toast({ title: "تم نقل الموظف إلى سلة المحذوفات" });
     }
     

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { KeyRound, PackagePlus, UploadCloud, Image as ImageIcon, X } from 'lucide-react';
+import { KeyRound, PackagePlus, UploadCloud, X } from 'lucide-react';
 import Image from 'next/image';
 
 const fileToDataUri = (file: File): Promise<string> => {
@@ -55,10 +55,12 @@ export default function SetupPage() {
         if (imageNumber === 1) {
             if (image1InputRef.current) image1InputRef.current.value = "";
             setImage1(null);
+            if (image1Preview) URL.revokeObjectURL(image1Preview);
             setImage1Preview(null);
         } else {
             if (image2InputRef.current) image2InputRef.current.value = "";
             setImage2(null);
+            if (image2Preview) URL.revokeObjectURL(image2Preview);
             setImage2Preview(null);
         }
     };
