@@ -13,46 +13,28 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isSetup: boolean;
   loading: boolean;
-  setupAdmin: (name: string, email: string, pin: string, image1DataUri: string, image2DataUri: string) => void;
+  setupAdmin: (name: string, email: string, pin: string) => void;
+  createPharmacyAdmin: (name: string, email: string, pin: string) => Promise<boolean>;
   login: (email: string, pin: string) => Promise<boolean>;
   logout: () => void;
   registerUser: (name: string, email: string, pin: string) => Promise<boolean>;
   resetPin: (email: string, newPin: string) => Promise<boolean>;
   checkUserExists: (email: string) => Promise<boolean>;
-  deleteUser: (userId: string) => Promise<boolean>;
+  deleteUser: (userId: string, permanent?: boolean) => Promise<boolean>;
   updateUser: (userId: string, name: string, email: string, pin?: string) => Promise<boolean>;
   updateUserPermissions: (userId: string, permissions: UserPermissions) => Promise<boolean>;
   updateUserHourlyRate: (userId: string, rate: number) => Promise<boolean>;
+  toggleUserStatus: (userId: string) => Promise<boolean>;
 }
 
 const AuthContext = React.createContext<AuthContextType | null>(null);
 
 const defaultEmployeePermissions: UserPermissions = {
-    sales: true,
-    inventory: true,
-    purchases: false,
-    suppliers: false,
-    reports: false,
-    itemMovement: true,
-    patients: true,
-    expiringSoon: true,
-    guide: true,
-    settings: false,
-    trash: false,
+    sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false, trash: false,
 };
 
-const allPermissions: UserPermissions = {
-    sales: true,
-    inventory: true,
-    purchases: true,
-    suppliers: true,
-    reports: true,
-    itemMovement: true,
-    patients: true,
-    expiringSoon: true,
-    guide: true,
-    settings: true,
-    trash: true,
+const adminPermissions: UserPermissions = {
+    sales: true, inventory: true, purchases: true, suppliers: true, reports: true, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: true, trash: true,
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -68,35 +50,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  const setupAdmin = (name: string, email: string, pin: string, image1DataUri: string, image2DataUri: string) => {
-    const adminUser: User = {
-      id: 'ADMIN001',
+  const setupAdmin = (name: string, email: string, pin: string) => {
+    const superAdmin: User = {
+      id: 'SUPERADMIN001',
       name: name,
       email: email,
-      role: 'Admin',
+      role: 'SuperAdmin',
+      status: 'active',
       pin: pin,
-      permissions: allPermissions,
-      image1DataUri,
-      image2DataUri,
-      hourlyRate: 0,
+      createdAt: new Date().toISOString(),
     };
-    setUsers([adminUser]);
-    setCurrentUser(adminUser);
+    setUsers([superAdmin]);
+    setCurrentUser(superAdmin);
   };
   
+  const createPharmacyAdmin = async (name: string, email: string, pin: string): Promise<boolean> => {
+    const userExists = users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+    if (userExists) return false;
+
+    const newAdmin: User = {
+      id: `ADMIN_${Date.now()}`,
+      pharmacyId: `PHARM_${Date.now()}`,
+      name,
+      email,
+      pin,
+      role: 'Admin',
+      status: 'active',
+      permissions: adminPermissions,
+      createdAt: new Date().toISOString(),
+      hourlyRate: 0,
+    };
+    setUsers(prev => [...prev, newAdmin]);
+    return true;
+  };
+
   const registerUser = async (name: string, email: string, pin: string): Promise<boolean> => {
       const userExists = users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
-      if (userExists) {
-        return false;
-      }
-      
+      if (userExists) return false;
+      if (!currentUser || !currentUser.pharmacyId) return false;
+
       const newUser: User = {
           id: `USR${Date.now()}`,
+          pharmacyId: currentUser.pharmacyId,
           name,
           email,
           pin,
           role: 'Employee',
+          status: 'active',
           permissions: defaultEmployeePermissions,
+          createdAt: new Date().toISOString(),
           hourlyRate: 0,
       };
       setUsers(prev => [...prev, newUser]);
@@ -127,7 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateUser = async (userId: string, name: string, email: string, pin?: string): Promise<boolean> => {
       const emailExists = users.some(u => u.id !== userId && u.email && u.email.toLowerCase() === email.toLowerCase());
       if (emailExists) {
-          return false; // Email is already taken by another user
+          return false;
       }
       
       setUsers(prevUsers => prevUsers.map(u => {
@@ -136,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   ...u,
                   name: name,
                   email: email,
-                  pin: pin || u.pin, // Only update PIN if a new one is provided
+                  pin: pin || u.pin,
               };
           }
           return u;
@@ -180,20 +182,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         return false;
     };
+    
+    const toggleUserStatus = async (userId: string): Promise<boolean> => {
+        let userFound = false;
+        setUsers(prev => prev.map(u => {
+            if(u.id === userId) {
+                userFound = true;
+                return {...u, status: u.status === 'active' ? 'suspended' : 'active'};
+            }
+            return u;
+        }));
+        return userFound;
+    }
 
 
   const login = async (email: string, pin: string): Promise<boolean> => {
     const userToLogin = users.find(u => u && u.email && u.email.toLowerCase() === email.toLowerCase() && u.pin === pin);
-    if (userToLogin) {
+    if (userToLogin && userToLogin.status === 'active') {
       setCurrentUser(userToLogin);
-      // Create a new time log entry
-      const newTimeLog: TimeLog = {
-        id: `TL${Date.now()}`,
-        userId: userToLogin.id,
-        clockIn: new Date().toISOString(),
-      };
-      setTimeLogs(prev => [newTimeLog, ...prev]);
-      setActiveTimeLogId(newTimeLog.id);
+      if (userToLogin.role !== 'SuperAdmin') {
+          const newTimeLog: TimeLog = {
+            id: `TL${Date.now()}`,
+            userId: userToLogin.id,
+            pharmacyId: userToLogin.pharmacyId!,
+            clockIn: new Date().toISOString(),
+          };
+          setTimeLogs(prev => [newTimeLog, ...prev]);
+          setActiveTimeLogId(newTimeLog.id);
+      }
       return true;
     }
     return false;
@@ -211,19 +227,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(null);
   };
 
-  const deleteUser = async (userId: string): Promise<boolean> => {
+  const deleteUser = async (userId: string, permanent: boolean = false): Promise<boolean> => {
     const userToDelete = users.find(u => u.id === userId);
-    if (!userToDelete || userToDelete.role === 'Admin') {
+    if (!userToDelete || userToDelete.role === 'SuperAdmin') {
         return false;
     }
-    setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
+    if (permanent && currentUser?.role === 'SuperAdmin') {
+        // Permanent deletion of admin and their associated data
+        setUsers(prev => prev.filter(u => u.pharmacyId !== userToDelete.pharmacyId));
+        // Note: This needs cascading delete logic for all other data stores (inventory, sales, etc.)
+        // This is a simplified version. A real-world scenario would be more complex.
+    } else {
+        // Soft delete (move to trash)
+        setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
+    }
     return true;
   };
   
   const isAuthenticated = !!currentUser;
 
   return (
-    <AuthContext.Provider value={{ currentUser, users, setUsers, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate }}>
+    <AuthContext.Provider value={{ currentUser, users, setUsers, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus }}>
       {children}
     </AuthContext.Provider>
   );

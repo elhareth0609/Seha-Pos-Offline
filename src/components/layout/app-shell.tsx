@@ -76,7 +76,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const navItems = React.useMemo(() => {
     if (!currentUser) return [];
-    if (currentUser.role === 'Admin') return allNavItems;
+    if (currentUser.role === 'Admin' || currentUser.role === 'SuperAdmin') return allNavItems;
 
     const permissions = currentUser.permissions || {
         sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false, trash: false
@@ -210,12 +210,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <input type="file" ref={importFileRef} onChange={handleFileChange} accept=".json" className="hidden" />
         <header className="sticky top-0 z-50 w-full border-b bg-background shadow-sm">
           <div className="container flex h-16 items-center">
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
               <Link href="/" className="flex items-center gap-2 font-semibold">
                 <PackagePlus className="h-6 w-6 text-primary" />
                 <span>Midgram</span>
               </Link>
-              
+
+              {currentUser?.role === 'SuperAdmin' && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                        <Link href="/superadmin">
+                          <Settings className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                        </Link>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>لوحة تحكم الشركة</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+
+            <div className="flex flex-1 items-center justify-center gap-6">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
@@ -264,7 +283,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               )}
             </div>
 
-            <div className="flex flex-1 items-center justify-end space-x-4">
+
+            <div className="flex items-center justify-end space-x-4">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="flex items-center gap-2 px-2">

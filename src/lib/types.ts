@@ -17,6 +17,7 @@ export type UserPermissions = {
 
 export type Medication = {
   id: string; // Barcode
+  pharmacyId: string; // To scope data per pharmacy
   tradeName: string; // الاسم التجاري
   scientificNames?: string[]; // الاسماء العلمية
   company?: string; // الشركة
@@ -54,6 +55,7 @@ export type SaleItem = {
 
 export type Sale = {
   id:string;
+  pharmacyId: string;
   date: string;
   items: SaleItem[];
   total: number;
@@ -75,6 +77,7 @@ export type PurchaseOrderItem = {
 
 export type PurchaseOrder = {
   id: string;
+  pharmacyId: string;
   supplierId: string;
   supplierName: string;
   date: string;
@@ -93,6 +96,7 @@ export type ReturnOrderItem = {
 
 export type ReturnOrder = {
   id: string;
+  pharmacyId: string;
   supplierId: string;
   supplierName: string;
   date: string;
@@ -103,6 +107,7 @@ export type ReturnOrder = {
 
 export type SupplierPayment = {
     id: string;
+    pharmacyId: string;
     date: string;
     supplierId: string;
     amount: number;
@@ -111,6 +116,7 @@ export type SupplierPayment = {
 
 export type Supplier = {
   id: string;
+  pharmacyId: string;
   name: string;
   contactPerson?: string;
   phone?: string;
@@ -120,17 +126,19 @@ export type Supplier = {
 export type User = {
   id: string;
   name: string;
-  role: "Admin" | "Employee";
+  role: "SuperAdmin" | "Admin" | "Employee";
+  status: 'active' | 'suspended';
   email?: string;
   pin?: string;
   permissions?: UserPermissions;
-  image1DataUri?: string;
-  image2DataUri?: string;
   hourlyRate?: number;
+  pharmacyId?: string; // Null/undefined for SuperAdmin, set for Admins and Employees
+  createdAt: string; // ISO date string
 };
 
 export type Patient = {
   id: string;
+  pharmacyId: string;
   name: string;
   phone?: string;
 };
@@ -139,11 +147,13 @@ export type Patient = {
 export type TimeLog = {
   id: string;
   userId: string;
+  pharmacyId: string;
   clockIn: string; // ISO string
   clockOut?: string; // ISO string
 };
 
 export type AppSettings = {
+    pharmacyId: string;
     initialized?: boolean;
     pharmacyName: string;
     pharmacyAddress: string;
@@ -155,6 +165,7 @@ export type AppSettings = {
 
 export type TrashItem = {
   id: string; // Unique ID for the trash entry
+  pharmacyId: string;
   deletedAt: string; // ISO date string
   itemType: 'medication' | 'patient' | 'supplier' | 'user';
   data: Medication | Patient | Supplier | User;

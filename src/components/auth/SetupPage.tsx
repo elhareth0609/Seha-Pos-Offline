@@ -8,62 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { KeyRound, PackagePlus, UploadCloud, X } from 'lucide-react';
-import Image from 'next/image';
-
-const fileToDataUri = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-};
-
+import { KeyRound, PackagePlus } from 'lucide-react';
 
 export default function SetupPage() {
     const [adminName, setAdminName] = React.useState('');
     const [email, setEmail] = React.useState('');
     const [pin, setPin] = React.useState('');
     const [confirmPin, setConfirmPin] = React.useState('');
-    const [image1, setImage1] = React.useState<File | null>(null);
-    const [image2, setImage2] = React.useState<File | null>(null);
-    const [image1Preview, setImage1Preview] = React.useState<string | null>(null);
-    const [image2Preview, setImage2Preview] = React.useState<string | null>(null);
     const { setupAdmin } = useAuth();
     const { toast } = useToast();
-    
-    // Refs for file inputs
-    const image1InputRef = React.useRef<HTMLInputElement>(null);
-    const image2InputRef = React.useRef<HTMLInputElement>(null);
-
-    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, imageNumber: 1 | 2) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const preview = URL.createObjectURL(file);
-            if (imageNumber === 1) {
-                setImage1(file);
-                setImage1Preview(preview);
-            } else {
-                setImage2(file);
-                setImage2Preview(preview);
-            }
-        }
-    };
-    
-    const handleRemoveImage = (imageNumber: 1 | 2) => {
-        if (imageNumber === 1) {
-            if (image1InputRef.current) image1InputRef.current.value = "";
-            setImage1(null);
-            if (image1Preview) URL.revokeObjectURL(image1Preview);
-            setImage1Preview(null);
-        } else {
-            if (image2InputRef.current) image2InputRef.current.value = "";
-            setImage2(null);
-            if (image2Preview) URL.revokeObjectURL(image2Preview);
-            setImage2Preview(null);
-        }
-    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -83,19 +36,12 @@ export default function SetupPage() {
             toast({ variant: 'destructive', title: 'رموز PIN غير متطابقة', description: 'الرجاء التأكد من تطابق رمز PIN وتأكيده.' });
             return;
         }
-        if (!image1 || !image2) {
-            toast({ variant: 'destructive', title: 'صور ناقصة', description: 'الرجاء رفع الصورتين المطلوبتين.' });
-            return;
-        }
 
         try {
-            const image1DataUri = await fileToDataUri(image1);
-            const image2DataUri = await fileToDataUri(image2);
-
-            setupAdmin(adminName.trim(), email.trim().toLowerCase(), pin, image1DataUri, image2DataUri);
-            toast({ title: 'اكتمل الإعداد!', description: `مرحباً بك، ${adminName.trim()}! تم إعداد حساب المدير.` });
+            setupAdmin(adminName.trim(), email.trim().toLowerCase(), pin);
+            toast({ title: 'اكتمل الإعداد!', description: `مرحباً بك، ${adminName.trim()}! تم إعداد حساب المدير العام.` });
         } catch (error) {
-             toast({ variant: 'destructive', title: 'خطأ في رفع الصور', description: 'حدثت مشكلة أثناء معالجة الصور. الرجاء المحاولة مرة أخرى.' });
+             toast({ variant: 'destructive', title: 'خطأ', description: 'حدثت مشكلة أثناء إعداد الحساب.' });
         }
     };
 
@@ -108,13 +54,13 @@ export default function SetupPage() {
                     </div>
                     <CardTitle className="text-2xl">مرحبًا بك في Midgram</CardTitle>
                     <CardDescription>
-                        لنبدأ بإعداد حساب المدير الخاص بك. هذا الحساب سيكون له صلاحيات كاملة على النظام.
+                        لنبدأ بإعداد حساب المدير العام للشركة. هذا الحساب سيكون له صلاحيات كاملة على النظام.
                     </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSubmit}>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="admin-name">اسم المدير</Label>
+                            <Label htmlFor="admin-name">اسم المدير العام</Label>
                             <Input id="admin-name" value={adminName} onChange={(e) => setAdminName(e.target.value)} placeholder="مثال: علي المدير" required />
                         </div>
                          <div className="space-y-2">
@@ -129,46 +75,6 @@ export default function SetupPage() {
                             <div className="space-y-2">
                                 <Label htmlFor="confirm-pin">تأكيد الرمز</Label>
                                 <Input id="confirm-pin" type="password" inputMode="numeric" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))} maxLength={4} required />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 pt-2">
-                            <div className="space-y-2">
-                                <Label htmlFor="image1">صورة الامتياز</Label>
-                                <div className="relative border-2 border-dashed border-muted-foreground/50 rounded-lg p-4 text-center hover:border-primary transition-colors">
-                                    {image1Preview ? (
-                                        <>
-                                            <Image src={image1Preview} alt="Preview 1" width={100} height={100} className="mx-auto rounded-md object-cover h-24 w-24" />
-                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 bg-destructive/80 text-destructive-foreground hover:bg-destructive" onClick={() => handleRemoveImage(1)}>
-                                                <X className="h-4 w-4" />
-                                            </Button>
-                                        </>
-                                    ) : (
-                                        <div className="space-y-1">
-                                            <UploadCloud className="mx-auto h-8 w-8 text-muted-foreground" />
-                                            <p className="text-sm text-muted-foreground">اسحب وأفلت أو انقر للرفع</p>
-                                        </div>
-                                    )}
-                                    <Input id="image1" ref={image1InputRef} type="file" accept="image/*" onChange={(e) => handleImageChange(e, 1)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required={!image1} />
-                                </div>
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="image2">صورة هوية النقابة</Label>
-                                <div className="relative border-2 border-dashed border-muted-foreground/50 rounded-lg p-4 text-center hover:border-primary transition-colors">
-                                    {image2Preview ? (
-                                        <>
-                                            <Image src={image2Preview} alt="Preview 2" width={100} height={100} className="mx-auto rounded-md object-cover h-24 w-24" />
-                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 bg-destructive/80 text-destructive-foreground hover:bg-destructive" onClick={() => handleRemoveImage(2)}>
-                                                <X className="h-4 w-4" />
-                                            </Button>
-                                        </>
-                                    ) : (
-                                        <div className="space-y-1">
-                                            <UploadCloud className="mx-auto h-8 w-8 text-muted-foreground" />
-                                            <p className="text-sm text-muted-foreground">اسحب وأفلت أو انقر للرفع</p>
-                                        </div>
-                                    )}
-                                    <Input id="image2" ref={image2InputRef} type="file" accept="image/*" onChange={(e) => handleImageChange(e, 2)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required={!image2}/>
-                                </div>
                             </div>
                         </div>
                     </CardContent>

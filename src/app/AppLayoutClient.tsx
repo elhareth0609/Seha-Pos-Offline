@@ -7,9 +7,11 @@ import { AppShell } from '@/components/layout/app-shell';
 import { Loader2 } from 'lucide-react';
 import SetupPage from '@/components/auth/SetupPage';
 import LoginPage from '@/components/auth/LoginPage';
+import { usePathname } from 'next/navigation';
 
 export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
-    const { loading, isSetup, isAuthenticated } = useAuth();
+    const { loading, isSetup, isAuthenticated, currentUser } = useAuth();
+    const pathname = usePathname();
 
     if (loading) {
         return (
@@ -21,6 +23,11 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
 
     if (!isSetup) {
         return <SetupPage />;
+    }
+    
+    // SuperAdmin has access to their own page without full login shell
+    if (pathname === '/superadmin' && currentUser?.role === 'SuperAdmin') {
+        return <>{children}</>;
     }
 
     if (!isAuthenticated) {
