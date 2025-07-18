@@ -51,14 +51,18 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useAuth } from '@/hooks/use-auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, Clock, Wallet, MoreVertical, Pencil } from 'lucide-react'
+import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, Clock, Wallet, MoreVertical, Pencil, Calendar as CalendarIcon } from 'lucide-react'
 import { clearAllDBData } from '@/hooks/use-local-storage'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import Image from 'next/image'
-import { differenceInMinutes, formatDistanceStrict } from 'date-fns'
+import { differenceInMinutes, format, formatDistanceStrict, isWithinInterval, parseISO } from 'date-fns'
 import { ar } from 'date-fns/locale'
 import { appSettings as fallbackSettings } from '@/lib/data'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
+import { DateRange } from 'react-day-picker'
+import { cn } from '@/lib/utils'
 
 
 const settingsSchema = z.object({
@@ -185,6 +189,7 @@ export default function SettingsPage() {
     const [editingUser, setEditingUser] = React.useState<User | null>(null);
     const [currentUserPermissions, setCurrentUserPermissions] = React.useState<UserPermissions | null>(null);
     const [currentUserHourlyRate, setCurrentUserHourlyRate] = React.useState<string>("");
+    const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
 
     const settingsForm = useForm<SettingsFormValues>({
         resolver: zodResolver(settingsSchema),
@@ -306,6 +311,7 @@ export default function SettingsPage() {
     const openTimeLogDialog = (user: User) => {
         setEditingUser(user);
         setCurrentUserHourlyRate(String(user.hourlyRate || 0));
+        setDateRange(undefined);
         setIsTimeLogDialogOpen(true);
     };
     
@@ -321,8 +327,21 @@ export default function SettingsPage() {
     };
 
     const pharmacyUsers = users.filter(u => u.pharmacyId === currentUser?.pharmacyId && u.role !== 'SuperAdmin');
-    const userTimeLogs = editingUser ? timeLogs.filter(log => log.userId === editingUser.id) : [];
-    const totalMinutes = userTimeLogs.reduce((acc, log) => {
+    
+    const filteredTimeLogs = React.useMemo(() => {
+        if (!editingUser) return [];
+        const userLogs = timeLogs.filter(log => log.userId === editingUser.id);
+        if (!dateRange || !dateRange.from) {
+            return userLogs;
+        }
+        const toDate = dateRange.to ? new Date(dateRange.to) : new Date(dateRange.from);
+        toDate.setHours(23, 59, 59, 999); // Include the whole end day
+
+        return userLogs.filter(log => isWithinInterval(parseISO(log.clockIn), { start: dateRange.from!, end: toDate }));
+    }, [editingUser, timeLogs, dateRange]);
+
+
+    const totalMinutes = filteredTimeLogs.reduce((acc, log) => {
         if (log.clockOut) {
             return acc + differenceInMinutes(new Date(log.clockOut), new Date(log.clockIn));
         }
@@ -640,7 +659,7 @@ export default function SettingsPage() {
         </Dialog>
         
         <Dialog open={isTimeLogDialogOpen} onOpenChange={setIsTimeLogDialogOpen}>
-            <DialogContent className="sm:max-w-3xl">
+            <DialogContent className="sm:max-w-4xl">
                 <DialogHeader>
                     <DialogTitle>سجل دوام الموظف: {editingUser?.name}</DialogTitle>
                     <DialogDescription>
@@ -654,6 +673,42 @@ export default function SettingsPage() {
                             <Input id="hourlyRate" type="number" value={currentUserHourlyRate} onChange={(e) => setCurrentUserHourlyRate(e.target.value)} className="w-24"/>
                             <Button onClick={handleSaveHourlyRate} size="sm">حفظ</Button>
                         </div>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <Button
+                                id="date"
+                                variant={"outline"}
+                                className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !dateRange && "text-muted-foreground"
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {dateRange?.from ? (
+                                dateRange.to ? (
+                                    <>
+                                    {format(dateRange.from, "LLL dd, y")} -{" "}
+                                    {format(dateRange.to, "LLL dd, y")}
+                                    </>
+                                ) : (
+                                    format(dateRange.from, "LLL dd, y")
+                                )
+                                ) : (
+                                <span>اختر نطاقًا زمنيًا</span>
+                                )}
+                            </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={dateRange?.from}
+                                selected={dateRange}
+                                onSelect={setDateRange}
+                                numberOfMonths={2}
+                            />
+                            </PopoverContent>
+                        </Popover>
                         <div className="max-h-64 overflow-y-auto border rounded-md">
                         <Table>
                             <TableHeader>
@@ -665,7 +720,7 @@ export default function SettingsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {userTimeLogs.map(log => {
+                                {filteredTimeLogs.map(log => {
                                     const duration = log.clockOut ? formatDistanceStrict(new Date(log.clockOut), new Date(log.clockIn), { locale: ar, unit: 'minute' }) : "جارٍ العمل";
                                     const minutes = log.clockOut ? differenceInMinutes(new Date(log.clockOut), new Date(log.clockIn)) : 0;
                                     const salary = (minutes / 60) * (editingUser?.hourlyRate || 0);
@@ -707,3 +762,4 @@ export default function SettingsPage() {
   )
 }
 
+    
