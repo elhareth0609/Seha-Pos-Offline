@@ -65,10 +65,9 @@ import { useAuth } from "@/hooks/use-auth";
 
 
 export default function InventoryPage() {
-  const { getScopedData } = useAuth();
-  const { inventory: inventoryData, trash: trashData } = getScopedData();
-  const [allInventory, setAllInventory] = inventoryData;
-  const [trash, setTrash] = trashData;
+  const { scopedData } = useAuth();
+  const [allInventory, setAllInventory] = scopedData.inventory;
+  const [trash, setTrash] = scopedData.trash;
 
   const [filteredInventory, setFilteredInventory] = React.useState<Medication[]>([]);
   const [searchTerm, setSearchTerm] = React.useState("");
