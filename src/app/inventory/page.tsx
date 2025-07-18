@@ -52,9 +52,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
-import { inventory as fallbackInventory, trash as fallbackTrash } from "@/lib/data"
 import type { Medication, TrashItem } from "@/lib/types"
-import { useLocalStorage } from "@/hooks/use-local-storage"
 import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -63,11 +61,15 @@ import Barcode from '@/components/ui/barcode';
 import { Progress } from "@/components/ui/progress";
 import { buttonVariants } from "@/components/ui/button";
 import { formatStock } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 
 export default function InventoryPage() {
-  const [allInventory, setAllInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
-  const [trash, setTrash] = useLocalStorage<TrashItem[]>('trash', fallbackTrash);
+  const { getScopedData } = useAuth();
+  const { inventory: inventoryData, trash: trashData } = getScopedData();
+  const [allInventory, setAllInventory] = inventoryData;
+  const [trash, setTrash] = trashData;
+
   const [filteredInventory, setFilteredInventory] = React.useState<Medication[]>([]);
   const [searchTerm, setSearchTerm] = React.useState("");
   
