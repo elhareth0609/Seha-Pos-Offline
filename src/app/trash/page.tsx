@@ -31,8 +31,6 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { useLocalStorage } from "@/hooks/use-local-storage"
-import { trash as fallbackTrash, inventory, patients, suppliers, users } from "@/lib/data"
 import type { TrashItem, Medication, Patient, Supplier, User } from "@/lib/types"
 import { Trash2, RotateCcw } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
@@ -40,13 +38,12 @@ import { buttonVariants } from "@/components/ui/button"
 
 
 export default function TrashPage() {
-  const [trash, setTrash] = useLocalStorage<TrashItem[]>('trash', fallbackTrash);
-  const [allInventory, setAllInventory] = useLocalStorage<Medication[]>('inventory', inventory);
-  const [allPatients, setAllPatients] = useLocalStorage<Patient[]>('patients', patients);
-  const [allSuppliers, setAllSuppliers] = useLocalStorage<Supplier[]>('suppliers', suppliers);
-  const { users, setUsers } = useAuth();
-
-  const { currentUser } = useAuth();
+  const { currentUser, users, setUsers, scopedData } = useAuth();
+  const { trash: [trash, setTrash] } = scopedData;
+  const { inventory: [allInventory, setAllInventory] } = scopedData;
+  const { patients: [allPatients, setAllPatients] } = scopedData;
+  const { suppliers: [allSuppliers, setAllSuppliers] } = scopedData;
+  
   const { toast } = useToast();
 
   const itemTypeLabels = {
@@ -68,7 +65,7 @@ export default function TrashPage() {
         setAllSuppliers(prev => [itemToRestore.data as Supplier, ...prev]);
         break;
        case 'user':
-        setUsers(prev => [itemToRestore.data as User, ...prev]);
+        setUsers(prev => [...(prev || []), itemToRestore.data as User]);
         break;
     }
     setTrash(prev => prev.filter(item => item.id !== itemToRestore.id));
@@ -85,7 +82,8 @@ export default function TrashPage() {
     toast({ variant: 'destructive', title: "تم تفريغ سلة المحذوفات" });
   }
 
-  const sortedTrash = trash.sort((a, b) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime());
+  const sortedTrash = Array.isArray(trash) ? [...trash].sort((a, b) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime()) : [];
+
 
   return (
     <Card>
