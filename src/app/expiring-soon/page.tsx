@@ -18,22 +18,22 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { inventory as fallbackInventory, appSettings as fallbackSettings } from "@/lib/data"
 import type { Medication, AppSettings } from "@/lib/types"
 import { differenceInDays, parseISO } from 'date-fns'
-import { useLocalStorage } from "@/hooks/use-local-storage"
 import { formatStock } from "@/lib/utils"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function ExpiringSoonPage() {
-  const [allInventory, setAllInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
-  const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
+  const { scopedData } = useAuth();
+  const [allInventory] = scopedData.inventory;
+  const [settings] = scopedData.settings;
   const [expiringMedications, setExpiringMedications] = React.useState<Medication[]>([]);
 
   const expirationThreshold = settings.expirationThresholdDays || 90;
 
   React.useEffect(() => {
     const today = new Date();
-    const filtered = allInventory.filter((item) => {
+    const filtered = (allInventory || []).filter((item) => {
         if (!item.expirationDate) return false;
         const expirationDate = parseISO(item.expirationDate);
         const daysUntilExpiration = differenceInDays(expirationDate, today);
