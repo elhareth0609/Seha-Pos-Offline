@@ -59,10 +59,6 @@ import Image from 'next/image'
 import { addDays, differenceInMinutes, endOfMonth, endOfWeek, format, formatDistanceStrict, isWithinInterval, parseISO, startOfMonth, startOfWeek, subMonths } from 'date-fns'
 import { ar } from 'date-fns/locale'
 import { appSettings as fallbackSettings } from '@/lib/data'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Calendar } from '@/components/ui/calendar'
-import { DateRange } from 'react-day-picker'
-import { cn } from '@/lib/utils'
 
 
 const settingsSchema = z.object({
@@ -189,7 +185,8 @@ export default function SettingsPage() {
     const [editingUser, setEditingUser] = React.useState<User | null>(null);
     const [currentUserPermissions, setCurrentUserPermissions] = React.useState<UserPermissions | null>(null);
     const [currentUserHourlyRate, setCurrentUserHourlyRate] = React.useState<string>("");
-    const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
+    const [dateFrom, setDateFrom] = React.useState<string>("");
+    const [dateTo, setDateTo] = React.useState<string>("");
 
     const settingsForm = useForm<SettingsFormValues>({
         resolver: zodResolver(settingsSchema),
@@ -311,7 +308,8 @@ export default function SettingsPage() {
     const openTimeLogDialog = (user: User) => {
         setEditingUser(user);
         setCurrentUserHourlyRate(String(user.hourlyRate || 0));
-        setDateRange(undefined);
+        setDateFrom("");
+        setDateTo("");
         setIsTimeLogDialogOpen(true);
     };
     
@@ -330,15 +328,23 @@ export default function SettingsPage() {
     
     const filteredTimeLogs = React.useMemo(() => {
         if (!editingUser) return [];
-        const userLogs = timeLogs.filter(log => log.userId === editingUser.id);
-        if (!dateRange || !dateRange.from) {
-            return userLogs;
+        let userLogs = timeLogs.filter(log => log.userId === editingUser.id);
+        
+        if (dateFrom && dateTo) {
+            const from = new Date(dateFrom);
+            const to = new Date(dateTo);
+            to.setHours(23, 59, 59, 999);
+            userLogs = userLogs.filter(log => isWithinInterval(parseISO(log.clockIn), { start: from, end: to }));
+        } else if (dateFrom) {
+            userLogs = userLogs.filter(log => new Date(log.clockIn) >= new Date(dateFrom));
+        } else if (dateTo) {
+            const to = new Date(dateTo);
+            to.setHours(23, 59, 59, 999);
+            userLogs = userLogs.filter(log => new Date(log.clockIn) <= to);
         }
-        const toDate = dateRange.to ? new Date(dateRange.to) : new Date(dateRange.from);
-        toDate.setHours(23, 59, 59, 999); // Include the whole end day
 
-        return userLogs.filter(log => isWithinInterval(parseISO(log.clockIn), { start: dateRange.from!, end: toDate }));
-    }, [editingUser, timeLogs, dateRange]);
+        return userLogs;
+    }, [editingUser, timeLogs, dateFrom, dateTo]);
 
 
     const totalMinutes = filteredTimeLogs.reduce((acc, log) => {
@@ -673,54 +679,18 @@ export default function SettingsPage() {
                             <Input id="hourlyRate" type="number" value={currentUserHourlyRate} onChange={(e) => setCurrentUserHourlyRate(e.target.value)} className="w-24"/>
                             <Button onClick={handleSaveHourlyRate} size="sm">حفظ</Button>
                         </div>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <Button
-                                id="date"
-                                variant={"outline"}
-                                className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !dateRange && "text-muted-foreground"
-                                )}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {dateRange?.from ? (
-                                dateRange.to ? (
-                                    <>
-                                    {format(dateRange.from, "LLL dd, y")} -{" "}
-                                    {format(dateRange.to, "LLL dd, y")}
-                                    </>
-                                ) : (
-                                    format(dateRange.from, "LLL dd, y")
-                                )
-                                ) : (
-                                <span>اختر نطاقًا زمنيًا</span>
-                                )}
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="flex p-0" align="start">
-                                <div className="p-3">
-                                    <div className="space-y-2">
-                                        <Button onClick={() => setDateRange({ from: new Date(), to: new Date() })} variant="ghost" className="w-full justify-start">اليوم</Button>
-                                        <Button onClick={() => setDateRange({ from: addDays(new Date(), -1), to: addDays(new Date(), -1) })} variant="ghost" className="w-full justify-start">الأمس</Button>
-                                        <Button onClick={() => setDateRange({ from: startOfWeek(new Date(), { weekStartsOn: 6 }), to: endOfWeek(new Date(), { weekStartsOn: 6 }) })} variant="ghost" className="w-full justify-start">هذا الأسبوع</Button>
-                                        <Button onClick={() => setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })} variant="ghost" className="w-full justify-start">هذا الشهر</Button>
-                                        <Button onClick={() => setDateRange({ from: startOfMonth(subMonths(new Date(), 1)), to: endOfMonth(subMonths(new Date(), 1)) })} variant="ghost" className="w-full justify-start">الشهر الماضي</Button>
-                                        <Button onClick={() => setDateRange(undefined)} variant="ghost" className="w-full justify-start text-destructive">إزالة الفلتر</Button>
-                                    </div>
-                                </div>
-                                <div className="border-r">
-                                    <Calendar
-                                        initialFocus
-                                        mode="range"
-                                        defaultMonth={dateRange?.from}
-                                        selected={dateRange}
-                                        onSelect={setDateRange}
-                                        numberOfMonths={1}
-                                    />
-                                </div>
-                            </PopoverContent>
-                        </Popover>
+                        <div className="flex gap-2 items-end">
+                            <div className="flex-1 space-y-2">
+                                <Label htmlFor="date-from">من تاريخ</Label>
+                                <Input id="date-from" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+                            </div>
+                            <div className="flex-1 space-y-2">
+                                <Label htmlFor="date-to">إلى تاريخ</Label>
+                                <Input id="date-to" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+                            </div>
+                            <Button onClick={() => { setDateFrom(""); setDateTo(""); }} variant="outline">مسح</Button>
+                        </div>
+
                         <div className="max-h-64 overflow-y-auto border rounded-md">
                         <Table>
                             <TableHeader>
@@ -773,5 +743,3 @@ export default function SettingsPage() {
     </div>
   )
 }
-
-    

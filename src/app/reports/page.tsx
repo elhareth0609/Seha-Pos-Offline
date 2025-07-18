@@ -30,16 +30,14 @@ import { Button } from "@/components/ui/button";
 import type { Sale, AppSettings } from '@/lib/types';
 import { useReactToPrint } from 'react-to-print';
 import { InvoiceTemplate } from '@/components/ui/invoice';
-import { Printer, DollarSign, TrendingUp, PieChart, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
+import { Printer, DollarSign, TrendingUp, PieChart, ChevronDown } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Skeleton } from '@/components/ui/skeleton';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { DateRange } from "react-day-picker"
-import { format, isWithinInterval, parseISO, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths } from "date-fns"
+import { format, isWithinInterval, parseISO } from "date-fns"
 import { useAuth } from '@/hooks/use-auth';
+import { Label } from '@/components/ui/label';
 
 
 export default function ReportsPage() {
@@ -49,7 +47,9 @@ export default function ReportsPage() {
     const [searchTerm, setSearchTerm] = React.useState("");
     const [isClient, setIsClient] = React.useState(false);
     const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
-    const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
+    const [dateFrom, setDateFrom] = React.useState<string>("");
+    const [dateTo, setDateTo] = React.useState<string>("");
+
 
     React.useEffect(() => {
         setIsClient(true);
@@ -78,14 +78,30 @@ export default function ReportsPage() {
         }
         setExpandedRows(newExpandedRows);
     };
+    
+    const clearFilters = () => {
+        setSearchTerm("");
+        setDateFrom("");
+        setDateTo("");
+    };
 
     const filteredSales = (sales || []).filter(sale => {
         const term = searchTerm.toLowerCase().trim();
         const saleDate = parseISO(sale.date);
         
-        const dateMatch = !dateRange?.from 
-            ? true 
-            : isWithinInterval(saleDate, { start: dateRange.from, end: dateRange.to || dateRange.from });
+        let dateMatch = true;
+        if (dateFrom && dateTo) {
+            const from = new Date(dateFrom);
+            const to = new Date(dateTo);
+            to.setHours(23, 59, 59, 999);
+            dateMatch = isWithinInterval(saleDate, { start: from, end: to });
+        } else if (dateFrom) {
+            dateMatch = saleDate >= new Date(dateFrom);
+        } else if (dateTo) {
+            const to = new Date(dateTo);
+            to.setHours(23, 59, 59, 999);
+            dateMatch = saleDate <= to;
+        }
 
         const searchMatch = !term ? true : (
             sale.id.toLowerCase().includes(term) ||
@@ -193,62 +209,28 @@ export default function ReportsPage() {
                 <CardHeader>
                     <CardTitle>سجل المبيعات</CardTitle>
                     <CardDescription>عرض وطباعة جميع فواتير المبيعات السابقة. اضغط على الصف لعرض التفاصيل.</CardDescription>
-                     <div className="pt-4 flex flex-wrap gap-2">
-                        <Input 
-                            placeholder="ابحث برقم الفاتورة، المريض، المادة، أو اكتب 'مرتجع'..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="max-w-sm"
-                        />
-                         <Popover>
-                            <PopoverTrigger asChild>
-                            <Button
-                                id="date"
-                                variant={"outline"}
-                                className={cn(
-                                "w-auto justify-start text-left font-normal",
-                                !dateRange && "text-muted-foreground"
-                                )}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {dateRange?.from ? (
-                                dateRange.to ? (
-                                    <>
-                                    {format(dateRange.from, "LLL dd, y")} -{" "}
-                                    {format(dateRange.to, "LLL dd, y")}
-                                    </>
-                                ) : (
-                                    format(dateRange.from, "LLL dd, y")
-                                )
-                                ) : (
-                                <span>اختر نطاقًا زمنيًا</span>
-                                )}
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="flex p-0" align="start">
-                                 <div className="p-3">
-                                    <div className="space-y-2">
-                                        <Button onClick={() => setDateRange({ from: new Date(), to: new Date() })} variant="ghost" className="w-full justify-start">اليوم</Button>
-                                        <Button onClick={() => setDateRange({ from: addDays(new Date(), -1), to: addDays(new Date(), -1) })} variant="ghost" className="w-full justify-start">الأمس</Button>
-                                        <Button onClick={() => setDateRange({ from: startOfWeek(new Date(), { weekStartsOn: 6 }), to: endOfWeek(new Date(), { weekStartsOn: 6 }) })} variant="ghost" className="w-full justify-start">هذا الأسبوع</Button>
-                                        <Button onClick={() => setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })} variant="ghost" className="w-full justify-start">هذا الشهر</Button>
-                                        <Button onClick={() => setDateRange({ from: startOfMonth(subMonths(new Date(), 1)), to: endOfMonth(subMonths(new Date(), 1)) })} variant="ghost" className="w-full justify-start">الشهر الماضي</Button>
-                                        <Button onClick={() => setDateRange(undefined)} variant="ghost" className="w-full justify-start text-destructive">إزالة الفلتر</Button>
-                                    </div>
-                                </div>
-                                <div className="border-r">
-                                    <Calendar
-                                        initialFocus
-                                        mode="range"
-                                        defaultMonth={dateRange?.from}
-                                        selected={dateRange}
-                                        onSelect={setDateRange}
-                                        numberOfMonths={1}
-                                    />
-                                </div>
-                            </PopoverContent>
-                        </Popover>
+                     <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
+                        <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="search-term">بحث</Label>
+                            <Input 
+                                id="search-term"
+                                placeholder="ابحث برقم الفاتورة، المريض، المادة، أو اكتب 'مرتجع'..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="date-from">من تاريخ</Label>
+                            <Input id="date-from" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="date-to">إلى تاريخ</Label>
+                            <Input id="date-to" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+                        </div>
                     </div>
+                     <div className="pt-2">
+                        <Button onClick={clearFilters} variant="link" className="p-0 h-auto">إزالة كل الفلاتر</Button>
+                     </div>
                 </CardHeader>
                 <CardContent>
                     <Table>
@@ -302,7 +284,7 @@ export default function ReportsPage() {
                                                         <TableBody>
                                                             {(sale.items || []).map((item, index) => (
                                                                 <TableRow key={`${sale.id}-${item.medicationId}-${index}`} className={cn(item.isReturn && "text-destructive")}>
-                                                                    <TableCell>{item.name} {item.saleUnit && `(${item.saleUnit})`}</TableCell>
+                                                                    <TableCell>{item.name}</TableCell>
                                                                     <TableCell className="font-mono">{item.quantity}</TableCell>
                                                                     <TableCell className="font-mono">{item.price.toLocaleString('ar-IQ')} د.ع</TableCell>
                                                                     <TableCell className="font-mono">{(item.quantity * item.price).toLocaleString('ar-IQ')} د.ع</TableCell>
@@ -355,4 +337,3 @@ export default function ReportsPage() {
         </div>
     )
 }
-
