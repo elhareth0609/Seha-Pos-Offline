@@ -14,11 +14,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import type { User } from '@/lib/types';
+import type { User, Sale } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MoreVertical, PlusCircle, Trash2, Pencil, ToggleLeft, ToggleRight, ShieldAlert, Settings, LogOut, Eye, EyeOff } from 'lucide-react';
+import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, DollarSign, Building } from 'lucide-react';
 import Link from 'next/link';
 
 const addAdminSchema = z.object({
@@ -29,7 +29,7 @@ const addAdminSchema = z.object({
 
 type AddAdminFormValues = z.infer<typeof addAdminSchema>;
 
-function AdminRow({ admin, onDelete, onToggleStatus }: { admin: User, onDelete: (user: User) => void, onToggleStatus: (user: User) => void }) {
+function AdminRow({ admin, onDelete, onToggleStatus, pharmacyData }: { admin: User, onDelete: (user: User) => void, onToggleStatus: (user: User) => void, pharmacyData: { employeeCount: number, totalSales: number } }) {
     const [showPin, setShowPin] = React.useState(false);
 
     return (
@@ -44,20 +44,19 @@ function AdminRow({ admin, onDelete, onToggleStatus }: { admin: User, onDelete: 
                     </Button>
                 </div>
             </TableCell>
+            <TableCell>{pharmacyData.employeeCount}</TableCell>
+            <TableCell className="font-mono">{pharmacyData.totalSales.toLocaleString('ar-IQ')} د.ع</TableCell>
             <TableCell>
                 <Badge variant={admin.status === 'active' ? 'secondary' : 'destructive'} className={admin.status === 'active' ? 'bg-green-100 text-green-800' : ''}>
                     {admin.status === 'active' ? 'فعال' : 'معلق'}
                 </Badge>
             </TableCell>
-            <TableCell>{new Date(admin.createdAt || Date.now()).toLocaleDateString('ar-EG')}</TableCell>
             <TableCell className="text-left">
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>إجراءات</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
                         <DropdownMenuItem onSelect={() => onToggleStatus(admin)}>
                             {admin.status === 'active' ? <ToggleLeft className="me-2"/> : <ToggleRight className="me-2" />}
                             {admin.status === 'active' ? 'تعليق الحساب' : 'إعادة تفعيل'}
@@ -83,7 +82,6 @@ function AdminRow({ admin, onDelete, onToggleStatus }: { admin: User, onDelete: 
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
-
                     </DropdownMenuContent>
                 </DropdownMenu>
             </TableCell>
@@ -92,7 +90,7 @@ function AdminRow({ admin, onDelete, onToggleStatus }: { admin: User, onDelete: 
 }
 
 export default function SuperAdminPage() {
-    const { currentUser, users, createPharmacyAdmin, deleteUser, toggleUserStatus, logout } = useAuth();
+    const { currentUser, users, createPharmacyAdmin, deleteUser, toggleUserStatus, logout, scopedData: allData } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const [isAddAdminOpen, setIsAddAdminOpen] = React.useState(false);
@@ -131,35 +129,70 @@ export default function SuperAdminPage() {
              if(success) toast({title: `تم تغيير حالة حساب ${user.name}`});
         })
     }
+    
+    const pharmacyAdmins = users.filter(u => u.role === 'Admin');
+    const totalEmployees = users.filter(u => u.role === 'Employee').length;
+    const totalSales = Object.values(allData.sales).flat().reduce((sum, sale) => sum + (sale.total || 0), 0);
+
+    const getPharmacyData = (pharmacyId: string) => {
+        const employeeCount = users.filter(u => u.pharmacyId === pharmacyId && u.role === 'Employee').length;
+        const totalSales = (allData.sales[pharmacyId] || []).reduce((sum, sale) => sum + (sale.total || 0), 0);
+        return { employeeCount, totalSales };
+    };
 
     if (!currentUser || currentUser.role !== 'SuperAdmin') {
-        return null; // or a loading spinner
+        return null;
     }
-
-    const pharmacyAdmins = users.filter(u => u.role === 'Admin');
 
     return (
         <div className="space-y-6">
+            <div className="flex justify-between items-start">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">لوحة تحكم الشركة</h1>
+                    <p className="text-muted-foreground">إدارة حسابات مديري الصيدليات المسجلة في النظام.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" asChild>
+                        <Link href="/superadmin/account">
+                            <Settings className="me-2"/>
+                            إعدادات الحساب
+                        </Link>
+                    </Button>
+                    <Button variant="secondary" onClick={logout}>
+                        <LogOut className="me-2"/>
+                        تسجيل الخروج
+                    </Button>
+                </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">عدد الصيدليات</CardTitle><Building className="h-4 w-4 text-muted-foreground" /></CardHeader>
+                    <CardContent><div className="text-2xl font-bold">{pharmacyAdmins.length}</div></CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">إجمالي الموظفين</CardTitle><Users className="h-4 w-4 text-muted-foreground" /></CardHeader>
+                    <CardContent><div className="text-2xl font-bold">{totalEmployees}</div></CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">إجمالي المبيعات</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader>
+                    <CardContent><div className="text-2xl font-bold">{totalSales.toLocaleString('ar-IQ')} د.ع</div></CardContent>
+                </Card>
+            </div>
+
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                        <CardTitle>لوحة تحكم الشركة</CardTitle>
-                        <CardDescription>إدارة حسابات مديري الصيدليات المسجلة في النظام.</CardDescription>
+                        <CardTitle>مدراء الصيدليات</CardTitle>
+                        <CardDescription>قائمة بجميع حسابات مدراء الصيدليات المسجلين.</CardDescription>
                     </div>
                      <div className="flex items-center gap-2">
-                        <Button variant="outline" asChild>
-                            <Link href="/superadmin/account">
-                                <Settings className="me-2"/>
-                                إعدادات الحساب
-                            </Link>
-                        </Button>
-                        <Button variant="secondary" onClick={logout}>
-                            <LogOut className="me-2"/>
-                            تسجيل الخروج
+                         <Button variant="outline" asChild>
+                            <Link href="/superadmin/reports"><FileText className="me-2"/> عرض التقارير</Link>
                         </Button>
                         <Dialog open={isAddAdminOpen} onOpenChange={setIsAddAdminOpen}>
                             <DialogTrigger asChild>
-                                <Button><PlusCircle className="me-2"/> إنشاء حساب مدير جديد</Button>
+                                <Button><PlusCircle className="me-2"/> إنشاء حساب مدير</Button>
                             </DialogTrigger>
                             <DialogContent>
                                 <DialogHeader>
@@ -193,8 +226,9 @@ export default function SuperAdminPage() {
                                 <TableHead>اسم المدير</TableHead>
                                 <TableHead>البريد الإلكتروني</TableHead>
                                 <TableHead>رمز PIN</TableHead>
+                                <TableHead>عدد الموظفين</TableHead>
+                                <TableHead>إجمالي المبيعات</TableHead>
                                 <TableHead>الحالة</TableHead>
-                                <TableHead>تاريخ الإنشاء</TableHead>
                                 <TableHead className="text-left">الإجراءات</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -204,7 +238,8 @@ export default function SuperAdminPage() {
                                     key={admin.id} 
                                     admin={admin} 
                                     onDelete={handleDeleteAdmin} 
-                                    onToggleStatus={handleToggleStatus} 
+                                    onToggleStatus={handleToggleStatus}
+                                    pharmacyData={getPharmacyData(admin.pharmacyId!)}
                                 />
                             ))}
                         </TableBody>
