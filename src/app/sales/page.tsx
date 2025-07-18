@@ -50,7 +50,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import { inventory as fallbackInventory, sales as fallbackSales, appSettings as fallbackSettings, patients as fallbackPatients } from "@/lib/data"
 import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput } from "@/lib/types"
 import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, ArrowLeft, ArrowRight, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
@@ -58,7 +57,6 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
-import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useReactToPrint } from "react-to-print"
 import { InvoiceTemplate } from "@/components/ui/invoice"
 import { useAuth } from "@/hooks/use-auth"
@@ -266,11 +264,11 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
 }
 
 export default function SalesPage() {
-  const [allInventory, setAllInventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
-  const [sales, setSales] = useLocalStorage<Sale[]>('sales', fallbackSales);
-  const [patients, setPatients] = useLocalStorage<Patient[]>('patients', fallbackPatients);
-  const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
-  const { currentUser } = useAuth();
+  const { scopedData, currentUser } = useAuth();
+  const [allInventory, setAllInventory] = scopedData.inventory;
+  const [sales, setSales] = scopedData.sales;
+  const [patients, setPatients] = scopedData.patients;
+  const [settings] = scopedData.settings;
   
   const [searchTerm, setSearchTerm] = React.useState("")
   const [suggestions, setSuggestions] = React.useState<Medication[]>([])
@@ -303,7 +301,7 @@ export default function SalesPage() {
     documentTitle: `invoice-${saleToPrint?.id || ''}`,
   });
   
-  const sortedSales = React.useMemo(() => (sales || []).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [sales]);
+  const sortedSales = React.useMemo(() => sales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [sales]);
 
   const addToCart = React.useCallback((medication: Medication) => {
     if (mode !== 'new') return;
@@ -328,7 +326,7 @@ export default function SalesPage() {
 
     if (value.length > 0) {
         const lowercasedFilter = value.toLowerCase();
-        const filtered = (allInventory || []).filter((item) =>
+        const filtered = allInventory.filter((item) =>
             (item.tradeName && item.tradeName.toLowerCase().startsWith(lowercasedFilter)) ||
             (item.id && item.id.toLowerCase().includes(lowercasedFilter))
         );
@@ -340,7 +338,7 @@ export default function SalesPage() {
 
   const handleScan = React.useCallback((result: string) => {
     if (mode !== 'new') return;
-    const scannedMedication = (allInventory || []).find(med => med.id === result);
+    const scannedMedication = allInventory.find(med => med.id === result);
     if (scannedMedication) {
       addToCart(scannedMedication);
       toast({ title: 'تمت الإضافة إلى السلة', description: `تمت إضافة ${scannedMedication.tradeName} بنجاح.` });
@@ -361,13 +359,13 @@ export default function SalesPage() {
         }
 
         const lowercasedSearchTerm = searchTerm.toLowerCase();
-        const medicationById = (allInventory || []).find(med => med.id && med.id.toLowerCase() === lowercasedSearchTerm);
+        const medicationById = allInventory.find(med => med.id && med.id.toLowerCase() === lowercasedSearchTerm);
         if (medicationById) {
             addToCart(medicationById);
             return;
         }
         
-        const medicationByName = (allInventory || []).find(med => med.tradeName && med.tradeName.toLowerCase() === lowercasedSearchTerm);
+        const medicationByName = allInventory.find(med => med.tradeName && med.tradeName.toLowerCase() === lowercasedSearchTerm);
         if (medicationByName) {
             addToCart(medicationByName);
             return;
@@ -439,7 +437,7 @@ export default function SalesPage() {
     
     for (const itemInCart of cart) {
         if (!itemInCart.isReturn) {
-            const med = (allInventory || []).find(m => m.id === itemInCart.medicationId);
+            const med = allInventory.find(m => m.id === itemInCart.medicationId);
             if (!med || med.stock < itemInCart.quantity) {
                 toast({ variant: 'destructive', title: `كمية غير كافية من ${itemInCart.name}`, description: `الكمية المطلوبة ${itemInCart.quantity}, المتوفر ${med?.stock ?? 0}` });
                 return;
@@ -501,7 +499,7 @@ export default function SalesPage() {
   const loadSaleForReview = (index: number) => {
     if (index >= 0 && index < sortedSales.length) {
         const saleToReview = sortedSales[index];
-        const patient = (patients || []).find(p => p.id === saleToReview.patientId);
+        const patient = patients.find(p => p.id === saleToReview.patientId);
         setCart(saleToReview.items);
         setDiscount(saleToReview.discount || 0);
         setDiscountInput((saleToReview.discount || 0).toString());
@@ -551,7 +549,7 @@ export default function SalesPage() {
       setIsPatientModalOpen(false);
   }
 
-  const filteredPatients = (patients || []).filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()));
+  const filteredPatients = patients.filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()));
 
   return (
     <>
@@ -661,7 +659,7 @@ export default function SalesPage() {
                               </TableHeader>
                               <TableBody>
                                   {cart.map((item) => {
-                                  const medInInventory = (allInventory || []).find(med => med.id === item.medicationId);
+                                  const medInInventory = allInventory.find(med => med.id === item.medicationId);
                                   const itemTotal = (item.isReturn ? -1 : 1) * item.price * item.quantity;
                                   const isBelowCost = item.price < item.purchasePrice;
                                   const itemProfit = (item.price - item.purchasePrice) * item.quantity;
@@ -756,7 +754,7 @@ export default function SalesPage() {
                                   <div className="space-y-4">
                                       <Input placeholder="ابحث بالاسم..." value={patientSearchTerm} onChange={(e) => setPatientSearchTerm(e.target.value)} />
                                       <ScrollArea className="h-48 border rounded-md">
-                                          {(filteredPatients || []).map(p => (
+                                          {filteredPatients.map(p => (
                                               <div key={p.id} onClick={() => { setSelectedPatient(p); setIsPatientModalOpen(false); }}
                                                   className="p-2 hover:bg-accent cursor-pointer">
                                                   {p.name}
