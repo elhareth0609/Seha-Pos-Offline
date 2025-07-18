@@ -171,14 +171,15 @@ export default function LoginPage() {
     const { toast } = useToast();
     const [selectedUser, setSelectedUser] = React.useState<string>("");
     
-    const pharmacyUsers = users.filter(u => u.role !== 'SuperAdmin');
+    const pharmacyUsers = users.filter(u => u.role === 'Admin' || u.role === 'Employee');
 
     React.useEffect(() => {
         if (pharmacyUsers.length > 0 && !selectedUser) {
-            setSelectedUser(pharmacyUsers[0].id)
-            setEmail(pharmacyUsers[0].email || '')
+            const defaultUser = pharmacyUsers.find(u => u.role === 'Admin') || pharmacyUsers[0];
+            setSelectedUser(defaultUser.id);
+            setEmail(defaultUser.email || '');
         }
-    }, [pharmacyUsers, selectedUser])
+    }, [pharmacyUsers, selectedUser]);
 
     const handleUserSelect = (userId: string) => {
         const user = pharmacyUsers.find(u => u.id === userId);
