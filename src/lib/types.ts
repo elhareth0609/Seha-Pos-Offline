@@ -25,7 +25,6 @@ export type Medication = {
   price: number; 
   purchasePrice: number; 
   expirationDate: string;
-  saleUnit?: string;
   dosage?: string;
   dosageForm?: string;
 };
@@ -39,7 +38,6 @@ export type SaleItem = {
   purchasePrice: number;
   expirationDate?: string;
   isReturn?: boolean;
-  saleUnit?: string;
   dosage?: string;
   dosageForm?: string;
 };

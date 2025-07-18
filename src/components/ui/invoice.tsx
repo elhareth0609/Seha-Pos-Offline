@@ -48,7 +48,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
           {sale.items.map((item) => (
             <tr key={`${item.medicationId}-${item.isReturn}`} className={cn("border-b border-dashed", item.isReturn && 'text-red-600')}>
               <td className="p-2">
-                <div>{item.name} {item.saleUnit && `(${item.saleUnit})`} {item.isReturn && "(مرتجع)"}</div>
+                <div>{item.name} {item.isReturn && "(مرتجع)"}</div>
                 {(item.scientificNames || []).length > 0 && (
                     <div className="text-xs text-gray-500">({(item.scientificNames || []).join(', ')})</div>
                 )}

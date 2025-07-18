@@ -64,7 +64,6 @@ import { buttonVariants } from "@/components/ui/button"
 import { calculateDose, type DoseCalculationInput } from "@/ai/flows/dose-calculator-flow"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useOnlineStatus } from "@/hooks/use-online-status"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 
 function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => void; onOpenChange: (isOpen: boolean) => void }) {
@@ -324,7 +323,6 @@ export default function SalesPage() {
           purchasePrice: medication.purchasePrice, 
           expirationDate: medication.expirationDate, 
           isReturn: false, 
-          saleUnit: medication.saleUnit,
           dosage: medication.dosage,
           dosageForm: medication.dosageForm,
         }]
@@ -598,7 +596,7 @@ export default function SalesPage() {
                                                                   <Package className="h-4 w-4" />
                                                               </div>
                                                           )}
-                                                          <span>{med.name} {med.saleUnit && `(${med.saleUnit})`}</span>
+                                                          <span>{med.name}</span>
                                                       </div>
                                                        <span className="text-sm text-muted-foreground font-mono">{med.price.toLocaleString('ar-IQ')} د.ع</span>
                                                   </li>
@@ -689,9 +687,6 @@ export default function SalesPage() {
                                                   )}
                                                   <div className="flex-1">
                                                       <div className="font-medium">{item.name}</div>
-                                                      <div className="text-xs text-muted-foreground">
-                                                         {item.saleUnit}
-                                                      </div>
                                                       <div className="text-xs text-muted-foreground mt-1 flex items-center gap-x-2">
                                                           <span className="font-mono">الكلفة: {item.purchasePrice.toLocaleString('ar-IQ')} د.ع</span>
                                                           <span className={cn("font-medium", itemProfit >= 0 ? "text-green-600" : "text-destructive")}>
@@ -849,7 +844,7 @@ export default function SalesPage() {
                                                   <TableBody>
                                                       {cart.map(item => (
                                                           <TableRow key={item.medicationId} className={cn(item.isReturn && "text-destructive")}>
-                                                              <TableCell>{item.name} {item.saleUnit && `(${item.saleUnit})`} {item.isReturn && "(مرتجع)"}</TableCell>
+                                                              <TableCell>{item.name} {item.isReturn && "(مرتجع)"}</TableCell>
                                                               <TableCell className="text-center font-mono">{item.quantity}</TableCell>
                                                               <TableCell className="text-left font-mono">{((item.isReturn ? -1 : 1) * item.price * item.quantity).toLocaleString('ar-IQ')} د.ع</TableCell>
                                                           </TableRow>

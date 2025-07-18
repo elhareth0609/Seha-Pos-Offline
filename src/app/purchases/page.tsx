@@ -42,7 +42,6 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import type { PurchaseOrder, Medication, Supplier, ReturnOrder, PurchaseOrderItem, ReturnOrderItem } from "@/lib/types"
 import { PlusCircle, ChevronDown, Trash2, UploadCloud, X } from "lucide-react"
-import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth";
 
@@ -76,7 +75,6 @@ export default function PurchasesPage() {
   const [purchaseSupplierId, setPurchaseSupplierId] = React.useState('');
   const [purchaseMedicationId, setPurchaseMedicationId] = React.useState('');
   const [purchaseMedicationName, setPurchaseMedicationName] = React.useState('');
-  const [purchaseSaleUnit, setPurchaseSaleUnit] = React.useState('قطعة');
   const [purchaseQuantity, setPurchaseQuantity] = React.useState('');
   const [purchaseExpirationDate, setPurchaseExpirationDate] = React.useState('');
   const [purchasePurchasePrice, setPurchasePurchasePrice] = React.useState('');
@@ -157,7 +155,6 @@ export default function PurchasesPage() {
     setPurchaseMedicationId('');
     setPurchaseMedicationName('');
     setScientificNames('');
-    setPurchaseSaleUnit('قطعة');
     setPurchaseQuantity('');
     setPurchaseExpirationDate('');
     setPurchasePurchasePrice('');
@@ -210,7 +207,6 @@ export default function PurchasesPage() {
       existingMed.purchasePrice = purchasePrice;
       existingMed.expirationDate = purchaseExpirationDate;
       existingMed.name = purchaseMedicationName;
-      existingMed.saleUnit = purchaseSaleUnit;
       existingMed.scientificNames = scientificNamesArray;
       if (imageUrl) existingMed.imageUrl = imageUrl;
       newInventory[medicationIndex] = existingMed;
@@ -231,7 +227,6 @@ export default function PurchasesPage() {
           price: sellingPrice,
           purchasePrice: purchasePrice,
           expirationDate: purchaseExpirationDate,
-          saleUnit: purchaseSaleUnit,
       };
       newInventory.unshift(newMedication);
       toast({
@@ -466,14 +461,11 @@ export default function PurchasesPage() {
                         </div>
                      </div>
                     
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="space-y-2"><Label htmlFor="quantity">الكمية</Label><Input id="quantity" type="number" required value={purchaseQuantity} onChange={e => setPurchaseQuantity(e.target.value)} /></div>
                         <div className="space-y-2"><Label htmlFor="expirationDate">تاريخ الانتهاء</Label><Input id="expirationDate" type="date" required value={purchaseExpirationDate} onChange={e => setPurchaseExpirationDate(e.target.value)} /></div>
                         <div className="space-y-2"><Label htmlFor="purchasePricePerPurchaseUnit">سعر الشراء</Label><Input id="purchasePricePerPurchaseUnit" type="number" required value={purchasePurchasePrice} onChange={e => setPurchasePurchasePrice(e.target.value)} /></div>
-                    </div>
-                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                         <div className="space-y-2"><Label htmlFor="sellingPricePerSaleUnit">سعر البيع</Label><Input id="sellingPricePerSaleUnit" type="number" required value={purchaseSellingPrice} onChange={e => setPurchaseSellingPrice(e.target.value)} /></div>
-                        <div className="space-y-2"><Label htmlFor="saleUnit">وحدة البيع</Label><Input id="saleUnit" value={purchaseSaleUnit} onChange={e => setPurchaseSaleUnit(e.target.value)} /></div>
+                        <div className="space-y-2"><Label htmlFor="sellingPricePerSaleUnit">سعر البيع</Label><Input id="sellingPricePerSaleUnit" type="number" required value={purchaseSellingPrice} onChange={e => setPurchaseSellingPrice(e.target.value)} /></div>
                     </div>
                 </div>
 
@@ -620,7 +612,7 @@ export default function PurchasesPage() {
                     </div>
                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="return-quantity">الكمية المرتجعة (بالجزء)</Label>
+                            <Label htmlFor="return-quantity">الكمية المرتجعة</Label>
                             <Input id="return-quantity" type="number" value={returnItemQuantity} onChange={e => setReturnItemQuantity(e.target.value)} required min="1" disabled={!selectedMedForReturn} />
                         </div>
                         <div className="space-y-2">

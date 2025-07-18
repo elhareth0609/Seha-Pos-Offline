@@ -164,7 +164,6 @@ export default function InventoryPage() {
           name: formData.get('name') as string,
           reorderPoint: parseInt(formData.get('reorderPoint') as string, 10),
           price: parseFloat(formData.get('price') as string),
-          saleUnit: formData.get('saleUnit') as string,
       }
       
       setAllInventory(prev => (prev || []).map(m => m.id === updatedMed.id ? updatedMed : m));
@@ -260,7 +259,6 @@ export default function InventoryPage() {
                       price: 0,
                       purchasePrice: 0,
                       expirationDate: formattedExpDate,
-                      saleUnit: 'قطعة', 
                     };
                     inventoryMap.set(medId, newMed);
                     addedCount++;
@@ -319,7 +317,6 @@ export default function InventoryPage() {
                             <TableRow>
                                 <TableHead>الباركود</TableHead>
                                 <TableHead>الاسم</TableHead>
-                                <TableHead>وحدة البيع</TableHead>
                                 <TableHead className="text-center">المخزون</TableHead>
                                 <TableHead className="text-center">نقطة إعادة الطلب</TableHead>
                                 <TableHead>تاريخ الانتهاء</TableHead>
@@ -333,7 +330,6 @@ export default function InventoryPage() {
                                 <TableRow key={i}>
                                     <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-40" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
@@ -392,7 +388,6 @@ export default function InventoryPage() {
               <TableRow>
                 <TableHead>الباركود</TableHead>
                 <TableHead>الاسم</TableHead>
-                <TableHead>وحدة البيع</TableHead>
                 <TableHead className="text-center">المخزون</TableHead>
                 <TableHead className="text-center">نقطة إعادة الطلب</TableHead>
                 <TableHead>تاريخ الانتهاء</TableHead>
@@ -417,7 +412,6 @@ export default function InventoryPage() {
                         <span>{item.name}</span>
                     </div>
                   </TableCell>
-                  <TableCell>{item.saleUnit || '-'}</TableCell>
                   <TableCell className="text-center font-mono">{item.stock}</TableCell>
                   <TableCell className="text-center font-mono">{item.reorderPoint}</TableCell>
                   <TableCell className="font-mono">{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
@@ -496,10 +490,6 @@ export default function InventoryPage() {
                                   <Label htmlFor="edit-price">سعر البيع (د.ع)</Label>
                                   <Input id="edit-price" name="price" type="number" step="1" defaultValue={editingMed.price} required />
                               </div>
-                          </div>
-                           <div className="space-y-2">
-                              <Label htmlFor="edit-saleUnit">وحدة البيع</Label>
-                              <Input id="edit-saleUnit" name="saleUnit" defaultValue={editingMed.saleUnit || ''} />
                           </div>
                           <DialogFooter>
                               <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
