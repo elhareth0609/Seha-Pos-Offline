@@ -27,8 +27,6 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useLocalStorage } from '@/hooks/use-local-storage';
-import { sales as fallbackSales, appSettings as fallbackSettings } from '@/lib/data';
 import type { Sale, AppSettings } from '@/lib/types';
 import { useReactToPrint } from 'react-to-print';
 import { InvoiceTemplate } from '@/components/ui/invoice';
@@ -41,11 +39,13 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { DateRange } from "react-day-picker"
 import { format, isWithinInterval, parseISO } from "date-fns"
+import { useAuth } from '@/hooks/use-auth';
 
 
 export default function ReportsPage() {
-    const [sales] = useLocalStorage<Sale[]>('sales', fallbackSales);
-    const [settings] = useLocalStorage<AppSettings>('appSettings', fallbackSettings);
+    const { scopedData } = useAuth();
+    const [sales] = scopedData.sales;
+    const [settings] = scopedData.settings;
     const [searchTerm, setSearchTerm] = React.useState("");
     const [isClient, setIsClient] = React.useState(false);
     const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
