@@ -52,6 +52,8 @@ const adminPermissions: UserPermissions = {
     sales: true, inventory: true, purchases: true, suppliers: true, reports: true, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: true, trash: true,
 };
 
+const emptyDataSetter = () => { console.warn("Attempted to set data without a valid pharmacy context."); };
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useLocalStorage<User[]>('users', fallbackUsers);
   const [currentUser, setCurrentUser] = useLocalStorage<User | null>('currentUser', null);
@@ -79,50 +81,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  const getScopedData = React.useCallback((): ScopedDataContextType => {
-        const pharmacyId = currentUser?.pharmacyId;
+  const getScopedData = React.useCallback(() => {
+    const pharmacyId = currentUser?.pharmacyId;
 
-        const emptySetter = () => { console.warn("Attempted to set data without a valid pharmacy context."); };
-        const createSetter = <T,>(setter: React.Dispatch<React.SetStateAction<{ [key: string]: T[] }>>, fallback: T[]) => 
-            (value: T[] | ((val: T[]) => T[])) => 
-                setter(prev => ({ ...prev, [pharmacyId!]: typeof value === 'function' ? value(prev[pharmacyId!] || fallback) : value }));
-
-        const setScopedInventory = createSetter(setAllInventory, []);
-        const setScopedSales = createSetter(setAllSales, []);
-        const setScopedSuppliers = createSetter(setAllSuppliers, []);
-        const setScopedPatients = createSetter(setAllPatients, []);
-        const setScopedTrash = createSetter(setAllTrash, []);
-        const setScopedPayments = createSetter(setAllPayments, []);
-        const setScopedPurchaseOrders = createSetter(setAllPurchaseOrders, []);
-        const setScopedSupplierReturns = createSetter(setAllSupplierReturns, []);
-        const setScopedTimeLogs = createSetter(setAllTimeLogs, []);
-        const setScopedSettings = (value: AppSettings | ((val: AppSettings) => AppSettings)) => {
-            setAllAppSettings(p => ({ ...p, [pharmacyId!]: typeof value === 'function' ? value(p[pharmacyId!] || fallbackAppSettings) : value }));
+    const createSetter = <T,>(setter: React.Dispatch<React.SetStateAction<{ [key: string]: T[] }>>, fallback: T[]) => 
+        (value: T[] | ((val: T[]) => T[])) => {
+            if (pharmacyId) {
+                setter(prev => ({ ...prev, [pharmacyId]: typeof value === 'function' ? value(prev[pharmacyId] || fallback) : value }));
+            }
         };
-        
-        if (!pharmacyId) {
-            return {
-                inventory: [[], emptySetter as any], sales: [[], emptySetter as any],
-                suppliers: [[], emptySetter as any], patients: [[], emptySetter as any],
-                trash: [[], emptySetter as any], payments: [[], emptySetter as any],
-                purchaseOrders: [[], emptySetter as any], supplierReturns: [[], emptySetter as any],
-                timeLogs: [[], emptySetter as any], settings: [fallbackAppSettings, emptySetter as any],
-            };
+
+    const setScopedSettings = (value: AppSettings | ((val: AppSettings) => AppSettings)) => {
+        if (pharmacyId) {
+            setAllAppSettings(p => ({ ...p, [pharmacyId]: typeof value === 'function' ? value(p[pharmacyId] || fallbackAppSettings) : value }));
         }
-
+    };
+    
+    if (!pharmacyId) {
         return {
-            inventory: [allInventory[pharmacyId] || [], setScopedInventory],
-            sales: [allSales[pharmacyId] || [], setScopedSales],
-            suppliers: [allSuppliers[pharmacyId] || [], setScopedSuppliers],
-            patients: [allPatients[pharmacyId] || [], setScopedPatients],
-            trash: [allTrash[pharmacyId] || [], setScopedTrash],
-            payments: [allPayments[pharmacyId] || [], setScopedPayments],
-            purchaseOrders: [allPurchaseOrders[pharmacyId] || [], setScopedPurchaseOrders],
-            supplierReturns: [allSupplierReturns[pharmacyId] || [], setScopedSupplierReturns],
-            timeLogs: [allTimeLogs[pharmacyId] || [], setScopedTimeLogs],
-            settings: [allAppSettings[pharmacyId] || fallbackAppSettings, setScopedSettings],
+            inventory: [[], emptyDataSetter as any] as [Medication[], (value: Medication[] | ((val: Medication[]) => Medication[])) => void],
+            sales: [[], emptyDataSetter as any] as [Sale[], (value: Sale[] | ((val: Sale[]) => Sale[])) => void],
+            suppliers: [[], emptyDataSetter as any] as [Supplier[], (value: Supplier[] | ((val: Supplier[]) => Supplier[])) => void],
+            patients: [[], emptyDataSetter as any] as [Patient[], (value: Patient[] | ((val: Patient[]) => Patient[])) => void],
+            trash: [[], emptyDataSetter as any] as [TrashItem[], (value: TrashItem[] | ((val: TrashItem[]) => TrashItem[])) => void],
+            payments: [[], emptyDataSetter as any] as [SupplierPayment[], (value: SupplierPayment[] | ((val: SupplierPayment[]) => SupplierPayment[])) => void],
+            purchaseOrders: [[], emptyDataSetter as any] as [PurchaseOrder[], (value: PurchaseOrder[] | ((val: PurchaseOrder[]) => PurchaseOrder[])) => void],
+            supplierReturns: [[], emptyDataSetter as any] as [ReturnOrder[], (value: ReturnOrder[] | ((val: ReturnOrder[]) => ReturnOrder[])) => void],
+            timeLogs: [[], emptyDataSetter as any] as [TimeLog[], (value: TimeLog[] | ((val: TimeLog[]) => TimeLog[])) => void],
+            settings: [fallbackAppSettings, emptyDataSetter as any] as [AppSettings, (value: AppSettings | ((val: AppSettings) => AppSettings)) => void],
         };
-    }, [currentUser?.pharmacyId, allAppSettings, allInventory, allSales, allSuppliers, allPatients, allTrash, allPayments, allPurchaseOrders, allSupplierReturns, allTimeLogs, setAllAppSettings, setAllInventory, setAllSales, setAllSuppliers, setAllPatients, setAllTrash, setAllPayments, setAllPurchaseOrders, setAllSupplierReturns, setAllTimeLogs]);
+    }
+
+    return {
+        inventory: [allInventory[pharmacyId] || [], createSetter(setAllInventory, [])],
+        sales: [allSales[pharmacyId] || [], createSetter(setAllSales, [])],
+        suppliers: [allSuppliers[pharmacyId] || [], createSetter(setAllSuppliers, [])],
+        patients: [allPatients[pharmacyId] || [], createSetter(setAllPatients, [])],
+        trash: [allTrash[pharmacyId] || [], createSetter(setAllTrash, [])],
+        payments: [allPayments[pharmacyId] || [], createSetter(setAllPayments, [])],
+        purchaseOrders: [allPurchaseOrders[pharmacyId] || [], createSetter(setAllPurchaseOrders, [])],
+        supplierReturns: [allSupplierReturns[pharmacyId] || [], createSetter(setAllSupplierReturns, [])],
+        timeLogs: [allTimeLogs[pharmacyId] || [], createSetter(setAllTimeLogs, [])],
+        settings: [allAppSettings[pharmacyId] || fallbackAppSettings, setScopedSettings],
+    };
+  }, [
+    currentUser?.pharmacyId,
+    allInventory, setAllInventory,
+    allSales, setAllSales,
+    allSuppliers, setAllSuppliers,
+    allPatients, setAllPatients,
+    allTrash, setAllTrash,
+    allPayments, setAllPayments,
+    allPurchaseOrders, setAllPurchaseOrders,
+    allSupplierReturns, setAllSupplierReturns,
+    allTimeLogs, setAllTimeLogs,
+    allAppSettings, setAllAppSettings
+  ]);
+
+
+  const memoizedScopedData = React.useMemo(() => getScopedData(), [getScopedData]);
 
 
   const setupAdmin = async (name: string, email: string, pin: string) => {
@@ -315,7 +332,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAllAppSettings(p => { const newP = {...p}; delete newP[pharmacyIdToDelete!]; return newP; });
 
     } else if (currentUser?.role === 'Admin' && userToDelete.role === 'Employee' && currentUser.pharmacyId && userToDelete.pharmacyId === currentUser.pharmacyId) {
-        const [trash, setTrash] = getScopedData().trash;
+        const [trash, setTrash] = memoizedScopedData.trash;
         const newTrashItem: TrashItem = {
              id: `TRASH-${Date.now()}`,
              deletedAt: new Date().toISOString(),
@@ -334,7 +351,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = !!currentUser;
 
   return (
-    <AuthContext.Provider value={{ currentUser, users, setUsers, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, getScopedData }}>
+    <AuthContext.Provider value={{ currentUser, users, setUsers, isAuthenticated, loading, isSetup, setupAdmin, login, logout, registerUser, checkUserExists, resetPin, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, getScopedData: memoizedScopedData }}>
       {children}
     </AuthContext.Provider>
   );
@@ -347,5 +364,3 @@ export function useAuth() {
   }
   return context;
 }
-
-    
