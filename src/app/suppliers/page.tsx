@@ -62,12 +62,12 @@ type StatementItem = {
 };
 
 export default function SuppliersPage() {
-  const { getScopedData } = useAuth();
-  const [suppliers, setSuppliers] = getScopedData().suppliers;
-  const [purchaseOrders, setPurchaseOrders] = getScopedData().payments;
-  const [supplierReturns] = getScopedData().payments;
-  const [supplierPayments, setSupplierPayments] = getScopedData().payments;
-  const [trash, setTrash] = getScopedData().trash;
+  const { scopedData } = useAuth();
+  const [suppliers, setSuppliers] = scopedData.suppliers;
+  const [purchaseOrders] = scopedData.purchaseOrders;
+  const [supplierReturns] = scopedData.supplierReturns;
+  const [supplierPayments, setSupplierPayments] = scopedData.payments;
+  const [trash, setTrash] = scopedData.trash;
 
   const [isClient, setIsClient] = React.useState(false)
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
