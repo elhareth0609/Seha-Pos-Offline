@@ -20,12 +20,11 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { useLocalStorage } from "@/hooks/use-local-storage"
-import { inventory as fallbackInventory, sales as fallbackSales, purchaseOrders as fallbackPurchaseOrders, supplierReturns as fallbackSupplierReturns } from "@/lib/data"
 import type { Medication, Sale, PurchaseOrder, ReturnOrder } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Repeat, PackageSearch, ArrowUp, ArrowDown, ShoppingCart, Truck, Undo2, RotateCcw, Package } from "lucide-react"
 import { formatStock } from "@/lib/utils"
+import { useAuth } from "@/hooks/use-auth"
 
 type TransactionHistoryItem = {
     date: string;
@@ -38,10 +37,11 @@ type TransactionHistoryItem = {
 };
 
 export default function ItemMovementPage() {
-    const [inventory] = useLocalStorage<Medication[]>('inventory', fallbackInventory);
-    const [sales] = useLocalStorage<Sale[]>('sales', fallbackSales);
-    const [purchaseOrders] = useLocalStorage<PurchaseOrder[]>('purchaseOrders', fallbackPurchaseOrders);
-    const [supplierReturns] = useLocalStorage<ReturnOrder[]>('supplierReturns', fallbackSupplierReturns);
+    const { scopedData } = useAuth();
+    const [inventory] = scopedData.inventory;
+    const [sales] = scopedData.sales;
+    const [purchaseOrders] = scopedData.purchaseOrders;
+    const [supplierReturns] = scopedData.supplierReturns;
     
     const [isClient, setIsClient] = React.useState(false);
     const [searchTerm, setSearchTerm] = React.useState("");
