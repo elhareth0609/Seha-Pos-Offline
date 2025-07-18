@@ -19,12 +19,15 @@ export type Medication = {
   id: string; 
   name: string; 
   scientificNames?: string[];
+  imageUrl?: string;
   stock: number;
   reorderPoint: number;
   price: number; 
   purchasePrice: number; 
   expirationDate: string;
   saleUnit?: string;
+  dosage?: string;
+  dosageForm?: string;
 };
 
 export type SaleItem = {
@@ -37,6 +40,8 @@ export type SaleItem = {
   expirationDate?: string;
   isReturn?: boolean;
   saleUnit?: string;
+  dosage?: string;
+  dosageForm?: string;
 };
 
 export type Sale = {

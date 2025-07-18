@@ -82,6 +82,8 @@ export default function PurchasesPage() {
   const [purchasePurchasePrice, setPurchasePurchasePrice] = React.useState('');
   const [purchaseSellingPrice, setPurchaseSellingPrice] = React.useState('');
   const [scientificNames, setScientificNames] = React.useState('');
+  const [imageFile, setImageFile] = React.useState<File | null>(null);
+  const [imagePreview, setImagePreview] = React.useState<string | null>(null);
 
 
   // State for return form
@@ -143,6 +145,14 @@ export default function PurchasesPage() {
     setExpandedRows(newExpandedRows);
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+          const file = e.target.files[0];
+          setImageFile(file);
+          setImagePreview(URL.createObjectURL(file));
+      }
+  };
+
   const resetForm = () => {
     setPurchaseMedicationId('');
     setPurchaseMedicationName('');
@@ -152,6 +162,8 @@ export default function PurchasesPage() {
     setPurchaseExpirationDate('');
     setPurchasePurchasePrice('');
     setPurchaseSellingPrice('');
+    setImageFile(null);
+    setImagePreview(null);
     document.getElementById('medicationId')?.focus();
   };
 
@@ -180,12 +192,18 @@ export default function PurchasesPage() {
     
     const scientificNamesArray = scientificNames.split(',').map(name => name.trim()).filter(Boolean);
     
+    let imageUrl: string | undefined = undefined;
+    if (imageFile) {
+        imageUrl = await fileToDataUri(imageFile);
+    }
+    
     const itemTotal = purchasePrice * quantity;
 
     let newInventory = [...(inventory || [])];
     let medicationIndex = newInventory.findIndex(m => m.id === medicationId);
 
     if (medicationIndex !== -1) {
+      // Medication exists, update it
       const existingMed = newInventory[medicationIndex];
       existingMed.stock += quantity;
       existingMed.price = sellingPrice;
@@ -194,6 +212,7 @@ export default function PurchasesPage() {
       existingMed.name = purchaseMedicationName;
       existingMed.saleUnit = purchaseSaleUnit;
       existingMed.scientificNames = scientificNamesArray;
+      if (imageUrl) existingMed.imageUrl = imageUrl;
       newInventory[medicationIndex] = existingMed;
       toast({
           title: "تم تحديث الرصيد",
@@ -201,12 +220,14 @@ export default function PurchasesPage() {
         });
 
     } else {
+      // New medication, add it
       const newMedication: Medication = {
           id: medicationId,
           name: purchaseMedicationName,
           scientificNames: scientificNamesArray,
+          imageUrl: imageUrl,
           stock: quantity,
-          reorderPoint: 20,
+          reorderPoint: 20, // default
           price: sellingPrice,
           purchasePrice: purchasePrice,
           expirationDate: purchaseExpirationDate,
@@ -218,6 +239,7 @@ export default function PurchasesPage() {
           description: `تمت إضافة ${quantity} من ${purchaseMedicationName} إلى المخزون.`,
         });
     }
+
     setInventory(newInventory);
     
     let newPurchaseOrders = [...(purchaseOrders || [])];
@@ -245,6 +267,7 @@ export default function PurchasesPage() {
         };
         newPurchaseOrders.unshift(newOrder);
     }
+
     setPurchaseOrders(newPurchaseOrders);
     
     resetForm();
@@ -422,17 +445,35 @@ export default function PurchasesPage() {
                 </div>
                 
                 <div className="border-t pt-6 space-y-4">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2"><Label htmlFor="medicationId">الباركود (يترك فارغاً للتوليد)</Label><Input id="medicationId" value={purchaseMedicationId} onChange={e => setPurchaseMedicationId(e.target.value)} /></div>
-                        <div className="space-y-2"><Label htmlFor="tradeName">الاسم التجاري</Label><Input id="tradeName" required value={purchaseMedicationName} onChange={e => setPurchaseMedicationName(e.target.value)} /></div>
-                        <div className="space-y-2 sm:col-span-2"><Label htmlFor="scientificNames">الاسم العلمي (يفصل بينها بفاصلة ,)</Label><Input id="scientificNames" value={scientificNames} onChange={e => setScientificNames(e.target.value)} /></div>
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+                        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2"><Label htmlFor="medicationId">الباركود (يترك فارغاً للتوليد)</Label><Input id="medicationId" value={purchaseMedicationId} onChange={e => setPurchaseMedicationId(e.target.value)} /></div>
+                            <div className="space-y-2"><Label htmlFor="tradeName">الاسم التجاري</Label><Input id="tradeName" required value={purchaseMedicationName} onChange={e => setPurchaseMedicationName(e.target.value)} /></div>
+                            <div className="space-y-2 sm:col-span-2"><Label htmlFor="scientificNames">الاسم العلمي (يفصل بينها بفاصلة ,)</Label><Input id="scientificNames" value={scientificNames} onChange={e => setScientificNames(e.target.value)} /></div>
+                        </div>
+
+                         <div className="space-y-2">
+                            <Label htmlFor="itemImage">صورة المنتج (اختياري)</Label>
+                            <Input id="itemImage" type="file" accept="image/*" onChange={handleImageChange} className="pt-2 text-xs h-10" />
+                            {imagePreview && (
+                                <div className="relative mt-2 w-24 h-24">
+                                  <Image src={imagePreview} alt="معاينة" layout="fill" className="rounded-md object-cover" />
+                                  <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => { setImageFile(null); setImagePreview(null); }}>
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                            )}
+                        </div>
                      </div>
                     
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <div className="space-y-2"><Label htmlFor="quantity">الكمية</Label><Input id="quantity" type="number" required value={purchaseQuantity} onChange={e => setPurchaseQuantity(e.target.value)} /></div>
                         <div className="space-y-2"><Label htmlFor="expirationDate">تاريخ الانتهاء</Label><Input id="expirationDate" type="date" required value={purchaseExpirationDate} onChange={e => setPurchaseExpirationDate(e.target.value)} /></div>
                         <div className="space-y-2"><Label htmlFor="purchasePricePerPurchaseUnit">سعر الشراء</Label><Input id="purchasePricePerPurchaseUnit" type="number" required value={purchasePurchasePrice} onChange={e => setPurchasePurchasePrice(e.target.value)} /></div>
-                        <div className="space-y-2"><Label htmlFor="sellingPricePerSaleUnit">سعر البيع</Label><Input id="sellingPricePerSaleUnit" type="number" required value={purchaseSellingPrice} onChange={e => setPurchaseSellingPrice(e.target.value)} /></div>
+                    </div>
+                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                         <div className="space-y-2"><Label htmlFor="sellingPricePerSaleUnit">سعر البيع</Label><Input id="sellingPricePerSaleUnit" type="number" required value={purchaseSellingPrice} onChange={e => setPurchaseSellingPrice(e.target.value)} /></div>
+                        <div className="space-y-2"><Label htmlFor="saleUnit">وحدة البيع</Label><Input id="saleUnit" value={purchaseSaleUnit} onChange={e => setPurchaseSaleUnit(e.target.value)} /></div>
                     </div>
                 </div>
 

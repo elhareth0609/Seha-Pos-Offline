@@ -166,7 +166,7 @@ export default function ReportsPage() {
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{totalSalesValue.toLocaleString('ar-IQ')} د.ع</div>
+                        <div className="text-2xl font-bold font-mono">{totalSalesValue.toLocaleString('ar-IQ')} د.ع</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -175,7 +175,7 @@ export default function ReportsPage() {
                         <TrendingUp className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-600">{totalProfit.toLocaleString('ar-IQ')} د.ع</div>
+                        <div className="text-2xl font-bold text-green-600 font-mono">{totalProfit.toLocaleString('ar-IQ')} د.ع</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -184,7 +184,7 @@ export default function ReportsPage() {
                         <PieChart className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{profitMargin.toFixed(2)}%</div>
+                        <div className="text-2xl font-bold font-mono">{profitMargin.toFixed(2)}%</div>
                     </CardContent>
                 </Card>
             </div>
@@ -256,10 +256,10 @@ export default function ReportsPage() {
                             {filteredSales.length > 0 ? filteredSales.map((sale) => (
                                 <React.Fragment key={sale.id}>
                                     <TableRow onClick={() => toggleRow(sale.id)} className="cursor-pointer">
-                                        <TableCell className="font-medium">{sale.id}</TableCell>
-                                        <TableCell>{new Date(sale.date).toLocaleString('ar-EG', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric' })}</TableCell>
+                                        <TableCell className="font-medium font-mono">{sale.id}</TableCell>
+                                        <TableCell className="font-mono">{new Date(sale.date).toLocaleString('ar-EG', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric' })}</TableCell>
                                         <TableCell>{sale.patientName || 'غير محدد'}</TableCell>
-                                        <TableCell className="text-center">{(sale.items || []).length}</TableCell>
+                                        <TableCell className="text-center font-mono">{(sale.items || []).length}</TableCell>
                                         <TableCell className="text-left font-mono">{sale.total.toLocaleString('ar-IQ')} د.ع</TableCell>
                                         <TableCell className="text-left font-mono text-green-600">{((sale.profit || 0) - (sale.discount || 0)).toLocaleString('ar-IQ')} د.ع</TableCell>
                                         <TableCell>
@@ -291,9 +291,9 @@ export default function ReportsPage() {
                                                             {(sale.items || []).map((item, index) => (
                                                                 <TableRow key={`${sale.id}-${item.medicationId}-${index}`} className={cn(item.isReturn && "text-destructive")}>
                                                                     <TableCell>{item.name} {item.saleUnit && `(${item.saleUnit})`}</TableCell>
-                                                                    <TableCell>{item.quantity}</TableCell>
-                                                                    <TableCell>{item.price.toLocaleString('ar-IQ')} د.ع</TableCell>
-                                                                    <TableCell>{(item.quantity * item.price).toLocaleString('ar-IQ')} د.ع</TableCell>
+                                                                    <TableCell className="font-mono">{item.quantity}</TableCell>
+                                                                    <TableCell className="font-mono">{item.price.toLocaleString('ar-IQ')} د.ع</TableCell>
+                                                                    <TableCell className="font-mono">{(item.quantity * item.price).toLocaleString('ar-IQ')} د.ع</TableCell>
                                                                     <TableCell>
                                                                         {item.isReturn && <Badge variant="destructive">مرتجع</Badge>}
                                                                     </TableCell>

@@ -53,15 +53,15 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
                     <div className="text-xs text-gray-500">({(item.scientificNames || []).join(', ')})</div>
                 )}
               </td>
-              <td className="p-2 text-center">{item.quantity}</td>
-              <td className="p-2 text-center">{item.price.toLocaleString('ar-IQ')} د.ع</td>
+              <td className="p-2 text-center font-mono">{item.quantity}</td>
+              <td className="p-2 text-center font-mono">{item.price.toLocaleString('ar-IQ')} د.ع</td>
               <td className="p-2 text-left font-mono">{(item.price * item.quantity * (item.isReturn ? -1 : 1)).toLocaleString('ar-IQ')} د.ع</td>
             </tr>
           ))}
         </tbody>
       </table>
       <div className="flex justify-end">
-        <div className="w-full md:w-1/3">
+        <div className="w-full md:w-1/3 font-mono">
           <div className="flex justify-between py-1">
             <span className="font-semibold">المجموع الفرعي:</span>
             <span>{subtotal.toLocaleString('ar-IQ')} د.ع</span>

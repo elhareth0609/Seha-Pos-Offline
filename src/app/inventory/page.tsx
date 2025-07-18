@@ -405,7 +405,18 @@ export default function InventoryPage() {
               {filteredInventory.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-mono text-xs">{item.id}</TableCell>
-                  <TableCell>{item.name}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                        {item.imageUrl ? (
+                            <Image src={item.imageUrl} alt={item.name} width={40} height={40} className="rounded-sm object-cover h-10 w-10" />
+                        ) : (
+                            <div className="h-10 w-10 flex items-center justify-center rounded-sm bg-muted text-muted-foreground">
+                                <Package className="h-5 w-5" />
+                            </div>
+                        )}
+                        <span>{item.name}</span>
+                    </div>
+                  </TableCell>
                   <TableCell>{item.saleUnit || '-'}</TableCell>
                   <TableCell className="text-center font-mono">{item.stock}</TableCell>
                   <TableCell className="text-center font-mono">{item.reorderPoint}</TableCell>
