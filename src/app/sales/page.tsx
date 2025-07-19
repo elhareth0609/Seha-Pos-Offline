@@ -684,6 +684,9 @@ export default function SalesPage() {
                               </TableHeader>
                               <TableBody>
                                   {cart.map((item) => {
+                                    const medInInventory = allInventory.find(med => med.id === item.medicationId);
+                                    const stock = medInInventory?.stock ?? 0;
+                                    const remainingStock = stock - item.quantity;
                                     const isBelowCost = item.price < item.purchasePrice;
                                     const totalPrice = item.price * item.quantity;
                                     const alternatives = findAlternatives(item);
@@ -694,40 +697,45 @@ export default function SalesPage() {
                                                 <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" disabled={mode !== 'new'}/>
                                             </TableCell>
                                             <TableCell>
-                                              <div className="flex items-center gap-1">
-                                                  <span className="font-medium">{item.name}</span>
-                                                  {alternatives.length > 0 && mode === 'new' && (
-                                                      <Popover>
-                                                          <PopoverTrigger asChild>
-                                                              <Button variant="ghost" size="icon" className="h-6 w-6 text-primary/70 hover:text-primary">
-                                                                  <Replace className="h-4 w-4" />
-                                                              </Button>
-                                                          </PopoverTrigger>
-                                                          <PopoverContent className="w-80">
-                                                              <div className="space-y-2">
-                                                                  <h4 className="font-medium leading-none">بدائل متاحة</h4>
-                                                                  <div className="space-y-1">
-                                                                      {alternatives.map(alt => (
-                                                                          <div key={alt.id} className="text-sm p-2 hover:bg-accent rounded-md flex justify-between items-center">
-                                                                              <div>
-                                                                                  <div>{alt.name}</div>
-                                                                                  <div className="text-xs text-muted-foreground">المتوفر: {alt.stock}</div>
-                                                                              </div>
-                                                                              <div className="flex items-center gap-2">
-                                                                                  <span className="font-mono">{alt.price}</span>
-                                                                                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => addToCart(alt)}>
-                                                                                      <PlusCircle className="h-4 w-4 text-green-600" />
-                                                                                  </Button>
-                                                                              </div>
-                                                                          </div>
-                                                                      ))}
-                                                                  </div>
-                                                              </div>
-                                                          </PopoverContent>
-                                                      </Popover>
-                                                  )}
-                                              </div>
-                                              <div className="text-xs text-muted-foreground">({(item.scientificNames || []).join(', ')})</div>
+                                                <div className="flex items-center gap-1">
+                                                    <span className="font-medium">{item.name}</span>
+                                                    {alternatives.length > 0 && mode === 'new' && (
+                                                        <Popover>
+                                                            <PopoverTrigger asChild>
+                                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-primary/70 hover:text-primary">
+                                                                    <Replace className="h-4 w-4" />
+                                                                </Button>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="w-80">
+                                                                <div className="space-y-2">
+                                                                    <h4 className="font-medium leading-none">بدائل متاحة</h4>
+                                                                    <div className="space-y-1">
+                                                                        {alternatives.map(alt => (
+                                                                            <div key={alt.id} className="text-sm p-2 hover:bg-accent rounded-md flex justify-between items-center">
+                                                                                <div>
+                                                                                    <div>{alt.name}</div>
+                                                                                    <div className="text-xs text-muted-foreground">المتوفر: {alt.stock}</div>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <span className="font-mono">{alt.price}</span>
+                                                                                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => addToCart(alt)}>
+                                                                                        <PlusCircle className="h-4 w-4 text-green-600" />
+                                                                                    </Button>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            </PopoverContent>
+                                                        </Popover>
+                                                    )}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">({(item.scientificNames || []).join(', ')})</div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    الرصيد: {stock} 
+                                                    {!item.isReturn && ` | المتبقي: `}
+                                                    {!item.isReturn && <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span>}
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                             <div className="flex items-center justify-center gap-2">
