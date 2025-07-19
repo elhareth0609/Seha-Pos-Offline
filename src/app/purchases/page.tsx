@@ -451,7 +451,6 @@ export default function PurchasesPage() {
                 
                 <div className="border-t pt-6 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-2">
-                        {/* Column 1 */}
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="medicationId">الباركود (يترك فارغاً للتوليد)</Label>
                             <Input id="medicationId" value={purchaseMedicationId} onChange={e => setPurchaseMedicationId(e.target.value)} />
@@ -465,7 +464,6 @@ export default function PurchasesPage() {
                             <Input id="scientificNames" value={scientificNames} onChange={e => setScientificNames(e.target.value)} />
                         </div>
                         
-                         {/* Column 2 */}
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="dosage">الجرعة (مثال: 500mg)</Label>
                             <Input id="dosage" value={dosage} onChange={e => setDosage(e.target.value)} />
@@ -484,7 +482,6 @@ export default function PurchasesPage() {
                             <Input id="quantity" type="number" required value={purchaseQuantity} onChange={e => setPurchaseQuantity(e.target.value)} />
                         </div>
 
-                         {/* Column 3 */}
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="purchasePricePerPurchaseUnit">سعر الشراء</Label>
                             <Input id="purchasePricePerPurchaseUnit" type="number" required value={purchasePurchasePrice} onChange={e => setPurchasePurchasePrice(e.target.value)} />
@@ -498,7 +495,6 @@ export default function PurchasesPage() {
                             <Input id="expirationDate" type="date" required value={purchaseExpirationDate} onChange={e => setPurchaseExpirationDate(e.target.value)} />
                         </div>
                         
-                         {/* Image Upload spanning across */}
                         <div className="md:col-span-3 flex flex-col gap-2">
                              <Label htmlFor="itemImage">صورة المنتج (اختياري)</Label>
                              <div className="flex items-center gap-4">
@@ -539,62 +535,44 @@ export default function PurchasesPage() {
              <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>رقم القائمة</TableHead>
-                        <TableHead>المورد</TableHead>
-                        <TableHead>التاريخ</TableHead>
-                        <TableHead>الإجمالي</TableHead>
-                        <TableHead className="w-12"></TableHead>
+                        <TableHead className="w-[150px]">رقم القائمة</TableHead>
+                        <TableHead>المنتج / المورد</TableHead>
+                        <TableHead className="w-[120px]">الكمية</TableHead>
+                        <TableHead className="w-[120px]">سعر الشراء</TableHead>
+                        <TableHead className="w-[120px]">الإجمالي</TableHead>
+                        <TableHead className="w-[120px]">التاريخ</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {filteredPurchaseOrders.length > 0 ? filteredPurchaseOrders.map(po => (
                         <React.Fragment key={po.id}>
-                            <TableRow onClick={() => toggleRow(po.id)} className="cursor-pointer border-b">
+                            <TableRow onClick={() => toggleRow(po.id)} className="cursor-pointer bg-muted/30 font-semibold">
                                 <TableCell className="font-mono">{po.id}</TableCell>
-                                <TableCell>{po.supplierName}</TableCell>
-                                <TableCell className="font-mono">{new Date(po.date).toLocaleDateString('ar-EG')}</TableCell>
-                                <TableCell className="font-mono">{po.totalAmount.toLocaleString()}</TableCell>
                                 <TableCell>
-                                    <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", expandedRows.has(po.id) && "rotate-180")} />
+                                    <div className="flex items-center gap-2">
+                                        <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", expandedRows.has(po.id) && "rotate-180")} />
+                                        {po.supplierName}
+                                    </div>
                                 </TableCell>
+                                <TableCell></TableCell>
+                                <TableCell></TableCell>
+                                <TableCell className="font-mono">{po.totalAmount.toLocaleString()}</TableCell>
+                                <TableCell className="font-mono">{new Date(po.date).toLocaleDateString('ar-EG')}</TableCell>
                             </TableRow>
-                            {expandedRows.has(po.id) && (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="p-0">
-                                        <div className="p-4 bg-muted/50">
-                                            <h4 className="mb-2 font-semibold">أصناف القائمة:</h4>
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead>المنتج</TableHead>
-                                                        <TableHead>الكمية</TableHead>
-                                                        <TableHead>سعر الشراء</TableHead>
-                                                        <TableHead className="text-left">الإجمالي</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {(po.items || []).length > 0 ? po.items.map((item) => (
-                                                        <TableRow key={item.medicationId}>
-                                                            <TableCell>{item.name}</TableCell>
-                                                            <TableCell className="font-mono">{item.quantity}</TableCell>
-                                                            <TableCell className="font-mono">{item.purchasePrice.toLocaleString()}</TableCell>
-                                                            <TableCell className="font-mono text-left">{(item.quantity * item.purchasePrice).toLocaleString()}</TableCell>
-                                                        </TableRow>
-                                                    )) : (
-                                                      <TableRow>
-                                                        <TableCell colSpan={4} className="text-center text-muted-foreground">لا توجد أصناف في هذه القائمة.</TableCell>
-                                                      </TableRow>
-                                                    )}
-                                                </TableBody>
-                                            </Table>
-                                        </div>
-                                    </TableCell>
+                            {expandedRows.has(po.id) && (po.items || []).map((item, index) => (
+                                <TableRow key={`${po.id}-${item.medicationId}-${index}`} className="bg-muted/10">
+                                    <TableCell></TableCell>
+                                    <TableCell className="pr-10">{item.name}</TableCell>
+                                    <TableCell className="font-mono">{item.quantity}</TableCell>
+                                    <TableCell className="font-mono">{item.purchasePrice.toLocaleString()}</TableCell>
+                                    <TableCell className="font-mono">{(item.quantity * item.purchasePrice).toLocaleString()}</TableCell>
+                                    <TableCell></TableCell>
                                 </TableRow>
-                            )}
+                            ))}
                         </React.Fragment>
                     )) : (
                       <TableRow>
-                          <TableCell colSpan={4} className="text-center h-24">
+                          <TableCell colSpan={6} className="text-center h-24">
                               لا توجد نتائج مطابقة للبحث.
                           </TableCell>
                       </TableRow>
@@ -726,65 +704,45 @@ export default function PurchasesPage() {
           <CardContent>
             <Table>
                 <TableHeader>
-                    <TableRow>
-                        <TableHead>رقم القائمة</TableHead>
-                        <TableHead>المورد</TableHead>
-                        <TableHead>التاريخ</TableHead>
-                        <TableHead>قيمة الاسترجاع</TableHead>
-                        <TableHead className="w-12"></TableHead>
+                     <TableRow>
+                        <TableHead className="w-[150px]">رقم القائمة</TableHead>
+                        <TableHead>المنتج / المورد</TableHead>
+                        <TableHead className="w-[120px]">الكمية</TableHead>
+                        <TableHead className="w-[120px]">سعر الشراء</TableHead>
+                        <TableHead className="w-[120px]">الإجمالي</TableHead>
+                        <TableHead className="w-[120px]">التاريخ</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {filteredSupplierReturns.length > 0 ? filteredSupplierReturns.map(ret => (
                         <React.Fragment key={ret.id}>
-                            <TableRow onClick={() => toggleRow(ret.id)} className="cursor-pointer">
+                            <TableRow onClick={() => toggleRow(ret.id)} className="cursor-pointer bg-muted/30 font-semibold">
                                 <TableCell className="font-mono">{ret.id}</TableCell>
-                                <TableCell>{ret.supplierName}</TableCell>
-                                <TableCell className="font-mono">{new Date(ret.date).toLocaleDateString('ar-EG')}</TableCell>
-                                <TableCell className="font-mono">{ret.totalAmount.toLocaleString()}</TableCell>
                                 <TableCell>
-                                    <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", expandedRows.has(ret.id) && "rotate-180")} />
+                                     <div className="flex items-center gap-2">
+                                        <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", expandedRows.has(ret.id) && "rotate-180")} />
+                                        {ret.supplierName}
+                                    </div>
                                 </TableCell>
+                                <TableCell></TableCell>
+                                <TableCell></TableCell>
+                                <TableCell className="font-mono">{ret.totalAmount.toLocaleString()}</TableCell>
+                                <TableCell className="font-mono">{new Date(ret.date).toLocaleDateString('ar-EG')}</TableCell>
                             </TableRow>
-                            {expandedRows.has(ret.id) && (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="p-0">
-                                        <div className="p-4 bg-muted/50">
-                                            <h4 className="mb-2 font-semibold">أصناف القائمة:</h4>
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead>المنتج</TableHead>
-                                                        <TableHead>الكمية</TableHead>
-                                                        <TableHead>سعر الشراء</TableHead>
-                                                        <TableHead>السبب</TableHead>
-                                                        <TableHead className="text-left">القيمة</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {(ret.items || []).length > 0 ? ret.items.map((item) => (
-                                                        <TableRow key={item.medicationId}>
-                                                            <TableCell>{item.name}</TableCell>
-                                                            <TableCell className="font-mono">{item.quantity}</TableCell>
-                                                            <TableCell className="font-mono">{item.purchasePrice.toLocaleString()}</TableCell>
-                                                            <TableCell>{item.reason}</TableCell>
-                                                            <TableCell className="font-mono text-left">{(item.quantity * item.purchasePrice).toLocaleString()}</TableCell>
-                                                        </TableRow>
-                                                    )) : (
-                                                      <TableRow>
-                                                        <TableCell colSpan={5} className="text-center text-muted-foreground">لا توجد أصناف في هذا الإرجاع.</TableCell>
-                                                      </TableRow>
-                                                    )}
-                                                </TableBody>
-                                            </Table>
-                                        </div>
-                                    </TableCell>
+                             {expandedRows.has(ret.id) && (ret.items || []).map((item, index) => (
+                                <TableRow key={`${ret.id}-${item.medicationId}-${index}`} className="bg-muted/10">
+                                    <TableCell></TableCell>
+                                    <TableCell className="pr-10">{item.name} <span className="text-xs text-muted-foreground">({item.reason})</span></TableCell>
+                                    <TableCell className="font-mono">{item.quantity}</TableCell>
+                                    <TableCell className="font-mono">{item.purchasePrice.toLocaleString()}</TableCell>
+                                    <TableCell className="font-mono">{(item.quantity * item.purchasePrice).toLocaleString()}</TableCell>
+                                    <TableCell></TableCell>
                                 </TableRow>
-                            )}
+                            ))}
                         </React.Fragment>
                     )) : (
                       <TableRow>
-                          <TableCell colSpan={5} className="text-center h-24">
+                          <TableCell colSpan={6} className="text-center h-24">
                               لا توجد نتائج مطابقة للبحث.
                           </TableCell>
                       </TableRow>
