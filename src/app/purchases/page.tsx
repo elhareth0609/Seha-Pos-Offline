@@ -80,6 +80,8 @@ export default function PurchasesPage() {
   const [purchasePurchasePrice, setPurchasePurchasePrice] = React.useState('');
   const [purchaseSellingPrice, setPurchaseSellingPrice] = React.useState('');
   const [scientificNames, setScientificNames] = React.useState('');
+  const [dosage, setDosage] = React.useState('');
+  const [dosageForm, setDosageForm] = React.useState('');
   const [imageFile, setImageFile] = React.useState<File | null>(null);
   const [imagePreview, setImagePreview] = React.useState<string | null>(null);
 
@@ -155,6 +157,8 @@ export default function PurchasesPage() {
     setPurchaseMedicationId('');
     setPurchaseMedicationName('');
     setScientificNames('');
+    setDosage('');
+    setDosageForm('');
     setPurchaseQuantity('');
     setPurchaseExpirationDate('');
     setPurchasePurchasePrice('');
@@ -208,6 +212,8 @@ export default function PurchasesPage() {
       existingMed.expirationDate = purchaseExpirationDate;
       existingMed.name = purchaseMedicationName;
       existingMed.scientificNames = scientificNamesArray;
+      existingMed.dosage = dosage;
+      existingMed.dosageForm = dosageForm;
       if (imageUrl) existingMed.imageUrl = imageUrl;
       newInventory[medicationIndex] = existingMed;
       toast({
@@ -227,6 +233,8 @@ export default function PurchasesPage() {
           price: sellingPrice,
           purchasePrice: purchasePrice,
           expirationDate: purchaseExpirationDate,
+          dosage: dosage,
+          dosageForm: dosageForm,
       };
       newInventory.unshift(newMedication);
       toast({
@@ -440,32 +448,64 @@ export default function PurchasesPage() {
                 </div>
                 
                 <div className="border-t pt-6 space-y-4">
-                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-                        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-2"><Label htmlFor="medicationId">الباركود (يترك فارغاً للتوليد)</Label><Input id="medicationId" value={purchaseMedicationId} onChange={e => setPurchaseMedicationId(e.target.value)} /></div>
-                            <div className="space-y-2"><Label htmlFor="tradeName">الاسم التجاري</Label><Input id="tradeName" required value={purchaseMedicationName} onChange={e => setPurchaseMedicationName(e.target.value)} /></div>
-                            <div className="space-y-2 sm:col-span-2"><Label htmlFor="scientificNames">الاسم العلمي (يفصل بينها بفاصلة ,)</Label><Input id="scientificNames" value={scientificNames} onChange={e => setScientificNames(e.target.value)} /></div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-2">
+                        {/* Column 1 */}
+                        <div className="flex flex-col gap-2">
+                            <Label htmlFor="medicationId">الباركود (يترك فارغاً للتوليد)</Label>
+                            <Input id="medicationId" value={purchaseMedicationId} onChange={e => setPurchaseMedicationId(e.target.value)} />
+                        </div>
+                         <div className="flex flex-col gap-2">
+                            <Label htmlFor="tradeName">الاسم التجاري</Label>
+                            <Input id="tradeName" required value={purchaseMedicationName} onChange={e => setPurchaseMedicationName(e.target.value)} />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <Label htmlFor="scientificNames">الاسم العلمي (يفصل بفاصلة ,)</Label>
+                            <Input id="scientificNames" value={scientificNames} onChange={e => setScientificNames(e.target.value)} />
+                        </div>
+                        
+                         {/* Column 2 */}
+                        <div className="flex flex-col gap-2">
+                            <Label htmlFor="dosage">الجرعة (مثال: 500mg)</Label>
+                            <Input id="dosage" value={dosage} onChange={e => setDosage(e.target.value)} />
+                        </div>
+                         <div className="flex flex-col gap-2">
+                            <Label htmlFor="dosageForm">الشكل الدوائي (مثال: Tablet)</Label>
+                            <Input id="dosageForm" value={dosageForm} onChange={e => setDosageForm(e.target.value)} />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <Label htmlFor="quantity">الكمية</Label>
+                            <Input id="quantity" type="number" required value={purchaseQuantity} onChange={e => setPurchaseQuantity(e.target.value)} />
                         </div>
 
-                         <div className="space-y-2">
-                            <Label htmlFor="itemImage">صورة المنتج (اختياري)</Label>
-                            <Input id="itemImage" type="file" accept="image/*" onChange={handleImageChange} className="pt-2 text-xs h-10" />
-                            {imagePreview && (
-                                <div className="relative mt-2 w-24 h-24">
-                                  <Image src={imagePreview} alt="معاينة" layout="fill" className="rounded-md object-cover" />
-                                  <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => { setImageFile(null); setImagePreview(null); }}>
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                            )}
+                         {/* Column 3 */}
+                        <div className="flex flex-col gap-2">
+                            <Label htmlFor="purchasePricePerPurchaseUnit">سعر الشراء</Label>
+                            <Input id="purchasePricePerPurchaseUnit" type="number" required value={purchasePurchasePrice} onChange={e => setPurchasePurchasePrice(e.target.value)} />
                         </div>
-                     </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="space-y-2"><Label htmlFor="quantity">الكمية</Label><Input id="quantity" type="number" required value={purchaseQuantity} onChange={e => setPurchaseQuantity(e.target.value)} /></div>
-                        <div className="space-y-2"><Label htmlFor="expirationDate">تاريخ الانتهاء</Label><Input id="expirationDate" type="date" required value={purchaseExpirationDate} onChange={e => setPurchaseExpirationDate(e.target.value)} /></div>
-                        <div className="space-y-2"><Label htmlFor="purchasePricePerPurchaseUnit">سعر الشراء</Label><Input id="purchasePricePerPurchaseUnit" type="number" required value={purchasePurchasePrice} onChange={e => setPurchasePurchasePrice(e.target.value)} /></div>
-                        <div className="space-y-2"><Label htmlFor="sellingPricePerSaleUnit">سعر البيع</Label><Input id="sellingPricePerSaleUnit" type="number" required value={purchaseSellingPrice} onChange={e => setPurchaseSellingPrice(e.target.value)} /></div>
+                        <div className="flex flex-col gap-2">
+                             <Label htmlFor="sellingPricePerSaleUnit">سعر البيع</Label>
+                            <Input id="sellingPricePerSaleUnit" type="number" required value={purchaseSellingPrice} onChange={e => setPurchaseSellingPrice(e.target.value)} />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <Label htmlFor="expirationDate">تاريخ الانتهاء</Label>
+                            <Input id="expirationDate" type="date" required value={purchaseExpirationDate} onChange={e => setPurchaseExpirationDate(e.target.value)} />
+                        </div>
+                        
+                         {/* Image Upload spanning across */}
+                        <div className="md:col-span-3 flex flex-col gap-2">
+                             <Label htmlFor="itemImage">صورة المنتج (اختياري)</Label>
+                             <div className="flex items-center gap-4">
+                                <Input id="itemImage" type="file" accept="image/*" onChange={handleImageChange} className="pt-2 text-xs h-10 flex-1" />
+                                {imagePreview && (
+                                    <div className="relative w-16 h-16 shrink-0">
+                                      <Image src={imagePreview} alt="معاينة" layout="fill" className="rounded-md object-cover" />
+                                      <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-5 w-5 rounded-full" onClick={() => { setImageFile(null); setImagePreview(null); }}>
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                )}
+                             </div>
+                        </div>
                     </div>
                 </div>
 
@@ -506,7 +546,7 @@ export default function PurchasesPage() {
                                 <TableCell className="font-mono">{po.id}</TableCell>
                                 <TableCell>{po.supplierName}</TableCell>
                                 <TableCell className="font-mono">{new Date(po.date).toLocaleDateString('ar-EG')}</TableCell>
-                                <TableCell className="font-mono">{po.totalAmount.toLocaleString('ar-IQ')} د.ع</TableCell>
+                                <TableCell className="font-mono">{po.totalAmount.toLocaleString()}</TableCell>
                                 <TableCell>
                                     <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", expandedRows.has(po.id) && "rotate-180")} />
                                 </TableCell>
@@ -530,8 +570,8 @@ export default function PurchasesPage() {
                                                         <TableRow key={item.medicationId}>
                                                             <TableCell>{item.name}</TableCell>
                                                             <TableCell className="font-mono">{item.quantity}</TableCell>
-                                                            <TableCell className="font-mono">{item.purchasePrice.toLocaleString('ar-IQ')} د.ع</TableCell>
-                                                            <TableCell className="font-mono text-left">{(item.quantity * item.purchasePrice).toLocaleString('ar-IQ')} د.ع</TableCell>
+                                                            <TableCell className="font-mono">{item.purchasePrice.toLocaleString()}</TableCell>
+                                                            <TableCell className="font-mono text-left">{(item.quantity * item.purchasePrice).toLocaleString()}</TableCell>
                                                         </TableRow>
                                                     )) : (
                                                       <TableRow>
@@ -642,7 +682,7 @@ export default function PurchasesPage() {
                             <TableCell>{item.name}</TableCell>
                             <TableCell className="font-mono">{item.quantity}</TableCell>
                             <TableCell>{item.reason}</TableCell>
-                            <TableCell className="font-mono">{(item.quantity * item.purchasePrice).toLocaleString('ar-IQ')} د.ع</TableCell>
+                            <TableCell className="font-mono">{(item.quantity * item.purchasePrice).toLocaleString()}</TableCell>
                             <TableCell>
                               <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleRemoveFromReturnCart(item.medicationId)}>
                                 <Trash2 className="h-4 w-4" />
@@ -694,7 +734,7 @@ export default function PurchasesPage() {
                                 <TableCell className="font-mono">{ret.id}</TableCell>
                                 <TableCell>{ret.supplierName}</TableCell>
                                 <TableCell className="font-mono">{new Date(ret.date).toLocaleDateString('ar-EG')}</TableCell>
-                                <TableCell className="font-mono">{ret.totalAmount.toLocaleString('ar-IQ')} د.ع</TableCell>
+                                <TableCell className="font-mono">{ret.totalAmount.toLocaleString()}</TableCell>
                                 <TableCell>
                                     <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", expandedRows.has(ret.id) && "rotate-180")} />
                                 </TableCell>
@@ -719,9 +759,9 @@ export default function PurchasesPage() {
                                                         <TableRow key={item.medicationId}>
                                                             <TableCell>{item.name}</TableCell>
                                                             <TableCell className="font-mono">{item.quantity}</TableCell>
-                                                            <TableCell className="font-mono">{item.purchasePrice.toLocaleString('ar-IQ')} د.ع</TableCell>
+                                                            <TableCell className="font-mono">{item.purchasePrice.toLocaleString()}</TableCell>
                                                             <TableCell>{item.reason}</TableCell>
-                                                            <TableCell className="font-mono text-left">{(item.quantity * item.purchasePrice).toLocaleString('ar-IQ')} د.ع</TableCell>
+                                                            <TableCell className="font-mono text-left">{(item.quantity * item.purchasePrice).toLocaleString()}</TableCell>
                                                         </TableRow>
                                                     )) : (
                                                       <TableRow>

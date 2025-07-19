@@ -700,7 +700,7 @@ export default function SalesPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-1">
-                                                    <span className="font-medium">{item.name}</span>
+                                                    <span className="font-medium">{item.name} {item.dosage && `(${item.dosage})`}</span>
                                                     {alternatives.length > 0 && (
                                                         <Popover>
                                                             <PopoverTrigger asChild>
