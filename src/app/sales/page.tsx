@@ -398,14 +398,20 @@ export default function SalesPage() {
     }
   }
   
-  const updatePrice = (medicationId: string, newPrice: number) => {
+  const updateTotalPrice = (medicationId: string, newTotalPriceStr: string) => {
     if (mode !== 'new') return;
-    if (newPrice < 0) return;
-    setCart(cart => cart.map(item => 
-      item.medicationId === medicationId 
-        ? { ...item, price: isNaN(newPrice) ? 0 : newPrice } 
-        : item
-    ));
+    
+    const newTotalPrice = parseFloat(newTotalPriceStr);
+    if (isNaN(newTotalPrice) || newTotalPrice < 0) return;
+
+    setCart(cart => cart.map(item => {
+      if (item.medicationId === medicationId) {
+        // Calculate new unit price based on the total. Avoid division by zero.
+        const newUnitPrice = item.quantity > 0 ? newTotalPrice / item.quantity : 0;
+        return { ...item, price: newUnitPrice };
+      }
+      return item;
+    }));
   };
 
   const removeFromCart = (medicationId: string) => {
@@ -667,62 +673,47 @@ export default function SalesPage() {
                               </TableHeader>
                               <TableBody>
                                   {cart.map((item) => {
-                                  const medInInventory = allInventory.find(med => med.id === item.medicationId);
-                                  const stock = medInInventory?.stock ?? 0;
-                                  const remainingStock = stock - item.quantity;
-                                  const isBelowCost = item.price < item.purchasePrice;
-
-                                  return (
-                                      <TableRow key={item.medicationId} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
-                                          <TableCell className="text-center">
-                                              <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" disabled={mode !== 'new'}/>
-                                          </TableCell>
-                                          <TableCell>
-                                            <div className="flex items-start gap-3">
-                                                {medInInventory?.imageUrl ? (
-                                                    <Image src={medInInventory.imageUrl} alt={item.name} width={48} height={48} className="rounded-md object-cover h-12 w-12" />
-                                                ) : (
-                                                    <div className="h-12 w-12 flex items-center justify-center rounded-md bg-muted text-muted-foreground">
-                                                        <Package className="h-6 w-6" />
-                                                    </div>
-                                                )}
-                                                <div className="flex-1">
-                                                    <div className="font-medium">{item.name}</div>
-                                                    {item.scientificNames && item.scientificNames.length > 0 && (
-                                                      <div className="text-xs text-muted-foreground">({item.scientificNames.join(', ')})</div>
-                                                    )}
-                                                    {mode === 'new' && (
-                                                      <div className="text-xs text-muted-foreground font-mono mt-1">
-                                                          الرصيد: {stock} 
-                                                          {!item.isReturn && ` | المتبقي: `}
-                                                          {!item.isReturn && <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span>}
+                                    const isBelowCost = item.price < item.purchasePrice;
+                                    const totalPrice = item.price * item.quantity;
+                                    
+                                    return (
+                                        <TableRow key={item.medicationId} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
+                                            <TableCell className="text-center">
+                                                <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" disabled={mode !== 'new'}/>
+                                            </TableCell>
+                                            <TableCell>
+                                              <div className="font-medium">{item.name}</div>
+                                              <div className="text-xs text-muted-foreground">({(item.scientificNames || []).join(', ')})</div>
+                                            </TableCell>
+                                            <TableCell>
+                                            <div className="flex items-center justify-center gap-2">
+                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity - 1)} disabled={mode !== 'new'}><MinusCircle className="h-4 w-4" /></Button>
+                                                <span className="font-mono">{item.quantity}</span>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity + 1)} disabled={mode !== 'new'}><PlusCircle className="h-4 w-4" /></Button>
+                                            </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="relative">
+                                                    <Input 
+                                                      type="text" 
+                                                      value={totalPrice} 
+                                                      onChange={(e) => updateTotalPrice(item.medicationId, e.target.value)} 
+                                                      className={cn("w-24 h-9 text-center font-mono", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )}
+                                                      step="1" 
+                                                      min="0" 
+                                                      disabled={mode !== 'new'} />
+                                                    {isBelowCost && !item.isReturn && (
+                                                      <div className="absolute -top-2 -right-2 text-destructive" title="السعر أقل من الكلفة!">
+                                                        <AlertTriangle className="h-4 w-4" />
                                                       </div>
                                                     )}
                                                 </div>
-                                            </div>
-                                          </TableCell>
-                                          <TableCell>
-                                          <div className="flex items-center justify-center gap-2">
-                                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity - 1)} disabled={mode !== 'new'}><MinusCircle className="h-4 w-4" /></Button>
-                                              <span className="font-mono">{item.quantity}</span>
-                                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity + 1)} disabled={mode !== 'new'}><PlusCircle className="h-4 w-4" /></Button>
-                                          </div>
-                                          </TableCell>
-                                          <TableCell>
-                                              <div className="relative">
-                                                  <Input type="number" value={item.price} onChange={(e) => updatePrice(item.medicationId, parseFloat(e.target.value))} className={cn("w-24 h-9 text-center font-mono", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} step="1" min="0" disabled={mode !== 'new'} />
-                                                  {isBelowCost && !item.isReturn && (
-                                                    <div className="absolute -top-2 -right-2 text-destructive" title="السعر أقل من الكلفة!">
-                                                      <AlertTriangle className="h-4 w-4" />
-                                                    </div>
-                                                  )}
-                                              </div>
-                                          </TableCell>
-                                          <TableCell className="text-left">
-                                              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)} disabled={mode !== 'new'}><X className="h-4 w-4" /></Button>
-                                          </TableCell>
-                                      </TableRow>
-                                  );
+                                            </TableCell>
+                                            <TableCell className="text-left">
+                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)} disabled={mode !== 'new'}><X className="h-4 w-4" /></Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
                                   })}
                               </TableBody>
                           </Table>
