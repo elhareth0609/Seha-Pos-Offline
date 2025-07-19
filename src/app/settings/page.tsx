@@ -51,12 +51,12 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useAuth } from '@/hooks/use-auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, Clock, Wallet, MoreVertical, Pencil, Calendar as CalendarIcon } from 'lucide-react'
+import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, Clock, Wallet, MoreVertical, Pencil } from 'lucide-react'
 import { clearAllDBData } from '@/hooks/use-local-storage'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import Image from 'next/image'
-import { addDays, differenceInMinutes, endOfMonth, endOfWeek, format, formatDistanceStrict, isWithinInterval, parseISO, startOfMonth, startOfWeek, subMonths } from 'date-fns'
+import { differenceInMinutes, formatDistanceStrict, isWithinInterval, parseISO } from 'date-fns'
 import { ar } from 'date-fns/locale'
 import { appSettings as fallbackSettings } from '@/lib/data'
 
@@ -174,7 +174,7 @@ export default function SettingsPage() {
     const { toast } = useToast()
     const { currentUser, users, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate, scopedData } = useAuth();
     
-    const { settings: [settings, setSettings], trash: [, setTrash], sales: [sales], timeLogs: [timeLogs] } = scopedData;
+    const { settings: [settings, setSettings], sales: [sales], timeLogs: [timeLogs] } = scopedData;
 
     const [isClient, setIsClient] = React.useState(false);
     
@@ -260,13 +260,6 @@ export default function SettingsPage() {
             return;
         }
 
-        const newTrashItem: TrashItem = {
-            id: `TRASH-${Date.now()}`,
-            deletedAt: new Date().toISOString(),
-            itemType: 'user',
-            data: userToDelete,
-        };
-        setTrash(prev => [...prev, newTrashItem]);
         deleteUser(userToDelete.id);
         toast({ title: "تم نقل الموظف إلى سلة المحذوفات" });
     }
@@ -343,7 +336,7 @@ export default function SettingsPage() {
             userLogs = userLogs.filter(log => new Date(log.clockIn) <= to);
         }
 
-        return userLogs;
+        return userLogs.sort((a,b) => new Date(b.clockIn).getTime() - new Date(a.clockIn).getTime());
     }, [editingUser, timeLogs, dateFrom, dateTo]);
 
 

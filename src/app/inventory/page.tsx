@@ -41,7 +41,6 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import {
     DropdownMenu,
@@ -58,7 +57,6 @@ import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useReactToPrint } from 'react-to-print';
 import Barcode from '@/components/ui/barcode';
-import { Progress } from "@/components/ui/progress";
 import { buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -397,7 +395,7 @@ export default function InventoryPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredInventory.map((item) => (
+              {filteredInventory.length > 0 ? filteredInventory.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-mono text-xs">{item.id}</TableCell>
                   <TableCell>
@@ -462,7 +460,13 @@ export default function InventoryPage() {
                       </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))}
+              )) : (
+                <TableRow>
+                    <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
+                        لا يوجد مخزون لعرضه.
+                    </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
           </div>

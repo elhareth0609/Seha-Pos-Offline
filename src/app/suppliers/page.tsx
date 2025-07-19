@@ -33,7 +33,6 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import {
     DropdownMenu,
@@ -64,8 +63,8 @@ type StatementItem = {
 export default function SuppliersPage() {
   const { scopedData } = useAuth();
   const [suppliers, setSuppliers] = scopedData.suppliers;
-  const [purchaseOrders] = scopedData.purchaseOrders;
-  const [supplierReturns] = scopedData.supplierReturns;
+  const [purchaseOrders, setPurchaseOrders] = scopedData.purchaseOrders;
+  const [supplierReturns, setSupplierReturns] = scopedData.supplierReturns;
   const [supplierPayments, setSupplierPayments] = scopedData.payments;
   const [trash, setTrash] = scopedData.trash;
 
@@ -115,8 +114,8 @@ export default function SuppliersPage() {
 
     setSuppliers(prev => prev.map(s => s.id === updatedSupplier.id ? updatedSupplier : s));
     
-    // setPurchaseOrders(prev => prev.map(po => po.supplierId === updatedSupplier.id ? { ...po, supplierName: updatedSupplier.name } : po));
-    // setSupplierReturns(prev => prev.map(ret => ret.supplierId === updatedSupplier.id ? { ...ret, supplierName: updatedSupplier.name } : ret));
+    setPurchaseOrders(prev => prev.map(po => po.supplierId === updatedSupplier.id ? { ...po, supplierName: updatedSupplier.name } : po));
+    setSupplierReturns(prev => prev.map(ret => ret.supplierId === updatedSupplier.id ? { ...ret, supplierName: updatedSupplier.name } : ret));
 
     toast({ title: "تم تحديث بيانات المورد" });
     setIsEditDialogOpen(false);
@@ -426,7 +425,7 @@ export default function SuppliersPage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="edit-supplier-contact">الشخص المسؤول (اختياري)</Label>
-                        <Input id="edit-supplier-contact" name="contactPerson" defaultValue={editingSupplier.contactPerson} />
+                        <Input id="edit-supplier-contact" name="contactPerson" defaultValue={editingSupplier.contactPerson || ''} />
                     </div>
                     <DialogFooter className="pt-2">
                         <DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose>

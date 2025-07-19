@@ -115,7 +115,7 @@ export type User = {
   pin?: string;
   permissions?: UserPermissions;
   hourlyRate?: number;
-  pharmacyId?: string; // Null/undefined for SuperAdmin, set for Admins and Employees
+  pharmacyId?: string;
   createdAt: string; // ISO date string
   image1DataUri?: string;
 };
@@ -173,7 +173,6 @@ export const MedicationAnalysisSchema = z.object({
     usageInstructions: z.string().describe('Important instructions on how to take the medication, such as with or without food.'),
     warning: z.string().optional().describe('Any critical warnings or contraindications for this age group, if applicable. For example: "لا يستخدم للأطفال أقل من سنتين".'),
 });
-export type MedicationAnalysis = z.infer<typeof MedicationAnalysisSchema>;
 
 export const DoseCalculationOutputSchema = z.object({
     interactions: z.array(z.string()).describe('A list of strings, each describing a potential interaction between the provided drugs. Empty if no interactions are found.'),
@@ -181,8 +180,6 @@ export const DoseCalculationOutputSchema = z.object({
 });
 export type DoseCalculationOutput = z.infer<typeof DoseCalculationOutputSchema>;
 
-// This is a helper type for the frontend, not used in the flow itself
-export type DoseCalculation = z.infer<typeof MedicationAnalysisSchema>;
 
 // Types for multi-pharmacy data stores
 export type InventoryData = { [pharmacyId: string]: Medication[] };
