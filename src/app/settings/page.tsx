@@ -518,7 +518,7 @@ export default function SettingsPage() {
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="font-mono">
-                                        {(user.hourlyRate || 0).toLocaleString('ar-IQ')} د.ع
+                                        {(user.hourlyRate || 0).toLocaleString()}
                                     </TableCell>
                                     <TableCell className="text-left">
                                         {user.role !== 'Admin' && (
@@ -675,7 +675,7 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
                     <div className="md:col-span-2 space-y-4">
                         <div className="flex items-center gap-2">
-                            <Label htmlFor="hourlyRate">سعر الساعة (د.ع):</Label>
+                            <Label htmlFor="hourlyRate">سعر الساعة:</Label>
                             <Input id="hourlyRate" type="number" value={currentUserHourlyRate} onChange={(e) => setCurrentUserHourlyRate(e.target.value)} className="w-24"/>
                             <Button onClick={handleSaveHourlyRate} size="sm">حفظ</Button>
                         </div>
@@ -711,8 +711,8 @@ export default function SettingsPage() {
                                         <TableRow key={log.id}>
                                             <TableCell>{new Date(log.clockIn).toLocaleString('ar-EG')}</TableCell>
                                             <TableCell>{log.clockOut ? new Date(log.clockOut).toLocaleString('ar-EG') : '-'}</TableCell>
-                                            <TableCell>{duration}</TableCell>
-                                            <TableCell>{salary.toLocaleString('ar-IQ')} د.ع</TableCell>
+                                            <TableCell className="font-mono">{duration}</TableCell>
+                                            <TableCell className="font-mono">{salary.toLocaleString()}</TableCell>
                                         </TableRow>
                                     );
                                 })}
@@ -725,11 +725,11 @@ export default function SettingsPage() {
                         <div className="space-y-2">
                              <div className="flex justify-between items-center text-sm">
                                 <span className="text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4"/> إجمالي الساعات:</span>
-                                <span className="font-bold">{totalHours.toFixed(2)} ساعة</span>
+                                <span className="font-bold font-mono">{totalHours.toFixed(2)} ساعة</span>
                             </div>
                             <div className="flex justify-between items-center text-lg">
                                 <span className="text-muted-foreground flex items-center gap-2"><Wallet className="h-5 w-5"/> إجمالي الراتب:</span>
-                                <span className="font-bold text-green-600">{totalSalary.toLocaleString('ar-IQ')} د.ع</span>
+                                <span className="font-bold text-green-600 font-mono">{totalSalary.toLocaleString()}</span>
                             </div>
                         </div>
                     </div>

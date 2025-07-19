@@ -182,7 +182,7 @@ export default function ReportsPage() {
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold font-mono">{totalSalesValue.toLocaleString('ar-IQ')} د.ع</div>
+                        <div className="text-2xl font-bold font-mono">{totalSalesValue.toLocaleString()}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -191,7 +191,7 @@ export default function ReportsPage() {
                         <TrendingUp className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-600 font-mono">{totalProfit.toLocaleString('ar-IQ')} د.ع</div>
+                        <div className="text-2xl font-bold text-green-600 font-mono">{totalProfit.toLocaleString()}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -254,8 +254,8 @@ export default function ReportsPage() {
                                         <TableCell className="font-mono">{new Date(sale.date).toLocaleString('ar-EG', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric' })}</TableCell>
                                         <TableCell>{sale.patientName || 'غير محدد'}</TableCell>
                                         <TableCell className="text-center font-mono">{(sale.items || []).length}</TableCell>
-                                        <TableCell className="text-left font-mono">{sale.total.toLocaleString('ar-IQ')} د.ع</TableCell>
-                                        <TableCell className="text-left font-mono text-green-600">{((sale.profit || 0) - (sale.discount || 0)).toLocaleString('ar-IQ')} د.ع</TableCell>
+                                        <TableCell className="text-left font-mono">{sale.total.toLocaleString()}</TableCell>
+                                        <TableCell className="text-left font-mono text-green-600">{((sale.profit || 0) - (sale.discount || 0)).toLocaleString()}</TableCell>
                                         <TableCell>
                                             <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openPrintDialog(sale); }}>
                                                 <Printer className="me-2 h-4 w-4" />
@@ -286,8 +286,8 @@ export default function ReportsPage() {
                                                                 <TableRow key={`${sale.id}-${item.medicationId}-${index}`} className={cn(item.isReturn && "text-destructive")}>
                                                                     <TableCell>{item.name}</TableCell>
                                                                     <TableCell className="font-mono">{item.quantity}</TableCell>
-                                                                    <TableCell className="font-mono">{item.price.toLocaleString('ar-IQ')} د.ع</TableCell>
-                                                                    <TableCell className="font-mono">{(item.quantity * item.price).toLocaleString('ar-IQ')} د.ع</TableCell>
+                                                                    <TableCell className="font-mono">{item.price.toLocaleString()}</TableCell>
+                                                                    <TableCell className="font-mono">{(item.quantity * item.price).toLocaleString()}</TableCell>
                                                                     <TableCell>
                                                                         {item.isReturn && <Badge variant="destructive">مرتجع</Badge>}
                                                                     </TableCell>

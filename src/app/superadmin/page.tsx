@@ -45,7 +45,7 @@ function AdminRow({ admin, onDelete, onToggleStatus, pharmacyData }: { admin: Us
                 </div>
             </TableCell>
             <TableCell className="font-mono">{pharmacyData.employeeCount}</TableCell>
-            <TableCell className="font-mono">{pharmacyData.totalSales.toLocaleString('ar-IQ')} د.ع</TableCell>
+            <TableCell className="font-mono">{pharmacyData.totalSales.toLocaleString()}</TableCell>
             <TableCell>
                 <Badge variant={admin.status === 'active' ? 'secondary' : 'destructive'} className={admin.status === 'active' ? 'bg-green-100 text-green-800' : ''}>
                     {admin.status === 'active' ? 'فعال' : 'معلق'}
@@ -176,7 +176,7 @@ export default function SuperAdminPage() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">إجمالي المبيعات</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader>
-                    <CardContent><div className="text-2xl font-bold font-mono">{totalSales.toLocaleString('ar-IQ')} د.ع</div></CardContent>
+                    <CardContent><div className="text-2xl font-bold font-mono">{totalSales.toLocaleString()}</div></CardContent>
                 </Card>
             </div>
 

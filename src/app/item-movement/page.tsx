@@ -235,7 +235,7 @@ export default function ItemMovementPage() {
                                             </div>
                                         </TableCell>
                                         <TableCell className="font-mono">{item.balance}</TableCell>
-                                        <TableCell className="font-mono">{item.price.toLocaleString('ar-IQ')} د.ع</TableCell>
+                                        <TableCell className="font-mono">{item.price.toLocaleString()}</TableCell>
                                         <TableCell>{item.actor}</TableCell>
                                         <TableCell className="font-mono">{item.documentId}</TableCell>
                                     </TableRow>

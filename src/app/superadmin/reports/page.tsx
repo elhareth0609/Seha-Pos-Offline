@@ -110,7 +110,7 @@ export default function SuperAdminReportsPage() {
                                 <DollarSign className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold font-mono">{selectedPharmacyData.totalRevenue.toLocaleString('ar-IQ')} د.ع</div>
+                                <div className="text-2xl font-bold font-mono">{selectedPharmacyData.totalRevenue.toLocaleString()}</div>
                             </CardContent>
                         </Card>
                         <Card>
@@ -119,7 +119,7 @@ export default function SuperAdminReportsPage() {
                                 <TrendingUp className="h-4 w-4 text-green-600" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-green-600 font-mono">{selectedPharmacyData.totalProfit.toLocaleString('ar-IQ')} د.ع</div>
+                                <div className="text-2xl font-bold text-green-600 font-mono">{selectedPharmacyData.totalProfit.toLocaleString()}</div>
                             </CardContent>
                         </Card>
                         <Card>

@@ -187,7 +187,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono">
-              {totalRevenue.toLocaleString('ar-IQ')} د.ع
+              {totalRevenue.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
               مجموع المبالغ النهائية لجميع الفواتير.
@@ -258,7 +258,7 @@ export default function Dashboard() {
                         <DollarSign className="h-5 w-5" />
                     </div>
                     <div className="text-3xl font-bold font-mono">
-                        {salesPerformance.totalRevenue.toLocaleString('ar-IQ')} د.ع
+                        {salesPerformance.totalRevenue.toLocaleString()}
                     </div>
                     <p className="text-xs text-muted-foreground font-mono">من {salesPerformance.invoiceCount} فاتورة</p>
                 </div>
@@ -268,7 +268,7 @@ export default function Dashboard() {
                         <TrendingUp className="h-5 w-5 text-green-600" />
                     </div>
                     <div className="text-3xl font-bold text-green-600 font-mono">
-                        {salesPerformance.totalProfit.toLocaleString('ar-IQ')} د.ع
+                        {salesPerformance.totalProfit.toLocaleString()}
                     </div>
                     <p className="text-xs text-muted-foreground">الربح بعد طرح تكلفة البضاعة والخصومات</p>
                 </div>

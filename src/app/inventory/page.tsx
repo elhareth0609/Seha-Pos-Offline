@@ -415,7 +415,7 @@ export default function InventoryPage() {
                   <TableCell className="text-center font-mono">{item.stock}</TableCell>
                   <TableCell className="text-center font-mono">{item.reorderPoint}</TableCell>
                   <TableCell className="font-mono">{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
-                  <TableCell className="text-center font-mono">{item.price.toLocaleString('ar-IQ')} د.ع</TableCell>
+                  <TableCell className="text-center font-mono">{item.price.toLocaleString()}</TableCell>
                   <TableCell>{getStockStatus(item.stock, item.reorderPoint)}</TableCell>
                   <TableCell>
                       <DropdownMenu>
@@ -487,7 +487,7 @@ export default function InventoryPage() {
                                   <Input id="edit-reorderPoint" name="reorderPoint" type="number" defaultValue={editingMed.reorderPoint} required />
                               </div>
                               <div className="space-y-2">
-                                  <Label htmlFor="edit-price">سعر البيع (د.ع)</Label>
+                                  <Label htmlFor="edit-price">سعر البيع</Label>
                                   <Input id="edit-price" name="price" type="number" step="1" defaultValue={editingMed.price} required />
                               </div>
                           </div>

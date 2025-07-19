@@ -608,7 +608,7 @@ export default function SalesPage() {
                                                             <div className="text-xs text-muted-foreground">{med.scientificNames?.join(', ')}</div>
                                                           </div>
                                                       </div>
-                                                       <span className="text-sm text-muted-foreground font-mono">{med.price.toLocaleString('ar-IQ')} د.ع</span>
+                                                       <span className="text-sm text-muted-foreground font-mono">{med.price.toLocaleString()}</span>
                                                   </li>
                                               ))}
                                           </ul>
@@ -776,11 +776,11 @@ export default function SalesPage() {
 
                       <div className="flex justify-between w-full text-md">
                           <span>المجموع الفرعي</span>
-                          <span className="font-mono">{subtotal.toLocaleString('ar-IQ')} د.ع</span>
+                          <span className="font-mono">{subtotal.toLocaleString()}</span>
                       </div>
                        <div className="flex justify-between w-full text-md text-green-600">
                           <span className="flex items-center gap-1"><TrendingUp className="h-4 w-4" /> الربح المتوقع</span>
-                          <span className="font-semibold font-mono">{totalProfit.toLocaleString('ar-IQ')} د.ع</span>
+                          <span className="font-semibold font-mono">{totalProfit.toLocaleString()}</span>
                       </div>
                       <div className="flex items-center justify-between w-full">
                           <Label htmlFor="discount" className="text-md shrink-0 me-2">خصم</Label>
@@ -789,7 +789,7 @@ export default function SalesPage() {
                       <Separator />
                       <div className="flex justify-between w-full text-lg font-semibold">
                           <span>الإجمالي</span>
-                          <span className={cn("font-mono", finalTotal < 0 ? 'text-destructive' : '')}>{finalTotal.toLocaleString('ar-IQ')} د.ع</span>
+                          <span className={cn("font-mono", finalTotal < 0 ? 'text-destructive' : '')}>{finalTotal.toLocaleString()}</span>
                       </div>
                   </CardContent>
                   <CardFooter className="flex flex-col items-stretch gap-2">
@@ -834,7 +834,7 @@ export default function SalesPage() {
                                                           <TableRow key={item.medicationId} className={cn(item.isReturn && "text-destructive")}>
                                                               <TableCell>{item.name} {item.isReturn && "(مرتجع)"}</TableCell>
                                                               <TableCell className="text-center font-mono">{item.quantity}</TableCell>
-                                                              <TableCell className="text-left font-mono">{((item.isReturn ? -1 : 1) * item.price * item.quantity).toLocaleString('ar-IQ')} د.ع</TableCell>
+                                                              <TableCell className="text-left font-mono">{((item.isReturn ? -1 : 1) * item.price * item.quantity).toLocaleString()}</TableCell>
                                                           </TableRow>
                                                       ))}
                                                   </TableBody>
@@ -843,10 +843,10 @@ export default function SalesPage() {
                                           <Separator/>
                                           <div className="space-y-2 text-sm font-mono">
                                               {selectedPatient && <div className="flex justify-between"><span>المريض:</span><span>{selectedPatient.name}</span></div>}
-                                              <div className="flex justify-between"><span>المجموع الفرعي:</span><span>{subtotal.toLocaleString('ar-IQ')} د.ع</span></div>
-                                              <div className="flex justify-between"><span>الخصم:</span><span>-{discount.toLocaleString('ar-IQ')} د.ع</span></div>
-                                               <div className="flex justify-between text-green-600"><span>الربح الصافي:</span><span>{(totalProfit - discount).toLocaleString('ar-IQ')} د.ع</span></div>
-                                              <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>{finalTotal.toLocaleString('ar-IQ')} د.ع</span></div>
+                                              <div className="flex justify-between"><span>المجموع الفرعي:</span><span>{subtotal.toLocaleString()}</span></div>
+                                              <div className="flex justify-between"><span>الخصم:</span><span>-{discount.toLocaleString()}</span></div>
+                                               <div className="flex justify-between text-green-600"><span>الربح الصافي:</span><span>{(totalProfit - discount).toLocaleString()}</span></div>
+                                              <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>{finalTotal.toLocaleString()}</span></div>
                                           </div>
                                       </div>
                                       <DialogFooter>

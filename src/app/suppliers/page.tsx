@@ -354,25 +354,25 @@ export default function SuppliersPage() {
                             <span className="text-muted-foreground flex items-center gap-2">
                                 <Truck className="h-4 w-4" /> إجمالي المشتريات:
                             </span>
-                            <span className="font-mono font-medium">{account.totalPurchases.toLocaleString('ar-IQ')} د.ع</span>
+                            <span className="font-mono font-medium">{account.totalPurchases.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground flex items-center gap-2">
                                 <Undo2 className="h-4 w-4 text-green-600" /> إجمالي الاسترجاع:
                             </span>
-                            <span className="font-mono font-medium text-green-600">-{account.totalReturns.toLocaleString('ar-IQ')} د.ع</span>
+                            <span className="font-mono font-medium text-green-600">-{account.totalReturns.toLocaleString()}</span>
                         </div>
                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground flex items-center gap-2">
                                 <Wallet className="h-4 w-4 text-blue-600" /> إجمالي المدفوعات:
                             </span>
-                            <span className="font-mono font-medium text-blue-600">-{account.totalPayments.toLocaleString('ar-IQ')} د.ع</span>
+                            <span className="font-mono font-medium text-blue-600">-{account.totalPayments.toLocaleString()}</span>
                         </div>
                          <div className="flex justify-between items-center pt-2 border-t font-bold text-base">
                             <span className="flex items-center gap-2">
                                 <Scale className="h-4 w-4" /> صافي الدين المستحق:
                             </span>
-                            <span className="font-mono text-destructive">{account.netDebt.toLocaleString('ar-IQ')} د.ع</span>
+                            <span className="font-mono text-destructive">{account.netDebt.toLocaleString()}</span>
                         </div>
                     </CardContent>
                     <CardFooter className="flex-col sm:flex-row gap-2">
@@ -398,7 +398,7 @@ export default function SuppliersPage() {
             </DialogHeader>
             <form onSubmit={handleAddPayment} className="space-y-4">
                 <div className="space-y-2">
-                    <Label htmlFor="amount">المبلغ المدفوع (د.ع)</Label>
+                    <Label htmlFor="amount">المبلغ المدفوع</Label>
                     <Input id="amount" name="amount" type="number" step="1" required autoFocus />
                 </div>
                 <div className="space-y-2">
@@ -460,12 +460,12 @@ export default function SuppliersPage() {
                 <TableBody>
                     {statementData.items.length > 0 ? statementData.items.map((item, index) => (
                         <TableRow key={index}>
-                            <TableCell>{new Date(item.date).toLocaleString('ar-EG', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric' })}</TableCell>
+                            <TableCell className="font-mono">{new Date(item.date).toLocaleString('ar-EG', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric' })}</TableCell>
                             <TableCell>{item.type}</TableCell>
                             <TableCell>{item.details}</TableCell>
-                            <TableCell className="font-mono text-destructive">{item.debit > 0 ? item.debit.toLocaleString('ar-IQ') + ' د.ع' : '-'}</TableCell>
-                            <TableCell className="font-mono text-green-600">{item.credit > 0 ? item.credit.toLocaleString('ar-IQ') + ' د.ع' : '-'}</TableCell>
-                            <TableCell className="font-mono font-semibold">{item.balance.toLocaleString('ar-IQ')} د.ع</TableCell>
+                            <TableCell className="font-mono text-destructive">{item.debit > 0 ? item.debit.toLocaleString() : '-'}</TableCell>
+                            <TableCell className="font-mono text-green-600">{item.credit > 0 ? item.credit.toLocaleString() : '-'}</TableCell>
+                            <TableCell className="font-mono font-semibold">{item.balance.toLocaleString()}</TableCell>
                         </TableRow>
                     )) : (
                         <TableRow>
