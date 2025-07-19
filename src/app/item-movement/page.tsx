@@ -58,7 +58,8 @@ export default function ItemMovementPage() {
             const lowercasedFilter = value.toLowerCase();
             const filtered = inventory.filter(item => 
                 (item.name || '').toLowerCase().startsWith(lowercasedFilter) || 
-                (item.id || '').toLowerCase().includes(lowercasedFilter)
+                (item.id || '').toLowerCase().includes(lowercasedFilter) ||
+                (item.scientificNames && item.scientificNames.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
             );
             setSuggestions(filtered.slice(0, 5));
         } else {
@@ -162,13 +163,13 @@ export default function ItemMovementPage() {
                     <div>
                         <CardTitle>تتبع حركة المادة</CardTitle>
                         <CardDescription>
-                            ابحث عن أي دواء لعرض سجله الكامل من مشتريات ومبيعات ومرتجعات.
+                            ابحث عن أي دواء بالاسم التجاري، العلمي أو الباركود لعرض سجله الكامل.
                         </CardDescription>
                     </div>
                 </div>
                 <div className="pt-4 relative">
                     <Input 
-                        placeholder="ابحث بالاسم أو الباركود..."
+                        placeholder="ابحث بالاسم التجاري، العلمي أو الباركود..."
                         value={searchTerm}
                         onChange={handleSearchChange}
                         className="max-w-lg"
@@ -182,7 +183,10 @@ export default function ItemMovementPage() {
                                             onMouseDown={() => handleSelectMed(med)}
                                             className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
                                         >
-                                            <span>{med.name}</span>
+                                            <div>
+                                                <div>{med.name}</div>
+                                                <div className="text-xs text-muted-foreground">{med.scientificNames?.join(', ')}</div>
+                                            </div>
                                             <span className="text-sm text-muted-foreground font-mono">الرصيد: {med.stock}</span>
                                         </li>
                                     ))}

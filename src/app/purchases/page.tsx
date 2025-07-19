@@ -41,7 +41,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import type { PurchaseOrder, Medication, Supplier, ReturnOrder, PurchaseOrderItem, ReturnOrderItem } from "@/lib/types"
-import { PlusCircle, ChevronDown, Trash2, UploadCloud, X } from "lucide-react"
+import { PlusCircle, ChevronDown, Trash2, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth";
 

@@ -339,7 +339,8 @@ export default function SalesPage() {
         const lowercasedFilter = value.toLowerCase();
         const filtered = (allInventory || []).filter((item) =>
             (item.name && item.name.toLowerCase().startsWith(lowercasedFilter)) ||
-            (item.id && item.id.toLowerCase().includes(lowercasedFilter))
+            (item.id && item.id.toLowerCase().includes(lowercasedFilter)) ||
+            (item.scientificNames && item.scientificNames.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
         );
         setSuggestions(filtered.slice(0, 5));
     } else {
@@ -574,7 +575,7 @@ export default function SalesPage() {
                       <div className="flex gap-2 pt-2">
                           <div className="relative flex-1">
                               <Input 
-                              placeholder="امسح الباركود أو ابحث بالاسم..."
+                              placeholder="امسح الباركود أو ابحث بالاسم التجاري أو العلمي..."
                               value={searchTerm}
                               onChange={handleSearchChange}
                               onKeyDown={handleSearchKeyDown}
@@ -596,7 +597,10 @@ export default function SalesPage() {
                                                                   <Package className="h-4 w-4" />
                                                               </div>
                                                           )}
-                                                          <span>{med.name}</span>
+                                                          <div>
+                                                            <div>{med.name}</div>
+                                                            <div className="text-xs text-muted-foreground">{med.scientificNames?.join(', ')}</div>
+                                                          </div>
                                                       </div>
                                                        <span className="text-sm text-muted-foreground font-mono">{med.price.toLocaleString('ar-IQ')} د.ع</span>
                                                   </li>
@@ -658,7 +662,6 @@ export default function SalesPage() {
                                       <TableHead>المنتج</TableHead>
                                       <TableHead className="w-[120px] text-center">الكمية</TableHead>
                                       <TableHead className="w-[120px] text-center">السعر</TableHead>
-                                      <TableHead className="text-left w-[120px]">الإجمالي</TableHead>
                                       <TableHead className="w-12"></TableHead>
                                   </TableRow>
                               </TableHeader>
@@ -667,9 +670,7 @@ export default function SalesPage() {
                                   const medInInventory = allInventory.find(med => med.id === item.medicationId);
                                   const stock = medInInventory?.stock ?? 0;
                                   const remainingStock = stock - item.quantity;
-                                  const itemTotal = (item.isReturn ? -1 : 1) * item.price * item.quantity;
                                   const isBelowCost = item.price < item.purchasePrice;
-                                  const itemProfit = (item.price - item.purchasePrice) * item.quantity;
 
                                   return (
                                       <TableRow key={item.medicationId} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
@@ -677,31 +678,28 @@ export default function SalesPage() {
                                               <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" disabled={mode !== 'new'}/>
                                           </TableCell>
                                           <TableCell>
-                                              <div className="flex items-start gap-3">
-                                                  {medInInventory?.imageUrl ? (
-                                                      <Image src={medInInventory.imageUrl} alt={item.name} width={48} height={48} className="rounded-md object-cover h-12 w-12" />
-                                                  ) : (
-                                                      <div className="h-12 w-12 flex items-center justify-center rounded-md bg-muted text-muted-foreground">
-                                                          <Package className="h-6 w-6" />
+                                            <div className="flex items-start gap-3">
+                                                {medInInventory?.imageUrl ? (
+                                                    <Image src={medInInventory.imageUrl} alt={item.name} width={48} height={48} className="rounded-md object-cover h-12 w-12" />
+                                                ) : (
+                                                    <div className="h-12 w-12 flex items-center justify-center rounded-md bg-muted text-muted-foreground">
+                                                        <Package className="h-6 w-6" />
+                                                    </div>
+                                                )}
+                                                <div className="flex-1">
+                                                    <div className="font-medium">{item.name}</div>
+                                                    {item.scientificNames && item.scientificNames.length > 0 && (
+                                                      <div className="text-xs text-muted-foreground">({item.scientificNames.join(', ')})</div>
+                                                    )}
+                                                    {mode === 'new' && (
+                                                      <div className="text-xs text-muted-foreground font-mono mt-1">
+                                                          الرصيد: {stock} 
+                                                          {!item.isReturn && ` | المتبقي: `}
+                                                          {!item.isReturn && <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span>}
                                                       </div>
-                                                  )}
-                                                  <div className="flex-1">
-                                                      <div className="font-medium">{item.name}</div>
-                                                      <div className="text-xs text-muted-foreground mt-1 flex items-center gap-x-2">
-                                                          <span className="font-mono">الكلفة: {item.purchasePrice.toLocaleString('ar-IQ')} د.ع</span>
-                                                          <span className={cn("font-medium", itemProfit >= 0 ? "text-green-600" : "text-destructive")}>
-                                                            | الربح: <span className="font-mono">{itemProfit.toLocaleString('ar-IQ')} د.ع</span>
-                                                          </span>
-                                                      </div>
-                                                      {mode === 'new' && (
-                                                        <div className="text-xs text-muted-foreground font-mono">
-                                                            الرصيد: {stock} 
-                                                            {!item.isReturn && ` | المتبقي: `}
-                                                            {!item.isReturn && <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span>}
-                                                        </div>
-                                                      )}
-                                                  </div>
-                                              </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                           </TableCell>
                                           <TableCell>
                                           <div className="flex items-center justify-center gap-2">
@@ -720,7 +718,6 @@ export default function SalesPage() {
                                                   )}
                                               </div>
                                           </TableCell>
-                                          <TableCell className="text-left font-mono">{itemTotal.toLocaleString('ar-IQ')} د.ع</TableCell>
                                           <TableCell className="text-left">
                                               <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)} disabled={mode !== 'new'}><X className="h-4 w-4" /></Button>
                                           </TableCell>
