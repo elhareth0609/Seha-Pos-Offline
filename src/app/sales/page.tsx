@@ -51,7 +51,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput } from "@/lib/types"
-import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, ArrowLeft, ArrowRight, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi } from "lucide-react"
+import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, ArrowLeft, ArrowRight, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -568,6 +568,17 @@ export default function SalesPage() {
 
   const filteredPatients = (patients || []).filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()));
 
+  const findAlternatives = (currentItem: SaleItem): Medication[] => {
+    if (!currentItem.scientificNames || currentItem.scientificNames.length === 0) {
+        return [];
+    }
+    return allInventory.filter(med => 
+        med.id !== currentItem.medicationId && // Exclude the item itself
+        med.scientificNames?.some(scName => currentItem.scientificNames!.includes(scName))
+    );
+};
+
+
   return (
     <>
       <div className="hidden">
@@ -675,14 +686,47 @@ export default function SalesPage() {
                                   {cart.map((item) => {
                                     const isBelowCost = item.price < item.purchasePrice;
                                     const totalPrice = item.price * item.quantity;
-                                    
+                                    const alternatives = findAlternatives(item);
+
                                     return (
                                         <TableRow key={item.medicationId} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
                                             <TableCell className="text-center">
                                                 <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" disabled={mode !== 'new'}/>
                                             </TableCell>
                                             <TableCell>
-                                              <div className="font-medium">{item.name}</div>
+                                              <div className="flex items-center gap-1">
+                                                  <span className="font-medium">{item.name}</span>
+                                                  {alternatives.length > 0 && mode === 'new' && (
+                                                      <Popover>
+                                                          <PopoverTrigger asChild>
+                                                              <Button variant="ghost" size="icon" className="h-6 w-6 text-primary/70 hover:text-primary">
+                                                                  <Replace className="h-4 w-4" />
+                                                              </Button>
+                                                          </PopoverTrigger>
+                                                          <PopoverContent className="w-80">
+                                                              <div className="space-y-2">
+                                                                  <h4 className="font-medium leading-none">بدائل متاحة</h4>
+                                                                  <div className="space-y-1">
+                                                                      {alternatives.map(alt => (
+                                                                          <div key={alt.id} className="text-sm p-2 hover:bg-accent rounded-md flex justify-between items-center">
+                                                                              <div>
+                                                                                  <div>{alt.name}</div>
+                                                                                  <div className="text-xs text-muted-foreground">المتوفر: {alt.stock}</div>
+                                                                              </div>
+                                                                              <div className="flex items-center gap-2">
+                                                                                  <span className="font-mono">{alt.price}</span>
+                                                                                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => addToCart(alt)}>
+                                                                                      <PlusCircle className="h-4 w-4 text-green-600" />
+                                                                                  </Button>
+                                                                              </div>
+                                                                          </div>
+                                                                      ))}
+                                                                  </div>
+                                                              </div>
+                                                          </PopoverContent>
+                                                      </Popover>
+                                                  )}
+                                              </div>
                                               <div className="text-xs text-muted-foreground">({(item.scientificNames || []).join(', ')})</div>
                                             </TableCell>
                                             <TableCell>
