@@ -54,6 +54,8 @@ const fileToDataUri = (file: File): Promise<string> => {
     });
 };
 
+const dosageForms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion"];
+
 
 export default function PurchasesPage() {
   const { toast } = useToast()
@@ -469,8 +471,13 @@ export default function PurchasesPage() {
                             <Input id="dosage" value={dosage} onChange={e => setDosage(e.target.value)} />
                         </div>
                          <div className="flex flex-col gap-2">
-                            <Label htmlFor="dosageForm">الشكل الدوائي (مثال: Tablet)</Label>
-                            <Input id="dosageForm" value={dosageForm} onChange={e => setDosageForm(e.target.value)} />
+                            <Label htmlFor="dosageForm">الشكل الدوائي</Label>
+                             <Select name="dosageForm" value={dosageForm} onValueChange={setDosageForm}>
+                                <SelectTrigger id="dosageForm"><SelectValue placeholder="اختر الشكل" /></SelectTrigger>
+                                <SelectContent>
+                                    {dosageForms.map(form => <SelectItem key={form} value={form}>{form}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="quantity">الكمية</Label>
