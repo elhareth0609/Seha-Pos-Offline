@@ -15,7 +15,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { HelpCircle, LayoutDashboard, ShoppingCart, Boxes, Truck, Landmark, FileText, Users, CalendarX2, Settings, Upload, KeyRound, LogIn, UserPlus, Repeat, Trash2 } from "lucide-react"
+import { HelpCircle, LayoutDashboard, ShoppingCart, Boxes, Truck, Landmark, FileText, Users, CalendarX2, Settings, Upload, KeyRound, LogIn, UserPlus, BrainCircuit } from "lucide-react"
 
 const guideSections = [
     {
@@ -58,6 +58,22 @@ const guideSections = [
         ],
     },
     {
+        icon: BrainCircuit,
+        title: "مساعد الجرعات الذكي",
+        content: [
+            {
+                subTitle: "ما هي الميزة؟",
+                icon: BrainCircuit,
+                text: "داخل شاشة المبيعات، ستجد أيقونة (ترمومتر) تفتح لك 'مساعد الجرعات الذكي'. هذه الميزة تستخدم الذكاء الاصطناعي من جوجل لتحليل الأدوية في الفاتورة الحالية وتقديم اقتراحات حول الجرعات المناسبة لعمر المريض، تعليمات الاستخدام، والتحذير من أي تفاعلات دوائية محتملة.",
+            },
+            {
+                subTitle: "هل هي مجانية؟",
+                icon: HelpCircle,
+                text: "نعم، للاستخدام العادي هي مجانية. تعتمد الميزة على خدمات جوجل التي توفر حداً مجانياً كبيراً جداً (60 طلب في الدقيقة). هذا يعني أنه من شبه المستحيل أن تتجاوز صيدلية واحدة هذا الحد. لن تبدأ بدفع رسوم إلا إذا توسع استخدامك بشكل هائل جداً في المستقبل، وعندها ستكون التكلفة مرتبطة بكمية الاستخدام.",
+            },
+        ],
+    },
+    {
         icon: Boxes,
         title: "المخزون",
         content: [
@@ -94,15 +110,6 @@ const guideSections = [
         ],
     },
     {
-        icon: Repeat,
-        title: "حركة المادة",
-        content: [
-            {
-                text: "هذا القسم يوفر لك سجلاً كاملاً لكل حركة تمت على أي دواء في مخزونك. ابحث عن دواء معين لعرض تفاصيل كل عملية شراء، بيع، مرتجع زبون، أو مرتجع للمورد، مع التاريخ، الكمية، والسعر، مما يمنحك شفافية مطلقة.",
-            },
-        ],
-    },
-    {
         icon: Users,
         title: "أصدقاء الصيدلية",
         content: [
@@ -117,15 +124,6 @@ const guideSections = [
         content: [
             {
                 text: "تعرض هذه الصفحة قائمة بجميع الأدوية التي ستنتهي صلاحيتها قريبًا، بناءً على الفترة الزمنية التي تحددها في الإعدادات (افتراضيًا 90 يومًا). هذا يساعدك على إدارة المخزون وتقليل الخسائر.",
-            },
-        ],
-    },
-    {
-        icon: Trash2,
-        title: "سلة المحذوفات",
-        content: [
-            {
-                text: "عندما تقوم بحذف أي عنصر (دواء، مريض، مورد، موظف) فإنه لا يُحذف نهائياً، بل يُنقل إلى هنا. من سلة المحذوفات، يمكنك استعادة العناصر المحذوفة إلى مكانها الأصلي، أو حذفها بشكل دائم. الحذف النهائي وتفريغ السلة هي صلاحيات حصرية للمدير فقط.",
             },
         ],
     },
