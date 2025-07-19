@@ -572,9 +572,11 @@ export default function SalesPage() {
     if (!currentItem.scientificNames || currentItem.scientificNames.length === 0) {
         return [];
     }
+    const currentScientificNames = currentItem.scientificNames.map(s => s.toLowerCase());
+
     return allInventory.filter(med => 
         med.id !== currentItem.medicationId && // Exclude the item itself
-        med.scientificNames?.some(scName => currentItem.scientificNames!.includes(scName))
+        med.scientificNames?.some(scName => currentScientificNames.includes(scName.toLowerCase()))
     );
 };
 
@@ -699,7 +701,7 @@ export default function SalesPage() {
                                             <TableCell>
                                                 <div className="flex items-center gap-1">
                                                     <span className="font-medium">{item.name}</span>
-                                                    {alternatives.length > 0 && mode === 'new' && (
+                                                    {alternatives.length > 0 && (
                                                         <Popover>
                                                             <PopoverTrigger asChild>
                                                                 <Button variant="ghost" size="icon" className="h-6 w-6 text-primary/70 hover:text-primary">
