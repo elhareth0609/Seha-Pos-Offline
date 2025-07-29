@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -17,7 +16,24 @@ import {
 } from "@/components/ui/accordion"
 import { HelpCircle, LayoutDashboard, ShoppingCart, Boxes, Truck, Landmark, FileText, Users, CalendarX2, Settings, Upload, KeyRound, LogIn, UserPlus, BrainCircuit } from "lucide-react"
 
-const guideSections = [
+type BaseContentItem = {
+    text: string;
+}
+
+type DetailedContentItem = BaseContentItem & {
+    subTitle: string;
+    icon: React.ComponentType<any>;
+}
+
+type ContentItem = BaseContentItem | DetailedContentItem;
+
+type GuideSection = {
+    icon: React.ComponentType<any>;
+    title: string;
+    content: ContentItem[];
+}
+
+const guideSections: GuideSection[] = [
     {
         icon: KeyRound,
         title: "البدء: الإعداد وتسجيل الدخول",
@@ -145,6 +161,10 @@ const guideSections = [
     },
 ];
 
+function isDetailedContentItem(item: ContentItem): item is DetailedContentItem {
+    return 'subTitle' in item && 'icon' in item;
+}
+
 export default function GuidePage() {
     return (
         <Card>
@@ -170,9 +190,9 @@ export default function GuidePage() {
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent className="p-4 bg-muted/50 rounded-md border-s-4 border-primary space-y-4">
-                               {section.content.map((item, itemIndex) => (
-                                   <div key={itemIndex}>
-                                        {item.subTitle && (
+                                {section.content.map((item, itemIndex) => (
+                                    <div key={itemIndex}>
+                                        {isDetailedContentItem(item) && (
                                             <div className="flex items-center gap-2 mb-2">
                                                 {item.icon && <item.icon className="h-5 w-5 text-muted-foreground" />}
                                                 <h4 className="font-semibold text-lg">{item.subTitle}</h4>
@@ -181,8 +201,8 @@ export default function GuidePage() {
                                         <p className="text-muted-foreground text-base leading-relaxed">
                                             {item.text}
                                         </p>
-                                   </div>
-                               ))}
+                                    </div>
+                                ))}
                             </AccordionContent>
                         </AccordionItem>
                     ))}
