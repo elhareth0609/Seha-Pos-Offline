@@ -1,16 +1,12 @@
 'use server';
-/**
- * @fileOverview An AI flow for calculating medication dosages based on patient age,
- * checking for drug interactions, and providing usage instructions.
- *
- * - calculateDose: A function that handles the dose calculation process.
- * - DoseCalculationInput: The input type for the calculateDose function.
- * - DoseCalculationOutput: The return type for the calculateDose function.
- */
 
 import { ai } from '@/ai/genkit';
-import { DoseCalculationInputSchema, DoseCalculationOutputSchema, type DoseCalculationInput, type DoseCalculationOutput } from '@/lib/types';
-
+import { 
+    DoseCalculationInputSchema, 
+    DoseCalculationOutputSchema, 
+    type DoseCalculationInput, 
+    type DoseCalculationOutput 
+} from '@/lib/types';
 
 const prompt = ai.definePrompt({
   name: 'doseCalculationPrompt',
@@ -64,27 +60,8 @@ const calculateDoseFlow = ai.defineFlow(
   }
 );
 
-
-export interface DoseCalculationInput {
-    patientAge: number;
-    medications: {
-        tradeName: string;
-        scientificNames: string[];
-        dosage: string;
-        dosageForm: string;
-    }[];
-}
-
-export interface DoseCalculationOutput {
-    medicationAnalysis: {
-        tradeName: string;
-        suggestedDose: string;
-        warning?: string;
-        usageInstructions: string;
-    }[];
-    interactions?: string[];
-}
-
 export async function calculateDose(input: DoseCalculationInput): Promise<DoseCalculationOutput> {
   return calculateDoseFlow(input);
 }
+
+export type { DoseCalculationInput, DoseCalculationOutput };
