@@ -98,7 +98,7 @@ export default function LoginPage() {
                     </p>
                     <Dialog>
                         <DialogTrigger asChild>
-                             <Button variant="ghost" className="mt-8 gap-2 p-0 h-auto text-muted-foreground hover:text-primary opacity-50 hover:opacity-100">
+                             <Button variant="ghost" className="mt-8 gap-2 p-0 h-auto text-muted-foreground hover:text-primary hover:bg-transparent opacity-50 hover:opacity-100">
                                 <ShieldAlert className="h-5 w-5" />
                             </Button>
                         </DialogTrigger>
