@@ -174,6 +174,9 @@ export default function SuperAdminPage() {
                         <CardDescription>قائمة بجميع حسابات مدراء الصيدليات المسجلين.</CardDescription>
                     </div>
                      <div className="flex items-center gap-2">
+                        <Button variant="outline" asChild>
+                            <Link href="/superadmin/reports"><FileText className="me-2"/> عرض التقارير</Link>
+                        </Button>
                         <Dialog open={isAddAdminOpen} onOpenChange={setIsAddAdminOpen}>
                             <DialogTrigger asChild>
                                 <Button><PlusCircle className="me-2"/> إنشاء حساب مدير</Button>
