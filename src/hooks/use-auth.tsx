@@ -9,7 +9,6 @@ import {
     setUser, 
     getPharmacySubCollection, 
     setPharmacySubCollectionDoc,
-    deletePharmacySubCollection,
     getPharmacyDoc,
     setPharmacyDoc,
     deletePharmacyData
@@ -26,7 +25,7 @@ interface AuthContextType {
   loading: boolean;
   setupAdmin: (name: string, email: string, pin: string) => Promise<boolean>;
   createPharmacyAdmin: (name: string, email: string, pin: string) => Promise<boolean>;
-  login: (email: string, pin: string) => Promise<boolean>;
+  login: (email: string, pin: string) => Promise<User | null>;
   logout: () => void;
   registerUser: (name: string, email: string, pin: string) => Promise<boolean>;
   deleteUser: (userId: string, permanent?: boolean) => Promise<boolean>;
@@ -106,25 +105,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const pharmacyId = currentUser?.pharmacyId;
 
-    // Effect for fetching all users and checking setup status
     React.useEffect(() => {
-        const fetchAllUsers = async () => {
+        const checkSetup = async () => {
             const allUsers = await getAllUsers();
-            setUsers(allUsers);
             const superAdminExists = allUsers.some(u => u.role === 'SuperAdmin');
             setIsSetup(superAdminExists);
-            setLoading(false);
+            // Don't stop loading here, let onAuthStateChanged be the source of truth for loading state
         };
-        fetchAllUsers();
+        checkSetup();
     }, []);
 
-    // Effect for handling auth state changes from Firebase
     React.useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
-                const userDoc = users.find(u => u.id === firebaseUser.uid);
+                const allUsers = await getAllUsers();
+                setUsers(allUsers);
+                const userDoc = allUsers.find(u => u.id === firebaseUser.uid);
                 if (userDoc) {
                     setCurrentUser(userDoc);
+                } else {
+                    // This can happen if user exists in Auth but not Firestore. Log them out.
+                    await signOut(auth);
+                    setCurrentUser(null);
                 }
             } else {
                 setCurrentUser(null);
@@ -132,9 +134,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(false);
         });
         return () => unsubscribe();
-    }, [users]);
+    }, []);
     
-    // Effect for fetching pharmacy-specific data when user changes
     React.useEffect(() => {
         const fetchPharmacyData = async () => {
             if (pharmacyId) {
@@ -150,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const pharmSettings = await getPharmacyDoc<AppSettings>(pharmacyId, 'config', 'main');
                 setSettings(pharmSettings || fallbackAppSettings);
             } else {
-                // Reset data if no pharmacyId
+                // Reset data if no pharmacyId (e.g., for SuperAdmin)
                 setInventory([]);
                 setSales([]);
                 setSuppliers([]);
@@ -233,15 +234,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (userExists) return false;
 
         try {
-            // We can't sign in as this new user, so we just create them in our system.
-            // The SuperAdmin shouldn't need to create a firebase auth user directly.
-            // The Admin will be created on their first login. For now, we store their details.
-            // This part of logic may need refinement based on user flow.
-            // For now, let's assume SuperAdmin pre-creates user data, and user signs up later.
-            const pharmacyId = `PHARM_${Date.now()}`;
-            const adminId = `ADMIN_${pharmacyId}`; // Placeholder ID
+            const userCredential = await createUserWithEmailAndPassword(auth, email, pin);
+            const pharmacyId = `PHARM_${userCredential.user.uid}`;
             const newAdmin: User = {
-                id: adminId,
+                id: userCredential.user.uid,
                 pharmacyId: pharmacyId,
                 name, email, pin,
                 role: 'Admin',
@@ -250,7 +246,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 createdAt: new Date().toISOString(),
                 hourlyRate: 0,
             };
-            await setUser(adminId, newAdmin);
+            await setUser(userCredential.user.uid, newAdmin);
             setUsers(prev => [...prev, newAdmin]);
             await setPharmacyDoc(pharmacyId, 'config', 'main', {...fallbackAppSettings, pharmacyName: `${name}'s Pharmacy`, pharmacyEmail: email});
             return true;
@@ -264,11 +260,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userExists = users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
         if (userExists) return false;
         if (!currentUser || !currentUser.pharmacyId) return false;
-        
-        // This flow should be initiated by an admin, not a public signup page.
-        // We'll just add the user doc. The user won't be able to login until an auth account is created.
-        // This is a limitation of not being able to create users from the client without auth.
-        // A backend function would be ideal here.
         
         try {
              const userCredential = await createUserWithEmailAndPassword(auth, email, pin);
@@ -291,29 +282,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }
   
-    const login = async (email: string, pin: string): Promise<boolean> => {
+    const login = async (email: string, pin: string): Promise<User | null> => {
         try {
-            const userDoc = users.find(u => u.email === email && u.pin === pin);
-            if (!userDoc || userDoc.status !== 'active') return false;
+            const userToLogin = users.find(u => u.email === email && u.pin === pin);
+            if (!userToLogin || userToLogin.status !== 'active') return null;
 
             await signInWithEmailAndPassword(auth, email, pin);
             
-            // onAuthStateChanged will handle setting the current user
-            
-            if (userDoc.role !== 'SuperAdmin' && userDoc.pharmacyId) {
+            if (userToLogin.role !== 'SuperAdmin' && userToLogin.pharmacyId) {
                 const newTimeLog: TimeLog = {
                     id: `TL${Date.now()}`,
-                    userId: userDoc.id,
-                    pharmacyId: userDoc.pharmacyId,
+                    userId: userToLogin.id,
+                    pharmacyId: userToLogin.pharmacyId,
                     clockIn: new Date().toISOString(),
                 };
-                await setPharmacySubCollectionDoc(userDoc.pharmacyId, 'timeLogs', newTimeLog.id, newTimeLog);
+                await setPharmacySubCollectionDoc(userToLogin.pharmacyId, 'timeLogs', newTimeLog.id, newTimeLog);
                 setActiveTimeLogId(newTimeLog.id);
             }
-            return true;
+            return userToLogin;
         } catch(error) {
             console.error("Login error:", error);
-            return false;
+            return null;
         }
     };
 
@@ -338,11 +327,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (permanent && currentUser?.role === 'SuperAdmin' && userToDelete.pharmacyId) {
             await deletePharmacyData(userToDelete.pharmacyId);
-            // also need to delete the user from auth and the users collection
-            // this requires admin sdk, can't do from client.
         }
-        // This function is complex to implement securely on the client.
-        // For now, we'll just mark as suspended.
+        
         await toggleUserStatus(userId);
         return true;
     };
@@ -362,8 +348,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (currentUser?.id === userId) {
             setCurrentUser(updatedUser);
         }
-        // Updating email/password in Firebase Auth is a privileged operation and requires reauthentication.
-        // It's not straightforward to do here.
         return true;
     };
 
@@ -404,10 +388,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         <AuthContext.Provider value={{ 
             currentUser, users, setUsers, isAuthenticated, loading, isSetup, 
             setupAdmin, login, logout, registerUser, deleteUser, updateUser, 
-            updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData,
-            // These are not implemented for Firestore yet.
-            resetPin: async () => false, 
-            checkUserExists: async () => false,
+            updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData
         }}>
         {children}
         </AuthContext.Provider>

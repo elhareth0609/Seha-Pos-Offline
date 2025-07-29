@@ -21,9 +21,13 @@ function SuperAdminLoginDialog() {
 
     const handleSuperAdminLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        const success = await login(email, pin);
-        if (success) {
-            router.push('/superadmin');
+        const user = await login(email, pin);
+        if (user) {
+            if (user.role === 'SuperAdmin') {
+                router.push('/superadmin');
+            } else {
+                router.push('/');
+            }
         } else {
             toast({ variant: 'destructive', title: 'بيانات الدخول غير صحيحة' });
         }
@@ -60,11 +64,18 @@ export default function LoginPage() {
     const [pin, setPin] = React.useState('');
     const { login } = useAuth();
     const { toast } = useToast();
+    const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const success = await login(email, pin);
-        if (!success) {
+        const user = await login(email, pin);
+        if (user) {
+             if (user.role === 'SuperAdmin') {
+                router.push('/superadmin');
+            } else {
+                router.push('/');
+            }
+        } else {
             toast({
                 variant: 'destructive',
                 title: 'بيانات الدخول غير صحيحة',
