@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview An AI flow for calculating medication dosages based on patient age,
@@ -65,6 +64,26 @@ const calculateDoseFlow = ai.defineFlow(
   }
 );
 
+
+export interface DoseCalculationInput {
+    patientAge: number;
+    medications: {
+        tradeName: string;
+        scientificNames: string[];
+        dosage: string;
+        dosageForm: string;
+    }[];
+}
+
+export interface DoseCalculationOutput {
+    medicationAnalysis: {
+        tradeName: string;
+        suggestedDose: string;
+        warning?: string;
+        usageInstructions: string;
+    }[];
+    interactions?: string[];
+}
 
 export async function calculateDose(input: DoseCalculationInput): Promise<DoseCalculationOutput> {
   return calculateDoseFlow(input);
