@@ -106,6 +106,9 @@ export default function PurchasesPage() {
   const [filteredPurchaseOrders, setFilteredPurchaseOrders] = React.useState<PurchaseOrder[]>([]);
   const [filteredSupplierReturns, setFilteredSupplierReturns] = React.useState<ReturnOrder[]>([]);
 
+  const [supplierName, setSupplierName] = React.useState("");
+  const [supplierContact, setSupplierContact] = React.useState("");
+
   React.useEffect(() => {
     const term = purchaseHistorySearchTerm.toLowerCase().trim();
     if (!term) {
@@ -229,7 +232,6 @@ export default function PurchasesPage() {
           id: medicationId,
           name: purchaseMedicationName,
           scientificNames: scientificNamesArray,
-          imageUrl: imageUrl,
           stock: quantity,
           reorderPoint: 20, // default
           price: sellingPrice,
@@ -238,6 +240,7 @@ export default function PurchasesPage() {
           dosage: dosage,
           dosageForm: dosageForm,
       };
+      if (imageUrl) newMedication.imageUrl = imageUrl;
       newInventory.unshift(newMedication);
       toast({
           title: "تم استلام البضاعة",
@@ -278,25 +281,47 @@ export default function PurchasesPage() {
     resetForm();
   };
 
-  const handleAddSupplier = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const name = formData.get("supplierName") as string;
-    const contact = formData.get("supplierContact") as string;
-    if (!name) {
-        toast({ variant: "destructive", title: "اسم المورد مطلوب" });
-        return;
-    }
-    const newSupplier: Supplier = {
-        id: `SUP${Date.now()}`,
-        name,
-        contactPerson: contact,
-    };
-    setSuppliers(prev => [newSupplier, ...(prev || [])]);
-    setPurchaseSupplierId(newSupplier.id); // Select the new supplier automatically
+  // const handleAddSupplier = (event: React.FormEvent<HTMLFormElement>) => {
+  //   event.preventDefault();
+  //   const formData = new FormData(event.currentTarget);
+  //   const name = formData.get("supplierName") as string;
+  //   const contact = formData.get("supplierContact") as string;
+  //   if (!name) {
+  //       toast({ variant: "destructive", title: "اسم المورد مطلوب" });
+  //       return;
+  //   }
+  //   const newSupplier: Supplier = {
+  //       id: `SUP${Date.now()}`,
+  //       name,
+  //       contactPerson: contact,
+  //   };
+  //   setSuppliers(prev => [newSupplier, ...(prev || [])]);
+  //   setPurchaseSupplierId(newSupplier.id); // Select the new supplier automatically
 
-    setIsAddSupplierOpen(false);
-    toast({ title: "تمت إضافة المورد بنجاح" });
+  //   setIsAddSupplierOpen(false);
+  //   toast({ title: "تمت إضافة المورد بنجاح" });
+  // };
+  const handleAddSupplier = () => { // تم تغيير الدالة لكي لا تستقبل event
+      if (!supplierName) {
+          toast({ variant: "destructive", title: "اسم المورد مطلوب" });
+          return;
+      }
+
+      const newSupplier: Supplier = {
+          id: `SUP${Date.now()}`,
+          name: supplierName,
+          contactPerson: supplierContact,
+      };
+
+      setSuppliers(prev => [newSupplier, ...(prev || [])]);
+      setPurchaseSupplierId(newSupplier.id); // Select the new supplier automatically
+
+      setIsAddSupplierOpen(false);
+      toast({ title: "تمت إضافة المورد بنجاح" });
+
+      // مسح الحقول بعد الحفظ
+      setSupplierName("");
+      setSupplierContact("");
   };
 
   const handleReturnSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -433,12 +458,37 @@ export default function PurchasesPage() {
                                     <Button variant="link" size="sm" className="p-0 h-auto"><PlusCircle className="me-1 h-3 w-3"/> إضافة مورد</Button>
                                 </DialogTrigger>
                                 <DialogContent>
-                                    <DialogHeader><DialogTitle>إضافة مورد جديد</DialogTitle></DialogHeader>
-                                    <form onSubmit={handleAddSupplier} className="space-y-4 pt-2">
-                                        <div className="space-y-2"><Label htmlFor="supplierName">اسم المورد</Label><Input id="supplierName" name="supplierName" required /></div>
-                                        <div className="space-y-2"><Label htmlFor="supplierContact">الشخص المسؤول (اختياري)</Label><Input id="supplierContact" name="supplierContact" /></div>
-                                        <DialogFooter className="pt-2"><DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose><Button type="submit" variant="success">إضافة</Button></DialogFooter>
-                                    </form>
+                                    <DialogHeader>
+                                      <DialogTitle>إضافة مورد جديد</DialogTitle>
+                                    </DialogHeader>
+                                      <div className="space-y-4 pt-2">
+                                          <div className="space-y-2">
+                                              <Label htmlFor="supplierName">اسم المورد</Label>
+                                              <Input
+                                                  id="supplierName"
+                                                  name="supplierName"
+                                                  required
+                                                  value={supplierName}
+                                                  onChange={(e) => setSupplierName(e.target.value)}
+                                              />
+                                          </div>
+                                          <div className="space-y-2">
+                                              <Label htmlFor="supplierContact">الشخص المسؤول (اختياري)</Label>
+                                              <Input
+                                                  id="supplierContact"
+                                                  name="supplierContact"
+                                                  value={supplierContact}
+                                                  onChange={(e) => setSupplierContact(e.target.value)}
+                                              />
+                                          </div>
+                                          <DialogFooter className="pt-2">
+                                              <DialogClose asChild>
+                                                  <Button variant="outline" type="button">إلغاء</Button>
+                                              </DialogClose>
+                                              {/* تم تغيير نوع الزر إلى "button" لكي لا يقوم بإرسال النموذج تلقائيًا */}
+                                              <Button type="button" variant="success" onClick={handleAddSupplier}>إضافة</Button>
+                                          </DialogFooter>
+                                      </div>
                                 </DialogContent>
                             </Dialog>
                         </div>

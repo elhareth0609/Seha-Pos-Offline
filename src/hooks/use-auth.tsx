@@ -14,8 +14,9 @@ import {
     getUserById,
     checkSuperAdminExists
 } from './use-firestore';
-import { auth } from '@/lib/firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { auth, firebaseConfig } from '@/lib/firebase';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseUser, getAuth } from 'firebase/auth';
+import { deleteApp, getApps, initializeApp } from 'firebase/app';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -265,18 +266,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
   
+    // const createPharmacyAdmin = async (name: string, email: string, pin: string): Promise<boolean> => {
+    //     // Only SuperAdmin can create pharmacy admins
+    //     if (!currentUser || currentUser.role !== 'SuperAdmin') return false;
+        
+    //     const userExists = users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+    //     if (userExists) return false;
+
+    //     try {
+    //         const userCredential = await createUserWithEmailAndPassword(auth, email, pin);
+    //         const pharmacyId = `PHARM_${userCredential.user.uid}`;
+    //         const newAdmin: User = {
+    //             id: userCredential.user.uid,
+    //             pharmacyId: pharmacyId,
+    //             name, email, pin,
+    //             role: 'Admin',
+    //             status: 'active',
+    //             permissions: adminPermissions,
+    //             createdAt: new Date().toISOString(),
+    //             hourlyRate: 0,
+    //         };
+    //         await setUser(userCredential.user.uid, newAdmin, true);
+    //         setUsers(prev => [...prev, newAdmin]);
+    //         await setPharmacyDoc(pharmacyId, 'config', 'main', {...fallbackAppSettings, pharmacyName: `${name}'s Pharmacy`, pharmacyEmail: email});
+    //                 // Sign out delegate and sign back in as admin
+    //         if (!currentUser.email || !currentUser.pin) {
+    //             throw new Error("Email or PIN is missing");
+    //         }
+    //         await signOut(auth);
+    //         await signInWithEmailAndPassword(auth, currentUser.email, currentUser.pin);
+
+    //         return true;
+    //     } catch (error) {
+    //         console.error("Error creating pharmacy admin:", error);
+    //         return false;
+    //     }
+    // };
     const createPharmacyAdmin = async (name: string, email: string, pin: string): Promise<boolean> => {
         // Only SuperAdmin can create pharmacy admins
         if (!currentUser || currentUser.role !== 'SuperAdmin') return false;
         
         const userExists = users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
-        if (userExists) return false;
+        if (userExists) {
+            console.error("User with this email already exists.");
+            return false;
+        }
+
+        const tempAppName = 'temp-user-creation-app';
+        let tempApp;
 
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, pin);
-            const pharmacyId = `PHARM_${userCredential.user.uid}`;
+            // احصل على النسخة المؤقتة من التطبيق أو أنشئها إذا لم تكن موجودة
+            tempApp = getApps().find(app => app.name === tempAppName) || initializeApp(firebaseConfig, tempAppName);
+            const tempAuth = getAuth(tempApp);
+
+            // استخدم النسخة المؤقتة لإنشاء المستخدم. هذا لن يؤثر على جلسة المستخدم الحالي
+            const userCredential = await createUserWithEmailAndPassword(tempAuth, email, pin);
+            const newUserUid = userCredential.user.uid;
+
+            // الآن بعد أن تم إنشاء المستخدم، يمكننا حذف التطبيق المؤقت بأمان
+            await deleteApp(tempApp);
+            tempApp = undefined; // لمنع الحذف مرة أخرى في كتلة catch
+
+            const pharmacyId = `PHARM_${newUserUid}`;
             const newAdmin: User = {
-                id: userCredential.user.uid,
+                id: newUserUid,
                 pharmacyId: pharmacyId,
                 name, email, pin,
                 role: 'Admin',
@@ -285,27 +339,83 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 createdAt: new Date().toISOString(),
                 hourlyRate: 0,
             };
-            await setUser(userCredential.user.uid, newAdmin, true);
-            setUsers(prev => [...prev, newAdmin]);
+
+            await setUser(newUserUid, newAdmin, true);
             await setPharmacyDoc(pharmacyId, 'config', 'main', {...fallbackAppSettings, pharmacyName: `${name}'s Pharmacy`, pharmacyEmail: email});
+            
+            // قم بتحديث قائمة المستخدمين في الحالة المحلية بدون إعادة تحميل
+            setUsers(prev => [...prev, newAdmin]);
+
+            // لا حاجة لتسجيل الخروج وإعادة الدخول بعد الآن!
             return true;
         } catch (error) {
             console.error("Error creating pharmacy admin:", error);
+            // تأكد من حذف التطبيق المؤقت في حالة حدوث خطأ أيضًا
+            if (tempApp) {
+                await deleteApp(tempApp);
+            }
             return false;
         }
     };
 
+    // const registerUser = async (name: string, email: string, pin: string): Promise<boolean> => {
+    //     // Only Admin can register users in their pharmacy
+    //     if (!currentUser || currentUser.role !== 'Admin' || !currentUser.pharmacyId) return false;
+        
+    //     const userExists = users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+    //     if (userExists) return false;
+        
+    //     try {
+    //          const userCredential = await createUserWithEmailAndPassword(auth, email, pin);
+    //          const newUser: User = {
+    //             id: userCredential.user.uid,
+    //             pharmacyId: currentUser.pharmacyId,
+    //             name, email, pin,
+    //             role: 'Employee',
+    //             status: 'active',
+    //             permissions: defaultEmployeePermissions,
+    //             createdAt: new Date().toISOString(),
+    //             hourlyRate: 0,
+    //         };
+    //         await setUser(userCredential.user.uid, newUser, true);
+    //         setUsers(prev => [...prev, newUser]);
+    //         await signOut(auth);
+    //         if (!currentUser.email || !currentUser.pin) {
+    //             throw new Error("Email or PIN is missing");
+    //         }
+    //         await signInWithEmailAndPassword(auth, currentUser.email, currentUser.pin);
+
+    //         return true;
+    //     } catch (error) {
+    //         console.error("Error registering user:", error);
+    //         return false;
+    //     }
+    // }
     const registerUser = async (name: string, email: string, pin: string): Promise<boolean> => {
         // Only Admin can register users in their pharmacy
         if (!currentUser || currentUser.role !== 'Admin' || !currentUser.pharmacyId) return false;
         
         const userExists = users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
-        if (userExists) return false;
+        if (userExists) {
+            console.error("User with this email already exists.");
+            return false;
+        }
+
+        const tempAppName = 'temp-user-creation-app';
+        let tempApp;
         
         try {
-             const userCredential = await createUserWithEmailAndPassword(auth, email, pin);
-             const newUser: User = {
-                id: userCredential.user.uid,
+            tempApp = getApps().find(app => app.name === tempAppName) || initializeApp(firebaseConfig, tempAppName);
+            const tempAuth = getAuth(tempApp);
+
+            const userCredential = await createUserWithEmailAndPassword(tempAuth, email, pin);
+            const newUserUid = userCredential.user.uid;
+            
+            await deleteApp(tempApp);
+            tempApp = undefined;
+
+            const newUser: User = {
+                id: newUserUid,
                 pharmacyId: currentUser.pharmacyId,
                 name, email, pin,
                 role: 'Employee',
@@ -314,15 +424,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 createdAt: new Date().toISOString(),
                 hourlyRate: 0,
             };
-            await setUser(userCredential.user.uid, newUser, true);
+
+            await setUser(newUserUid, newUser, true);
             setUsers(prev => [...prev, newUser]);
+
+            // لا حاجة لتسجيل الخروج وإعادة الدخول
             return true;
         } catch (error) {
             console.error("Error registering user:", error);
+            if (tempApp) {
+                await deleteApp(tempApp);
+            }
             return false;
         }
     }
-  
+
     const login = async (email: string, pin: string): Promise<User | null> => {
         try {
             // First authenticate with Firebase

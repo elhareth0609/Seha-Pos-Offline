@@ -14,7 +14,6 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-
 // Initialize Firebase
 let app;
 if (!getApps().length) {
@@ -26,5 +25,4 @@ if (!getApps().length) {
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-
-export { app, db, auth };
+export { app, db, auth, firebaseConfig };
