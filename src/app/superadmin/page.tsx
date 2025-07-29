@@ -29,7 +29,7 @@ const addAdminSchema = z.object({
 
 type AddAdminFormValues = z.infer<typeof addAdminSchema>;
 
-function AdminRow({ admin, onDelete, onToggleStatus, pharmacyData }: { admin: User, onDelete: (user: User) => void, onToggleStatus: (user: User) => void, pharmacyData: { employeeCount: number, totalSales: number } }) {
+function AdminRow({ admin, onDelete, onToggleStatus }: { admin: User, onDelete: (user: User) => void, onToggleStatus: (user: User) => void }) {
     const [showPin, setShowPin] = React.useState(false);
 
     return (
@@ -44,8 +44,6 @@ function AdminRow({ admin, onDelete, onToggleStatus, pharmacyData }: { admin: Us
                     </Button>
                 </div>
             </TableCell>
-            <TableCell className="font-mono">{pharmacyData.employeeCount}</TableCell>
-            <TableCell className="font-mono">{pharmacyData.totalSales.toLocaleString()}</TableCell>
             <TableCell>
                 <Badge variant={admin.status === 'active' ? 'secondary' : 'destructive'} className={admin.status === 'active' ? 'bg-green-100 text-green-800' : ''}>
                     {admin.status === 'active' ? 'فعال' : 'معلق'}
@@ -90,7 +88,7 @@ function AdminRow({ admin, onDelete, onToggleStatus, pharmacyData }: { admin: Us
 }
 
 export default function SuperAdminPage() {
-    const { currentUser, users, createPharmacyAdmin, deleteUser, toggleUserStatus, logout, scopedData: allData } = useAuth();
+    const { currentUser, users, createPharmacyAdmin, deleteUser, toggleUserStatus, logout } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const [isAddAdminOpen, setIsAddAdminOpen] = React.useState(false);
@@ -132,13 +130,6 @@ export default function SuperAdminPage() {
     
     const pharmacyAdmins = users.filter(u => u.role === 'Admin');
     const totalEmployees = users.filter(u => u.role === 'Employee').length;
-    const totalSales = Object.values(allData.sales).flat().reduce((sum, sale) => sum + (sale.total || 0), 0);
-
-    const getPharmacyData = (pharmacyId: string) => {
-        const employeeCount = users.filter(u => u.pharmacyId === pharmacyId && u.role === 'Employee').length;
-        const totalSales = (allData.sales[pharmacyId] || []).reduce((sum, sale) => sum + (sale.total || 0), 0);
-        return { employeeCount, totalSales };
-    };
 
     if (!currentUser || currentUser.role !== 'SuperAdmin') {
         return null;
@@ -165,7 +156,7 @@ export default function SuperAdminPage() {
                 </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">عدد الصيدليات</CardTitle><Building className="h-4 w-4 text-muted-foreground" /></CardHeader>
                     <CardContent><div className="text-2xl font-bold font-mono">{pharmacyAdmins.length}</div></CardContent>
@@ -173,10 +164,6 @@ export default function SuperAdminPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">إجمالي الموظفين</CardTitle><Users className="h-4 w-4 text-muted-foreground" /></CardHeader>
                     <CardContent><div className="text-2xl font-bold font-mono">{totalEmployees}</div></CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">إجمالي المبيعات</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader>
-                    <CardContent><div className="text-2xl font-bold font-mono">{totalSales.toLocaleString()}</div></CardContent>
                 </Card>
             </div>
 
@@ -187,9 +174,6 @@ export default function SuperAdminPage() {
                         <CardDescription>قائمة بجميع حسابات مدراء الصيدليات المسجلين.</CardDescription>
                     </div>
                      <div className="flex items-center gap-2">
-                         <Button variant="outline" asChild>
-                            <Link href="/superadmin/reports"><FileText className="me-2"/> عرض التقارير</Link>
-                        </Button>
                         <Dialog open={isAddAdminOpen} onOpenChange={setIsAddAdminOpen}>
                             <DialogTrigger asChild>
                                 <Button><PlusCircle className="me-2"/> إنشاء حساب مدير</Button>
@@ -226,8 +210,6 @@ export default function SuperAdminPage() {
                                 <TableHead>اسم المدير</TableHead>
                                 <TableHead>البريد الإلكتروني</TableHead>
                                 <TableHead>رمز PIN</TableHead>
-                                <TableHead>عدد الموظفين</TableHead>
-                                <TableHead>إجمالي المبيعات</TableHead>
                                 <TableHead>الحالة</TableHead>
                                 <TableHead className="text-left">الإجراءات</TableHead>
                             </TableRow>
@@ -239,7 +221,6 @@ export default function SuperAdminPage() {
                                     admin={admin} 
                                     onDelete={handleDeleteAdmin} 
                                     onToggleStatus={handleToggleStatus}
-                                    pharmacyData={getPharmacyData(admin.pharmacyId!)}
                                 />
                             ))}
                         </TableBody>

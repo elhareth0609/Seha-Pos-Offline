@@ -8,18 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { LogIn, ShieldAlert, PackagePlus } from 'lucide-react';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-    DialogClose,
-    DialogFooter,
-} from "@/components/ui/dialog";
+import { LogIn, PackagePlus, ShieldAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
 
 function SuperAdminLoginDialog() {
     const { login } = useAuth();
@@ -85,9 +76,9 @@ export default function LoginPage() {
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-muted/40 p-4">
-             <div className="container grid lg:grid-cols-2 gap-16 items-center">
+            <div className="container grid lg:grid-cols-2 gap-16 items-center">
                 <div className="hidden lg:flex flex-col items-start text-right">
-                    <div className="flex items-center gap-3 mb-4">
+                     <div className="flex items-center gap-3 mb-4">
                         <PackagePlus className="h-14 w-14 text-primary" />
                         <h1 className="text-5xl font-bold">Midgram</h1>
                     </div>
@@ -96,14 +87,13 @@ export default function LoginPage() {
                     </p>
                     <Dialog>
                         <DialogTrigger asChild>
-                            <Button variant="ghost" className="mt-8 gap-2 p-0 h-auto text-muted-foreground hover:text-primary opacity-50 hover:opacity-100">
+                             <Button variant="ghost" className="mt-8 gap-2 p-0 h-auto text-muted-foreground hover:text-primary opacity-50 hover:opacity-100">
                                 <ShieldAlert className="h-5 w-5" />
                             </Button>
                         </DialogTrigger>
                         <SuperAdminLoginDialog />
                     </Dialog>
                 </div>
-
                 <Card className="w-full max-w-sm mx-auto shadow-2xl animate-in fade-in zoom-in-95">
                     <CardHeader className="text-center">
                         <CardTitle className="text-2xl">مرحبًا بعودتك!</CardTitle>

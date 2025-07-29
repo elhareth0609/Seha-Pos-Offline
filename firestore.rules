@@ -1,0 +1,43 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if the user belongs to a specific pharmacy
+    function isUserOfPharmacy(pharmacyId) {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.pharmacyId == pharmacyId;
+    }
+
+    // Helper function to check if the user is a SuperAdmin
+    function isSuperAdmin() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SuperAdmin';
+    }
+    
+    // Helper function to check if the user is an Admin of a specific pharmacy
+    function isAdminOfPharmacy(pharmacyId) {
+        return isUserOfPharmacy(pharmacyId) &&
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+    }
+
+    // Rules for the 'users' collection
+    match /users/{userId} {
+      // SuperAdmins can read/write any user document.
+      // Users can read/write their own document.
+      // Admins can read/write users within their own pharmacy.
+      allow read, write: if isSuperAdmin() || 
+                             request.auth.uid == userId ||
+                             (isAdminOfPharmacy(resource.data.pharmacyId) && request.auth.uid != userId);
+      // Allow SuperAdmins to create new Admin users for new pharmacies.
+      allow create: if isSuperAdmin() || 
+                       (request.auth.token.role == 'Admin' && request.resource.data.pharmacyId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.pharmacyId);
+    }
+
+    // Rules for pharmacy-specific sub-collections
+    match /pharmacies/{pharmacyId}/{collection}/{docId} {
+      // Allow read/write access only to users who belong to that pharmacy
+      allow read, write, create, delete: if isUserOfPharmacy(pharmacyId) || isSuperAdmin();
+    }
+  }
+}
