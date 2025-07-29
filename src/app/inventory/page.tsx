@@ -346,12 +346,12 @@ export default function InventoryPage() {
   
   return (
     <>
-      <div className="hidden">
-          {printingMed && (
-              <div ref={printComponentRef}>
-                  <Barcode value={printingMed.id} />
-              </div>
-          )}
+      <div style={{ display: printingMed ? 'block' : 'none' }}>
+        {printingMed && (
+            <div ref={printComponentRef}>
+                <Barcode value={printingMed.id} />
+            </div>
+        )}
       </div>
       <Card>
         <CardHeader>
