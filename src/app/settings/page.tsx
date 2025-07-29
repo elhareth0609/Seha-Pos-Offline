@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from 'react'
@@ -63,11 +62,11 @@ import { appSettings as fallbackSettings } from '@/lib/data'
 
 const settingsSchema = z.object({
   pharmacyName: z.string().min(2, { message: "يجب أن يكون اسم الصيدلية حرفين على الأقل." }),
-  pharmacyAddress: z.string().optional(),
-  pharmacyPhone: z.string().optional(),
-  pharmacyEmail: z.string().email({ message: "بريد إلكتروني غير صالح." }).optional().or(z.literal('')),
+  pharmacyAddress: z.string().default(""),
+  pharmacyPhone: z.string().default(""),
+  pharmacyEmail: z.string().email({ message: "بريد إلكتروني غير صالح." }).or(z.literal("")).default(""),
   expirationThresholdDays: z.coerce.number().int().positive({ message: "يجب أن يكون عدد الأيام رقمًا صحيحًا موجبًا." }),
-  invoiceFooterMessage: z.string().optional(),
+  invoiceFooterMessage: z.string().default("شكرًا لزيارتكم!"),
 })
 
 type SettingsFormValues = z.infer<typeof settingsSchema>
@@ -218,7 +217,17 @@ export default function SettingsPage() {
 
 
     const onSettingsSubmit = (data: SettingsFormValues) => {
-        setSettings(data);
+        // Ensure all fields have values
+        const settingsData: AppSettings = {
+            pharmacyName: data.pharmacyName,
+            pharmacyAddress: data.pharmacyAddress || "",
+            pharmacyPhone: data.pharmacyPhone || "",
+            pharmacyEmail: data.pharmacyEmail || "",
+            expirationThresholdDays: data.expirationThresholdDays,
+            invoiceFooterMessage: data.invoiceFooterMessage || "شكرًا لزيارتكم!",
+        };
+        
+        setSettings(settingsData);
         toast({
             title: "تم حفظ الإعدادات بنجاح!",
         })
@@ -740,4 +749,3 @@ export default function SettingsPage() {
   )
 }
 
-    
