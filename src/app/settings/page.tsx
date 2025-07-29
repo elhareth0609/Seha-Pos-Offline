@@ -52,7 +52,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, Clock, Wallet, MoreVertical, Pencil } from 'lucide-react'
-import { clearAllDBData } from '@/hooks/use-local-storage'
+import { deletePharmacyData } from '@/hooks/use-firestore';
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import Image from 'next/image'
@@ -172,7 +172,7 @@ function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (o
 
 export default function SettingsPage() {
     const { toast } = useToast()
-    const { currentUser, users, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate, scopedData } = useAuth();
+    const { currentUser, users, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate, scopedData, logout } = useAuth();
     
     const { settings: [settings, setSettings], sales: [sales], timeLogs: [timeLogs] } = scopedData;
 
@@ -236,15 +236,18 @@ export default function SettingsPage() {
     }
 
     const handleClearData = async () => {
-        if (typeof window !== 'undefined') {
-            try {
-                await clearAllDBData();
-                alert("تم مسح جميع البيانات بنجاح. سيتم إعادة تحميل الصفحة.");
-                window.location.reload();
-            } catch (error) {
-                console.error("Failed to clear data:", error);
-                alert("حدث خطأ أثناء محاولة مسح البيانات.");
-            }
+        if (!currentUser?.pharmacyId) {
+            toast({ variant: "destructive", title: "خطأ", description: "لم يتم العثور على معرف الصيدلية." });
+            return;
+        }
+        try {
+            await deletePharmacyData(currentUser.pharmacyId);
+            toast({ title: "تم مسح بيانات الصيدلية بنجاح" });
+            // Logout to force re-initialization or redirect
+            await logout();
+        } catch (error) {
+            console.error("Failed to clear data:", error);
+            toast({ variant: "destructive", title: "خطأ أثناء الحذف" });
         }
     }
 
@@ -576,13 +579,13 @@ export default function SettingsPage() {
                 <CardContent>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button variant="destructive">مسح جميع بيانات التطبيق</Button>
+                            <Button variant="destructive">مسح جميع بيانات الصيدلية</Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader>
                                 <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    هذا الإجراء لا يمكن التراجع عنه. سيؤدي هذا إلى حذف جميع البيانات بشكل دائم، بما في ذلك المخزون والمبيعات والمرضى والمستخدمين. لا يمكن استعادة هذه البيانات.
+                                    هذا الإجراء لا يمكن التراجع عنه. سيؤدي هذا إلى حذف جميع بيانات هذه الصيدلية بشكل دائم، بما في ذلك المخزون والمبيعات والموظفين. لا يمكن استعادة هذه البيانات. سيتم تسجيل خروجك بعد العملية.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -736,3 +739,5 @@ export default function SettingsPage() {
     </div>
   )
 }
+
+    

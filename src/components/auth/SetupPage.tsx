@@ -28,8 +28,8 @@ export default function SetupPage() {
             toast({ variant: 'destructive', title: 'بريد إلكتروني غير صالح', description: 'الرجاء إدخال بريد إلكتروني صحيح.' });
             return;
         }
-        if (!/^\d{4}$/.test(pin)) {
-            toast({ variant: 'destructive', title: 'رمز PIN غير صالح', description: 'يجب أن يتكون رمز PIN من 4 أرقام بالضبط.' });
+        if (!/^\d{6}$/.test(pin)) {
+            toast({ variant: 'destructive', title: 'رمز PIN غير صالح', description: 'يجب أن يتكون رمز PIN من 6 أرقام بالضبط.' });
             return;
         }
         if (pin !== confirmPin) {
@@ -68,12 +68,12 @@ export default function SetupPage() {
                         </div>
                          <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="pin">رمز PIN (4 أرقام)</Label>
-                                <Input id="pin" type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={4} required />
+                                <Label htmlFor="pin">رمز PIN (6 أرقام)</Label>
+                                <Input id="pin" type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={6} required />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="confirm-pin">تأكيد الرمز</Label>
-                                <Input id="confirm-pin" type="password" inputMode="numeric" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))} maxLength={4} required />
+                                <Input id="confirm-pin" type="password" inputMode="numeric" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))} maxLength={6} required />
                             </div>
                         </div>
                     </CardContent>
