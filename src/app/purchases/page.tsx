@@ -435,7 +435,7 @@ export default function PurchasesPage() {
         <TabsTrigger value="new-return">إرجاع للمورد</TabsTrigger>
         <TabsTrigger value="return-history">سجل الاسترجاع</TabsTrigger>
       </TabsList>
-      <TabsContent value="new-purchase">
+      <TabsContent value="new-purchase" dir="rtl">
         <Card>
           <CardHeader>
             <CardTitle>استلام بضاعة جديدة</CardTitle>
@@ -567,7 +567,7 @@ export default function PurchasesPage() {
           </CardContent>
         </Card>
       </TabsContent>
-       <TabsContent value="purchase-history">
+       <TabsContent value="purchase-history" dir="rtl">
         <Card>
           <CardHeader>
             <CardTitle>سجل المشتريات</CardTitle>
@@ -632,7 +632,7 @@ export default function PurchasesPage() {
           </CardContent>
         </Card>
       </TabsContent>
-       <TabsContent value="new-return">
+       <TabsContent value="new-return" dir="rtl">
          <Card>
             <CardHeader>
                 <CardTitle>إنشاء قائمة إرجاع للمورد</CardTitle>
@@ -737,7 +737,7 @@ export default function PurchasesPage() {
             </CardFooter>
         </Card>
       </TabsContent>
-       <TabsContent value="return-history">
+       <TabsContent value="return-history" dir="rtl">
         <Card>
           <CardHeader>
             <CardTitle>سجل الاسترجاع</CardTitle>

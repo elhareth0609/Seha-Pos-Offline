@@ -17,6 +17,7 @@ import {
 import { auth, firebaseConfig } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseUser, getAuth } from 'firebase/auth';
 import { deleteApp, getApps, initializeApp } from 'firebase/app';
+import { toast } from './use-toast';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -36,6 +37,8 @@ interface AuthContextType {
   updateUserHourlyRate: (userId: string, rate: number) => Promise<boolean>;
   toggleUserStatus: (userId: string) => Promise<boolean>;
   scopedData: ScopedDataContextType;
+  getAllPharmacySettings: () => Promise<Record<string, AppSettings>>;
+
 }
 
 export interface ScopedDataContextType {
@@ -176,6 +179,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setSupplierReturns(await getPharmacySubCollection<ReturnOrder>(pharmacyId, 'supplierReturns'));
                     setTimeLogs(await getPharmacySubCollection<TimeLog>(pharmacyId, 'timeLogs'));
                     const pharmSettings = await getPharmacyDoc<AppSettings>(pharmacyId, 'config', 'main');
+                    console.log(pharmSettings)
                     setSettings(pharmSettings || fallbackAppSettings);
                 } catch (error) {
                     console.error("Error fetching pharmacy data:", error);
@@ -209,7 +213,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const newValue = typeof value === 'function' ? value(state) : value;
             try {
                 for (const item of newValue) {
-                    await setPharmacySubCollectionDoc(pharmacyId, collectionName, item.id, item);
+                    // 清理每个项目的 undefined 值
+                    const cleanItem = { ...item };
+                    Object.keys(cleanItem).forEach(key => {
+                        if ((cleanItem as any)[key] === undefined) {
+                            (cleanItem as any)[key] = null;
+                        }
+                    });
+                    
+                    await setPharmacySubCollectionDoc(pharmacyId, collectionName, item.id, cleanItem);
                 }
                 setter(newValue);
             } catch (error) {
@@ -223,6 +235,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
                 const newSettings = typeof value === 'function' ? value(settings) : value;
                 await setPharmacyDoc(pharmacyId, 'config', 'main', newSettings);
+                console.log("Settings updated successfully:", newSettings);
                 setSettings(newSettings);
             } catch (error) {
                 console.error("Error updating settings:", error);
@@ -302,6 +315,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     //         return false;
     //     }
     // };
+
+    // 在 use-auth.tsx 中添加新的函数
+    const getAllPharmacySettings = async (): Promise<Record<string, AppSettings>> => {
+        if (!currentUser || currentUser.role !== 'SuperAdmin') return {};
+        
+        const pharmacySettings: Record<string, AppSettings> = {};
+        
+        // 获取所有管理员用户
+        const adminUsers = users.filter(u => u.role === 'Admin' && u.pharmacyId);
+        
+        // 为每个药房获取设置
+        for (const admin of adminUsers) {
+            if (admin.pharmacyId) {
+                try {
+                    const settings = await getPharmacyDoc<AppSettings>(admin.pharmacyId, 'config', 'main');
+                    pharmacySettings[admin.pharmacyId] = settings || {
+                        ...fallbackAppSettings,
+                        pharmacyName: `${admin.name}'s Pharmacy`,
+                        pharmacyEmail: admin.email || ""
+                    };
+                } catch (error) {
+                    console.error(`Error fetching settings for pharmacy ${admin.pharmacyId}:`, error);
+                    pharmacySettings[admin.pharmacyId] = {
+                        ...fallbackAppSettings,
+                        pharmacyName: `${admin.name}'s Pharmacy`,
+                        pharmacyEmail: admin.email || ""
+                    };
+                }
+            }
+        }
+        
+        return pharmacySettings;
+    };
+
     const createPharmacyAdmin = async (name: string, email: string, pin: string): Promise<boolean> => {
         // Only SuperAdmin can create pharmacy admins
         if (!currentUser || currentUser.role !== 'SuperAdmin') return false;
@@ -448,7 +495,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // and setting up the session, including time logging
             return null; // We'll return the user through the auth state change
         } catch(error) {
-            console.error("Login error:", error);
+            toast({
+                variant: "destructive",
+                title: "فشل تسجيل الدخول",
+                description: "يرجى التحقق من البريد الإلكتروني أو الرقم السري.",
+            });
+
+            // console.error("Login error:", error);
             return null;
         }
     };
@@ -630,7 +683,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         <AuthContext.Provider value={{ 
             currentUser, users, setUsers, isAuthenticated, loading, isSetup, 
             setupAdmin, login, logout, registerUser, deleteUser, updateUser, 
-            updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData
+            updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData,
+            getAllPharmacySettings
         }}>
         {children}
         </AuthContext.Provider>

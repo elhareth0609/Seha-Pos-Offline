@@ -488,7 +488,7 @@ export default function SalesPage() {
         total: finalTotal,
         profit: totalProfit,
         discount: discount,
-        patientId: selectedPatient?.id,
+        patientId: selectedPatient?.id || null,
         patientName: selectedPatient?.name,
         employeeId: currentUser.id,
         employeeName: currentUser.name,
@@ -516,7 +516,7 @@ export default function SalesPage() {
   const loadSaleForReview = (index: number) => {
     if (index >= 0 && index < sortedSales.length) {
         const saleToReview = sortedSales[index];
-        const patient = (patients || []).find(p => p.id === saleToReview.patientId);
+        const patient = (patients || []).find(p => p.id === saleToReview?.patientId);
         setCart(saleToReview.items);
         setDiscount(saleToReview.discount || 0);
         setDiscountInput((saleToReview.discount || 0).toString());

@@ -49,7 +49,7 @@ export type Sale = {
   total: number;
   profit: number;
   discount?: number;
-  patientId?: string;
+  patientId: string | null;
   patientName?: string;
   employeeId: string;
   employeeName: string;

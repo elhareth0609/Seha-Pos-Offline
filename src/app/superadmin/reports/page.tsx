@@ -14,9 +14,10 @@ import { DollarSign, TrendingUp, PieChart, TrendingDown, ArrowLeft } from 'lucid
 import Link from 'next/link';
 
 export default function SuperAdminReportsPage() {
-    const { currentUser, users, scopedData: allData } = useAuth();
+    const { currentUser, users, scopedData: allData, getAllPharmacySettings } = useAuth();
     const router = useRouter();
-    
+    const [pharmacySettings, setPharmacySettings] = React.useState<Record<string, AppSettings>>({});
+
     const [selectedPharmacyId, setSelectedPharmacyId] = React.useState<string | null>(null);
 
     React.useEffect(() => {
@@ -25,8 +26,17 @@ export default function SuperAdminReportsPage() {
         }
     }, [currentUser, router]);
 
-    const pharmacyAdmins = users.filter(u => u.role === 'Admin');
+    React.useEffect(() => {
+        const fetchSettings = async () => {
+            if (currentUser?.role === 'SuperAdmin') {
+                const settings = await getAllPharmacySettings();
+                setPharmacySettings(settings);
+            }
+        };
+        fetchSettings();
+    }, [currentUser, getAllPharmacySettings]);
 
+    const pharmacyAdmins = users.filter(u => u.role === 'Admin');
     // const selectedPharmacyData = React.useMemo(() => {
     //     if (!selectedPharmacyId) return null;
 
@@ -145,19 +155,17 @@ export default function SuperAdminReportsPage() {
                                 </SelectItem>
                             ))}
                         </SelectContent> */}
-                                                                <SelectContent>
-                                    {pharmacyAdmins.map(admin => {
-                                        // Type assertion to tell TypeScript that pharmacyId is a valid key
-                                        const pharmacyId = admin.pharmacyId as string;
-                                        // Access the AppSettings object from the tuple at index 0
-                                        const pharmacySettings = allData.settings[0] as AppSettings;
-                                        return (
-                                            <SelectItem key={pharmacyId} value={pharmacyId}>
-                                                {pharmacySettings.pharmacyName || admin.name}
-                                            </SelectItem>
-                                        );
-                                    })}
-                                </SelectContent>
+                        <SelectContent>
+                            {pharmacyAdmins.map(admin => {
+                                const pharmacyId = admin.pharmacyId as string;
+                                const settings = pharmacySettings[pharmacyId];
+                                return (
+                                    <SelectItem key={pharmacyId} value={pharmacyId}>
+                                        {settings?.pharmacyName || admin.name}
+                                    </SelectItem>
+                                );
+                            })}
+                        </SelectContent>
 
 
                     </Select>
