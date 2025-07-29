@@ -255,7 +255,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 pin: pin,
                 createdAt: new Date().toISOString(),
             };
-            await setUser(userCredential.user.uid, superAdmin);
+            await setUser(userCredential.user.uid, superAdmin, false);
             setUsers([superAdmin]);
             setIsSetup(true);
             return true;

@@ -112,15 +112,25 @@ export const getAllUsers = async (): Promise<User[]> => {
 };
 
 // Creates or updates a user document
-export const setUser = async (userId: string, data: Omit<User, 'id'>): Promise<void> => {
+export const setUser = async (
+  userId: string,
+  data: Omit<User, 'id'>,
+  superAdminAlreadyExists: boolean | undefined
+): Promise<void> => {
   try {
     const userDocRef = doc(db, 'users', userId);
     await setDoc(userDocRef, data, { merge: true });
+
+    // If SuperAdmin does NOT already exist, mark it as now existing
+    if (!superAdminAlreadyExists && data.role === 'SuperAdmin') {
+      await setDoc(doc(db, 'app_meta/super_admin'), { exists: true });
+    }
   } catch (error) {
     console.error(`Error setting user ${userId}:`, error);
     throw error;
   }
 };
+
 
 
 /**
@@ -129,10 +139,10 @@ export const setUser = async (userId: string, data: Omit<User, 'id'>): Promise<v
  */
 export async function checkSuperAdminExists(): Promise<boolean> {
   try {
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('role', '==', 'SuperAdmin'), limit(1));
-    const querySnapshot = await getDocs(q);
-    return !querySnapshot.empty;
+    const superAdminMetaRef = doc(db, 'app_meta/super_admin');
+    const superAdminMetaSnap = await getDoc(superAdminMetaRef);
+
+    return superAdminMetaSnap.exists() && superAdminMetaSnap.data()?.exists === true;
   } catch (error) {
     console.error('Error checking SuperAdmin existence:', error);
     return false;
