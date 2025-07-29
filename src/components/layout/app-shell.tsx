@@ -105,17 +105,106 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [currentUser]);
 
 
+  // const handleBackup = async () => {
+  //   if (typeof window === 'undefined') return;
+
+  //   try {
+  //       if (!currentUser?.pharmacyId) {
+  //           toast({ variant: "destructive", title: "خطأ", description: "لا يمكن إنشاء نسخة احتياطية بدون معرف الصيدلية" });
+  //           return;
+  //       }
+  //       const dataToBackup = await getAllDataForBackupFirestore(currentUser.pharmacyId);
+        
+  //       if (Object.keys(dataToBackup).length === 0) {
+  //           toast({ variant: "destructive", title: "لا توجد بيانات للنسخ الاحتياطي" });
+  //           return;
+  //       }
+
+  //       const jsonString = JSON.stringify(dataToBackup, null, 2);
+  //       const blob = new Blob([jsonString], { type: "application/json" });
+  //       const url = URL.createObjectURL(blob);
+  //       const a = document.createElement("a");
+  //       a.href = url;
+  //       a.download = `midgram-backup-${new Date().toISOString().split('T')[0]}.json`;
+  //       document.body.appendChild(a);
+  //       a.click();
+  //       document.body.removeChild(a);
+  //       URL.revokeObjectURL(url);
+  //       toast({ title: "تم بدء تنزيل النسخة الاحتياطية." });
+  //   } catch (error) {
+  //       console.error("Error creating backup:", error);
+  //       toast({ variant: 'destructive', title: 'خطأ في النسخ الاحتياطي', description: 'حدث خطأ أثناء إنشاء ملف النسخة الاحتياطية.' });
+  //   }
+  // };
+
+  // const handleImportClick = () => {
+  //     importFileRef.current?.click();
+  // };
+
+  // const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  //     const file = event.target.files?.[0];
+  //     if (!file) return;
+
+  //     const reader = new FileReader();
+  //     reader.onload = (e) => {
+  //         try {
+  //             const text = e.target?.result as string;
+  //             const data = JSON.parse(text);
+              
+  //             if (typeof data !== 'object' || data === null || Object.keys(data).length === 0) {
+  //                 toast({ variant: 'destructive', title: 'خطأ في الاستيراد', description: 'ملف النسخ الاحتياطي غير صالح أو فارغ.'});
+  //                 return;
+  //             }
+              
+  //             setDataToImport(data);
+  //             setIsImportConfirmOpen(true);
+
+  //         } catch (error) {
+  //             console.error("Error parsing backup file:", error);
+  //             toast({ variant: 'destructive', title: 'خطأ في قراءة الملف', description: 'لا يمكن قراءة ملف النسخ الاحتياطي. تأكد من أنه ملف JSON صالح.'});
+  //         } finally {
+  //             if (importFileRef.current) {
+  //                 importFileRef.current.value = "";
+  //             }
+  //         }
+  //     };
+  //     reader.readAsText(file);
+  // };
+
+  // const executeImport = async () => {
+  //     if (!dataToImport) return;
+      
+  //     try {
+  //         if (!currentUser?.pharmacyId) {
+  //             toast({ variant: "destructive", title: "خطأ", description: "لا يمكن إنشاء نسخة احتياطية بدون معرف الصيدلية" });
+  //             return;
+  //         }
+  //         await importAllDataFirestore(currentUser.pharmacyId, dataToImport);
+  //         toast({ title: 'تم استيراد البيانات بنجاح!', description: 'سيتم إعادة تحميل الصفحة لتطبيق التغييرات.' });
+          
+  //         setTimeout(() => {
+  //             window.location.reload();
+  //         }, 1500);
+  //     } catch (error) {
+  //         console.error("Error importing backup:", error);
+  //         toast({ variant: 'destructive', title: 'خطأ في الاستيراد', description: 'حدث خطأ أثناء استيراد البيانات.'});
+  //     } finally {
+  //         setIsImportConfirmOpen(false);
+  //         setDataToImport(null);
+  //     }
+  // };
+
   const handleBackup = async () => {
     if (typeof window === 'undefined') return;
+    if (!currentUser?.pharmacyId) {
+        toast({ variant: "destructive", title: "خطأ", description: "معرف الصيدلية غير متاح للنسخ الاحتياطي." });
+        return;
+    }
 
     try {
-        if (!currentUser?.pharmacyId) {
-            toast({ variant: "destructive", title: "خطأ", description: "لا يمكن إنشاء نسخة احتياطية بدون معرف الصيدلية" });
-            return;
-        }
         const dataToBackup = await getAllDataForBackupFirestore(currentUser.pharmacyId);
-        
-        if (Object.keys(dataToBackup).length === 0) {
+
+        if (Object.keys(dataToBackup).length === 0 || Object.values(dataToBackup).every(arr => arr.length === 0)) {
             toast({ variant: "destructive", title: "لا توجد بيانات للنسخ الاحتياطي" });
             return;
         }
@@ -150,12 +239,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           try {
               const text = e.target?.result as string;
               const data = JSON.parse(text);
-              
+
               if (typeof data !== 'object' || data === null || Object.keys(data).length === 0) {
                   toast({ variant: 'destructive', title: 'خطأ في الاستيراد', description: 'ملف النسخ الاحتياطي غير صالح أو فارغ.'});
                   return;
               }
-              
+
               setDataToImport(data);
               setIsImportConfirmOpen(true);
 
@@ -164,7 +253,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               toast({ variant: 'destructive', title: 'خطأ في قراءة الملف', description: 'لا يمكن قراءة ملف النسخ الاحتياطي. تأكد من أنه ملف JSON صالح.'});
           } finally {
               if (importFileRef.current) {
-                  importFileRef.current.value = "";
+                  importFileRef.current.value = ""; // Clear the file input
               }
           }
       };
@@ -173,15 +262,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const executeImport = async () => {
       if (!dataToImport) return;
-      
+      if (!currentUser?.pharmacyId) {
+          toast({ variant: "destructive", title: "خطأ", description: "معرف الصيدلية غير متاح للاستيراد." });
+          setIsImportConfirmOpen(false);
+          setDataToImport(null);
+          return;
+      }
+
       try {
-          if (!currentUser?.pharmacyId) {
-              toast({ variant: "destructive", title: "خطأ", description: "لا يمكن إنشاء نسخة احتياطية بدون معرف الصيدلية" });
-              return;
-          }
           await importAllDataFirestore(currentUser.pharmacyId, dataToImport);
           toast({ title: 'تم استيراد البيانات بنجاح!', description: 'سيتم إعادة تحميل الصفحة لتطبيق التغييرات.' });
-          
+
           setTimeout(() => {
               window.location.reload();
           }, 1500);
