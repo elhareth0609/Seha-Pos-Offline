@@ -195,3 +195,84 @@ export async function getUserById(userId: string): Promise<User | null> {
     return null;
   }
 }
+
+
+
+/**
+ * Fetches all relevant data for backup from Firestore for a specific pharmacy.
+ * @param pharmacyId The ID of the pharmacy to backup data for.
+ * @returns An object containing data categorized by collection name.
+ */
+export const getAllDataForBackupFirestore = async (pharmacyId: string): Promise<object> => {
+    const backupData: { [key: string]: any[] } = {};
+    // Define the collections to backup. These should be sub-collections directly under 'pharmacies/{pharmacyId}'
+    const collectionsToBackup = [
+        'inventory', 'sales', 'suppliers', 'patients', 'trash', 'payments',
+        'purchaseOrders', 'supplierReturns', 'timeLogs', 'config'
+    ];
+
+    for (const collectionName of collectionsToBackup) {
+        backupData[collectionName] = await getPharmacySubCollectionData(pharmacyId, collectionName);
+    }
+    return backupData;
+};
+
+/**
+ * Imports data into Firestore for a specific pharmacy, overwriting existing data.
+ * @param pharmacyId The ID of the pharmacy to import data into.
+ * @param data The object containing data to import, categorized by collection name.
+ */
+export const importAllDataFirestore = async (pharmacyId: string, data: object): Promise<void> => {
+    const batch = writeBatch(db);
+
+    for (const collectionName in data) {
+        if (Object.prototype.hasOwnProperty.call(data, collectionName)) {
+            const documents = (data as { [key: string]: any[] })[collectionName];
+
+            // 1. Clear existing data in the collection to ensure a clean overwrite
+            await clearPharmacySubCollection(pharmacyId, collectionName);
+
+            // 2. Add new data from the backup file
+            for (const docData of documents) {
+                // Ensure each document has an 'id' field that corresponds to Firestore doc ID
+                const docId = docData.id;
+                // Remove 'id' from docData before setting, as it's used as doc ID in Firestore
+                const { id, ...dataWithoutId } = docData;
+                const docRef = doc(db, 'pharmacies', pharmacyId, collectionName, docId);
+                // Use set with merge: false to completely overwrite the document
+                batch.set(docRef, dataWithoutId, { merge: false });
+            }
+        }
+    }
+    await batch.commit();
+};
+
+
+// Helper function to delete all documents from a subcollection
+const clearPharmacySubCollection = async (pharmacyId: string, collectionName: string): Promise<void> => {
+    const collectionRef = collection(db, 'pharmacies', pharmacyId, collectionName);
+    const querySnapshot = await getDocs(collectionRef);
+    const batch = writeBatch(db);
+    querySnapshot.docs.forEach((docSnap) => {
+        batch.delete(docSnap.ref);
+    });
+    await batch.commit();
+};
+
+
+// Helper function to get all documents from a subcollection for a given pharmacy
+const getPharmacySubCollectionData = async <T,>(pharmacyId: string, collectionName: string): Promise<T[]> => {
+    try {
+        const collectionRef = collection(db, 'pharmacies', pharmacyId, collectionName);
+        const querySnapshot = await getDocs(collectionRef);
+        const data: T[] = [];
+        querySnapshot.forEach((docSnap) => {
+            // Include doc.id in the data for backup purposes
+            data.push({ ...docSnap.data(), id: docSnap.id } as T);
+        });
+        return data;
+    } catch (error) {
+        console.error(`Error reading from collection "${collectionName}" for backup:`, error);
+        return [];
+    }
+};
