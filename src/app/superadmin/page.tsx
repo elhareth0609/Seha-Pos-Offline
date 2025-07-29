@@ -24,7 +24,7 @@ import Link from 'next/link';
 const addAdminSchema = z.object({
     name: z.string().min(3, { message: "الاسم مطلوب" }),
     email: z.string().email({ message: "بريد إلكتروني غير صالح" }),
-    pin: z.string().regex(/^\d{4}$/, { message: "رمز PIN يجب أن يكون 4 أرقام" }),
+    pin: z.string().regex(/^\d{6}$/, { message: "رمز PIN يجب أن يكون 6 أرقام" }),
 });
 
 type AddAdminFormValues = z.infer<typeof addAdminSchema>;
@@ -191,7 +191,7 @@ export default function SuperAdminPage() {
                                             <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                         <FormField control={addAdminForm.control} name="pin" render={({ field }) => (
-                                            <FormItem><FormLabel>رمز PIN (4 أرقام)</FormLabel><FormControl><Input type="password" inputMode="numeric" maxLength={4} {...field} /></FormControl><FormMessage /></FormItem>
+                                            <FormItem><FormLabel>رمز PIN (6 أرقام)</FormLabel><FormControl><Input type="password" inputMode="numeric" maxLength={6} {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                         <DialogFooter className="pt-4">
                                             <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>

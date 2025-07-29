@@ -42,8 +42,8 @@ function ForgotPinDialog() {
     }
 
     const handleResetPin = async () => {
-        if (!/^\d{4}$/.test(newPin)) {
-            toast({ variant: 'destructive', title: 'رمز PIN غير صالح', description: 'يجب أن يتكون رمز PIN من 4 أرقام بالضبط.' });
+        if (!/^\d{6}$/.test(newPin)) {
+            toast({ variant: 'destructive', title: 'رمز PIN غير صالح', description: 'يجب أن يتكون رمز PIN من 6 أرقام بالضبط.' });
             return;
         }
         if (newPin !== confirmPin) {
@@ -90,12 +90,12 @@ function ForgotPinDialog() {
                 <div className="space-y-4 pt-2">
                      <p className="text-sm text-muted-foreground">أدخل رمز PIN الجديد لحساب <span className="font-medium text-foreground">{email}</span>.</p>
                      <div className="space-y-2">
-                        <Label htmlFor="new-pin">رمز PIN الجديد (4 أرقام)</Label>
-                        <Input id="new-pin" type="password" value={newPin} onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))} maxLength={4} />
+                        <Label htmlFor="new-pin">رمز PIN الجديد (6 أرقام)</Label>
+                        <Input id="new-pin" type="password" value={newPin} onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))} maxLength={6} />
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="confirm-new-pin">تأكيد الرمز الجديد</Label>
-                        <Input id="confirm-new-pin" type="password" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))} maxLength={4} />
+                        <Input id="confirm-new-pin" type="password" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))} maxLength={6} />
                     </div>
                      <AlertDialogFooter>
                         <AlertDialogCancel id="forgot-pin-cancel" onClick={resetState}>إلغاء</AlertDialogCancel>
@@ -146,7 +146,7 @@ export default function LoginPage() {
                         </div>
                         <div className="space-y-2 text-right">
                             <Label htmlFor="login-pin">رمز PIN</Label>
-                            <Input id="login-pin" type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={4} required placeholder="••••" />
+                            <Input id="login-pin" type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={6} required placeholder="••••" />
                         </div>
                     </CardContent>
                     <CardFooter className="flex-col gap-4">

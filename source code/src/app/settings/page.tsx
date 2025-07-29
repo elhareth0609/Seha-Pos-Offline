@@ -67,7 +67,7 @@ type SettingsFormValues = z.infer<typeof settingsSchema>
 const addUserSchema = z.object({
     name: z.string().min(3, { message: "الرجاء إدخال اسم مكون من 3 أحرف على الأقل." }),
     email: z.string().email({ message: "الرجاء إدخال بريد إلكتروني صالح."}),
-    pin: z.string().regex(/^\d{4}$/, { message: "يجب أن يتكون رمز PIN من 4 أرقام." }),
+    pin: z.string().regex(/^\d{6}$/, { message: "يجب أن يتكون رمز PIN من 6 أرقام." }),
 });
 
 type AddUserFormValues = z.infer<typeof addUserSchema>;
@@ -365,8 +365,8 @@ export default function SettingsPage() {
                                         name="pin"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>رمز PIN (4 أرقام)</FormLabel>
-                                                <FormControl><Input type="password" inputMode="numeric" maxLength={4} {...field} /></FormControl>
+                                                <FormLabel>رمز PIN (6 أرقام)</FormLabel>
+                                                <FormControl><Input type="password" inputMode="numeric" maxLength={6} {...field} /></FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}

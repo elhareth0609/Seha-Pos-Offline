@@ -75,7 +75,7 @@ type SettingsFormValues = z.infer<typeof settingsSchema>
 const addUserSchema = z.object({
     name: z.string().min(3, { message: "الرجاء إدخال اسم مكون من 3 أحرف على الأقل." }),
     email: z.string().email({ message: "الرجاء إدخال بريد إلكتروني صالح."}),
-    pin: z.string().regex(/^\d{4}$/, { message: "يجب أن يتكون رمز PIN من 4 أرقام." }),
+    pin: z.string().regex(/^\d{6}$/, { message: "يجب أن يتكون رمز PIN من 6 أرقام." }),
 });
 
 type AddUserFormValues = z.infer<typeof addUserSchema>;
@@ -83,7 +83,7 @@ type AddUserFormValues = z.infer<typeof addUserSchema>;
 const editUserSchema = z.object({
     name: z.string().min(3, { message: "الرجاء إدخال اسم مكون من 3 أحرف على الأقل." }),
     email: z.string().email({ message: "الرجاء إدخال بريد إلكتروني صالح."}),
-    pin: z.string().optional().refine(val => val === '' || /^\d{4}$/.test(val!), { message: "يجب أن يتكون رمز PIN من 4 أرقام." }),
+    pin: z.string().optional().refine(val => val === '' || /^\d{6}$/.test(val!), { message: "يجب أن يتكون رمز PIN من 6 أرقام." }),
     confirmPin: z.string().optional(),
 }).refine(data => data.pin === data.confirmPin, {
     message: "رموز PIN غير متطابقة",
@@ -153,8 +153,8 @@ function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (o
                         )} />
                         <FormField control={addUserForm.control} name="pin" render={({ field }) => (
                             <FormItem>
-                                <FormLabel>رمز PIN (4 أرقام)</FormLabel>
-                                <FormControl><Input type="password" inputMode="numeric" maxLength={4} {...field} /></FormControl>
+                                <FormLabel>رمز PIN (6 أرقام)</FormLabel>
+                                <FormControl><Input type="password" inputMode="numeric" maxLength={6} {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
@@ -646,10 +646,10 @@ export default function SettingsPage() {
                             <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
                         <FormField control={editUserForm.control} name="pin" render={({ field }) => (
-                            <FormItem><FormLabel>رمز PIN الجديد (اختياري)</FormLabel><FormControl><Input type="password" inputMode="numeric" maxLength={4} {...field} placeholder="اتركه فارغًا لعدم التغيير" /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>رمز PIN الجديد (اختياري)</FormLabel><FormControl><Input type="password" inputMode="numeric" maxLength={6} {...field} placeholder="اتركه فارغًا لعدم التغيير" /></FormControl><FormMessage /></FormItem>
                         )} />
                         <FormField control={editUserForm.control} name="confirmPin" render={({ field }) => (
-                            <FormItem><FormLabel>تأكيد رمز PIN الجديد</FormLabel><FormControl><Input type="password" inputMode="numeric" maxLength={4} {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>تأكيد رمز PIN الجديد</FormLabel><FormControl><Input type="password" inputMode="numeric" maxLength={6} {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
                         <DialogFooter className="pt-4">
                             <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
