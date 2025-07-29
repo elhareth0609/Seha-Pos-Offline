@@ -116,14 +116,14 @@ export default function LoginPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const success = await login(email, pin);
-        if (!success) {
-            toast({
-                variant: 'destructive',
-                title: 'بيانات الدخول غير صحيحة',
-                description: 'الرجاء التأكد من البريد الإلكتروني ورمز PIN.'
-            });
-            setPin('');
-        }
+        // if (!success) {
+        //     toast({
+        //         variant: 'destructive',
+        //         title: 'بيانات الدخول غير صحيحة',
+        //         description: 'الرجاء التأكد من البريد الإلكتروني ورمز PIN.'
+        //     });
+        //     setPin('');
+        // }
     };
 
     return (

@@ -22,15 +22,15 @@ function SuperAdminLoginDialog() {
     const handleSuperAdminLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         const user = await login(email, pin);
-        if (user) {
-            if (user.role === 'SuperAdmin') {
-                router.push('/superadmin');
-            } else {
-                router.push('/');
-            }
-        } else {
-            toast({ variant: 'destructive', title: 'بيانات الدخول غير صحيحة' });
-        }
+        // if (user) {
+        //     if (user.role === 'SuperAdmin') {
+        //         router.push('/superadmin');
+        //     } else {
+        //         router.push('/');
+        //     }
+        // } else {
+        //     toast({ variant: 'destructive', title: 'بيانات الدخول غير صحيحة' });
+        // }
     };
 
     return (
@@ -69,20 +69,20 @@ export default function LoginPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const user = await login(email, pin);
-        if (user) {
-             if (user.role === 'SuperAdmin') {
-                router.push('/superadmin');
-            } else {
-                router.push('/');
-            }
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'بيانات الدخول غير صحيحة',
-                description: 'الرجاء التأكد من البريد الإلكتروني ورمز PIN أو أن الحساب فعال.'
-            });
-            setPin('');
-        }
+        // if (user) {
+        //      if (user.role === 'SuperAdmin') {
+        //         router.push('/superadmin');
+        //     } else {
+        //         router.push('/');
+        //     }
+        // } else {
+        //     toast({
+        //         variant: 'destructive',
+        //         title: 'بيانات الدخول غير صحيحة',
+        //         description: 'الرجاء التأكد من البريد الإلكتروني ورمز PIN أو أن الحساب فعال.'
+        //     });
+        //     setPin('');
+        // }
     };
 
     return (

@@ -31,7 +31,7 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
             </div>
         );
     }
-    
+    console.log(isSetup);
     if (!isSetup) {
         return <SetupPage />;
     }

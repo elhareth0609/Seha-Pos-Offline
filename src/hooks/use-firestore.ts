@@ -1,6 +1,7 @@
 
-import { doc, getDoc, setDoc, collection, getDocs, query, writeBatch, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, query, writeBatch, deleteDoc, limit, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import type { User } from '@/lib/types';
 
 // Fetches a single document from a pharmacy's top-level collection (e.g., config)
 export const getPharmacyDoc = async <T,>(pharmacyId: string, collectionName: string, docId: string): Promise<T | null> => {
@@ -120,3 +121,36 @@ export const setUser = async (userId: string, data: Omit<User, 'id'>): Promise<v
     throw error;
   }
 };
+
+
+/**
+ * Check if a SuperAdmin exists in the system (for setup check)
+ * This is the only function that can be called without authentication
+ */
+export async function checkSuperAdminExists(): Promise<boolean> {
+  try {
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('role', '==', 'SuperAdmin'), limit(1));
+    const querySnapshot = await getDocs(q);
+    return !querySnapshot.empty;
+  } catch (error) {
+    console.error('Error checking SuperAdmin existence:', error);
+    return false;
+  }
+}
+
+/**
+ * Get a specific user by ID (only after authentication)
+ */
+export async function getUserById(userId: string): Promise<User | null> {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (userDoc.exists()) {
+      return userDoc.data() as User;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    return null;
+  }
+}
