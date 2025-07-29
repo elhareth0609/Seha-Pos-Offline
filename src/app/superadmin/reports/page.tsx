@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { Medication, Sale, User } from '@/lib/types';
+import type { AppSettings, Medication, Sale, User } from '@/lib/types';
 import { DollarSign, TrendingUp, PieChart, TrendingDown, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
@@ -27,12 +27,60 @@ export default function SuperAdminReportsPage() {
 
     const pharmacyAdmins = users.filter(u => u.role === 'Admin');
 
+    // const selectedPharmacyData = React.useMemo(() => {
+    //     if (!selectedPharmacyId) return null;
+
+    //     const sales: Sale[] = allData.sales[selectedPharmacyId] || [];
+    //     const inventory: Medication[] = allData.inventory[selectedPharmacyId] || [];
+    //     const pharmacyUsers: User[] = users.filter(u => u.pharmacyId === selectedPharmacyId && u.role === 'Employee');
+
+    //     const totalRevenue = sales.reduce((acc, sale) => acc + (sale.total || 0), 0);
+    //     const totalProfit = sales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
+    //     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+        
+    //     const lowStockItems = inventory.filter(item => item.stock < item.reorderPoint).slice(0, 5);
+        
+    //     const topSellingItems = sales
+    //         .flatMap(s => s.items)
+    //         .reduce((acc, item) => {
+    //             if (!item.isReturn) {
+    //                 acc[item.medicationId] = (acc[item.medicationId] || 0) + item.quantity;
+    //             }
+    //             return acc;
+    //         }, {} as { [key: string]: number });
+        
+    //     const topSoldArray = Object.entries(topSellingItems)
+    //         .sort((a, b) => b[1] - a[1])
+    //         .slice(0, 5)
+    //         .map(([medicationId, quantity]) => {
+    //             const med = inventory.find(m => m.id === medicationId);
+    //             return { name: med?.name || 'غير معروف', quantity };
+    //         });
+
+    //     return {
+    //         totalRevenue,
+    //         totalProfit,
+    //         profitMargin,
+    //         lowStockItems,
+    //         topSoldArray,
+    //         pharmacyUsers,
+    //     };
+    // }, [selectedPharmacyId, allData, users]);
     const selectedPharmacyData = React.useMemo(() => {
         if (!selectedPharmacyId) return null;
 
-        const sales: Sale[] = allData.sales[selectedPharmacyId] || [];
-        const inventory: Medication[] = allData.inventory[selectedPharmacyId] || [];
-        const pharmacyUsers: User[] = users.filter(u => u.pharmacyId === selectedPharmacyId && u.role === 'Employee');
+        // Type assertion to tell TypeScript that selectedPharmacyId is a valid key
+        const pharmacyId = selectedPharmacyId as string;
+        
+        // Type assertion for sales access - assuming it's also a tuple
+        const salesData = allData.sales as [Sale[], any];
+        // Type assertion for inventory access - it's a tuple
+        const inventoryData = allData.inventory as [Medication[], any];
+        
+        // Access the arrays from the tuples at index 0
+        const sales: Sale[] = salesData[0] || [];
+        const inventory: Medication[] = inventoryData[0] || [];
+        const pharmacyUsers: User[] = users.filter(u => u.pharmacyId === pharmacyId && u.role === 'Employee');
 
         const totalRevenue = sales.reduce((acc, sale) => acc + (sale.total || 0), 0);
         const totalProfit = sales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
@@ -90,13 +138,28 @@ export default function SuperAdminReportsPage() {
                         <SelectTrigger className="w-full md:w-1/3">
                             <SelectValue placeholder="اختر صيدلية..." />
                         </SelectTrigger>
-                        <SelectContent>
+                        {/* <SelectContent>
                             {pharmacyAdmins.map(admin => (
                                 <SelectItem key={admin.pharmacyId} value={admin.pharmacyId!}>
                                     {allData.settings[admin.pharmacyId!]?.pharmacyName || admin.name}
                                 </SelectItem>
                             ))}
-                        </SelectContent>
+                        </SelectContent> */}
+                                                                <SelectContent>
+                                    {pharmacyAdmins.map(admin => {
+                                        // Type assertion to tell TypeScript that pharmacyId is a valid key
+                                        const pharmacyId = admin.pharmacyId as string;
+                                        // Access the AppSettings object from the tuple at index 0
+                                        const pharmacySettings = allData.settings[0] as AppSettings;
+                                        return (
+                                            <SelectItem key={pharmacyId} value={pharmacyId}>
+                                                {pharmacySettings.pharmacyName || admin.name}
+                                            </SelectItem>
+                                        );
+                                    })}
+                                </SelectContent>
+
+
                     </Select>
                 </CardContent>
             </Card>

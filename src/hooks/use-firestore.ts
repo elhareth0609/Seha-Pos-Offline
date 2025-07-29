@@ -16,10 +16,21 @@ export const getPharmacyDoc = async <T,>(pharmacyId: string, collectionName: str
 };
 
 // Sets a single document in a pharmacy's top-level collection
+// export const setPharmacyDoc = async <T,>(pharmacyId: string, collectionName: string, docId: string, data: T): Promise<void> => {
+//   try {
+//     const docRef = doc(db, 'pharmacies', pharmacyId, collectionName, docId);
+//     await setDoc(docRef, data, { merge: true });
+//   } catch (error) {
+//     console.error(`Error writing doc "${docId}" to "${collectionName}" in pharmacy "${pharmacyId}":`, error);
+//     throw error;
+//   }
+// };
+// Sets a single document in a pharmacy's top-level collection
 export const setPharmacyDoc = async <T,>(pharmacyId: string, collectionName: string, docId: string, data: T): Promise<void> => {
   try {
     const docRef = doc(db, 'pharmacies', pharmacyId, collectionName, docId);
-    await setDoc(docRef, data, { merge: true });
+    // Add type assertion to ensure compatibility with Firestore
+    await setDoc(docRef, data as any, { merge: true });
   } catch (error) {
     console.error(`Error writing doc "${docId}" to "${collectionName}" in pharmacy "${pharmacyId}":`, error);
     throw error;
@@ -112,6 +123,25 @@ export const getAllUsers = async (): Promise<User[]> => {
 };
 
 // Creates or updates a user document
+// export const setUser = async (
+//   userId: string,
+//   data: Omit<User, 'id'>,
+//   superAdminAlreadyExists: boolean | undefined
+// ): Promise<void> => {
+//   try {
+//     const userDocRef = doc(db, 'users', userId);
+//     await setDoc(userDocRef, data, { merge: true });
+
+//     // If SuperAdmin does NOT already exist, mark it as now existing
+//     if (!superAdminAlreadyExists && data.role === 'SuperAdmin') {
+//       await setDoc(doc(db, 'app_meta/super_admin'), { exists: true });
+//     }
+//   } catch (error) {
+//     console.error(`Error setting user ${userId}:`, error);
+//     throw error;
+//   }
+// };
+// Creates or updates a user document
 export const setUser = async (
   userId: string,
   data: Omit<User, 'id'>,
@@ -119,7 +149,8 @@ export const setUser = async (
 ): Promise<void> => {
   try {
     const userDocRef = doc(db, 'users', userId);
-    await setDoc(userDocRef, data, { merge: true });
+    // Add type assertion to ensure compatibility with Firestore
+    await setDoc(userDocRef, data as any, { merge: true });
 
     // If SuperAdmin does NOT already exist, mark it as now existing
     if (!superAdminAlreadyExists && data.role === 'SuperAdmin') {

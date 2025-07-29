@@ -285,7 +285,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 createdAt: new Date().toISOString(),
                 hourlyRate: 0,
             };
-            await setUser(userCredential.user.uid, newAdmin);
+            await setUser(userCredential.user.uid, newAdmin, true);
             setUsers(prev => [...prev, newAdmin]);
             await setPharmacyDoc(pharmacyId, 'config', 'main', {...fallbackAppSettings, pharmacyName: `${name}'s Pharmacy`, pharmacyEmail: email});
             return true;
@@ -314,7 +314,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 createdAt: new Date().toISOString(),
                 hourlyRate: 0,
             };
-            await setUser(userCredential.user.uid, newUser);
+            await setUser(userCredential.user.uid, newUser, true);
             setUsers(prev => [...prev, newUser]);
             return true;
         } catch (error) {
@@ -396,7 +396,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 email,
                 pin: pin || userToUpdate.pin
             };
-            await setUser(userId, updatedUser);
+            await setUser(userId, updatedUser, true);
             setUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
             if (currentUser?.id === userId) {
                 setCurrentUser(updatedUser);
@@ -423,7 +423,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         try {
             const updatedUser = { ...userToUpdate, permissions };
-            await setUser(userId, updatedUser);
+            await setUser(userId, updatedUser, true);
             setUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
             return true;
         } catch (error) {
@@ -447,7 +447,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         try {
             const updatedUser = { ...userToUpdate, hourlyRate: rate };
-            await setUser(userId, updatedUser);
+            await setUser(userId, updatedUser, true);
             setUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
             if (currentUser?.id === userId) {
                 setCurrentUser(updatedUser);
@@ -459,6 +459,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    // const toggleUserStatus = async (userId: string): Promise<boolean> => {
+    //     if (!currentUser) return false;
+        
+    //     const userToUpdate = users.find(u => u.id === userId);
+    //     if(!userToUpdate) return false;
+        
+    //     // Only SuperAdmin or Admin can toggle user status
+    //     const canUpdate = 
+    //         (currentUser.role === 'Admin' && userToUpdate.pharmacyId === currentUser.pharmacyId) ||
+    //         currentUser.role === 'SuperAdmin';
+            
+    //     if (!canUpdate) return false;
+
+    //     try {
+    //         const newStatus = userToUpdate.status === 'active' ? 'suspended' : 'active';
+    //         const updatedUser = { ...userToUpdate, status: newStatus };
+    //         await setUser(userId, updatedUser, true);
+    //         setUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
+    //         return true;
+    //     } catch (error) {
+    //         console.error("Error toggling user status:", error);
+    //         return false;
+    //     }
+    // }
     const toggleUserStatus = async (userId: string): Promise<boolean> => {
         if (!currentUser) return false;
         
@@ -473,9 +497,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!canUpdate) return false;
 
         try {
-            const newStatus = userToUpdate.status === 'active' ? 'suspended' : 'active';
+            const newStatus: "active" | "suspended" = userToUpdate.status === 'active' ? 'suspended' : 'active';
             const updatedUser = { ...userToUpdate, status: newStatus };
-            await setUser(userId, updatedUser);
+            await setUser(userId, updatedUser, true);
             setUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
             return true;
         } catch (error) {
