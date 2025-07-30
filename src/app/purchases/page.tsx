@@ -434,7 +434,7 @@ export default function PurchasesPage() {
   
   return (
      <Tabs defaultValue="new-purchase" className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
         <TabsTrigger value="new-purchase">استلام بضاعة</TabsTrigger>
         <TabsTrigger value="purchase-history">سجل المشتريات</TabsTrigger>
         <TabsTrigger value="new-return">إرجاع للمورد</TabsTrigger>
@@ -812,3 +812,5 @@ export default function PurchasesPage() {
     </Tabs>
   )
 }
+
+    
