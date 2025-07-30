@@ -35,10 +35,10 @@ function AdminRow({ admin, onDelete, onToggleStatus }: { admin: User, onDelete: 
     return (
          <TableRow>
             <TableCell className="font-medium">{admin.name}</TableCell>
-            <TableCell>{admin.email}</TableCell>
-            <TableCell>
+            <TableCell className="hidden sm:table-cell">{admin.email}</TableCell>
+            <TableCell className="hidden lg:table-cell">
                 <div className="flex items-center gap-2">
-                    <span className="font-mono">{showPin ? admin.pin : '••••'}</span>
+                    <span className="font-mono">{showPin ? admin.pin : '••••••'}</span>
                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowPin(p => !p)}>
                         {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
@@ -137,12 +137,12 @@ export default function SuperAdminPage() {
 
     return (
         <div className="container mx-auto py-8 space-y-6">
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">لوحة تحكم الشركة</h1>
                     <p className="text-muted-foreground">إدارة حسابات مديري الصيدليات المسجلة في النظام.</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <Button variant="outline" asChild>
                         <Link href="/superadmin/account">
                             <Settings className="me-2"/>
@@ -156,7 +156,7 @@ export default function SuperAdminPage() {
                 </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">عدد الصيدليات</CardTitle><Building className="h-4 w-4 text-muted-foreground" /></CardHeader>
                     <CardContent><div className="text-2xl font-bold font-mono">{pharmacyAdmins.length}</div></CardContent>
@@ -168,12 +168,12 @@ export default function SuperAdminPage() {
             </div>
 
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
                         <CardTitle>مدراء الصيدليات</CardTitle>
                         <CardDescription>قائمة بجميع حسابات مدراء الصيدليات المسجلين.</CardDescription>
                     </div>
-                     <div className="flex items-center gap-2">
+                     <div className="flex flex-wrap items-center gap-2">
                         <Button variant="outline" asChild>
                             <Link href="/superadmin/reports"><FileText className="me-2"/> عرض التقارير</Link>
                         </Button>
@@ -207,12 +207,13 @@ export default function SuperAdminPage() {
                     </div>
                 </CardHeader>
                 <CardContent>
+                   <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead>اسم المدير</TableHead>
-                                <TableHead>البريد الإلكتروني</TableHead>
-                                <TableHead>رمز PIN</TableHead>
+                                <TableHead className="hidden sm:table-cell">البريد الإلكتروني</TableHead>
+                                <TableHead className="hidden lg:table-cell">رمز PIN</TableHead>
                                 <TableHead>الحالة</TableHead>
                                 <TableHead className="text-left">الإجراءات</TableHead>
                             </TableRow>
@@ -228,6 +229,7 @@ export default function SuperAdminPage() {
                             ))}
                         </TableBody>
                     </Table>
+                    </div>
                 </CardContent>
             </Card>
         </div>
