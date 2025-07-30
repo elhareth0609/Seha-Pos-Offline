@@ -232,7 +232,8 @@ export default function InventoryPage() {
           return;
         }
 
-        const inventoryMap = new Map((allInventory || []).map(item => [item.id, item, item]));
+        const inventoryMap = new Map((allInventory || []).map(item => [item.id, item]));
+
         let updatedCount = 0;
         let addedCount = 0;
         const CHUNK_SIZE = 200;
@@ -251,7 +252,7 @@ export default function InventoryPage() {
 
                 if (inventoryMap.has(medId)) {
                     // Update existing medication
-                    const existingMed = inventoryMap.get(medId);
+                    const existingMed = inventoryMap.get(medId) as Medication;
                     if (existingMed.name !== medName) {
                         existingMed.name = medName;
                         inventoryMap.set(medId, existingMed);
@@ -284,7 +285,8 @@ export default function InventoryPage() {
             await new Promise(resolve => setTimeout(resolve, 0));
         }
 
-        setAllInventory(Array.from(inventoryMap.values()));
+        setAllInventory(Array.from(inventoryMap.values()) as Medication[]);
+
         
         toast({
           title: 'اكتمل الاستيراد بنجاح',
