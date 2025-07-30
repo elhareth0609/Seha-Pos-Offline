@@ -705,7 +705,7 @@ export default function SalesPage() {
 
               <Card className="flex-1 flex flex-col">
                    <CardHeader className="py-4">
-                      <div className="flex justify-between items-center">
+                      <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
                           <CardTitle className="text-xl">
                             {mode === 'new' ? 'الفاتورة الحالية' : `عرض الفاتورة #${sortedSales[reviewIndex]?.id}`}
                           </CardTitle>
@@ -1128,5 +1128,3 @@ export default function SalesPage() {
     </>
   )
 }
-
-    
