@@ -37,6 +37,7 @@ import {
     AlertDialogCancel,
     AlertDialogContent,
     AlertDialogDescription,
+    AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
     AlertDialogTrigger,
@@ -359,12 +360,10 @@ export default function InventoryPage() {
   
   return (
     <>
-      <div style={{ display: 'none' }}>
-        {printingMed && (
-            <div ref={printComponentRef}>
-                <Barcode value={printingMed.id} />
-            </div>
-        )}
+      <div style={{ display: printingMed ? 'block' : 'none' }}>
+        <div ref={printComponentRef}>
+           {printingMed && <Barcode value={printingMed.id} />}
+        </div>
       </div>
       <Card>
         <CardHeader>
