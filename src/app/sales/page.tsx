@@ -336,7 +336,7 @@ export default function SalesPage() {
     setSearchTerm(value);
 
     if (value.length > 0) {
-        const lowercasedFilter = value.toLowerCase();
+        const lowercasedFilter = value.toLowerCase().trim();
         const filtered = (allInventory || []).filter((item) =>
             (item.name && item.name.toLowerCase().startsWith(lowercasedFilter)) ||
             (item.id && item.id.toLowerCase().includes(lowercasedFilter)) ||
@@ -617,7 +617,7 @@ export default function SalesPage() {
                                                               </div>
                                                           )}
                                                           <div>
-                                                            <div>{med.name}</div>
+                                                            <div className="font-medium">{med.name}</div>
                                                             <div className="text-xs text-muted-foreground">{med.scientificNames?.join(', ')}</div>
                                                           </div>
                                                       </div>

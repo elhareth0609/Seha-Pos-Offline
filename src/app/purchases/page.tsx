@@ -159,6 +159,7 @@ export default function PurchasesPage() {
   };
 
   const resetForm = () => {
+    // Keep purchaseId and supplierId, reset only medication fields
     setPurchaseMedicationId('');
     setPurchaseMedicationName('');
     setScientificNames('');
@@ -172,6 +173,25 @@ export default function PurchasesPage() {
     setImagePreview(null);
     document.getElementById('medicationId')?.focus();
   };
+  
+  const prefillFormWithMedData = (med: Medication) => {
+      setPurchaseMedicationName(med.name || '');
+      setScientificNames((med.scientificNames || []).join(', '));
+      setDosage(med.dosage || '');
+      setDosageForm(med.dosageForm || '');
+      setPurchaseSellingPrice(String(med.price || 0));
+      setImagePreview(med.imageUrl || null);
+  };
+  
+  React.useEffect(() => {
+      const medId = purchaseMedicationId.trim();
+      if (medId) {
+          const existingMed = (inventory || []).find(m => m.id === medId);
+          if (existingMed) {
+              prefillFormWithMedData(existingMed);
+          }
+      }
+  }, [purchaseMedicationId, inventory]);
 
   const handleAddPurchase = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -220,6 +240,9 @@ export default function PurchasesPage() {
       existingMed.dosage = dosage;
       existingMed.dosageForm = dosageForm;
       if (imageUrl) existingMed.imageUrl = imageUrl;
+      // If image is removed, keep existing image
+      else if (imagePreview) existingMed.imageUrl = imagePreview;
+
       newInventory[medicationIndex] = existingMed;
       toast({
           title: "تم تحديث الرصيد",
@@ -281,27 +304,7 @@ export default function PurchasesPage() {
     resetForm();
   };
 
-  // const handleAddSupplier = (event: React.FormEvent<HTMLFormElement>) => {
-  //   event.preventDefault();
-  //   const formData = new FormData(event.currentTarget);
-  //   const name = formData.get("supplierName") as string;
-  //   const contact = formData.get("supplierContact") as string;
-  //   if (!name) {
-  //       toast({ variant: "destructive", title: "اسم المورد مطلوب" });
-  //       return;
-  //   }
-  //   const newSupplier: Supplier = {
-  //       id: `SUP${Date.now()}`,
-  //       name,
-  //       contactPerson: contact,
-  //   };
-  //   setSuppliers(prev => [newSupplier, ...(prev || [])]);
-  //   setPurchaseSupplierId(newSupplier.id); // Select the new supplier automatically
-
-  //   setIsAddSupplierOpen(false);
-  //   toast({ title: "تمت إضافة المورد بنجاح" });
-  // };
-  const handleAddSupplier = () => { // تم تغيير الدالة لكي لا تستقبل event
+  const handleAddSupplier = () => {
       if (!supplierName) {
           toast({ variant: "destructive", title: "اسم المورد مطلوب" });
           return;
@@ -314,12 +317,11 @@ export default function PurchasesPage() {
       };
 
       setSuppliers(prev => [newSupplier, ...(prev || [])]);
-      setPurchaseSupplierId(newSupplier.id); // Select the new supplier automatically
+      setPurchaseSupplierId(newSupplier.id);
 
       setIsAddSupplierOpen(false);
       toast({ title: "تمت إضافة المورد بنجاح" });
 
-      // مسح الحقول بعد الحفظ
       setSupplierName("");
       setSupplierContact("");
   };
@@ -330,7 +332,10 @@ export default function PurchasesPage() {
     if (value.length > 0) {
         const lowercasedFilter = value.toLowerCase();
         const filtered = (inventory || []).filter(med => 
-            (med.name.toLowerCase().startsWith(lowercasedFilter) || med.id.includes(lowercasedFilter)) && med.stock > 0
+            (med.name.toLowerCase().startsWith(lowercasedFilter) || 
+             med.id.includes(lowercasedFilter) ||
+             (med.scientificNames && med.scientificNames.some(name => name.toLowerCase().startsWith(lowercasedFilter)))) && 
+             med.stock > 0
         );
         setReturnMedSuggestions(filtered.slice(0, 5));
     } else {
@@ -485,7 +490,6 @@ export default function PurchasesPage() {
                                               <DialogClose asChild>
                                                   <Button variant="outline" type="button">إلغاء</Button>
                                               </DialogClose>
-                                              {/* تم تغيير نوع الزر إلى "button" لكي لا يقوم بإرسال النموذج تلقائيًا */}
                                               <Button type="button" variant="success" onClick={handleAddSupplier}>إضافة</Button>
                                           </DialogFooter>
                                       </div>
@@ -659,7 +663,7 @@ export default function PurchasesPage() {
                 
                 <form onSubmit={handleAddItemToReturnCart} className="p-4 border rounded-md space-y-4">
                     <div className="relative space-y-2">
-                        <Label htmlFor="return-med-search">ابحث عن دواء (بالاسم أو الباركود)</Label>
+                        <Label htmlFor="return-med-search">ابحث عن دواء (بالاسم، العلمي أو الباركود)</Label>
                         <Input 
                             id="return-med-search" 
                             value={returnMedSearchTerm} 
@@ -676,7 +680,10 @@ export default function PurchasesPage() {
                                                 onMouseDown={() => handleSelectMedForReturn(med)}
                                                 className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
                                             >
-                                                <span>{med.name}</span>
+                                                <div>
+                                                  <div>{med.name}</div>
+                                                  <div className="text-xs text-muted-foreground">{med.scientificNames?.join(', ')}</div>
+                                                </div>
                                                 <span className="text-sm text-muted-foreground font-mono">الرصيد: {med.stock}</span>
                                             </li>
                                         ))}

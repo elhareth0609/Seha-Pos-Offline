@@ -116,10 +116,11 @@ export default function InventoryPage() {
   React.useEffect(() => {
     if (isClient) {
       if (searchTerm) {
-        const lowercasedFilter = searchTerm.toLowerCase();
+        const lowercasedFilter = searchTerm.toLowerCase().trim();
         const filtered = sortedInventory.filter((item) =>
             (item.name || '').toLowerCase().startsWith(lowercasedFilter) ||
-            (item.id && item.id.toLowerCase().includes(lowercasedFilter))
+            (item.id && item.id.toLowerCase().includes(lowercasedFilter)) ||
+            (item.scientificNames && item.scientificNames.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
         );
         setFilteredInventory(filtered);
       } else {
@@ -346,7 +347,7 @@ export default function InventoryPage() {
   
   return (
     <>
-      <div style={{ display: printingMed ? 'block' : 'none' }}>
+      <div style={{ display: 'none' }}>
         {printingMed && (
             <div ref={printComponentRef}>
                 <Barcode value={printingMed.id} />
@@ -361,7 +362,7 @@ export default function InventoryPage() {
           </CardDescription>
           <div className="pt-4 flex gap-2">
             <Input 
-              placeholder="ابحث بالاسم أو الباركود..."
+              placeholder="ابحث بالاسم، الاسم العلمي أو الباركود..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-sm"
@@ -407,7 +408,10 @@ export default function InventoryPage() {
                                 <Package className="h-5 w-5" />
                             </div>
                         )}
-                        <span>{item.name}</span>
+                        <div>
+                          <span className="font-medium">{item.name}</span>
+                          <div className="text-xs text-muted-foreground">{item.scientificNames?.join(', ')}</div>
+                        </div>
                     </div>
                   </TableCell>
                   <TableCell className="text-center font-mono">{item.stock}</TableCell>
