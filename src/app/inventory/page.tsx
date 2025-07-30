@@ -37,7 +37,6 @@ import {
     AlertDialogCancel,
     AlertDialogContent,
     AlertDialogDescription,
-    AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
     AlertDialogTrigger,
@@ -59,7 +58,10 @@ import { useReactToPrint } from 'react-to-print';
 import Barcode from '@/components/ui/barcode';
 import { buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+
+const dosageForms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion"];
 
 export default function InventoryPage() {
   const { scopedData } = useAuth();
@@ -158,11 +160,21 @@ export default function InventoryPage() {
 
       const formData = new FormData(e.currentTarget);
       
+       const scientificNamesArray = (formData.get('scientificNames') as string)
+            .split(',')
+            .map(name => name.trim())
+            .filter(Boolean);
+
       const updatedMed: Medication = {
           ...editingMed,
           name: formData.get('name') as string,
+          scientificNames: scientificNamesArray,
           reorderPoint: parseInt(formData.get('reorderPoint') as string, 10),
           price: parseFloat(formData.get('price') as string),
+          purchasePrice: parseFloat(formData.get('purchasePrice') as string),
+          expirationDate: formData.get('expirationDate') as string,
+          dosage: formData.get('dosage') as string,
+          dosageForm: formData.get('dosageForm') as string,
       }
       
       setAllInventory(prev => (prev || []).map(m => m.id === updatedMed.id ? updatedMed : m));
@@ -219,7 +231,7 @@ export default function InventoryPage() {
           return;
         }
 
-        const inventoryMap = new Map((allInventory || []).map(item => [item.id, item]));
+        const inventoryMap = new Map((allInventory || []).map(item => [item.id, item, item]));
         let updatedCount = 0;
         let addedCount = 0;
         const CHUNK_SIZE = 200;
@@ -238,7 +250,7 @@ export default function InventoryPage() {
 
                 if (inventoryMap.has(medId)) {
                     // Update existing medication
-                    const existingMed = inventoryMap.get(medId)!;
+                    const existingMed = inventoryMap.get(medId);
                     if (existingMed.name !== medName) {
                         existingMed.name = medName;
                         inventoryMap.set(medId, existingMed);
@@ -476,7 +488,7 @@ export default function InventoryPage() {
           </div>
         </CardContent>
         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>تعديل بيانات الدواء</DialogTitle>
                     <DialogDescription>
@@ -485,16 +497,45 @@ export default function InventoryPage() {
                 </DialogHeader>
                    {editingMed && (
                       <form onSubmit={handleUpdate} className="space-y-4">
-                          <div className="space-y-2">
-                              <Label htmlFor="edit-name">اسم الدواء</Label>
-                              <Input id="edit-name" name="name" defaultValue={editingMed.name} required />
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                  <Label htmlFor="edit-name">الاسم التجاري</Label>
+                                  <Input id="edit-name" name="name" defaultValue={editingMed.name} required />
+                              </div>
+                               <div className="space-y-2">
+                                  <Label htmlFor="edit-scientificNames">الاسم العلمي (يفصل بفاصلة ,)</Label>
+                                  <Input id="edit-scientificNames" name="scientificNames" defaultValue={editingMed.scientificNames?.join(', ')} />
+                              </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor="edit-dosage">الجرعة</Label>
+                                  <Input id="edit-dosage" name="dosage" defaultValue={editingMed.dosage} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-dosageForm">الشكل الدوائي</Label>
+                                    <Select name="dosageForm" defaultValue={editingMed.dosageForm}>
+                                        <SelectTrigger id="edit-dosageForm"><SelectValue placeholder="اختر الشكل" /></SelectTrigger>
+                                        <SelectContent>
+                                            {dosageForms.map(form => <SelectItem key={form} value={form}>{form}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                                <div className="space-y-2">
                                   <Label htmlFor="edit-reorderPoint">نقطة إعادة الطلب</Label>
                                   <Input id="edit-reorderPoint" name="reorderPoint" type="number" defaultValue={editingMed.reorderPoint} required />
                               </div>
                               <div className="space-y-2">
+                                  <Label htmlFor="edit-expirationDate">تاريخ الانتهاء</Label>
+                                  <Input id="edit-expirationDate" name="expirationDate" type="date" defaultValue={editingMed.expirationDate} required />
+                              </div>
+                          </div>
+                           <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor="edit-purchasePrice">سعر الشراء</Label>
+                                  <Input id="edit-purchasePrice" name="purchasePrice" type="number" step="1" defaultValue={editingMed.purchasePrice} required />
+                                </div>
+                                <div className="space-y-2">
                                   <Label htmlFor="edit-price">سعر البيع</Label>
                                   <Input id="edit-price" name="price" type="number" step="1" defaultValue={editingMed.price} required />
                               </div>
@@ -511,3 +552,5 @@ export default function InventoryPage() {
     </>
   )
 }
+
+    
