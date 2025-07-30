@@ -354,10 +354,7 @@ export default function SalesPage() {
   const { toast } = useToast()
   
   const printComponentRef = React.useRef(null);
-//   const handlePrint = useReactToPrint({
-//     content: () => printComponentRef.current,
-//     documentTitle: `invoice-${saleToPrint?.id || ''}`,
-//   });
+
     const handlePrint = () => {
         if (printComponentRef.current && saleToPrint) {
             printElement(printComponentRef.current, `invoice-${saleToPrint?.id}`);
@@ -648,7 +645,7 @@ export default function SalesPage() {
       <div className="hidden">
           <InvoiceTemplate ref={printComponentRef} sale={saleToPrint} settings={settings || null} />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full md:h-[calc(100vh-6rem)]">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:h-[calc(100vh-6rem)]">
           <div className="lg:col-span-2 flex flex-col gap-4">
               <Card>
                   <CardHeader className="pb-4">
@@ -736,7 +733,70 @@ export default function SalesPage() {
                   <CardContent className="p-0 flex-1">
                       <ScrollArea className="h-full">
                       {cart.length > 0 ? (
-                          <Table>
+                        <>
+                            <div className="md:hidden divide-y divide-border">
+                                {cart.map((item) => {
+                                    const medInInventory = allInventory.find(med => med.id === item.medicationId);
+                                    const stock = medInInventory?.stock ?? 0;
+                                    const remainingStock = stock - item.quantity;
+                                    const isBelowCost = item.price < item.purchasePrice;
+                                    const totalPrice = item.price * item.quantity;
+                                    const alternatives = findAlternatives(item);
+                                    return (
+                                        <div key={item.medicationId} className={cn("flex flex-col gap-3 p-3", item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
+                                            <div className="flex justify-between items-start gap-2">
+                                                <div className="flex-grow">
+                                                    <div className="flex items-center gap-1 font-medium">
+                                                        <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" disabled={mode !== 'new'} className="me-2"/>
+                                                        {item.name} {item.dosage} {item.dosageForm}
+                                                        {alternatives.length > 0 && (
+                                                            <Popover>
+                                                                <PopoverTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6 text-primary/70 hover:text-primary"><Replace className="h-4 w-4" /></Button></PopoverTrigger>
+                                                                <PopoverContent className="w-80">
+                                                                    <div className="space-y-2">
+                                                                        <h4 className="font-medium leading-none">بدائل متاحة</h4>
+                                                                        <div className="space-y-1">
+                                                                            {alternatives.map(alt => (
+                                                                                <div key={alt.id} className="text-sm p-2 hover:bg-accent rounded-md flex justify-between items-center">
+                                                                                    <div><div>{alt.name}</div><div className="text-xs text-muted-foreground">المتوفر: {alt.stock}</div></div>
+                                                                                    <div className="flex items-center gap-2"><span className="font-mono">{alt.price}</span><Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => addToCart(alt)}><PlusCircle className="h-4 w-4 text-green-600" /></Button></div>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                </PopoverContent>
+                                                            </Popover>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground">({(item.scientificNames || []).join(', ')})</div>
+                                                </div>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeFromCart(item.medicationId)} disabled={mode !== 'new'}><X className="h-4 w-4 text-destructive" /></Button>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-3 items-end">
+                                                <div className="space-y-1">
+                                                    <Label className="text-xs">الكمية</Label>
+                                                    <div className="flex items-center justify-center gap-2 border rounded-md p-1">
+                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity - 1)} disabled={mode !== 'new'}><MinusCircle className="h-4 w-4" /></Button>
+                                                        <span className="font-mono">{item.quantity}</span>
+                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity + 1)} disabled={mode !== 'new'}><PlusCircle className="h-4 w-4" /></Button>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-1">
+                                                     <Label htmlFor={`price-${item.medicationId}`} className="text-xs">السعر الإجمالي</Label>
+                                                     <div className="relative">
+                                                        <Input id={`price-${item.medicationId}`} type="text" value={totalPrice} onChange={(e) => updateTotalPrice(item.medicationId, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={mode !== 'new'} />
+                                                        {isBelowCost && !item.isReturn && (<div className="absolute -top-2 -right-2 text-destructive"><AlertTriangle className="h-4 w-4" /></div>)}
+                                                     </div>
+                                                </div>
+                                            </div>
+                                             <div className="text-xs text-muted-foreground mt-1">الرصيد: {stock} {!item.isReturn && ` | المتبقي: `}<span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+
+                          <Table className="hidden md:table">
                               <TableHeader className="sticky top-0 bg-background z-10">
                                   <TableRow>
                                       <TableHead className="w-12 text-center"><ArrowLeftRight className="h-4 w-4 mx-auto"/></TableHead>
@@ -833,6 +893,7 @@ export default function SalesPage() {
                                   })}
                               </TableBody>
                           </Table>
+                          </>
                       ) : (
                           <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
                               <PackageSearch className="h-16 w-16 mb-4" />
@@ -1067,3 +1128,5 @@ export default function SalesPage() {
     </>
   )
 }
+
+    
