@@ -65,6 +65,64 @@ import { calculateDose, type DoseCalculationInput } from "@/ai/flows/dose-calcul
 import { Skeleton } from "@/components/ui/skeleton"
 import { useOnlineStatus } from "@/hooks/use-online-status"
 
+const printElement = (element: HTMLElement, title: string = 'Print') => {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+  
+  // Get all stylesheets from the current document
+  const stylesheets = Array.from(document.styleSheets)
+    .map(stylesheet => {
+      try {
+        return Array.from(stylesheet.cssRules)
+          .map(rule => rule.cssText)
+          .join('\n');
+      } catch (e) {
+        // Handle cross-origin stylesheets
+        if (stylesheet.href) {
+          return `@import url("${stylesheet.href}");`;
+        }
+        return '';
+      }
+    })
+    .join('\n');
+
+  // Get inline styles
+  const inlineStyles = Array.from(document.querySelectorAll('style'))
+    .map(style => style.innerHTML)
+    .join('\n');
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>${title}</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+          ${stylesheets}
+          ${inlineStyles}
+          @media print {
+            body { margin: 0; }
+            * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
+          }
+        </style>
+      </head>
+      <body dir="rtl">
+        ${element.outerHTML}
+      </body>
+    </html>
+  `);
+  
+  printWindow.document.close();
+  
+  // Wait for content to load then print
+  printWindow.onload = () => {
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
+};
 
 function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => void; onOpenChange: (isOpen: boolean) => void }) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -296,11 +354,15 @@ export default function SalesPage() {
   const { toast } = useToast()
   
   const printComponentRef = React.useRef(null);
-  const handlePrint = useReactToPrint({
-    content: () => printComponentRef.current,
-    documentTitle: `invoice-${saleToPrint?.id || ''}`,
-  });
-  
+//   const handlePrint = useReactToPrint({
+//     content: () => printComponentRef.current,
+//     documentTitle: `invoice-${saleToPrint?.id || ''}`,
+//   });
+    const handlePrint = () => {
+        if (printComponentRef.current && saleToPrint) {
+            printElement(printComponentRef.current, `invoice-${saleToPrint?.id}`);
+        }
+    };
   const sortedSales = React.useMemo(() => (sales || []).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [sales]);
 
   const addToCart = React.useCallback((medication: Medication) => {

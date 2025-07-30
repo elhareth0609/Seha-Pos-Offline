@@ -3,12 +3,12 @@
 
 import * as React from "react"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+    CardFooter,
 } from "@/components/ui/card"
 import { useAuth } from "@/hooks/use-auth"
 import type { Supplier, PurchaseOrder, ReturnOrder, SupplierPayment, TrashItem } from "@/lib/types"

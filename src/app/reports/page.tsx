@@ -80,7 +80,7 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
           }
         </style>
       </head>
-      <body>
+      <body dir="rtl">
         ${element.outerHTML}
       </body>
     </html>
