@@ -36,8 +36,9 @@ interface AuthContextType {
   updateUserPermissions: (userId: string, permissions: UserPermissions) => Promise<boolean>;
   updateUserHourlyRate: (userId: string, rate: number) => Promise<boolean>;
   toggleUserStatus: (userId: string) => Promise<boolean>;
-  scopedData: ScopedDataContextType;
   getAllPharmacySettings: () => Promise<Record<string, AppSettings>>;
+  getPharmacyData: (pharmacyId: string) => Promise<{ sales: Sale[], inventory: Medication[] }>;
+  scopedData: ScopedDataContextType;
 
 }
 
@@ -347,6 +348,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         return pharmacySettings;
+    };
+
+    // 添加获取指定药房数据的函数
+    const getPharmacyData = async (pharmacyId: string) => {
+        if (!currentUser || currentUser.role !== 'SuperAdmin') {
+            throw new Error('Only SuperAdmin can access pharmacy data');
+        }
+        
+        try {
+            const [sales, inventory] = await Promise.all([
+                getPharmacySubCollection<Sale>(pharmacyId, 'sales'),
+                getPharmacySubCollection<Medication>(pharmacyId, 'inventory')
+            ]);
+            
+            return { sales, inventory };
+        } catch (error) {
+            console.error(`Error fetching data for pharmacy ${pharmacyId}:`, error);
+            return { sales: [], inventory: [] };
+        }
     };
 
     const createPharmacyAdmin = async (name: string, email: string, pin: string): Promise<boolean> => {
@@ -684,7 +704,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             currentUser, users, setUsers, isAuthenticated, loading, isSetup, 
             setupAdmin, login, logout, registerUser, deleteUser, updateUser, 
             updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData,
-            getAllPharmacySettings
+            getAllPharmacySettings, getPharmacyData
         }}>
         {children}
         </AuthContext.Provider>

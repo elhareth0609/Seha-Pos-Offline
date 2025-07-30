@@ -14,11 +14,13 @@ import { DollarSign, TrendingUp, PieChart, TrendingDown, ArrowLeft } from 'lucid
 import Link from 'next/link';
 
 export default function SuperAdminReportsPage() {
-    const { currentUser, users, scopedData: allData, getAllPharmacySettings } = useAuth();
+    const { currentUser, users, getPharmacyData, getAllPharmacySettings } = useAuth();
     const router = useRouter();
-    const [pharmacySettings, setPharmacySettings] = React.useState<Record<string, AppSettings>>({});
-
+    
     const [selectedPharmacyId, setSelectedPharmacyId] = React.useState<string | null>(null);
+    const [pharmacySettings, setPharmacySettings] = React.useState<Record<string, AppSettings>>({});
+    const [pharmacyData, setPharmacyData] = React.useState<{sales: Sale[], inventory: Medication[]} | null>(null);
+    const [loading, setLoading] = React.useState(false);
 
     React.useEffect(() => {
         if (currentUser && currentUser.role !== 'SuperAdmin') {
@@ -36,61 +38,34 @@ export default function SuperAdminReportsPage() {
         fetchSettings();
     }, [currentUser, getAllPharmacySettings]);
 
+    // 新增：当选择的药房ID改变时获取数据
+    React.useEffect(() => {
+        const fetchData = async () => {
+            if (selectedPharmacyId && currentUser?.role === 'SuperAdmin') {
+                setLoading(true);
+                try {
+                    const data = await getPharmacyData(selectedPharmacyId);
+                    setPharmacyData(data);
+                } catch (error) {
+                    console.error('Error fetching pharmacy data:', error);
+                    setPharmacyData(null);
+                } finally {
+                    setLoading(false);
+                }
+            } else {
+                setPharmacyData(null);
+            }
+        };
+        fetchData();
+    }, [selectedPharmacyId, getPharmacyData, currentUser]);
+
     const pharmacyAdmins = users.filter(u => u.role === 'Admin');
-    // const selectedPharmacyData = React.useMemo(() => {
-    //     if (!selectedPharmacyId) return null;
 
-    //     const sales: Sale[] = allData.sales[selectedPharmacyId] || [];
-    //     const inventory: Medication[] = allData.inventory[selectedPharmacyId] || [];
-    //     const pharmacyUsers: User[] = users.filter(u => u.pharmacyId === selectedPharmacyId && u.role === 'Employee');
-
-    //     const totalRevenue = sales.reduce((acc, sale) => acc + (sale.total || 0), 0);
-    //     const totalProfit = sales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
-    //     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
-        
-    //     const lowStockItems = inventory.filter(item => item.stock < item.reorderPoint).slice(0, 5);
-        
-    //     const topSellingItems = sales
-    //         .flatMap(s => s.items)
-    //         .reduce((acc, item) => {
-    //             if (!item.isReturn) {
-    //                 acc[item.medicationId] = (acc[item.medicationId] || 0) + item.quantity;
-    //             }
-    //             return acc;
-    //         }, {} as { [key: string]: number });
-        
-    //     const topSoldArray = Object.entries(topSellingItems)
-    //         .sort((a, b) => b[1] - a[1])
-    //         .slice(0, 5)
-    //         .map(([medicationId, quantity]) => {
-    //             const med = inventory.find(m => m.id === medicationId);
-    //             return { name: med?.name || 'غير معروف', quantity };
-    //         });
-
-    //     return {
-    //         totalRevenue,
-    //         totalProfit,
-    //         profitMargin,
-    //         lowStockItems,
-    //         topSoldArray,
-    //         pharmacyUsers,
-    //     };
-    // }, [selectedPharmacyId, allData, users]);
     const selectedPharmacyData = React.useMemo(() => {
-        if (!selectedPharmacyId) return null;
+        if (!selectedPharmacyId || !pharmacyData) return null;
 
-        // Type assertion to tell TypeScript that selectedPharmacyId is a valid key
-        const pharmacyId = selectedPharmacyId as string;
-        
-        // Type assertion for sales access - assuming it's also a tuple
-        const salesData = allData.sales as [Sale[], any];
-        // Type assertion for inventory access - it's a tuple
-        const inventoryData = allData.inventory as [Medication[], any];
-        
-        // Access the arrays from the tuples at index 0
-        const sales: Sale[] = salesData[0] || [];
-        const inventory: Medication[] = inventoryData[0] || [];
-        const pharmacyUsers: User[] = users.filter(u => u.pharmacyId === pharmacyId && u.role === 'Employee');
+        const { sales, inventory } = pharmacyData;
+        const pharmacyUsers: User[] = users.filter(u => u.pharmacyId === selectedPharmacyId && u.role === 'Employee');
 
         const totalRevenue = sales.reduce((acc, sale) => acc + (sale.total || 0), 0);
         const totalProfit = sales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
@@ -123,7 +98,7 @@ export default function SuperAdminReportsPage() {
             topSoldArray,
             pharmacyUsers,
         };
-    }, [selectedPharmacyId, allData, users]);
+    }, [selectedPharmacyId, pharmacyData, users]);
 
     if (!currentUser || currentUser.role !== 'SuperAdmin') {
         return null;
@@ -148,13 +123,6 @@ export default function SuperAdminReportsPage() {
                         <SelectTrigger className="w-full md:w-1/3">
                             <SelectValue placeholder="اختر صيدلية..." />
                         </SelectTrigger>
-                        {/* <SelectContent>
-                            {pharmacyAdmins.map(admin => (
-                                <SelectItem key={admin.pharmacyId} value={admin.pharmacyId!}>
-                                    {allData.settings[admin.pharmacyId!]?.pharmacyName || admin.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent> */}
                         <SelectContent>
                             {pharmacyAdmins.map(admin => {
                                 const pharmacyId = admin.pharmacyId as string;
@@ -166,14 +134,17 @@ export default function SuperAdminReportsPage() {
                                 );
                             })}
                         </SelectContent>
-
-
                     </Select>
+                    {loading && (
+                        <div className="mt-4 text-center text-muted-foreground">
+                            جاري تحميل البيانات...
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
             {selectedPharmacyData && (
-                <div className="space-y-6 animate-in fade-in">
+                <div className="space-y-6 animate-in fade-in mx-2">
                     <div className="grid gap-4 md:grid-cols-3">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
