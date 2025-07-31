@@ -255,6 +255,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+                            
+              {currentUser?.role === 'Admin' && (
+                <div className="hidden sm:block">
+                  <TooltipProvider>
+                      <Tooltip>
+                          <TooltipTrigger asChild>
+                              <span tabIndex={0} className="text-sm text-muted-foreground cursor-help animate-pulse outline-none">
+                                  تذكر النسخ الاحتياطي!
+                              </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                              <p>لحماية بياناتك، قم بعمل نسخة احتياطية بشكل دوري.</p>
+                          </TooltipContent>
+                      </Tooltip>
+                  </TooltipProvider>
+                </div>
+              )}
+
             </div>
 
 
