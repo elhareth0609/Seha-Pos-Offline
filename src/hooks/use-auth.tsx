@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setIsSetup(superAdminExists);
             } catch (error) {
                 console.error("Error checking setup:", error);
-                setIsSetup(false);
+                setIsSetup(true);
             }
         };
         checkSetup();

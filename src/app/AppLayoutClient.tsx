@@ -32,7 +32,7 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
         );
     }
 
-    if (!isSetup) {
+    if (!isSetup && false) {
         return <SetupPage />;
     }
 
