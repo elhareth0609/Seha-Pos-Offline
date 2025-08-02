@@ -1,4 +1,5 @@
 
+
 import { z } from 'zod';
 
 export type UserPermissions = {
@@ -150,6 +151,14 @@ export type TrashItem = {
   deletedAt: string; // ISO date string
   itemType: 'medication' | 'patient' | 'supplier' | 'user';
   data: Medication | Patient | Supplier | User;
+};
+
+export type Advertisement = {
+    id: string;
+    title: string;
+    imageUrl: string;
+    isActive: boolean;
+    createdAt: string;
 };
 
 

@@ -66,12 +66,12 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useOnlineStatus } from "@/hooks/use-online-status"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import AdCarousel from "@/components/ui/ad-carousel"
 
 const printElement = (element: HTMLElement, title: string = 'Print') => {
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
   
-  // Get all stylesheets from the current document
   const stylesheets = Array.from(document.styleSheets)
     .map(stylesheet => {
       try {
@@ -79,7 +79,6 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
           .map(rule => rule.cssText)
           .join('\n');
       } catch (e) {
-        // Handle cross-origin stylesheets
         if (stylesheet.href) {
           return `@import url("${stylesheet.href}");`;
         }
@@ -88,7 +87,6 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
     })
     .join('\n');
 
-  // Get inline styles
   const inlineStyles = Array.from(document.querySelectorAll('style'))
     .map(style => style.innerHTML)
     .join('\n');
@@ -117,7 +115,6 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
   
   printWindow.document.close();
   
-  // Wait for content to load then print
   printWindow.onload = () => {
     setTimeout(() => {
       printWindow.print();
@@ -659,6 +656,7 @@ export default function SalesPage() {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:h-[calc(100vh-6rem)]">
           <div className="lg:col-span-2 flex flex-col gap-4">
+              <AdCarousel />
               <Card>
                   <CardHeader className="pb-4">
                       <CardTitle className="text-xl">اختيار المنتج</CardTitle>

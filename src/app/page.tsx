@@ -26,6 +26,7 @@ import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, is
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import AdCarousel from "@/components/ui/ad-carousel";
 
 export default function Dashboard() {
   const { scopedData } = useAuth();
@@ -183,6 +184,8 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col gap-6">
+      <AdCarousel />
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

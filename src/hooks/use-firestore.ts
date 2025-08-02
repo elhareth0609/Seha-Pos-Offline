@@ -1,4 +1,5 @@
 
+
 import { doc, getDoc, setDoc, collection, getDocs, query, writeBatch, deleteDoc, limit, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { User } from '@/lib/types';
@@ -15,16 +16,6 @@ export const getPharmacyDoc = async <T,>(pharmacyId: string, collectionName: str
   }
 };
 
-// Sets a single document in a pharmacy's top-level collection
-// export const setPharmacyDoc = async <T,>(pharmacyId: string, collectionName: string, docId: string, data: T): Promise<void> => {
-//   try {
-//     const docRef = doc(db, 'pharmacies', pharmacyId, collectionName, docId);
-//     await setDoc(docRef, data, { merge: true });
-//   } catch (error) {
-//     console.error(`Error writing doc "${docId}" to "${collectionName}" in pharmacy "${pharmacyId}":`, error);
-//     throw error;
-//   }
-// };
 // Sets a single document in a pharmacy's top-level collection
 export const setPharmacyDoc = async <T,>(pharmacyId: string, collectionName: string, docId: string, data: T): Promise<void> => {
   try {
@@ -108,6 +99,49 @@ export const deletePharmacyData = async (pharmacyId: string): Promise<void> => {
 };
 
 
+// --- Generic Collection Functions ---
+
+export const getCollectionData = async <T,>(collectionName: string): Promise<T[]> => {
+  try {
+    const collectionRef = collection(db, collectionName);
+    const q = query(collectionRef);
+    const querySnapshot = await getDocs(q);
+    const data: T[] = [];
+    querySnapshot.forEach((doc) => {
+      data.push({ ...doc.data(), id: doc.id } as T);
+    });
+    return data;
+  } catch (error) {
+    console.error(`Error reading from collection "${collectionName}":`, error);
+    return [];
+  }
+};
+
+export const setDocumentInCollection = async <T,>(
+  collectionName: string, 
+  documentId: string, 
+  data: T
+): Promise<void> => {
+  try {
+    const docRef = doc(db, collectionName, documentId);
+    await setDoc(docRef, data, { merge: true });
+  } catch (error) {
+    console.error(`Error writing to collection "${collectionName}":`, error);
+    throw error;
+  }
+};
+
+export const deleteDocumentFromCollection = async (collectionName: string, documentId: string): Promise<void> => {
+    try {
+        const docRef = doc(db, collectionName, documentId);
+        await deleteDoc(docRef);
+    } catch (error) {
+        console.error(`Error deleting document from "${collectionName}":`, error);
+        throw error;
+    }
+};
+
+
 // --- User Functions ---
 
 // Fetches all user documents
@@ -122,25 +156,6 @@ export const getAllUsers = async (): Promise<User[]> => {
   }
 };
 
-// Creates or updates a user document
-// export const setUser = async (
-//   userId: string,
-//   data: Omit<User, 'id'>,
-//   superAdminAlreadyExists: boolean | undefined
-// ): Promise<void> => {
-//   try {
-//     const userDocRef = doc(db, 'users', userId);
-//     await setDoc(userDocRef, data, { merge: true });
-
-//     // If SuperAdmin does NOT already exist, mark it as now existing
-//     if (!superAdminAlreadyExists && data.role === 'SuperAdmin') {
-//       await setDoc(doc(db, 'app_meta/super_admin'), { exists: true });
-//     }
-//   } catch (error) {
-//     console.error(`Error setting user ${userId}:`, error);
-//     throw error;
-//   }
-// };
 // Creates or updates a user document
 export const setUser = async (
   userId: string,

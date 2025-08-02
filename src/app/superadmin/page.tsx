@@ -14,12 +14,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import type { User, Sale } from '@/lib/types';
+import type { User, Advertisement } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, DollarSign, Building } from 'lucide-react';
+import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, Building, ImagePlus, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const addAdminSchema = z.object({
     name: z.string().min(3, { message: "الاسم مطلوب" }),
@@ -28,6 +29,15 @@ const addAdminSchema = z.object({
 });
 
 type AddAdminFormValues = z.infer<typeof addAdminSchema>;
+
+const fileToDataUri = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
 
 function AdminRow({ admin, onDelete, onToggleStatus }: { admin: User, onDelete: (user: User) => void, onToggleStatus: (user: User) => void }) {
     const [showPin, setShowPin] = React.useState(false);
@@ -88,10 +98,14 @@ function AdminRow({ admin, onDelete, onToggleStatus }: { admin: User, onDelete: 
 }
 
 export default function SuperAdminPage() {
-    const { currentUser, users, createPharmacyAdmin, deleteUser, toggleUserStatus, logout } = useAuth();
+    const { currentUser, users, createPharmacyAdmin, deleteUser, toggleUserStatus, logout, advertisements, addAdvertisement, deleteAdvertisement } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const [isAddAdminOpen, setIsAddAdminOpen] = React.useState(false);
+    const [isAddAdOpen, setIsAddAdOpen] = React.useState(false);
+    const [adTitle, setAdTitle] = React.useState("");
+    const [adImageFile, setAdImageFile] = React.useState<File | null>(null);
+    const [adImagePreview, setAdImagePreview] = React.useState<string | null>(null);
     
     const addAdminForm = useForm<AddAdminFormValues>({
         resolver: zodResolver(addAdminSchema),
@@ -128,6 +142,27 @@ export default function SuperAdminPage() {
         })
     }
     
+    const handleAdImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setAdImageFile(file);
+            setAdImagePreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handleAddAdvertisement = async () => {
+        if (!adTitle.trim() || !adImageFile) {
+            toast({ variant: 'destructive', title: 'بيانات ناقصة', description: 'الرجاء إدخال عنوان واختيار صورة.' });
+            return;
+        }
+        const imageDataUri = await fileToDataUri(adImageFile);
+        await addAdvertisement(adTitle, imageDataUri);
+        setIsAddAdOpen(false);
+        setAdTitle("");
+        setAdImageFile(null);
+        setAdImagePreview(null);
+    };
+
     const pharmacyAdmins = users.filter(u => u.role === 'Admin');
     const totalEmployees = users.filter(u => u.role === 'Employee').length;
 
@@ -140,7 +175,7 @@ export default function SuperAdminPage() {
             <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">لوحة تحكم الشركة</h1>
-                    <p className="text-muted-foreground">إدارة حسابات مديري الصيدليات المسجلة في النظام.</p>
+                    <p className="text-muted-foreground">إدارة حسابات مديري الصيدليات والإعلانات.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                     <Button variant="outline" asChild>
@@ -156,7 +191,7 @@ export default function SuperAdminPage() {
                 </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">عدد الصيدليات</CardTitle><Building className="h-4 w-4 text-muted-foreground" /></CardHeader>
                     <CardContent><div className="text-2xl font-bold font-mono">{pharmacyAdmins.length}</div></CardContent>
@@ -165,73 +200,156 @@ export default function SuperAdminPage() {
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">إجمالي الموظفين</CardTitle><Users className="h-4 w-4 text-muted-foreground" /></CardHeader>
                     <CardContent><div className="text-2xl font-bold font-mono">{totalEmployees}</div></CardContent>
                 </Card>
+                 <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">عدد الإعلانات</CardTitle><ImageIcon className="h-4 w-4 text-muted-foreground" /></CardHeader>
+                    <CardContent><div className="text-2xl font-bold font-mono">{advertisements.length}</div></CardContent>
+                </Card>
             </div>
 
-            <Card>
-                <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
-                        <CardTitle>مدراء الصيدليات</CardTitle>
-                        <CardDescription>قائمة بجميع حسابات مدراء الصيدليات المسجلين.</CardDescription>
-                    </div>
-                     <div className="flex flex-wrap items-center gap-2">
-                        <Button variant="outline" asChild>
-                            <Link href="/superadmin/reports"><FileText className="me-2"/> عرض التقارير</Link>
-                        </Button>
-                        <Dialog open={isAddAdminOpen} onOpenChange={setIsAddAdminOpen}>
+            <div className="grid gap-6 lg:grid-cols-3">
+                <Card className="lg:col-span-2">
+                    <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                            <CardTitle>مدراء الصيدليات</CardTitle>
+                            <CardDescription>قائمة بجميع حسابات مدراء الصيدليات المسجلين.</CardDescription>
+                        </div>
+                         <div className="flex flex-wrap items-center gap-2">
+                            <Button variant="outline" asChild>
+                                <Link href="/superadmin/reports"><FileText className="me-2"/> عرض التقارير</Link>
+                            </Button>
+                            <Dialog open={isAddAdminOpen} onOpenChange={setIsAddAdminOpen}>
+                                <DialogTrigger asChild>
+                                    <Button><PlusCircle className="me-2"/> إنشاء حساب مدير</Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>إنشاء حساب مدير صيدلية</DialogTitle>
+                                    </DialogHeader>
+                                    <Form {...addAdminForm}>
+                                        <form onSubmit={addAdminForm.handleSubmit(handleAddAdmin)} className="space-y-4 py-2">
+                                             <FormField control={addAdminForm.control} name="name" render={({ field }) => (
+                                                <FormItem><FormLabel>اسم المدير</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                             <FormField control={addAdminForm.control} name="email" render={({ field }) => (
+                                                <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                            <FormField control={addAdminForm.control} name="pin" render={({ field }) => (
+                                                <FormItem><FormLabel>رمز PIN (6 أرقام)</FormLabel><FormControl><Input type="password" inputMode="numeric" maxLength={6} {...field} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                            <DialogFooter className="pt-4">
+                                                <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                                                <Button type="submit" variant="success">إنشاء الحساب</Button>
+                                            </DialogFooter>
+                                        </form>
+                                    </Form>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                       <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>اسم المدير</TableHead>
+                                    <TableHead className="hidden sm:table-cell">البريد الإلكتروني</TableHead>
+                                    <TableHead className="hidden lg:table-cell">رمز PIN</TableHead>
+                                    <TableHead>الحالة</TableHead>
+                                    <TableHead className="text-left">الإجراءات</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {pharmacyAdmins.map(admin => (
+                                    <AdminRow 
+                                        key={admin.id} 
+                                        admin={admin} 
+                                        onDelete={handleDeleteAdmin} 
+                                        onToggleStatus={handleToggleStatus}
+                                    />
+                                ))}
+                            </TableBody>
+                        </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle>إدارة الإعلانات</CardTitle>
+                            <CardDescription>إضافة وحذف الصور الإعلانية.</CardDescription>
+                        </div>
+                        <Dialog open={isAddAdOpen} onOpenChange={setIsAddAdOpen}>
                             <DialogTrigger asChild>
-                                <Button><PlusCircle className="me-2"/> إنشاء حساب مدير</Button>
+                                <Button size="icon"><ImagePlus /></Button>
                             </DialogTrigger>
-                            <DialogContent>
+                             <DialogContent>
                                 <DialogHeader>
-                                    <DialogTitle>إنشاء حساب مدير صيدلية</DialogTitle>
+                                    <DialogTitle>إضافة إعلان جديد</DialogTitle>
                                 </DialogHeader>
-                                <Form {...addAdminForm}>
-                                    <form onSubmit={addAdminForm.handleSubmit(handleAddAdmin)} className="space-y-4 py-2">
-                                         <FormField control={addAdminForm.control} name="name" render={({ field }) => (
-                                            <FormItem><FormLabel>اسم المدير</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                        )} />
-                                         <FormField control={addAdminForm.control} name="email" render={({ field }) => (
-                                            <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
-                                        )} />
-                                        <FormField control={addAdminForm.control} name="pin" render={({ field }) => (
-                                            <FormItem><FormLabel>رمز PIN (6 أرقام)</FormLabel><FormControl><Input type="password" inputMode="numeric" maxLength={6} {...field} /></FormControl><FormMessage /></FormItem>
-                                        )} />
-                                        <DialogFooter className="pt-4">
-                                            <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
-                                            <Button type="submit" variant="success">إنشاء الحساب</Button>
-                                        </DialogFooter>
-                                    </form>
-                                </Form>
+                                <div className="space-y-4 py-2">
+                                    <div className="space-y-2">
+                                        <FormLabel>عنوان الإعلان</FormLabel>
+                                        <Input value={adTitle} onChange={(e) => setAdTitle(e.target.value)} placeholder="مثال: عرض خاص" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <FormLabel>صورة الإعلان</FormLabel>
+                                        <Input type="file" accept="image/*" onChange={handleAdImageChange} />
+                                    </div>
+                                    {adImagePreview && (
+                                        <div className="flex justify-center">
+                                            <Image src={adImagePreview} alt="معاينة الإعلان" width={200} height={100} className="rounded-md object-contain" />
+                                        </div>
+                                    )}
+                                </div>
+                                <DialogFooter>
+                                    <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
+                                    <Button onClick={handleAddAdvertisement} variant="success">إضافة</Button>
+                                </DialogFooter>
                             </DialogContent>
                         </Dialog>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                   <div className="overflow-x-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>اسم المدير</TableHead>
-                                <TableHead className="hidden sm:table-cell">البريد الإلكتروني</TableHead>
-                                <TableHead className="hidden lg:table-cell">رمز PIN</TableHead>
-                                <TableHead>الحالة</TableHead>
-                                <TableHead className="text-left">الإجراءات</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {pharmacyAdmins.map(admin => (
-                                <AdminRow 
-                                    key={admin.id} 
-                                    admin={admin} 
-                                    onDelete={handleDeleteAdmin} 
-                                    onToggleStatus={handleToggleStatus}
-                                />
-                            ))}
-                        </TableBody>
-                    </Table>
-                    </div>
-                </CardContent>
-            </Card>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>الصورة</TableHead>
+                                    <TableHead>العنوان</TableHead>
+                                    <TableHead></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                             <TableBody>
+                                {advertisements.map(ad => (
+                                    <TableRow key={ad.id}>
+                                        <TableCell>
+                                            <Image src={ad.imageUrl} alt={ad.title} width={64} height={36} className="rounded-sm object-cover" />
+                                        </TableCell>
+                                        <TableCell>{ad.title}</TableCell>
+                                        <TableCell className="text-left">
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>هل أنت متأكد من حذف هذا الإعلان؟</AlertDialogTitle>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => deleteAdvertisement(ad.id)} className="bg-destructive hover:bg-destructive/90">حذف</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 }
