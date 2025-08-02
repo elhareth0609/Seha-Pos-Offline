@@ -18,21 +18,23 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
     React.useEffect(() => {
         if (loading) return;
 
-        if (isAuthenticated && !isInitialRedirectDone) {
-            if (currentUser?.role === 'SuperAdmin') {
-                if (!pathname.startsWith('/superadmin')) {
-                    router.replace('/superadmin');
-                }
-            } else {
-                if (pathname.startsWith('/superadmin')) {
-                    router.replace('/sales');
-                } else if (pathname === '/') {
-                    router.replace('/sales');
+        if (!isInitialRedirectDone) {
+            if (isAuthenticated) {
+                if (currentUser?.role === 'SuperAdmin') {
+                    if (!pathname.startsWith('/superadmin')) {
+                        router.replace('/superadmin');
+                    }
+                } else {
+                    if (pathname === '/' || pathname.startsWith('/superadmin')) {
+                        router.replace('/sales');
+                    }
                 }
             }
+            // Mark redirect as done even if not authenticated to prevent loops
             setIsInitialRedirectDone(true);
         }
     }, [loading, isAuthenticated, currentUser, pathname, router, isInitialRedirectDone]);
+
 
     if (loading || (isAuthenticated && !isInitialRedirectDone)) {
         return (
@@ -42,7 +44,7 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
         );
     }
 
-    if (!isSetup && false) {
+    if (!isSetup) {
         return <SetupPage />;
     }
 
