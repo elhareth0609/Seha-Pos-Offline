@@ -248,7 +248,9 @@ export default function ReportsPage() {
                         <div className="text-2xl font-bold text-green-600 font-mono">{totalProfit.toLocaleString()}</div>
                     </CardContent>
                 </Card>
-                <AdCarousel page="reports" />
+                <div className="flex items-stretch">
+                    <AdCarousel page="reports" />
+                </div>
             </div>
 
             <Card>

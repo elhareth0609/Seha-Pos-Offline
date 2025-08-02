@@ -229,23 +229,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
             </div>
 
-            <div className="flex flex-1 items-center justify-center gap-2">
+            <div className="flex flex-1 items-center justify-start gap-2">
               <div className="flex items-center gap-1">
-                {hasPermission('/sales') && (
-                  <Button variant="outline" asChild>
-                    <Link href="/sales">المبيعات</Link>
-                  </Button>
-                )}
-                {hasPermission('/inventory') && (
-                  <Button variant="outline" asChild>
-                    <Link href="/inventory">المخزون</Link>
-                  </Button>
-                )}
-                {hasPermission('/purchases') && (
-                   <Button variant="outline" asChild>
-                    <Link href="/purchases">المشتريات</Link>
-                  </Button>
-                )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
@@ -275,6 +260,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
+                 {hasPermission('/inventory') && (
+                  <Button variant="outline" asChild>
+                    <Link href="/inventory">المخزون</Link>
+                  </Button>
+                )}
+                {hasPermission('/sales') && (
+                  <Button variant="outline" asChild>
+                    <Link href="/sales">المبيعات</Link>
+                  </Button>
+                )}
               </div>
               
               {currentUser?.role === 'Admin' && (
