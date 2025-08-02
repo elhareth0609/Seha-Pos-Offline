@@ -231,54 +231,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
             <div className="flex flex-1 items-center justify-center gap-2">
               <div className="flex items-center gap-1">
-                {hasPermission('/sales') && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="outline" size="icon" asChild>
-                        <Link href="/sales"><ShoppingCart /></Link>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>المبيعات</p></TooltipContent>
-                  </Tooltip>
-                )}
-                {hasPermission('/inventory') && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="outline" size="icon" asChild>
-                        <Link href="/inventory"><Boxes /></Link>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>المخزون</p></TooltipContent>
-                  </Tooltip>
-                )}
-                {hasPermission('/purchases') && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="outline" size="icon" asChild>
-                        <Link href="/purchases"><Truck /></Link>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>المشتريات</p></TooltipContent>
-                  </Tooltip>
-                )}
-              </div>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-                    <Menu className="me-2 h-4 w-4" />
-                    <span className="hidden sm:inline">القائمة الرئيسية</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="center">
-                  {navItems.map((item) => (
-                    <DropdownMenuItem key={item.href} onSelect={() => router.push(item.href)}>
-                      <item.icon className="me-2 h-4 w-4" />
-                      <span>{item.label}</span>
-                    </DropdownMenuItem>
-                  ))}
-                  {currentUser?.role === 'Admin' && (
-                    <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                      <Menu className="me-2 h-4 w-4" />
+                      <span className="hidden sm:inline">القائمة الرئيسية</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center">
+                    {navItems.map((item) => (
+                      <DropdownMenuItem key={item.href} onSelect={() => router.push(item.href)}>
+                        <item.icon className="me-2 h-4 w-4" />
+                        <span>{item.label}</span>
+                      </DropdownMenuItem>
+                    ))}
+                    {currentUser?.role === 'Admin' && (
+                      <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onSelect={handleImportClick}>
                             <Upload className="me-2 h-4 w-4" />
@@ -288,11 +256,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             <FileDown className="me-2 h-4 w-4" />
                             <span>نسخ احتياطي للبيانات</span>
                         </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-                            
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {hasPermission('/sales') && (
+                  <Button variant="outline" asChild>
+                    <Link href="/sales">المبيعات</Link>
+                  </Button>
+                )}
+                {hasPermission('/inventory') && (
+                  <Button variant="outline" asChild>
+                    <Link href="/inventory">المخزون</Link>
+                  </Button>
+                )}
+                {hasPermission('/purchases') && (
+                   <Button variant="outline" asChild>
+                    <Link href="/purchases">المشتريات</Link>
+                  </Button>
+                )}
+              </div>
+              
               {currentUser?.role === 'Admin' && (
                 <div className="hidden lg:block">
                       <Tooltip>
