@@ -463,6 +463,17 @@ export default function SalesPage() {
   const updateTotalPrice = (medicationId: string, newTotalPriceStr: string) => {
     if (mode !== 'new') return;
     
+    // Allow empty string to reset or clear
+    if (newTotalPriceStr.trim() === '') {
+        setCart(cart => cart.map(item => {
+            if (item.medicationId === medicationId) {
+                return { ...item, price: 0 }; 
+            }
+            return item;
+        }));
+        return;
+    }
+
     const newTotalPrice = parseFloat(newTotalPriceStr);
     if (isNaN(newTotalPrice) || newTotalPrice < 0) return;
 
@@ -790,7 +801,7 @@ export default function SalesPage() {
                                                 <div className="space-y-1">
                                                      <Label htmlFor={`price-${item.medicationId}`} className="text-xs">السعر الإجمالي</Label>
                                                      <div className="relative">
-                                                        <Input id={`price-${item.medicationId}`} type="text" value={totalPrice} onChange={(e) => updateTotalPrice(item.medicationId, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={mode !== 'new'} />
+                                                        <Input id={`price-${item.medicationId}`} type="number" value={item.price * item.quantity} onChange={(e) => updateTotalPrice(item.medicationId, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={mode !== 'new'} />
                                                         {isBelowCost && !item.isReturn && (
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
@@ -802,7 +813,11 @@ export default function SalesPage() {
                                                      </div>
                                                 </div>
                                             </div>
-                                             <div className="text-xs text-muted-foreground mt-1">الرصيد: {stock} {!item.isReturn && ` | المتبقي: `}<span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></div>
+                                             <div className="text-xs text-muted-foreground mt-1 flex gap-2">
+                                                <span>الرصيد: {stock}</span>
+                                                {!item.isReturn && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
+                                                <span>| الشراء: <span className="font-mono">{item.purchasePrice}</span></span>
+                                             </div>
                                         </div>
                                     )
                                 })}
@@ -867,10 +882,10 @@ export default function SalesPage() {
                                                     )}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground">({(item.scientificNames || []).join(', ')})</div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    الرصيد: {stock} 
-                                                    {!item.isReturn && ` | المتبقي: `}
-                                                    {!item.isReturn && <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span>}
+                                                <div className="text-xs text-muted-foreground flex gap-2">
+                                                    <span>الرصيد: {stock}</span> 
+                                                    {!item.isReturn && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
+                                                    <span>| الشراء: <span className="font-mono">{item.purchasePrice}</span></span>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
@@ -883,8 +898,8 @@ export default function SalesPage() {
                                             <TableCell>
                                                 <div className="relative">
                                                     <Input 
-                                                      type="text" 
-                                                      value={totalPrice} 
+                                                      type="number"
+                                                      value={item.price * item.quantity}
                                                       onChange={(e) => updateTotalPrice(item.medicationId, e.target.value)} 
                                                       className={cn("w-24 h-9 text-center font-mono", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )}
                                                       step="1" 
@@ -1165,5 +1180,3 @@ export default function SalesPage() {
     </>
   )
 }
-
-    
