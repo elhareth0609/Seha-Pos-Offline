@@ -230,36 +230,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="flex flex-1 items-center justify-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-                    <Menu className="me-2 h-4 w-4" />
-                    <span className="hidden sm:inline">القائمة الرئيسية</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="center">
-                  {navItems.map((item) => (
-                    <DropdownMenuItem key={item.href} onSelect={() => router.push(item.href)}>
-                      <item.icon className="me-2 h-4 w-4" />
-                      <span>{item.label}</span>
-                    </DropdownMenuItem>
-                  ))}
-                  {currentUser?.role === 'Admin' && (
-                    <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onSelect={handleImportClick}>
-                            <Upload className="me-2 h-4 w-4" />
-                            <span>استيراد بيانات</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={handleBackup}>
-                            <FileDown className="me-2 h-4 w-4" />
-                            <span>نسخ احتياطي للبيانات</span>
-                        </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
               <div className="flex items-center gap-1">
                 {hasPermission('/sales') && (
                   <Tooltip>
@@ -292,6 +262,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   </Tooltip>
                 )}
               </div>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                    <Menu className="me-2 h-4 w-4" />
+                    <span className="hidden sm:inline">القائمة الرئيسية</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center">
+                  {navItems.map((item) => (
+                    <DropdownMenuItem key={item.href} onSelect={() => router.push(item.href)}>
+                      <item.icon className="me-2 h-4 w-4" />
+                      <span>{item.label}</span>
+                    </DropdownMenuItem>
+                  ))}
+                  {currentUser?.role === 'Admin' && (
+                    <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onSelect={handleImportClick}>
+                            <Upload className="me-2 h-4 w-4" />
+                            <span>استيراد بيانات</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={handleBackup}>
+                            <FileDown className="me-2 h-4 w-4" />
+                            <span>نسخ احتياطي للبيانات</span>
+                        </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
                             
               {currentUser?.role === 'Admin' && (
                 <div className="hidden lg:block">
