@@ -229,16 +229,44 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
             </div>
 
-            <div className="flex flex-1 items-center justify-start gap-2">
-              <div className="flex items-center gap-1">
-                <DropdownMenu>
+            <div className="flex flex-1 items-center justify-center gap-2">
+              {currentUser?.role === 'Admin' && (
+                <div className="hidden lg:block">
+                      <Tooltip>
+                          <TooltipTrigger asChild>
+                              <span tabIndex={0} className="text-sm text-muted-foreground cursor-help animate-pulse outline-none">
+                                  تذكر النسخ الاحتياطي!
+                              </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                              <p>لحماية بياناتك، قم بعمل نسخة احتياطية بشكل دوري.</p>
+                          </TooltipContent>
+                      </Tooltip>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-1 items-center justify-end gap-2 md:flex-grow-0">
+                <div className="hidden items-center gap-2 md:flex">
+                    {hasPermission('/sales') && (
+                      <Button variant="outline" asChild>
+                        <Link href="/sales">المبيعات</Link>
+                      </Button>
+                    )}
+                    {hasPermission('/inventory') && (
+                      <Button variant="outline" asChild>
+                        <Link href="/inventory">المخزون</Link>
+                      </Button>
+                    )}
+                </div>
+                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
                       <Menu className="me-2 h-4 w-4" />
                       <span className="hidden sm:inline">القائمة الرئيسية</span>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="center">
+                  <DropdownMenuContent align="end">
                     {navItems.map((item) => (
                       <DropdownMenuItem key={item.href} onSelect={() => router.push(item.href)}>
                         <item.icon className="me-2 h-4 w-4" />
@@ -260,37 +288,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
-                 {hasPermission('/inventory') && (
-                  <Button variant="outline" asChild>
-                    <Link href="/inventory">المخزون</Link>
-                  </Button>
-                )}
-                {hasPermission('/sales') && (
-                  <Button variant="outline" asChild>
-                    <Link href="/sales">المبيعات</Link>
-                  </Button>
-                )}
-              </div>
-              
-              {currentUser?.role === 'Admin' && (
-                <div className="hidden lg:block">
-                      <Tooltip>
-                          <TooltipTrigger asChild>
-                              <span tabIndex={0} className="text-sm text-muted-foreground cursor-help animate-pulse outline-none">
-                                  تذكر النسخ الاحتياطي!
-                              </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                              <p>لحماية بياناتك، قم بعمل نسخة احتياطية بشكل دوري.</p>
-                          </TooltipContent>
-                      </Tooltip>
-                </div>
-              )}
-
-            </div>
-
-
-            <div className="flex flex-1 items-center justify-end md:flex-grow-0">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="flex items-center gap-2 px-2">
