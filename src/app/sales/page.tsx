@@ -740,9 +740,7 @@ export default function SalesPage() {
                       </div>
                   </CardHeader>
                   <CardContent className="p-0 flex-1 flex flex-col">
-                      <div className="p-4">
-                        <AdCarousel />
-                      </div>
+                      
                       <ScrollArea className="h-full">
                       {cart.length > 0 ? (
                         <>
@@ -938,6 +936,9 @@ export default function SalesPage() {
                       </div>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-4">
+                      <div className="mb-2">
+                        <AdCarousel />
+                      </div>
                        <div className="space-y-2">
                           <Label>صديق الصيدلية (الزبون)</Label>
                           <Dialog open={isPatientModalOpen} onOpenChange={setIsPatientModalOpen}>

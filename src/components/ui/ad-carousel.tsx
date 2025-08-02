@@ -18,7 +18,7 @@ import { Skeleton } from './skeleton';
 export default function AdCarousel() {
     const { advertisements, loading } = useAuth();
     const plugin = React.useRef(
-        Autoplay({ delay: 2000, stopOnInteraction: true })
+        Autoplay({ delay: 2000, stopOnInteraction: false, stopOnMouseEnter: false })
     );
 
     if (loading) {
@@ -33,8 +33,6 @@ export default function AdCarousel() {
         <Carousel
             plugins={[plugin.current]}
             className="w-full"
-            onMouseEnter={plugin.current.stop}
-            onMouseLeave={plugin.current.reset}
             opts={{
               loop: true,
               direction: 'rtl',
