@@ -174,7 +174,6 @@ export default function ReportsPage() {
     
     const totalSalesValue = filteredSales.reduce((acc, sale) => acc + (sale.total || 0), 0);
     const totalProfit = filteredSales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
-    const profitMargin = totalSalesValue > 0 ? (totalProfit / totalSalesValue) * 100 : 0;
 
     if (!isClient) {
         return (
@@ -231,7 +230,7 @@ export default function ReportsPage() {
     return (
         <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-3">
-                <Card className="md:col-span-1">
+                <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">إجمالي قيمة المبيعات</CardTitle>
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -240,7 +239,7 @@ export default function ReportsPage() {
                         <div className="text-2xl font-bold font-mono">{totalSalesValue.toLocaleString()}</div>
                     </CardContent>
                 </Card>
-                <Card className="md:col-span-1">
+                <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">صافي الربح</CardTitle>
                         <TrendingUp className="h-4 w-4 text-green-600" />
@@ -249,9 +248,7 @@ export default function ReportsPage() {
                         <div className="text-2xl font-bold text-green-600 font-mono">{totalProfit.toLocaleString()}</div>
                     </CardContent>
                 </Card>
-                <div className="md:col-span-1">
-                    <AdCarousel page="reports" />
-                </div>
+                <AdCarousel page="reports" />
             </div>
 
             <Card>
