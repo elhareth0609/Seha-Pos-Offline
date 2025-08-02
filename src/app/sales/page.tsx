@@ -51,7 +51,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput } from "@/lib/types"
-import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, ArrowLeft, ArrowRight, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace } from "lucide-react"
+import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, ArrowLeft, ArrowRight, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -64,6 +64,8 @@ import { buttonVariants } from "@/components/ui/button"
 import { calculateDose, type DoseCalculationInput } from "@/ai/flows/dose-calculator-flow"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useOnlineStatus } from "@/hooks/use-online-status"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 const printElement = (element: HTMLElement, title: string = 'Print') => {
   const printWindow = window.open('', '_blank');
@@ -335,8 +337,12 @@ export default function SalesPage() {
   const [isCheckoutOpen, setIsCheckoutOpen] = React.useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = React.useState(false);
   const [saleToPrint, setSaleToPrint] = React.useState<Sale | null>(null);
-  const [discount, setDiscount] = React.useState(0);
-  const [discountInput, setDiscountInput] = React.useState("0");
+  
+  const [discountType, setDiscountType] = React.useState<'fixed' | 'percentage'>('fixed');
+  const [discountValue, setDiscountValue] = React.useState("0");
+  const [paymentMethod, setPaymentMethod] = React.useState<'cash' | 'card'>('cash');
+
+
   const [isDosingAssistantOpen, setIsDosingAssistantOpen] = React.useState(false);
 
   const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
@@ -486,13 +492,6 @@ export default function SalesPage() {
         : item
     ));
   };
-  
-  const handleDiscountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setDiscountInput(value);
-    const numericValue = parseFloat(value);
-    setDiscount(isNaN(numericValue) || numericValue < 0 ? 0 : numericValue);
-  }
 
   const subtotal = cart.reduce((total, item) => {
       const itemTotal = item.price * item.quantity;
@@ -503,8 +502,19 @@ export default function SalesPage() {
       const itemProfit = (item.price - item.purchasePrice) * item.quantity;
       return item.isReturn ? acc - itemProfit : acc + itemProfit;
   }, 0);
+  
+  const discountAmount = React.useMemo(() => {
+    const value = parseFloat(discountValue);
+    if (isNaN(value) || value < 0) return 0;
+    if (discountType === 'percentage') {
+        return (subtotal * value) / 100;
+    }
+    return value;
+  }, [discountValue, discountType, subtotal]);
 
-  const finalTotal = subtotal - discount;
+  const finalTotal = subtotal - discountAmount;
+  const finalProfit = totalProfit - discountAmount;
+
 
   const handleCheckout = () => {
     if (cart.length === 0) {
@@ -527,11 +537,12 @@ export default function SalesPage() {
 
   const resetSale = () => {
     setCart([]);
-    setDiscount(0);
-    setDiscountInput("0");
+    setDiscountValue("0");
+    setDiscountType("fixed");
     setSearchTerm("");
     setSaleToPrint(null);
     setSelectedPatient(null);
+    setPaymentMethod("cash");
   }
   
   const handleFinalizeSale = async () => {
@@ -546,7 +557,7 @@ export default function SalesPage() {
         items: cart,
         total: finalTotal,
         profit: totalProfit,
-        discount: discount,
+        discount: discountAmount,
         patientId: selectedPatient?.id || null,
         patientName: selectedPatient?.name,
         employeeId: currentUser.id,
@@ -577,8 +588,8 @@ export default function SalesPage() {
         const saleToReview = sortedSales[index];
         const patient = (patients || []).find(p => p.id === saleToReview?.patientId);
         setCart(saleToReview.items);
-        setDiscount(saleToReview.discount || 0);
-        setDiscountInput((saleToReview.discount || 0).toString());
+        setDiscountValue((saleToReview.discount || 0).toString());
+        setDiscountType('fixed');
         setSelectedPatient(patient || null);
         setReviewIndex(index);
         setMode('review');
@@ -642,6 +653,7 @@ export default function SalesPage() {
 
   return (
     <>
+    <TooltipProvider>
       <div className="hidden">
           <InvoiceTemplate ref={printComponentRef} sale={saleToPrint} settings={settings || null} />
       </div>
@@ -786,7 +798,14 @@ export default function SalesPage() {
                                                      <Label htmlFor={`price-${item.medicationId}`} className="text-xs">السعر الإجمالي</Label>
                                                      <div className="relative">
                                                         <Input id={`price-${item.medicationId}`} type="text" value={totalPrice} onChange={(e) => updateTotalPrice(item.medicationId, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={mode !== 'new'} />
-                                                        {isBelowCost && !item.isReturn && (<div className="absolute -top-2 -right-2 text-destructive"><AlertTriangle className="h-4 w-4" /></div>)}
+                                                        {isBelowCost && !item.isReturn && (
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <div className="absolute -top-2 -left-2 text-destructive"><AlertTriangle className="h-4 w-4" /></div>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent><p>السعر أقل من الكلفة!</p></TooltipContent>
+                                                            </Tooltip>
+                                                        )}
                                                      </div>
                                                 </div>
                                             </div>
@@ -879,9 +898,14 @@ export default function SalesPage() {
                                                       min="0" 
                                                       disabled={mode !== 'new'} />
                                                     {isBelowCost && !item.isReturn && (
-                                                      <div className="absolute -top-2 -right-2 text-destructive" title="السعر أقل من الكلفة!">
-                                                        <AlertTriangle className="h-4 w-4" />
-                                                      </div>
+                                                      <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                          <div className="absolute -top-2 -left-2 text-destructive" title="السعر أقل من الكلفة!">
+                                                            <AlertTriangle className="h-4 w-4" />
+                                                          </div>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent><p>السعر أقل من الكلفة!</p></TooltipContent>
+                                                      </Tooltip>
                                                     )}
                                                 </div>
                                             </TableCell>
@@ -956,12 +980,16 @@ export default function SalesPage() {
                           <span className="font-mono">{subtotal.toLocaleString()}</span>
                       </div>
                        <div className="flex justify-between w-full text-md text-green-600">
-                          <span className="flex items-center gap-1"><TrendingUp className="h-4 w-4" /> الربح المتوقع</span>
-                          <span className="font-semibold font-mono">{totalProfit.toLocaleString()}</span>
+                          <span className="flex items-center gap-1"><TrendingUp className="h-4 w-4" /> الربح الصافي</span>
+                          <span className="font-semibold font-mono">{finalProfit.toLocaleString()}</span>
                       </div>
-                      <div className="flex items-center justify-between w-full">
-                          <Label htmlFor="discount" className="text-md shrink-0 me-2">خصم</Label>
-                          <Input id="discount" type="text" value={discountInput} onChange={handleDiscountChange} className="h-9 w-full bg-background ltr:text-left rtl:text-right font-mono" placeholder="0" disabled={mode !== 'new'}/>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="discount" className="text-md shrink-0">خصم</Label>
+                        <Input id="discount" type="text" value={discountValue} onChange={e => setDiscountValue(e.target.value)} className="h-9 w-full bg-background ltr:text-left rtl:text-right font-mono" placeholder="0" disabled={mode !== 'new'}/>
+                        <RadioGroup defaultValue="fixed" value={discountType} onValueChange={(value: any) => setDiscountType(value)} className="flex" disabled={mode !== 'new'}>
+                            <Button type="button" size="sm" variant={discountType === 'fixed' ? 'secondary' : 'ghost'} onClick={() => setDiscountType('fixed')}>IQD</Button>
+                            <Button type="button" size="icon" variant={discountType === 'percentage' ? 'secondary' : 'ghost'} onClick={() => setDiscountType('percentage')} className="h-9 w-9"><Percent className="h-4 w-4" /></Button>
+                        </RadioGroup>
                       </div>
                       <Separator />
                       <div className="flex justify-between w-full text-lg font-semibold">
@@ -1021,10 +1049,21 @@ export default function SalesPage() {
                                           <div className="space-y-2 text-sm font-mono">
                                               {selectedPatient && <div className="flex justify-between"><span>المريض:</span><span>{selectedPatient.name}</span></div>}
                                               <div className="flex justify-between"><span>المجموع الفرعي:</span><span>{subtotal.toLocaleString()}</span></div>
-                                              <div className="flex justify-between"><span>الخصم:</span><span>-{discount.toLocaleString()}</span></div>
-                                               <div className="flex justify-between text-green-600"><span>الربح الصافي:</span><span>{(totalProfit - discount).toLocaleString()}</span></div>
+                                              <div className="flex justify-between"><span>الخصم:</span><span>-{discountAmount.toLocaleString()}</span></div>
+                                               <div className="flex justify-between text-green-600"><span>الربح الصافي:</span><span>{finalProfit.toLocaleString()}</span></div>
                                               <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>{finalTotal.toLocaleString()}</span></div>
                                           </div>
+                                          <Separator />
+                                           <RadioGroup defaultValue="cash" value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)} className="flex gap-4 pt-2">
+                                                <Label htmlFor="payment-cash" className="flex items-center gap-2 cursor-pointer rounded-md border p-3 flex-1 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
+                                                    <RadioGroupItem value="cash" id="payment-cash" />
+                                                    الدفع نقداً
+                                                </Label>
+                                                <Label htmlFor="payment-card" className="flex items-center gap-2 cursor-pointer rounded-md border p-3 flex-1 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
+                                                    <RadioGroupItem value="card" id="payment-card" />
+                                                    بطاقة إلكترونية
+                                                </Label>
+                                            </RadioGroup>
                                       </div>
                                       <DialogFooter>
                                           <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
@@ -1125,6 +1164,7 @@ export default function SalesPage() {
             </DialogContent>
         </Dialog>
     </div>
+    </TooltipProvider>
     </>
   )
 }

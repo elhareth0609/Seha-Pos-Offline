@@ -222,6 +222,13 @@ export default function PurchasesPage() {
     if (imageFile) {
         imageUrl = await fileToDataUri(imageFile);
     }
+
+    let expDate = purchaseExpirationDate;
+    if (!expDate) {
+        const futureDate = new Date();
+        futureDate.setFullYear(futureDate.getFullYear() + 2);
+        expDate = futureDate.toISOString().split('T')[0];
+    }
     
     const itemTotal = purchasePrice * quantity;
 
@@ -234,7 +241,7 @@ export default function PurchasesPage() {
       existingMed.stock += quantity;
       existingMed.price = sellingPrice;
       existingMed.purchasePrice = purchasePrice;
-      existingMed.expirationDate = purchaseExpirationDate;
+      existingMed.expirationDate = expDate;
       existingMed.name = purchaseMedicationName;
       existingMed.scientificNames = scientificNamesArray;
       existingMed.dosage = dosage;
@@ -259,7 +266,7 @@ export default function PurchasesPage() {
           reorderPoint: 20, // default
           price: sellingPrice,
           purchasePrice: purchasePrice,
-          expirationDate: purchaseExpirationDate,
+          expirationDate: expDate,
           dosage: dosage,
           dosageForm: dosageForm,
       };
@@ -434,7 +441,7 @@ export default function PurchasesPage() {
   
   return (
      <Tabs defaultValue="new-purchase" className="w-full">
-      <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-20 md:h-10">
+      <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto md:h-10">
         <TabsTrigger value="new-purchase">استلام بضاعة</TabsTrigger>
         <TabsTrigger value="purchase-history">سجل المشتريات</TabsTrigger>
         <TabsTrigger value="new-return">إرجاع للمورد</TabsTrigger>
@@ -545,8 +552,8 @@ export default function PurchasesPage() {
                             <Input id="sellingPricePerSaleUnit" type="number" required value={purchaseSellingPrice} onChange={e => setPurchaseSellingPrice(e.target.value)} />
                         </div>
                         <div className="flex flex-col gap-2">
-                            <Label htmlFor="expirationDate">تاريخ الانتهاء</Label>
-                            <Input id="expirationDate" type="date" required value={purchaseExpirationDate} onChange={e => setPurchaseExpirationDate(e.target.value)} />
+                            <Label htmlFor="expirationDate">تاريخ الانتهاء (اختياري)</Label>
+                            <Input id="expirationDate" type="date" value={purchaseExpirationDate} onChange={e => setPurchaseExpirationDate(e.target.value)} />
                         </div>
                         
                         <div className="md:col-span-3 flex flex-col gap-2">
