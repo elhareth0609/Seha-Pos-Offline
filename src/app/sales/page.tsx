@@ -980,7 +980,10 @@ export default function SalesPage() {
                           <span>المجموع الفرعي</span>
                           <span className="font-mono">{subtotal.toLocaleString()}</span>
                       </div>
-                       <div className="flex justify-between w-full text-md text-green-600">
+                       <div className={cn(
+                           "flex justify-between w-full text-md",
+                           finalProfit >= 0 ? "text-green-600" : "text-destructive"
+                        )}>
                           <span className="flex items-center gap-1"><TrendingUp className="h-4 w-4" /> الربح الصافي</span>
                           <span className="font-semibold font-mono">{finalProfit.toLocaleString()}</span>
                       </div>
@@ -1051,7 +1054,10 @@ export default function SalesPage() {
                                               {selectedPatient && <div className="flex justify-between"><span>المريض:</span><span>{selectedPatient.name}</span></div>}
                                               <div className="flex justify-between"><span>المجموع الفرعي:</span><span>{subtotal.toLocaleString()}</span></div>
                                               <div className="flex justify-between"><span>الخصم:</span><span>-{discountAmount.toLocaleString()}</span></div>
-                                               <div className="flex justify-between text-green-600"><span>الربح الصافي:</span><span>{finalProfit.toLocaleString()}</span></div>
+                                               <div className={cn("flex justify-between", finalProfit >= 0 ? "text-green-600" : "text-destructive")}>
+                                                   <span>الربح الصافي:</span>
+                                                   <span>{finalProfit.toLocaleString()}</span>
+                                               </div>
                                               <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>{finalTotal.toLocaleString()}</span></div>
                                           </div>
                                           <Separator />
