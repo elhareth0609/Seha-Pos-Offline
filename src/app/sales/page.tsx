@@ -393,23 +393,6 @@ export default function SalesPage() {
     setSuggestions([])
   }, [mode])
   
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-
-    if (value.length > 0) {
-        const lowercasedFilter = value.toLowerCase().trim();
-        const filtered = (allInventory || []).filter((item) =>
-            (item.name && item.name.toLowerCase().startsWith(lowercasedFilter)) ||
-            (item.id && item.id.toLowerCase().includes(lowercasedFilter)) ||
-            (item.scientificNames && item.scientificNames.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
-        );
-        setSuggestions(filtered.slice(0, 5));
-    } else {
-        setSuggestions([]);
-    }
-  }
-
   const handleScan = React.useCallback((result: string) => {
     if (mode !== 'new') return;
     const scannedMedication = allInventory.find(med => med.id === result);
@@ -421,6 +404,43 @@ export default function SalesPage() {
     }
     setIsScannerOpen(false);
   }, [addToCart, allInventory, mode, toast]);
+
+
+  // Effect for automatic barcode search
+  React.useEffect(() => {
+    if (mode !== 'new') return;
+
+    const handler = setTimeout(() => {
+        if (searchTerm.length > 5 && suggestions.length === 0) { // Typical barcode length check
+            const lowercasedSearchTerm = searchTerm.toLowerCase();
+            const medicationById = allInventory.find(med => med.id && med.id.toLowerCase() === lowercasedSearchTerm);
+            if (medicationById) {
+                addToCart(medicationById);
+            }
+        }
+    }, 100); // Debounce time in ms
+
+    return () => {
+        clearTimeout(handler);
+    };
+  }, [searchTerm, suggestions, allInventory, addToCart, mode]);
+
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+
+    if (value.length > 0) {
+        const lowercasedFilter = value.toLowerCase().trim();
+        const filtered = (allInventory || []).filter((item) =>
+            (item.name && item.name.toLowerCase().startsWith(lowercasedFilter)) ||
+            (item.scientificNames && item.scientificNames.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
+        );
+        setSuggestions(filtered.slice(0, 5));
+    } else {
+        setSuggestions([]);
+    }
+  }
 
   const handleSearchKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
     if (mode !== 'new') return;
@@ -898,7 +918,7 @@ export default function SalesPage() {
                                             <TableCell>
                                                 <div className="relative">
                                                     <Input 
-                                                      type="number"
+                                                      type="text"
                                                       value={item.price * item.quantity}
                                                       onChange={(e) => updateTotalPrice(item.medicationId, e.target.value)} 
                                                       className={cn("w-24 h-9 text-center font-mono", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )}
