@@ -9,8 +9,6 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 import { Skeleton } from './skeleton';
@@ -67,12 +65,6 @@ export default function AdCarousel({ page }: AdCarouselProps) {
                     </CarouselItem>
                 ))}
             </CarouselContent>
-            {filteredAds.length > 1 && (
-              <>
-                <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2" />
-                <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2" />
-              </>
-            )}
         </Carousel>
     );
 }
