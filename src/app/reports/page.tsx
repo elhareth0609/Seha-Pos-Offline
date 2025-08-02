@@ -230,13 +230,8 @@ export default function ReportsPage() {
 
     return (
         <div className="space-y-6">
-            <AdCarousel page="reports" />
-            <div className="hidden">
-                <InvoiceTemplate ref={printComponentRef} sale={selectedSale} settings={settings} />
-            </div>
-
-             <div className="grid gap-4 md:grid-cols-3">
-                <Card>
+            <div className="grid gap-4 md:grid-cols-3">
+                <Card className="md:col-span-1">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">إجمالي قيمة المبيعات</CardTitle>
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -245,7 +240,7 @@ export default function ReportsPage() {
                         <div className="text-2xl font-bold font-mono">{totalSalesValue.toLocaleString()}</div>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="md:col-span-1">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">صافي الربح</CardTitle>
                         <TrendingUp className="h-4 w-4 text-green-600" />
@@ -254,15 +249,9 @@ export default function ReportsPage() {
                         <div className="text-2xl font-bold text-green-600 font-mono">{totalProfit.toLocaleString()}</div>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">هامش الربح</CardTitle>
-                        <PieChart className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold font-mono">{profitMargin.toFixed(2)}%</div>
-                    </CardContent>
-                </Card>
+                <div className="md:col-span-1">
+                    <AdCarousel page="reports" />
+                </div>
             </div>
 
             <Card>
@@ -381,6 +370,9 @@ export default function ReportsPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="max-h-[60vh] overflow-y-auto border rounded-md bg-gray-50">
+                        <div className="hidden">
+                            <InvoiceTemplate ref={printComponentRef} sale={selectedSale} settings={settings} />
+                        </div>
                         <InvoiceTemplate sale={selectedSale} settings={settings} ref={null} />
                     </div>
                     <DialogFooter>

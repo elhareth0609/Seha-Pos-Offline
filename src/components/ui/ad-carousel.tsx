@@ -25,7 +25,7 @@ export default function AdCarousel({ page }: AdCarouselProps) {
     );
 
     const filteredAds = React.useMemo(() => {
-        return (advertisements || []).filter(ad => ad.showOn && ad.showOn[page] && ad.isActive);
+        return (advertisements || []).filter(ad => ad.showOn && ad.showOn[page]);
     }, [advertisements, page]);
 
     if (loading) {

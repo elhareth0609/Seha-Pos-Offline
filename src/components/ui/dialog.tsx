@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -73,8 +74,7 @@ const DialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col-reverse md:flex-row-reverse md:justify-start sm:flex-row md:space-x-2 sm:space-x-2",
-      // "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 sm:space-x-reverse",
       className
     )}
     {...props}
