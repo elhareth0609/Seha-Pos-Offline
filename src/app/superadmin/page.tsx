@@ -19,9 +19,10 @@ import type { User, Advertisement } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, Building, ImagePlus, Image as ImageIcon } from 'lucide-react';
+import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, Building, ImagePlus, Image as ImageIcon, LayoutDashboard, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const addAdminSchema = z.object({
     name: z.string().min(3, { message: "الاسم مطلوب" }),
@@ -99,7 +100,7 @@ function AdminRow({ admin, onDelete, onToggleStatus }: { admin: User, onDelete: 
 }
 
 export default function SuperAdminPage() {
-    const { currentUser, users, createPharmacyAdmin, deleteUser, toggleUserStatus, logout, advertisements, addAdvertisement, deleteAdvertisement } = useAuth();
+    const { currentUser, users, createPharmacyAdmin, deleteUser, toggleUserStatus, logout, advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const [isAddAdminOpen, setIsAddAdminOpen] = React.useState(false);
@@ -163,6 +164,15 @@ export default function SuperAdminPage() {
         setAdImageFile(null);
         setAdImagePreview(null);
     };
+
+    const handleShowOnPageChange = (adId: string, page: keyof Advertisement['showOn'], checked: boolean) => {
+        const ad = advertisements.find(a => a.id === adId);
+        if (ad) {
+            const newShowOn = { ...ad.showOn, [page]: checked };
+            updateAdvertisement(adId, { showOn: newShowOn });
+        }
+    }
+
 
     const pharmacyAdmins = users.filter(u => u.role === 'Admin');
     const totalEmployees = users.filter(u => u.role === 'Employee').length;
@@ -278,7 +288,7 @@ export default function SuperAdminPage() {
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
                             <CardTitle>إدارة الإعلانات</CardTitle>
-                            <CardDescription>إضافة وحذف الصور الإعلانية.</CardDescription>
+                            <CardDescription>إضافة وحذف وتخصيص الإعلانات.</CardDescription>
                         </div>
                         <Dialog open={isAddAdOpen} onOpenChange={setIsAddAdOpen}>
                             <DialogTrigger asChild>
@@ -311,43 +321,54 @@ export default function SuperAdminPage() {
                         </Dialog>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>الصورة</TableHead>
-                                    <TableHead>العنوان</TableHead>
-                                    <TableHead></TableHead>
-                                </TableRow>
-                            </TableHeader>
-                             <TableBody>
-                                {advertisements.map(ad => (
-                                    <TableRow key={ad.id}>
-                                        <TableCell>
+                        <div className="space-y-4">
+                            {advertisements.map(ad => (
+                                <div key={ad.id} className="p-3 border rounded-md flex flex-col gap-4">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-center gap-3">
                                             <Image src={ad.imageUrl} alt={ad.title} width={64} height={36} className="rounded-sm object-cover" />
-                                        </TableCell>
-                                        <TableCell>{ad.title}</TableCell>
-                                        <TableCell className="text-left">
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>هل أنت متأكد من حذف هذا الإعلان؟</AlertDialogTitle>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => deleteAdvertisement(ad.id)} className="bg-destructive hover:bg-destructive/90">حذف</AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                            <div>
+                                                <p className="font-semibold">{ad.title}</p>
+                                                <p className="text-xs text-muted-foreground">{ad.id}</p>
+                                            </div>
+                                        </div>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>هل أنت متأكد من حذف هذا الإعلان؟</AlertDialogTitle>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => deleteAdvertisement(ad.id)} className="bg-destructive hover:bg-destructive/90">حذف</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-medium">عرض في الصفحات التالية:</Label>
+                                        <div className="grid grid-cols-3 gap-2 text-xs">
+                                            <div className="flex items-center gap-2">
+                                                <Checkbox id={`dashboard-${ad.id}`} checked={ad.showOn?.dashboard} onCheckedChange={(c) => handleShowOnPageChange(ad.id, 'dashboard', !!c)} />
+                                                <Label htmlFor={`dashboard-${ad.id}`} className="flex items-center gap-1 cursor-pointer"><LayoutDashboard className="h-3 w-3"/> تحكم</Label>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Checkbox id={`sales-${ad.id}`} checked={ad.showOn?.sales} onCheckedChange={(c) => handleShowOnPageChange(ad.id, 'sales', !!c)} />
+                                                <Label htmlFor={`sales-${ad.id}`} className="flex items-center gap-1 cursor-pointer"><ShoppingCart className="h-3 w-3"/> مبيعات</Label>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Checkbox id={`reports-${ad.id}`} checked={ad.showOn?.reports} onCheckedChange={(c) => handleShowOnPageChange(ad.id, 'reports', !!c)} />
+                                                <Label htmlFor={`reports-${ad.id}`} className="flex items-center gap-1 cursor-pointer"><FileText className="h-3 w-3"/> تقارير</Label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </CardContent>
                 </Card>
             </div>

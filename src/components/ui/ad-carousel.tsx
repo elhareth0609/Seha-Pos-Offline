@@ -14,19 +14,28 @@ import {
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 import { Skeleton } from './skeleton';
+import type { Advertisement } from '@/lib/types';
 
-export default function AdCarousel() {
+interface AdCarouselProps {
+    page: keyof Advertisement['showOn'];
+}
+
+export default function AdCarousel({ page }: AdCarouselProps) {
     const { advertisements, loading } = useAuth();
     const plugin = React.useRef(
         Autoplay({ delay: 2000, stopOnInteraction: false, stopOnMouseEnter: false })
     );
 
+    const filteredAds = React.useMemo(() => {
+        return (advertisements || []).filter(ad => ad.showOn && ad.showOn[page] && ad.isActive);
+    }, [advertisements, page]);
+
     if (loading) {
         return <Skeleton className="w-full h-28 rounded-lg" />;
     }
 
-    if (!advertisements || advertisements.length === 0) {
-        return null; // Don't render anything if there are no ads
+    if (!filteredAds || filteredAds.length === 0) {
+        return null; // Don't render anything if there are no ads for this page
     }
 
     return (
@@ -39,7 +48,7 @@ export default function AdCarousel() {
             }}
         >
             <CarouselContent>
-                {advertisements.map((ad) => (
+                {filteredAds.map((ad) => (
                     <CarouselItem key={ad.id}>
                         <Card className="overflow-hidden">
                             <CardContent className="p-0 flex items-center justify-center aspect-video sm:aspect-[4/1] relative">
@@ -58,7 +67,7 @@ export default function AdCarousel() {
                     </CarouselItem>
                 ))}
             </CarouselContent>
-            {advertisements.length > 1 && (
+            {filteredAds.length > 1 && (
               <>
                 <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2" />
                 <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2" />

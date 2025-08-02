@@ -230,7 +230,7 @@ export default function ReportsPage() {
 
     return (
         <div className="space-y-6">
-            <AdCarousel />
+            <AdCarousel page="reports" />
             <div className="hidden">
                 <InvoiceTemplate ref={printComponentRef} sale={selectedSale} settings={settings} />
             </div>

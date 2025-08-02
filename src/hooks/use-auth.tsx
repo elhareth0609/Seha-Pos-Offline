@@ -46,6 +46,7 @@ interface AuthContextType {
   // Ad management
   advertisements: Advertisement[];
   addAdvertisement: (title: string, imageUrl: string) => Promise<void>;
+  updateAdvertisement: (adId: string, data: Partial<Omit<Advertisement, 'id' | 'createdAt'>>) => Promise<void>;
   deleteAdvertisement: (adId: string) => Promise<void>;
 
   scopedData: ScopedDataContextType;
@@ -507,11 +508,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             title,
             imageUrl,
             isActive: true,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            showOn: {
+                dashboard: true,
+                sales: true,
+                reports: true,
+            }
         };
         await setDocumentInCollection<Advertisement>('advertisements', adId, newAd);
         setAdvertisements(prev => [newAd, ...prev]);
         toast({ title: 'تمت إضافة الإعلان بنجاح' });
+    };
+
+    const updateAdvertisement = async (adId: string, data: Partial<Omit<Advertisement, 'id' | 'createdAt'>>) => {
+        if (!currentUser || currentUser.role !== 'SuperAdmin') {
+            toast({ variant: 'destructive', title: 'غير مصرح به' });
+            return;
+        }
+        const existingAd = advertisements.find(ad => ad.id === adId);
+        if (!existingAd) return;
+
+        const updatedAd = { ...existingAd, ...data };
+        await setDocumentInCollection<Advertisement>('advertisements', adId, updatedAd);
+        setAdvertisements(prev => prev.map(ad => ad.id === adId ? updatedAd : ad));
     };
 
     const deleteAdvertisement = async (adId: string) => {
@@ -533,7 +552,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setupAdmin, login, logout, registerUser, deleteUser, updateUser, 
             updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData,
             getAllPharmacySettings, getPharmacyData,
-            advertisements, addAdvertisement, deleteAdvertisement
+            advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement
         }}>
         {children}
         </AuthContext.Provider>

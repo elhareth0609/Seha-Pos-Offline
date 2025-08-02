@@ -930,21 +930,16 @@ export default function SalesPage() {
 
           <div className="lg:col-span-1">
                <Card className="sticky top-6">
-                  <CardHeader>
-                      <div className="flex justify-between items-center">
-                          <CardTitle>ملخص الفاتورة</CardTitle>
-                      </div>
-                  </CardHeader>
-                  <CardContent className="flex flex-col gap-4">
+                  <CardContent className="flex flex-col gap-4 pt-6">
                       <div className="mb-2">
-                        <AdCarousel />
+                        <AdCarousel page="sales"/>
                       </div>
                        <div className="space-y-2">
-                          <Label>صديق الصيدلية (الزبون)</Label>
                           <Dialog open={isPatientModalOpen} onOpenChange={setIsPatientModalOpen}>
                               <DialogTrigger asChild>
                                   <Button variant="outline" className="w-full justify-start text-left font-normal" disabled={mode !== 'new'}>
-                                      {selectedPatient ? selectedPatient.name : "تحديد صديق الصيدلية"}
+                                      <UserIcon className="me-2 text-muted-foreground" />
+                                      {selectedPatient ? selectedPatient.name : "تحديد صديق الصيدلية (الزبون)"}
                                   </Button>
                               </DialogTrigger>
                               <DialogContent>

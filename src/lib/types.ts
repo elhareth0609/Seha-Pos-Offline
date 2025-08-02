@@ -159,6 +159,11 @@ export type Advertisement = {
     imageUrl: string;
     isActive: boolean;
     createdAt: string;
+    showOn: {
+        dashboard: boolean;
+        sales: boolean;
+        reports: boolean;
+    }
 };
 
 

@@ -184,7 +184,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col gap-6">
-      <AdCarousel />
+      <AdCarousel page="dashboard" />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
