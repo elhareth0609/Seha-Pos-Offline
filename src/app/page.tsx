@@ -20,7 +20,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import type { Medication, Sale, AppSettings } from "@/lib/types";
-import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart } from "lucide-react";
+import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, isWithinInterval, isToday } from 'date-fns';
 import Link from "next/link";
@@ -45,6 +45,10 @@ export default function Dashboard() {
 
   const lowStockItems = inventory.filter(
     (item) => item.stock < item.reorderPoint
+  );
+
+  const reorderPointItems = inventory.filter(
+    (item) => item.stock > 0 && item.stock <= item.reorderPoint
   );
   
   const expirationThreshold = settings.expirationThresholdDays || 90;
@@ -179,7 +183,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">إجمالي الإيرادات (الكلي)</CardTitle>
@@ -216,7 +220,19 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-2xl font-bold font-mono">{lowStockItems.length}</div>
             <p className="text-xs text-muted-foreground">
-              أصناف تحتاج لإعادة طلب
+              أصناف نفدت أو على وشك النفاد
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">تحتاج إعادة طلب</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold font-mono">{reorderPointItems.length}</div>
+            <p className="text-xs text-muted-foreground">
+              أصناف عند نقطة إعادة الطلب
             </p>
           </CardContent>
         </Card>

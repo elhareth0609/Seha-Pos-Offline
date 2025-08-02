@@ -118,17 +118,13 @@ export default function InventoryPage() {
 
   React.useEffect(() => {
     if (isClient) {
-      if (searchTerm) {
-        const lowercasedFilter = searchTerm.toLowerCase().trim();
-        const filtered = sortedInventory.filter((item) =>
-            (item.name || '').toLowerCase().startsWith(lowercasedFilter) ||
-            (item.id && item.id.toLowerCase().includes(lowercasedFilter)) ||
-            (item.scientificNames && item.scientificNames.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
-        );
-        setFilteredInventory(filtered);
-      } else {
-        setFilteredInventory(sortedInventory);
-      }
+      const lowercasedFilter = searchTerm.toLowerCase().trim();
+      const filtered = sortedInventory.filter((item) =>
+          (item.name || '').toLowerCase().startsWith(lowercasedFilter) ||
+          (item.id && item.id.toLowerCase().includes(lowercasedFilter)) ||
+          (item.scientificNames && item.scientificNames.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
+      );
+      setFilteredInventory(filtered);
     }
   }, [searchTerm, sortedInventory, isClient]);
 
@@ -170,6 +166,7 @@ export default function InventoryPage() {
           ...editingMed,
           name: formData.get('name') as string,
           scientificNames: scientificNamesArray,
+          stock: parseInt(formData.get('stock') as string, 10),
           reorderPoint: parseInt(formData.get('reorderPoint') as string, 10),
           price: parseFloat(formData.get('price') as string),
           purchasePrice: parseFloat(formData.get('purchasePrice') as string),
@@ -362,7 +359,7 @@ export default function InventoryPage() {
   
   return (
     <>
-      <div style={{ display: printingMed ? 'block' : 'none' }}>
+      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
         <div ref={printComponentRef}>
            {printingMed && <Barcode value={printingMed.id} />}
         </div>
@@ -493,7 +490,7 @@ export default function InventoryPage() {
                 <DialogHeader>
                     <DialogTitle>تعديل بيانات الدواء</DialogTitle>
                     <DialogDescription>
-                         قم بتحديث تفاصيل الدواء. ملاحظة: لا يمكن تعديل المخزون من هنا.
+                         قم بتحديث تفاصيل الدواء.
                     </DialogDescription>
                 </DialogHeader>
                    {editingMed && (
@@ -522,14 +519,15 @@ export default function InventoryPage() {
                                         </SelectContent>
                                     </Select>
                                 </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="edit-stock">رصيد المخزون</Label>
+                                  <Input id="edit-stock" name="stock" type="number" defaultValue={editingMed.stock} required />
+                                </div>
                                <div className="space-y-2">
                                   <Label htmlFor="edit-reorderPoint">نقطة إعادة الطلب</Label>
                                   <Input id="edit-reorderPoint" name="reorderPoint" type="number" defaultValue={editingMed.reorderPoint} required />
                               </div>
-                              <div className="space-y-2">
-                                  <Label htmlFor="edit-expirationDate">تاريخ الانتهاء</Label>
-                                  <Input id="edit-expirationDate" name="expirationDate" type="date" defaultValue={editingMed.expirationDate} required />
-                              </div>
+                             
                           </div>
                            <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
@@ -541,6 +539,10 @@ export default function InventoryPage() {
                                   <Input id="edit-price" name="price" type="number" step="1" defaultValue={editingMed.price} required />
                               </div>
                           </div>
+                          <div className="space-y-2">
+                                  <Label htmlFor="edit-expirationDate">تاريخ الانتهاء</Label>
+                                  <Input id="edit-expirationDate" name="expirationDate" type="date" defaultValue={editingMed.expirationDate} required />
+                              </div>
                           <DialogFooter>
                               <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
                               <Button type="submit" variant="success">حفظ التغييرات</Button>
@@ -553,5 +555,3 @@ export default function InventoryPage() {
     </>
   )
 }
-
-    

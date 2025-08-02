@@ -16,10 +16,17 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
 
     React.useEffect(() => {
         if (!loading && isAuthenticated) {
-            if (currentUser?.role === 'SuperAdmin' && !pathname?.startsWith('/superadmin')) {
-                router.replace('/superadmin');
-            } else if (currentUser?.role !== 'SuperAdmin' && pathname?.startsWith('/superadmin')) {
-                router.replace('/');
+            if (currentUser?.role === 'SuperAdmin') {
+                if (!pathname?.startsWith('/superadmin')) {
+                    router.replace('/superadmin');
+                }
+            } else {
+                 if (pathname?.startsWith('/superadmin')) {
+                    router.replace('/sales');
+                }
+                if (pathname === '/') {
+                    router.replace('/sales');
+                }
             }
         }
     }, [loading, isAuthenticated, currentUser, pathname, router]);
@@ -49,7 +56,7 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
         );
     }
     
-    if (currentUser?.role !== 'SuperAdmin' && pathname?.startsWith('/superadmin')) {
+    if (currentUser?.role !== 'SuperAdmin' && (pathname?.startsWith('/superadmin') || pathname === '/')) {
          return (
              <div className="flex items-center justify-center min-h-screen bg-muted/40">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
