@@ -57,9 +57,6 @@ export default function AdCarousel({ page }: AdCarouselProps) {
                                     objectFit="cover"
                                     priority
                                 />
-                                <div className="absolute inset-0 bg-black/30 flex items-end p-4">
-                                    <h3 className="text-white text-lg font-bold">{ad.title}</h3>
-                                </div>
                             </CardContent>
                         </Card>
                     </CarouselItem>
