@@ -163,6 +163,7 @@ export type Advertisement = {
         dashboard: boolean;
         sales: boolean;
         reports: boolean;
+        inventory: boolean;
     }
 };
 

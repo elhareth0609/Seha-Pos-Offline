@@ -515,6 +515,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 dashboard: true,
                 sales: true,
                 reports: true,
+                inventory: false,
             }
         };
         await setDocumentInCollection<Advertisement>('advertisements', adId, newAd);

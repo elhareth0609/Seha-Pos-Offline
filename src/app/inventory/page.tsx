@@ -60,6 +60,7 @@ import Barcode from '@/components/ui/barcode';
 import { buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import AdCarousel from "@/components/ui/ad-carousel";
 
 
 const dosageForms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion"];
@@ -364,127 +365,135 @@ export default function InventoryPage() {
            {printingMed && <Barcode value={printingMed.id} />}
         </div>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>إدارة المخزون</CardTitle>
-          <CardDescription>
-            إدارة وتتبع مخزون الأدوية الخاص بك.
-          </CardDescription>
-          <div className="pt-4 flex gap-2">
-            <Input 
-              placeholder="ابحث بالاسم، الاسم العلمي أو الباركود..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
-            />
-               <Button variant="outline" onClick={handleImportClick} disabled={isImporting}>
-                  <Upload className="me-2 h-4 w-4" />
-                  استيراد Excel
-              </Button>
-              <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  className="hidden"
-                  accept=".xlsx, .xls"
-              />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>الباركود</TableHead>
-                <TableHead>الاسم</TableHead>
-                <TableHead className="text-center">المخزون</TableHead>
-                <TableHead className="text-center">نقطة إعادة الطلب</TableHead>
-                <TableHead>تاريخ الانتهاء</TableHead>
-                <TableHead className="text-center">سعر البيع</TableHead>
-                <TableHead>الحالة</TableHead>
-                <TableHead><span className="sr-only">الإجراءات</span></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredInventory.length > 0 ? filteredInventory.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-mono text-xs">{item.id}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                        {item.imageUrl ? (
-                            <Image src={item.imageUrl} alt={item.name} width={40} height={40} className="rounded-sm object-cover h-10 w-10" />
-                        ) : (
-                            <div className="h-10 w-10 flex items-center justify-center rounded-sm bg-muted text-muted-foreground">
-                                <Package className="h-5 w-5" />
+       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>إدارة المخزون</CardTitle>
+              <CardDescription>
+                إدارة وتتبع مخزون الأدوية الخاص بك.
+              </CardDescription>
+              <div className="pt-4 flex gap-2">
+                <Input 
+                  placeholder="ابحث بالاسم، الاسم العلمي أو الباركود..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-sm"
+                />
+                   <Button variant="outline" onClick={handleImportClick} disabled={isImporting}>
+                      <Upload className="me-2 h-4 w-4" />
+                      استيراد Excel
+                  </Button>
+                  <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      className="hidden"
+                      accept=".xlsx, .xls"
+                  />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>الباركود</TableHead>
+                    <TableHead>الاسم</TableHead>
+                    <TableHead className="text-center">المخزون</TableHead>
+                    <TableHead className="text-center">نقطة إعادة الطلب</TableHead>
+                    <TableHead>تاريخ الانتهاء</TableHead>
+                    <TableHead className="text-center">سعر البيع</TableHead>
+                    <TableHead>الحالة</TableHead>
+                    <TableHead><span className="sr-only">الإجراءات</span></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredInventory.length > 0 ? filteredInventory.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-mono text-xs">{item.id}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                            {item.imageUrl ? (
+                                <Image src={item.imageUrl} alt={item.name} width={40} height={40} className="rounded-sm object-cover h-10 w-10" />
+                            ) : (
+                                <div className="h-10 w-10 flex items-center justify-center rounded-sm bg-muted text-muted-foreground">
+                                    <Package className="h-5 w-5" />
+                                </div>
+                            )}
+                            <div>
+                              <span className="font-medium">{item.name}</span>
+                              <div className="text-xs text-muted-foreground">{item.scientificNames?.join(', ')}</div>
                             </div>
-                        )}
-                        <div>
-                          <span className="font-medium">{item.name}</span>
-                          <div className="text-xs text-muted-foreground">{item.scientificNames?.join(', ')}</div>
                         </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center font-mono">{item.stock}</TableCell>
-                  <TableCell className="text-center font-mono">{item.reorderPoint}</TableCell>
-                  <TableCell className="font-mono">{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
-                  <TableCell className="text-center font-mono">{item.price.toLocaleString()}</TableCell>
-                  <TableCell>{getStockStatus(item.stock, item.reorderPoint)}</TableCell>
-                  <TableCell>
-                      <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                              <Button aria-haspopup="true" size="icon" variant="ghost">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                  <span className="sr-only">Toggle menu</span>
-                              </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
-                              <DropdownMenuItem onSelect={() => openEditModal(item)}>
-                                  <Pencil className="me-2 h-4 w-4" />
-                                  تعديل
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onSelect={() => triggerPrint(item)}>
-                                  <Printer className="me-2 h-4 w-4" />
-                                  طباعة الباركود
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                               <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                      <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive">
-                                        <Trash2 className="me-2 h-4 w-4" />
-                                        حذف
-                                      </button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                          <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                              سيتم نقل هذا الدواء إلى سلة المحذوفات. يمكنك استعادته لاحقًا.
-                                          </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                          <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                          <AlertDialogAction onClick={() => handleDelete(item)} className={buttonVariants({ variant: "destructive" })}>
-                                              نعم، قم بالحذف
-                                          </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                  </AlertDialogContent>
-                              </AlertDialog>
-                          </DropdownMenuContent>
-                      </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              )) : (
-                <TableRow>
-                    <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
-                        لا يوجد مخزون لعرضه.
-                    </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-          </div>
-        </CardContent>
+                      </TableCell>
+                      <TableCell className="text-center font-mono">{item.stock}</TableCell>
+                      <TableCell className="text-center font-mono">{item.reorderPoint}</TableCell>
+                      <TableCell className="font-mono">{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
+                      <TableCell className="text-center font-mono">{item.price.toLocaleString()}</TableCell>
+                      <TableCell>{getStockStatus(item.stock, item.reorderPoint)}</TableCell>
+                      <TableCell>
+                          <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                  <Button aria-haspopup="true" size="icon" variant="ghost">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                      <span className="sr-only">Toggle menu</span>
+                                  </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
+                                  <DropdownMenuItem onSelect={() => openEditModal(item)}>
+                                      <Pencil className="me-2 h-4 w-4" />
+                                      تعديل
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onSelect={() => triggerPrint(item)}>
+                                      <Printer className="me-2 h-4 w-4" />
+                                      طباعة الباركود
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                   <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                          <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive">
+                                            <Trash2 className="me-2 h-4 w-4" />
+                                            حذف
+                                          </button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                              <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                  سيتم نقل هذا الدواء إلى سلة المحذوفات. يمكنك استعادته لاحقًا.
+                                              </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                              <AlertDialogAction onClick={() => handleDelete(item)} className={buttonVariants({ variant: "destructive" })}>
+                                                  نعم، قم بالحذف
+                                              </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                  </AlertDialog>
+                              </DropdownMenuContent>
+                          </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  )) : (
+                    <TableRow>
+                        <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
+                            لا يوجد مخزون لعرضه.
+                        </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <div className="lg:col-span-1">
+            <AdCarousel page="inventory"/>
+        </div>
+      </div>
         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
@@ -551,7 +560,6 @@ export default function InventoryPage() {
                   )}
             </DialogContent>
         </Dialog>
-      </Card>
     </>
   )
 }

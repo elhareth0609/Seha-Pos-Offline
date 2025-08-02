@@ -19,7 +19,7 @@ import type { User, Advertisement } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, Building, ImagePlus, Image as ImageIcon, LayoutDashboard, ShoppingCart,LockKeyhole, LockOpen, LockIcon } from 'lucide-react';
+import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, Building, ImagePlus, Image as ImageIcon, LayoutDashboard, ShoppingCart,LockKeyhole, LockOpen, LockIcon, Boxes } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -351,7 +351,7 @@ export default function SuperAdminPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm font-medium">عرض في الصفحات التالية:</Label>
-                                        <div className="grid grid-cols-3 gap-2 text-xs">
+                                        <div className="grid grid-cols-2 gap-2 text-xs">
                                             <div className="flex items-center gap-2">
                                                 <Checkbox id={`dashboard-${ad.id}`} checked={ad.showOn?.dashboard} onCheckedChange={(c) => handleShowOnPageChange(ad.id, 'dashboard', !!c)} />
                                                 <Label htmlFor={`dashboard-${ad.id}`} className="flex items-center gap-1 cursor-pointer"><LayoutDashboard className="h-3 w-3"/> تحكم</Label>
@@ -363,6 +363,10 @@ export default function SuperAdminPage() {
                                             <div className="flex items-center gap-2">
                                                 <Checkbox id={`reports-${ad.id}`} checked={ad.showOn?.reports} onCheckedChange={(c) => handleShowOnPageChange(ad.id, 'reports', !!c)} />
                                                 <Label htmlFor={`reports-${ad.id}`} className="flex items-center gap-1 cursor-pointer"><FileText className="h-3 w-3"/> تقارير</Label>
+                                            </div>
+                                             <div className="flex items-center gap-2">
+                                                <Checkbox id={`inventory-${ad.id}`} checked={ad.showOn?.inventory} onCheckedChange={(c) => handleShowOnPageChange(ad.id, 'inventory', !!c)} />
+                                                <Label htmlFor={`inventory-${ad.id}`} className="flex items-center gap-1 cursor-pointer"><Boxes className="h-3 w-3"/> مخزون</Label>
                                             </div>
                                         </div>
                                     </div>
