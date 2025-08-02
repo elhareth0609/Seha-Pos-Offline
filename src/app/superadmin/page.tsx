@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import type { User, Advertisement } from '@/lib/types';
@@ -289,11 +290,11 @@ export default function SuperAdminPage() {
                                 </DialogHeader>
                                 <div className="space-y-4 py-2">
                                     <div className="space-y-2">
-                                        <FormLabel>عنوان الإعلان</FormLabel>
+                                        <Label>عنوان الإعلان</Label>
                                         <Input value={adTitle} onChange={(e) => setAdTitle(e.target.value)} placeholder="مثال: عرض خاص" />
                                     </div>
                                     <div className="space-y-2">
-                                        <FormLabel>صورة الإعلان</FormLabel>
+                                        <Label>صورة الإعلان</Label>
                                         <Input type="file" accept="image/*" onChange={handleAdImageChange} />
                                     </div>
                                     {adImagePreview && (
