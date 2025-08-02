@@ -656,61 +656,56 @@ export default function SalesPage() {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:h-[calc(100vh-6rem)]">
           <div className="lg:col-span-2 flex flex-col gap-4">
-              <Card>
-                  <CardHeader className="pb-4">
-                      <CardTitle className="text-xl">اختيار المنتج</CardTitle>
-                      <div className="flex gap-2 pt-2">
-                          <div className="relative flex-1">
-                              <Input 
-                              placeholder="امسح الباركود أو ابحث بالاسم التجاري أو العلمي..."
-                              value={searchTerm}
-                              onChange={handleSearchChange}
-                              onKeyDown={handleSearchKeyDown}
-                              autoFocus
-                              disabled={mode !== 'new'}
-                              />
-                              {suggestions.length > 0 && mode === 'new' && (
-                                  <Card className="absolute z-50 w-full mt-1 bg-background shadow-lg border">
-                                      <CardContent className="p-0">
-                                          <ul className="divide-y divide-border">
-                                              {suggestions.map(med => (
-                                                  <li key={med.id} className="p-3 hover:bg-accent rounded-md flex justify-between items-center"
-                                                      onMouseDown={(e) => { e.preventDefault(); addToCart(med); }}>
-                                                      <div className="flex items-center gap-3">
-                                                          {med.imageUrl ? (
-                                                              <Image src={med.imageUrl} alt={med.name || ''} width={32} height={32} className="rounded-sm object-cover h-8 w-8" />
-                                                          ) : (
-                                                              <div className="h-8 w-8 flex items-center justify-center rounded-sm bg-muted text-muted-foreground">
-                                                                  <Package className="h-4 w-4" />
-                                                              </div>
-                                                          )}
-                                                          <div>
-                                                            <div className="font-medium">{med.name}</div>
-                                                            <div className="text-xs text-muted-foreground">{med.scientificNames?.join(', ')}</div>
-                                                          </div>
-                                                      </div>
-                                                       <span className="text-sm text-muted-foreground font-mono">{med.price.toLocaleString()}</span>
-                                                  </li>
-                                              ))}
-                                          </ul>
-                                      </CardContent>
-                                  </Card>
-                              )}
-                          </div>
-                          <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
-                              <DialogTrigger asChild>
-                                  <Button variant="outline" className="shrink-0" disabled={mode !== 'new'}><ScanLine className="me-2"/> مسح</Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                  <DialogHeader>
-                                  <DialogTitle>مسح باركود المنتج</DialogTitle>
-                                  </DialogHeader>
-                                  <BarcodeScanner onScan={handleScan} onOpenChange={setIsScannerOpen}/>
-                              </DialogContent>
-                          </Dialog>
-                      </div>
-                  </CardHeader>
-              </Card>
+               <div className="flex gap-2">
+                    <div className="relative flex-1">
+                        <Input 
+                        placeholder="امسح الباركود أو ابحث بالاسم التجاري أو العلمي..."
+                        value={searchTerm}
+                        onChange={handleSearchChange}
+                        onKeyDown={handleSearchKeyDown}
+                        autoFocus
+                        disabled={mode !== 'new'}
+                        />
+                        {suggestions.length > 0 && mode === 'new' && (
+                            <Card className="absolute z-50 w-full mt-1 bg-background shadow-lg border">
+                                <CardContent className="p-0">
+                                    <ul className="divide-y divide-border">
+                                        {suggestions.map(med => (
+                                            <li key={med.id} className="p-3 hover:bg-accent rounded-md flex justify-between items-center"
+                                                onMouseDown={(e) => { e.preventDefault(); addToCart(med); }}>
+                                                <div className="flex items-center gap-3">
+                                                    {med.imageUrl ? (
+                                                        <Image src={med.imageUrl} alt={med.name || ''} width={32} height={32} className="rounded-sm object-cover h-8 w-8" />
+                                                    ) : (
+                                                        <div className="h-8 w-8 flex items-center justify-center rounded-sm bg-muted text-muted-foreground">
+                                                            <Package className="h-4 w-4" />
+                                                        </div>
+                                                    )}
+                                                    <div>
+                                                      <div className="font-medium">{med.name}</div>
+                                                      <div className="text-xs text-muted-foreground">{med.scientificNames?.join(', ')}</div>
+                                                    </div>
+                                                </div>
+                                                 <span className="text-sm text-muted-foreground font-mono">{med.price.toLocaleString()}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                    <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="shrink-0" disabled={mode !== 'new'}><ScanLine className="me-2"/> مسح</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                            <DialogTitle>مسح باركود المنتج</DialogTitle>
+                            </DialogHeader>
+                            <BarcodeScanner onScan={handleScan} onOpenChange={setIsScannerOpen}/>
+                        </DialogContent>
+                    </Dialog>
+              </div>
 
               <Card className="flex-1 flex flex-col">
                    <CardHeader className="py-4">
@@ -1170,3 +1165,5 @@ export default function SalesPage() {
     </>
   )
 }
+
+    
