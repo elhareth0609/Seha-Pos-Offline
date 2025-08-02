@@ -59,7 +59,9 @@ export interface ScopedDataContextType {
     suppliers: [Supplier[], (value: Supplier[] | ((val: Supplier[]) => Supplier[])) => void];
     patients: [Patient[], (value: Patient[] | ((val: Patient[]) => Patient[])) => void];
     trash: [TrashItem[], (value: TrashItem[] | ((val: TrashItem[]) => TrashItem[])) => void];
-    payments: [SupplierPayment[], (value: SupplierPayment[] | ((val: SupplierPayment[]) => Supplier[])) => void];
+    // payments: [SupplierPayment[], (value: SupplierPayment[] | ((val: SupplierPayment[]) => Supplier[])) => void];
+    payments: [SupplierPayment[], (value: SupplierPayment[] | ((val: SupplierPayment[]) => SupplierPayment[])) => void];
+
     purchaseOrders: [PurchaseOrder[], (value: PurchaseOrder[] | ((val: PurchaseOrder[]) => PurchaseOrder[])) => void];
     supplierReturns: [ReturnOrder[], (value: ReturnOrder[] | ((val: ReturnOrder[]) => ReturnOrder[])) => void];
     timeLogs: [TimeLog[], (value: TimeLog[] | ((val: TimeLog[]) => TimeLog[])) => void];

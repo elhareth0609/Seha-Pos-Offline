@@ -124,7 +124,7 @@ export const setDocumentInCollection = async <T,>(
 ): Promise<void> => {
   try {
     const docRef = doc(db, collectionName, documentId);
-    await setDoc(docRef, data, { merge: true });
+    await setDoc(docRef, data as any, { merge: true });
   } catch (error) {
     console.error(`Error writing to collection "${collectionName}":`, error);
     throw error;
