@@ -102,6 +102,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         return permissions[permissionKey];
     });
   }, [currentUser]);
+  
+  const hasPermission = (href: string) => {
+    return navItems.some(item => item.href === href);
+  }
 
   const handleBackup = async () => {
     if (typeof window === 'undefined') return;
@@ -196,7 +200,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 
   return (
-    <>
+    <TooltipProvider>
       <AlertDialog open={isImportConfirmOpen} onOpenChange={setIsImportConfirmOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
@@ -225,12 +229,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
             </div>
 
-            <div className="flex flex-1 items-center justify-center gap-6">
+            <div className="flex flex-1 items-center justify-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
                     <Menu className="me-2 h-4 w-4" />
-                    القائمة الرئيسية
+                    <span className="hidden sm:inline">القائمة الرئيسية</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="center">
@@ -255,10 +259,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+              
+              <div className="flex items-center gap-1">
+                {hasPermission('/sales') && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="icon" asChild>
+                        <Link href="/sales"><ShoppingCart /></Link>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>المبيعات</p></TooltipContent>
+                  </Tooltip>
+                )}
+                {hasPermission('/inventory') && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="icon" asChild>
+                        <Link href="/inventory"><Boxes /></Link>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>المخزون</p></TooltipContent>
+                  </Tooltip>
+                )}
+                {hasPermission('/purchases') && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="icon" asChild>
+                        <Link href="/purchases"><Truck /></Link>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>المشتريات</p></TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
                             
               {currentUser?.role === 'Admin' && (
-                <div className="hidden sm:block">
-                  <TooltipProvider>
+                <div className="hidden lg:block">
                       <Tooltip>
                           <TooltipTrigger asChild>
                               <span tabIndex={0} className="text-sm text-muted-foreground cursor-help animate-pulse outline-none">
@@ -269,7 +305,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                               <p>لحماية بياناتك، قم بعمل نسخة احتياطية بشكل دوري.</p>
                           </TooltipContent>
                       </Tooltip>
-                  </TooltipProvider>
                 </div>
               )}
 
@@ -298,6 +333,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="container py-4">{children}</div>
         </main>
       </div>
-    </>
+    </TooltipProvider>
   );
 }
