@@ -13,25 +13,28 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
     const { loading, isSetup, isAuthenticated, currentUser } = useAuth();
     const pathname = usePathname();
     const router = useRouter();
+    const [isInitialRedirectDone, setIsInitialRedirectDone] = React.useState(false);
 
     React.useEffect(() => {
-        if (!loading && isAuthenticated) {
+        if (loading) return;
+
+        if (isAuthenticated && !isInitialRedirectDone) {
             if (currentUser?.role === 'SuperAdmin') {
-                if (!pathname?.startsWith('/superadmin')) {
+                if (!pathname.startsWith('/superadmin')) {
                     router.replace('/superadmin');
                 }
             } else {
-                 if (pathname?.startsWith('/superadmin')) {
+                if (pathname.startsWith('/superadmin')) {
                     router.replace('/sales');
-                }
-                if (pathname === '/') {
+                } else if (pathname === '/') {
                     router.replace('/sales');
                 }
             }
+            setIsInitialRedirectDone(true);
         }
-    }, [loading, isAuthenticated, currentUser, pathname, router]);
+    }, [loading, isAuthenticated, currentUser, pathname, router, isInitialRedirectDone]);
 
-    if (loading) {
+    if (loading || (isAuthenticated && !isInitialRedirectDone)) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-muted/40">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -47,8 +50,12 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
         return <LoginPage />;
     }
 
-    // This final check prevents a flicker of the wrong layout before redirection.
-    if (currentUser?.role === 'SuperAdmin' && !pathname?.startsWith('/superadmin')) {
+    // Render layout based on role after loading and initial redirect checks
+    if(pathname?.startsWith('/superadmin')) {
+        if (currentUser?.role === 'SuperAdmin') {
+            return <>{children}</>;
+        }
+        // While redirecting, show a loader
         return (
              <div className="flex items-center justify-center min-h-screen bg-muted/40">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -56,17 +63,15 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
         );
     }
     
-    if (currentUser?.role !== 'SuperAdmin' && (pathname?.startsWith('/superadmin') || pathname === '/')) {
-         return (
-             <div className="flex items-center justify-center min-h-screen bg-muted/40">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            </div>
-        );
+    // For non-superadmin users
+    if (currentUser?.role !== 'SuperAdmin') {
+        return <AppShell>{children}</AppShell>;
     }
-
-    if(pathname?.startsWith('/superadmin')) {
-        return <>{children}</>;
-    }
-
-    return <AppShell>{children}</AppShell>;
+    
+    // Fallback loader while redirecting superadmin from a non-superadmin page
+    return (
+         <div className="flex items-center justify-center min-h-screen bg-muted/40">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </div>
+    );
 }
