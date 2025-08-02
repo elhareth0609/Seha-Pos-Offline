@@ -656,7 +656,6 @@ export default function SalesPage() {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:h-[calc(100vh-6rem)]">
           <div className="lg:col-span-2 flex flex-col gap-4">
-              <AdCarousel />
               <Card>
                   <CardHeader className="pb-4">
                       <CardTitle className="text-xl">اختيار المنتج</CardTitle>
@@ -740,7 +739,10 @@ export default function SalesPage() {
                           </div>
                       </div>
                   </CardHeader>
-                  <CardContent className="p-0 flex-1">
+                  <CardContent className="p-0 flex-1 flex flex-col">
+                      <div className="p-4">
+                        <AdCarousel />
+                      </div>
                       <ScrollArea className="h-full">
                       {cart.length > 0 ? (
                         <>

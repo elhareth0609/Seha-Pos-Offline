@@ -58,7 +58,7 @@ export interface ScopedDataContextType {
     suppliers: [Supplier[], (value: Supplier[] | ((val: Supplier[]) => Supplier[])) => void];
     patients: [Patient[], (value: Patient[] | ((val: Patient[]) => Patient[])) => void];
     trash: [TrashItem[], (value: TrashItem[] | ((val: TrashItem[]) => TrashItem[])) => void];
-    payments: [SupplierPayment[], (value: SupplierPayment[] | ((val: SupplierPayment[]) => SupplierPayment[])) => void];
+    payments: [SupplierPayment[], (value: SupplierPayment[] | ((val: SupplierPayment[]) => Supplier[])) => void];
     purchaseOrders: [PurchaseOrder[], (value: PurchaseOrder[] | ((val: PurchaseOrder[]) => PurchaseOrder[])) => void];
     supplierReturns: [ReturnOrder[], (value: ReturnOrder[] | ((val: ReturnOrder[]) => ReturnOrder[])) => void];
     timeLogs: [TimeLog[], (value: TimeLog[] | ((val: TimeLog[]) => TimeLog[])) => void];
@@ -381,13 +381,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
     const deleteUser = async (userId: string, permanent: boolean = false): Promise<boolean> => {
         if (!currentUser || (currentUser.role !== 'SuperAdmin' && currentUser.role !== 'Admin')) return false;
+        
         const userToDelete = users.find(u => u.id === userId);
         if (!userToDelete) return false;
+
         if (currentUser.role === 'Admin' && userToDelete.pharmacyId !== currentUser.pharmacyId) return false;
-        if (permanent && currentUser.role === 'SuperAdmin' && userToDelete.pharmacyId) {
-            await deletePharmacyData(userToDelete.pharmacyId);
+
+        if (permanent && currentUser.role === 'SuperAdmin') {
+            if (userToDelete.pharmacyId) {
+                await deletePharmacyData(userToDelete.pharmacyId);
+            }
+            // Also delete all employees of that pharmacy from the users state
+            const employeesToDelete = users.filter(u => u.pharmacyId === userToDelete.pharmacyId);
+            const employeeIdsToDelete = employeesToDelete.map(e => e.id);
+            // This part is tricky as we can't easily delete the auth credentials without re-auth
+            // For now, we just remove them from the 'users' collection
+            for (const id of employeeIdsToDelete) {
+                 await deleteDocumentFromCollection('users', id);
+            }
+            setUsers(prev => prev.filter(u => u.pharmacyId !== userToDelete.pharmacyId));
         }
-        await toggleUserStatus(userId);
+        await toggleUserStatus(userToDelete.id, true);
         return true;
     };
     
@@ -444,17 +458,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const toggleUserStatus = async (userId: string): Promise<boolean> => {
+    const toggleUserStatus = async (userId: string, isDeletion: boolean = false): Promise<boolean> => {
         if (!currentUser) return false;
         const userToUpdate = users.find(u => u.id === userId);
-        if(!userToUpdate) return false;
+        if (!userToUpdate) return false;
+        
         const canUpdate = (currentUser.role === 'Admin' && userToUpdate.pharmacyId === currentUser.pharmacyId) || currentUser.role === 'SuperAdmin';
         if (!canUpdate) return false;
+
         try {
-            const newStatus: "active" | "suspended" = userToUpdate.status === 'active' ? 'suspended' : 'active';
-            const updatedUser = { ...userToUpdate, status: newStatus };
-            await setUser(userId, updatedUser, true);
-            setUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
+            const newStatus: "active" | "suspended" = isDeletion ? 'suspended' : (userToUpdate.status === 'active' ? 'suspended' : 'active');
+            
+            const usersToUpdate = [userToUpdate];
+            // If the user is an Admin, cascade the status change to their employees
+            if (userToUpdate.role === 'Admin' && userToUpdate.pharmacyId) {
+                const employees = users.filter(u => u.pharmacyId === userToUpdate.pharmacyId && u.role === 'Employee');
+                usersToUpdate.push(...employees);
+            }
+
+            const updatedUsersList = [...users];
+
+            for (const user of usersToUpdate) {
+                const updatedUser = { ...user, status: newStatus };
+                await setUser(user.id, updatedUser, true);
+                const userIndex = updatedUsersList.findIndex(u => u.id === user.id);
+                if(userIndex > -1) {
+                    updatedUsersList[userIndex] = updatedUser;
+                }
+            }
+            
+            setUsers(updatedUsersList);
             return true;
         } catch (error) {
             console.error("Error toggling user status:", error);
