@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { 
     getAllUsers, 
@@ -22,6 +22,14 @@ import { auth, firebaseConfig } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseUser, getAuth } from 'firebase/auth';
 import { deleteApp, getApps, initializeApp } from 'firebase/app';
 import { toast } from './use-toast';
+
+type ActiveInvoice = {
+  cart: SaleItem[];
+  discountValue: string;
+  discountType: 'fixed' | 'percentage';
+  patientId: string | null;
+  paymentMethod: 'cash' | 'card';
+};
 
 interface AuthContextType {
   currentUser: User | null;
@@ -50,7 +58,11 @@ interface AuthContextType {
   deleteAdvertisement: (adId: string) => Promise<void>;
 
   scopedData: ScopedDataContextType;
-
+  
+  // Active Invoice State
+  activeInvoice: ActiveInvoice;
+  setActiveInvoice: React.Dispatch<React.SetStateAction<ActiveInvoice>>;
+  resetActiveInvoice: () => void;
 }
 
 export interface ScopedDataContextType {
@@ -102,6 +114,14 @@ const emptyScopedData: ScopedDataContextType = {
     settings: [fallbackAppSettings, emptyDataSetter as any],
 };
 
+const initialActiveInvoice: ActiveInvoice = {
+    cart: [],
+    discountValue: '0',
+    discountType: 'fixed',
+    patientId: null,
+    paymentMethod: 'cash',
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [users, setUsers] = React.useState<User[]>([]);
     const [currentUser, setCurrentUser] = React.useState<User | null>(null);
@@ -124,8 +144,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // Global data states
     const [advertisements, setAdvertisements] = React.useState<Advertisement[]>([]);
+    
+    // Active invoice state
+    const [activeInvoice, setActiveInvoice] = React.useState<ActiveInvoice>(initialActiveInvoice);
 
     const pharmacyId = currentUser?.pharmacyId;
+
+    const resetActiveInvoice = React.useCallback(() => {
+        setActiveInvoice(initialActiveInvoice);
+    }, []);
 
     React.useEffect(() => {
         const checkSetup = async () => {
@@ -555,7 +582,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setupAdmin, login, logout, registerUser, deleteUser, updateUser, 
             updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData,
             getAllPharmacySettings, getPharmacyData,
-            advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement
+            advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement,
+            activeInvoice, setActiveInvoice, resetActiveInvoice
         }}>
         {children}
         </AuthContext.Provider>

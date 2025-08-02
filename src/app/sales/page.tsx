@@ -321,28 +321,25 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
 }
 
 export default function SalesPage() {
-  const { scopedData, currentUser } = useAuth();
+  const { currentUser, scopedData, activeInvoice, setActiveInvoice, resetActiveInvoice } = useAuth();
   const [allInventory, setAllInventory] = scopedData.inventory;
   const [sales, setSales] = scopedData.sales;
   const [patients, setPatients] = scopedData.patients;
   const [settings] = scopedData.settings;
+  const { cart, discountType, discountValue, patientId, paymentMethod } = activeInvoice;
+  const setCart = (updater: (prev: SaleItem[]) => SaleItem[]) => {
+      setActiveInvoice(prev => ({ ...prev, cart: updater(prev.cart) }));
+  };
   
   const [searchTerm, setSearchTerm] = React.useState("")
   const [suggestions, setSuggestions] = React.useState<Medication[]>([])
-  const [cart, setCart] = React.useState<SaleItem[]>([])
   const [isScannerOpen, setIsScannerOpen] = React.useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = React.useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = React.useState(false);
   const [saleToPrint, setSaleToPrint] = React.useState<Sale | null>(null);
   
-  const [discountType, setDiscountType] = React.useState<'fixed' | 'percentage'>('fixed');
-  const [discountValue, setDiscountValue] = React.useState("0");
-  const [paymentMethod, setPaymentMethod] = React.useState<'cash' | 'card'>('cash');
-
-
   const [isDosingAssistantOpen, setIsDosingAssistantOpen] = React.useState(false);
 
-  const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
   const [isPatientModalOpen, setIsPatientModalOpen] = React.useState(false);
   const [patientSearchTerm, setPatientSearchTerm] = React.useState("");
   const [newPatientName, setNewPatientName] = React.useState("");
@@ -391,7 +388,7 @@ export default function SalesPage() {
     })
     setSearchTerm("")
     setSuggestions([])
-  }, [mode])
+  }, [mode, setCart])
   
   const handleScan = React.useCallback((result: string) => {
     if (mode !== 'new') return;
@@ -543,6 +540,8 @@ export default function SalesPage() {
   const finalTotal = subtotal - discountAmount;
   const finalProfit = totalProfit - discountAmount;
 
+  const selectedPatient = React.useMemo(() => (patients || []).find(p => p.id === patientId), [patients, patientId]);
+
 
   const handleCheckout = () => {
     if (cart.length === 0) {
@@ -561,16 +560,6 @@ export default function SalesPage() {
     }
 
     setIsCheckoutOpen(true);
-  }
-
-  const resetSale = () => {
-    setCart([]);
-    setDiscountValue("0");
-    setDiscountType("fixed");
-    setSearchTerm("");
-    setSaleToPrint(null);
-    setSelectedPatient(null);
-    setPaymentMethod("cash");
   }
   
   const handleFinalizeSale = async () => {
@@ -615,10 +604,13 @@ export default function SalesPage() {
     if (index >= 0 && index < sortedSales.length) {
         const saleToReview = sortedSales[index];
         const patient = (patients || []).find(p => p.id === saleToReview?.patientId);
-        setCart(saleToReview.items);
-        setDiscountValue((saleToReview.discount || 0).toString());
-        setDiscountType('fixed');
-        setSelectedPatient(patient || null);
+        setActiveInvoice({
+          cart: saleToReview.items,
+          discountValue: (saleToReview.discount || 0).toString(),
+          discountType: 'fixed',
+          patientId: saleToReview.patientId,
+          paymentMethod: 'cash'
+        });
         setReviewIndex(index);
         setMode('review');
         setSearchTerm('');
@@ -642,7 +634,9 @@ export default function SalesPage() {
 
   const handleNewInvoiceClick = () => {
     setMode('new');
-    resetSale();
+    resetActiveInvoice();
+    setSearchTerm('');
+    setSaleToPrint(null);
   };
 
   const handleAddNewPatient = async () => {
@@ -656,7 +650,7 @@ export default function SalesPage() {
           phone: newPatientPhone,
       };
       setPatients(prev => [newPatient, ...(prev || [])]);
-      setSelectedPatient(newPatient);
+      setActiveInvoice(prev => ({...prev, patientId: newPatient.id}));
       toast({ title: "تم إضافة المريض", description: `تم تحديد ${newPatient.name} لهذه الفاتورة.` });
       setNewPatientName("");
       setNewPatientPhone("");
@@ -980,7 +974,7 @@ export default function SalesPage() {
                                       <Input placeholder="ابحث بالاسم..." value={patientSearchTerm} onChange={(e) => setPatientSearchTerm(e.target.value)} />
                                       <ScrollArea className="h-48 border rounded-md">
                                           {(filteredPatients || []).map(p => (
-                                              <div key={p.id} onClick={() => { setSelectedPatient(p); setIsPatientModalOpen(false); }}
+                                              <div key={p.id} onClick={() => { setActiveInvoice(prev => ({...prev, patientId: p.id})); setIsPatientModalOpen(false); }}
                                                   className="p-2 hover:bg-accent cursor-pointer">
                                                   {p.name}
                                               </div>
@@ -1014,10 +1008,10 @@ export default function SalesPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Label htmlFor="discount" className="text-md shrink-0">خصم</Label>
-                        <Input id="discount" type="text" value={discountValue} onChange={e => setDiscountValue(e.target.value)} className="h-9 w-full bg-background ltr:text-left rtl:text-right font-mono" placeholder="0" disabled={mode !== 'new'}/>
-                        <RadioGroup defaultValue="fixed" value={discountType} onValueChange={(value: any) => setDiscountType(value)} className="flex" disabled={mode !== 'new'}>
-                            <Button type="button" size="sm" variant={discountType === 'fixed' ? 'secondary' : 'ghost'} onClick={() => setDiscountType('fixed')}>IQD</Button>
-                            <Button type="button" size="icon" variant={discountType === 'percentage' ? 'secondary' : 'ghost'} onClick={() => setDiscountType('percentage')} className="h-9 w-9"><Percent className="h-4 w-4" /></Button>
+                        <Input id="discount" type="text" value={discountValue} onChange={e => setActiveInvoice(prev => ({...prev, discountValue: e.target.value}))} className="h-9 w-full bg-background ltr:text-left rtl:text-right font-mono" placeholder="0" disabled={mode !== 'new'}/>
+                        <RadioGroup defaultValue="fixed" value={discountType} onValueChange={(value: any) => setActiveInvoice(prev => ({...prev, discountType: value}))} className="flex" disabled={mode !== 'new'}>
+                            <Button type="button" size="sm" variant={discountType === 'fixed' ? 'secondary' : 'ghost'} onClick={() => setActiveInvoice(prev => ({...prev, discountType: 'fixed'}))}>IQD</Button>
+                            <Button type="button" size="icon" variant={discountType === 'percentage' ? 'secondary' : 'ghost'} onClick={() => setActiveInvoice(prev => ({...prev, discountType: 'percentage'}))} className="h-9 w-9"><Percent className="h-4 w-4" /></Button>
                         </RadioGroup>
                       </div>
                       <Separator />
@@ -1086,7 +1080,7 @@ export default function SalesPage() {
                                               <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>{finalTotal.toLocaleString()}</span></div>
                                           </div>
                                           <Separator />
-                                           <RadioGroup defaultValue="cash" value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)} className="flex gap-4 pt-2">
+                                           <RadioGroup defaultValue="cash" value={paymentMethod} onValueChange={(value: any) => setActiveInvoice(prev => ({ ...prev, paymentMethod: value }))} className="flex gap-4 pt-2">
                                                 <Label htmlFor="payment-cash" className="flex items-center gap-2 cursor-pointer rounded-md border p-3 flex-1 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
                                                     <RadioGroupItem value="cash" id="payment-cash" />
                                                     الدفع نقداً
@@ -1121,7 +1115,9 @@ export default function SalesPage() {
                                   <AlertDialogFooter>
                                       <AlertDialogCancel>تراجع</AlertDialogCancel>
                                       <AlertDialogAction onClick={() => {
-                                          resetSale();
+                                          resetActiveInvoice();
+                                          setSearchTerm('');
+                                          setSaleToPrint(null);
                                           toast({ title: "تم إلغاء الفاتورة" });
                                       }} className={buttonVariants({ variant: "destructive" })}>نعم، قم بالإلغاء</AlertDialogAction>
                                   </AlertDialogFooter>
@@ -1143,7 +1139,7 @@ export default function SalesPage() {
         <Dialog open={isReceiptOpen} onOpenChange={(open) => {
             if (!open) {
                 if (mode === 'new') {
-                    resetSale();
+                    handleNewInvoiceClick();
                 }
             }
             setIsReceiptOpen(open);
