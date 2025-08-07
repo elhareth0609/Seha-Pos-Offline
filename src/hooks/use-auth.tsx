@@ -365,7 +365,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const updateAdvertisement = async (adId: string, data: Partial<Omit<Advertisement, 'id' | 'createdAt'>>) => {
         try {
-            const updatedAd = await apiRequest(`/advertisements/${adId}`, 'PUT', data);
+            const updatedAd = await apiRequest(`/advertisements/${adId}`, 'PUT', { show_on: data.showOn });
             setAdvertisements(prev => prev.map(ad => ad.id === adId ? updatedAd : ad));
         } catch(e: any) {
             toast({ variant: 'destructive', title: 'فشل تحديث الإعلان', description: e.message });

@@ -124,12 +124,11 @@ export default function SuperAdminReportsPage() {
                             <SelectValue placeholder="اختر صيدلية..." />
                         </SelectTrigger>
                         <SelectContent>
-                            {pharmacyAdmins.map(admin => {
-                                const pharmacyId = admin.pharmacyId as string;
-                                const settings = pharmacySettings[pharmacyId];
+                            {Object.entries(pharmacySettings).map(([pharmacyId, pharmacy]: [string, AppSettings]) => {
+                                console.log(pharmacyId, pharmacy);
                                 return (
                                     <SelectItem key={pharmacyId} value={pharmacyId}>
-                                        {settings?.pharmacyName || admin.name}
+                                        {pharmacy?.pharmacyName || 'صيدلية جديدة'}
                                     </SelectItem>
                                 );
                             })}

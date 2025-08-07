@@ -51,7 +51,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, Clock, Wallet, MoreVertical, Pencil } from 'lucide-react'
-import { deletePharmacyData } from '@/hooks/use-firestore';
+// import { deletePharmacyData } from '@/hooks/use-firestore';
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import Image from 'next/image'
