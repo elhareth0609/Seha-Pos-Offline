@@ -250,7 +250,7 @@ export default function SettingsPage() {
             return;
         }
         try {
-            await deletePharmacyData(currentUser.pharmacyId);
+            // await deletePharmacyData(currentUser.pharmacyId);
             toast({ title: "تم مسح بيانات الصيدلية بنجاح" });
             // Logout to force re-initialization or redirect
             await logout();
