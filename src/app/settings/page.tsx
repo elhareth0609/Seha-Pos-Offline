@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from 'react'
@@ -16,7 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { Textarea } from "@/components/ui/textarea"
-import type { AppSettings, User, UserPermissions, TrashItem, Sale, TimeLog } from '@/lib/types'
+import type { AppSettings, User, UserPermissions } from '@/lib/types'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -51,7 +52,6 @@ import { useAuth } from '@/hooks/use-auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, Clock, Wallet, MoreVertical, Pencil } from 'lucide-react'
-// import { deletePharmacyData } from '@/hooks/use-firestore';
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import Image from 'next/image'
@@ -107,7 +107,6 @@ const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: stri
 
 function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
     const { registerUser } = useAuth();
-    const { toast } = useToast();
     const addUserForm = useForm<AddUserFormValues>({
         resolver: zodResolver(addUserSchema),
         defaultValues: { name: "", email: "", pin: "" }
@@ -121,10 +120,7 @@ function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (o
     const onAddUserSubmit = async (data: AddUserFormValues) => {
         const success = await registerUser(data.name, data.email, data.pin);
         if (success) {
-            toast({ title: "تم إضافة الموظف بنجاح!" });
             resetDialog();
-        } else {
-            toast({ variant: 'destructive', title: "البريد الإلكتروني مستخدم", description: "هذا البريد الإلكتروني مسجل بالفعل." });
         }
     }
 
@@ -171,7 +167,7 @@ function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (o
 
 export default function SettingsPage() {
     const { toast } = useToast()
-    const { currentUser, users, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate, scopedData, logout } = useAuth();
+    const { currentUser, users, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate, scopedData, logout, clearPharmacyData } = useAuth();
     
     const { settings: [settings, setSettings], sales: [sales], timeLogs: [timeLogs] } = scopedData;
 
@@ -217,7 +213,6 @@ export default function SettingsPage() {
 
 
     const onSettingsSubmit = (data: SettingsFormValues) => {
-        // Ensure all fields have values
         const settingsData: AppSettings = {
             pharmacyName: data.pharmacyName,
             pharmacyAddress: data.pharmacyAddress || "",
@@ -228,19 +223,13 @@ export default function SettingsPage() {
         };
         
         setSettings(settingsData);
-        toast({
-            title: "تم حفظ الإعدادات بنجاح!",
-        })
     }
     
     const onEditUserSubmit = async (data: EditUserFormValues) => {
         if (!editingUser) return;
         const success = await updateUser(editingUser.id, data.name, data.email!, data.pin || undefined);
         if (success) {
-            toast({ title: "تم تحديث بيانات الموظف بنجاح" });
             setIsEditUserDialogOpen(false);
-        } else {
-            toast({ variant: 'destructive', title: "خطأ", description: "البريد الإلكتروني قد يكون مستخدماً بالفعل." });
         }
     }
 
@@ -249,15 +238,7 @@ export default function SettingsPage() {
             toast({ variant: "destructive", title: "خطأ", description: "لم يتم العثور على معرف الصيدلية." });
             return;
         }
-        try {
-            // await deletePharmacyData(currentUser.pharmacyId);
-            toast({ title: "تم مسح بيانات الصيدلية بنجاح" });
-            // Logout to force re-initialization or redirect
-            await logout();
-        } catch (error) {
-            console.error("Failed to clear data:", error);
-            toast({ variant: "destructive", title: "خطأ أثناء الحذف" });
-        }
+        await clearPharmacyData();
     }
 
     const handleDeleteUser = (userToDelete: User) => {
@@ -265,15 +246,7 @@ export default function SettingsPage() {
             toast({ variant: 'destructive', title: 'خطأ', description: 'لا يمكن حذف حساب المدير.' });
             return;
         }
-
-        const hasSales = sales.some(sale => sale.employeeId === userToDelete.id);
-        if (hasSales) {
-            toast({ variant: 'destructive', title: 'لا يمكن الحذف', description: 'هذا الموظف مرتبط بسجلات مبيعات ولا يمكن حذفه.' });
-            return;
-        }
-
         deleteUser(userToDelete.id);
-        toast({ title: "تم نقل الموظف إلى سلة المحذوفات" });
     }
     
     const openPermissionsDialog = (user: User) => {
@@ -300,12 +273,9 @@ export default function SettingsPage() {
         if (editingUser && currentUserPermissions) {
             const success = await updateUserPermissions(editingUser.id, currentUserPermissions);
             if (success) {
-                toast({ title: 'تم تحديث الصلاحيات بنجاح' });
                 setIsPermissionsDialogOpen(false);
                 setEditingUser(null);
                 setCurrentUserPermissions(null);
-            } else {
-                toast({ variant: 'destructive', title: 'خطأ', description: 'لم نتمكن من تحديث الصلاحيات.' });
             }
         }
     };
@@ -326,7 +296,6 @@ export default function SettingsPage() {
             return;
         }
         await updateUserHourlyRate(editingUser.id, rate);
-        toast({ title: 'تم تحديث سعر الساعة' });
     };
 
     const pharmacyUsers = users.filter(u => u.pharmacyId === currentUser?.pharmacyId && u.role !== 'SuperAdmin');
@@ -554,7 +523,7 @@ export default function SettingsPage() {
                                                             <AlertDialogHeader>
                                                                 <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
                                                                 <AlertDialogDescription>
-                                                                    سيتم نقل الموظف {user.name} إلى سلة المحذوفات.
+                                                                    سيتم حذف الموظف {user.name} نهائياً. لا يمكن التراجع عن هذا الإجراء.
                                                                 </AlertDialogDescription>
                                                             </AlertDialogHeader>
                                                             <AlertDialogFooter>
@@ -748,4 +717,3 @@ export default function SettingsPage() {
     </div>
   )
 }
-

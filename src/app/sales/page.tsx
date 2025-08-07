@@ -57,7 +57,6 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
-import { useReactToPrint } from "react-to-print"
 import { InvoiceTemplate } from "@/components/ui/invoice"
 import { useAuth } from "@/hooks/use-auth"
 import { buttonVariants } from "@/components/ui/button"
@@ -321,10 +320,10 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
 }
 
 export default function SalesPage() {
-  const { currentUser, scopedData, activeInvoice, setActiveInvoice, resetActiveInvoice } = useAuth();
-  const [allInventory, setAllInventory] = scopedData.inventory;
-  const [sales, setSales] = scopedData.sales;
-  const [patients, setPatients] = scopedData.patients;
+  const { currentUser, scopedData, activeInvoice, setActiveInvoice, resetActiveInvoice, addPatient, addSale } = useAuth();
+  const [allInventory] = scopedData.inventory;
+  const [sales] = scopedData.sales;
+  const [patients] = scopedData.patients;
   const [settings] = scopedData.settings;
   const { cart, discountType, discountValue, patientId, paymentMethod } = activeInvoice;
   const setCart = (updater: (prev: SaleItem[]) => SaleItem[]) => {
@@ -563,47 +562,33 @@ export default function SalesPage() {
   }
   
   const handleFinalizeSale = async () => {
-    const saleId = `SALE${Date.now()}`;
-    if (!currentUser) {
-        toast({ variant: 'destructive', title: "خطأ", description: "لم يتم العثور على بيانات المستخدم الحالي." });
-        return;
-    }
-    const newSale: Sale = {
-        id: saleId,
-        date: new Date().toISOString(),
+    if (!currentUser) return;
+    
+    const newSaleData = {
         items: cart,
         total: finalTotal,
         profit: totalProfit,
         discount: discountAmount,
-        patientId: selectedPatient?.id || null,
-        patientName: selectedPatient?.name,
-        employeeId: currentUser.id,
-        employeeName: currentUser.name,
+        patient_id: selectedPatient?.id || null,
+        patient_name: selectedPatient?.name,
+        employee_id: currentUser.id,
+        employee_name: currentUser.name,
     };
     
-    const updatedInventory = [...allInventory];
-    for (const itemInCart of cart) {
-        const medIndex = updatedInventory.findIndex(m => m.id === itemInCart.medicationId);
-        if (medIndex > -1) {
-            const stockChange = itemInCart.isReturn ? itemInCart.quantity : -itemInCart.quantity;
-            updatedInventory[medIndex].stock += stockChange;
-        }
+    const newSale = await addSale(newSaleData);
+
+    if (newSale) {
+        toast({ title: "تمت العملية بنجاح", description: `تم تسجيل الفاتورة رقم ${newSale.id}` });
+        
+        setSaleToPrint(newSale);
+        setIsCheckoutOpen(false);
+        setIsReceiptOpen(true);
     }
-
-    setAllInventory(updatedInventory);
-    setSales(prev => [newSale, ...(prev || [])]);
-
-    toast({ title: "تمت العملية بنجاح", description: `تم تسجيل الفاتورة رقم ${newSale.id}` });
-    
-    setSaleToPrint(newSale);
-    setIsCheckoutOpen(false);
-    setIsReceiptOpen(true);
   }
 
   const loadSaleForReview = (index: number) => {
     if (index >= 0 && index < sortedSales.length) {
         const saleToReview = sortedSales[index];
-        const patient = (patients || []).find(p => p.id === saleToReview?.patientId);
         setActiveInvoice({
           cart: saleToReview.items,
           discountValue: (saleToReview.discount || 0).toString(),
@@ -640,22 +625,15 @@ export default function SalesPage() {
   };
 
   const handleAddNewPatient = async () => {
-      if (!newPatientName.trim()) {
-          toast({ variant: "destructive", title: "الاسم مطلوب" });
-          return;
+      const newPatient = await addPatient(newPatientName, newPatientPhone);
+      if (newPatient) {
+          setActiveInvoice(prev => ({...prev, patientId: newPatient.id}));
+          toast({ title: "تم إضافة المريض", description: `تم تحديد ${newPatient.name} لهذه الفاتورة.` });
+          setNewPatientName("");
+          setNewPatientPhone("");
+          setPatientSearchTerm("");
+          setIsPatientModalOpen(false);
       }
-      const newPatient: Patient = {
-          id: `PAT${Date.now()}`,
-          name: newPatientName,
-          phone: newPatientPhone,
-      };
-      setPatients(prev => [newPatient, ...(prev || [])]);
-      setActiveInvoice(prev => ({...prev, patientId: newPatient.id}));
-      toast({ title: "تم إضافة المريض", description: `تم تحديد ${newPatient.name} لهذه الفاتورة.` });
-      setNewPatientName("");
-      setNewPatientPhone("");
-      setPatientSearchTerm("");
-      setIsPatientModalOpen(false);
   }
 
   const filteredPatients = (patients || []).filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()));

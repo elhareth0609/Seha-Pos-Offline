@@ -20,9 +20,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
-import type { Patient, TrashItem } from "@/lib/types"
-import { PlusCircle, UserPlus, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import type { Patient } from "@/lib/types"
+import { UserPlus, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -45,12 +44,10 @@ import { useAuth } from "@/hooks/use-auth"
 
 
 export default function PatientsPage() {
-  const { scopedData } = useAuth();
-  const [patients, setPatients] = scopedData.patients;
-  const [trash, setTrash] = scopedData.trash;
+  const { scopedData, addPatient, updatePatient, deletePatient } = useAuth();
+  const [patients] = scopedData.patients;
   
   const [searchTerm, setSearchTerm] = React.useState("");
-  const { toast } = useToast()
   
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [newPatientName, setNewPatientName] = React.useState("");
@@ -65,21 +62,11 @@ export default function PatientsPage() {
     setIsAddDialogOpen(false);
   }
 
-  const handleAddPatient = () => {
-    if (!newPatientName.trim()) {
-        toast({ title: "خطأ", description: "الرجاء إدخال اسم المريض.", variant: "destructive"});
-        return;
+  const handleAddPatient = async () => {
+    const success = await addPatient(newPatientName, newPatientPhone);
+    if (success) {
+      resetAddDialog();
     }
-
-    const newPatient: Patient = {
-        id: `PAT${Date.now()}`,
-        name: newPatientName,
-        phone: newPatientPhone,
-    };
-    
-    setPatients(prev => [newPatient, ...prev]);
-    toast({ title: "نجاح", description: `تمت إضافة المريض ${newPatient.name} بنجاح.` });
-    resetAddDialog();
   }
 
   const openEditDialog = (patient: Patient) => {
@@ -87,7 +74,7 @@ export default function PatientsPage() {
     setIsEditDialogOpen(true);
   }
 
-  const handleEditPatient = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleEditPatient = async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       if (!editingPatient) return;
 
@@ -95,28 +82,16 @@ export default function PatientsPage() {
       const name = formData.get("name") as string;
       const phone = formData.get("phone") as string;
       
-      const updatedPatient: Patient = { 
-        ...editingPatient, 
-        name, 
-        phone,
-      };
+      const success = await updatePatient(editingPatient.id, { name, phone });
       
-      setPatients(prev => prev.map(p => p.id === updatedPatient.id ? updatedPatient : p));
-      toast({ title: "تم تحديث بيانات المريض بنجاح."});
-      setIsEditDialogOpen(false);
-      setEditingPatient(null);
+      if(success) {
+        setIsEditDialogOpen(false);
+        setEditingPatient(null);
+      }
   }
 
-  const handleDeletePatient = (patient: Patient) => {
-      const newTrashItem: TrashItem = {
-        id: `TRASH-${Date.now()}`,
-        deletedAt: new Date().toISOString(),
-        itemType: 'patient',
-        data: patient,
-      };
-      setTrash(prev => [newTrashItem, ...prev]);
-      setPatients(prev => prev.filter(p => p.id !== patient.id));
-      toast({ title: "تم نقل المريض إلى سلة المحذوفات."});
+  const handleDeletePatient = async (patientId: string) => {
+      await deletePatient(patientId);
   }
 
   const filteredPatients = (patients || []).filter(p => 
@@ -215,12 +190,12 @@ export default function PatientsPage() {
                                             <DialogHeader>
                                                 <DialogTitle>هل أنت متأكد من حذف {patient.name}؟</DialogTitle>
                                                 <DialogDescription>
-                                                    سيتم نقل هذا المريض إلى سلة المحذوفات.
+                                                    سيتم حذف هذا المريض نهائياً. لا يمكن التراجع عن هذا الإجراء.
                                                 </DialogDescription>
                                             </DialogHeader>
                                             <DialogFooter>
                                                 <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
-                                                <Button variant="destructive" onClick={() => handleDeletePatient(patient)}>نعم، قم بالحذف</Button>
+                                                <Button variant="destructive" onClick={() => handleDeletePatient(patient.id)}>نعم، قم بالحذف</Button>
                                             </DialogFooter>
                                         </DialogContent>
                                     </Dialog>

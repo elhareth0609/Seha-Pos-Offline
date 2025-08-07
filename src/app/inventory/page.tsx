@@ -51,11 +51,10 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
-import type { Medication, TrashItem } from "@/lib/types"
+import type { Medication } from "@/lib/types"
 import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useReactToPrint } from 'react-to-print';
 import Barcode from '@/components/ui/barcode';
 import { buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -66,9 +65,8 @@ import AdCarousel from "@/components/ui/ad-carousel";
 const dosageForms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion"];
 
 export default function InventoryPage() {
-  const { scopedData } = useAuth();
-  const [allInventory, setAllInventory] = scopedData.inventory;
-  const [trash, setTrash] = scopedData.trash;
+  const { scopedData, updateMedication, deleteMedication, bulkAddOrUpdateInventory } = useAuth();
+  const [allInventory] = scopedData.inventory;
 
   const [filteredInventory, setFilteredInventory] = React.useState<Medication[]>([]);
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -85,17 +83,20 @@ export default function InventoryPage() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const [isImporting, setIsImporting] = React.useState(false);
-  const [importProgress, setImportProgress] = React.useState(0);
-  const [importMessage, setImportMessage] = React.useState("");
 
-  const handlePrint = useReactToPrint({
-      content: () => printComponentRef.current,
-      documentTitle: `barcode-${medToPrintRef.current?.id || ''}`,
-      onAfterPrint: () => {
-        medToPrintRef.current = null;
-        setPrintingMed(null);
-      }
-  });
+  const handlePrint = () => {
+    if (medToPrintRef.current) {
+        const printWindow = window.open('', '_blank');
+        if (printWindow && printComponentRef.current) {
+            printWindow.document.write('<html><head><title>Print Barcode</title></head><body>');
+            printWindow.document.write(printComponentRef.current.innerHTML);
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.print();
+        }
+    }
+  };
+
 
   const triggerPrint = (med: Medication) => {
       medToPrintRef.current = med;
@@ -105,8 +106,9 @@ export default function InventoryPage() {
   React.useEffect(() => {
     if (printingMed) {
         handlePrint();
+        setPrintingMed(null);
     }
-  }, [printingMed, handlePrint]);
+  }, [printingMed]);
 
 
   React.useEffect(() => {
@@ -135,16 +137,8 @@ export default function InventoryPage() {
     return <Badge variant="secondary" className="bg-green-300 text-green-900">متوفر</Badge>
   }
 
-  const handleDelete = (med: Medication) => {
-      const newTrashItem: TrashItem = {
-        id: `TRASH-${Date.now()}`,
-        deletedAt: new Date().toISOString(),
-        itemType: 'medication',
-        data: med,
-      };
-      setTrash(prev => [newTrashItem, ...(prev || [])]);
-      setAllInventory(prev => (prev || []).filter(m => m.id !== med.id));
-      toast({ title: "تم نقل الدواء إلى سلة المحذوفات" });
+  const handleDelete = async (med: Medication) => {
+      await deleteMedication(med.id);
   }
 
   const openEditModal = (med: Medication) => {
@@ -152,7 +146,7 @@ export default function InventoryPage() {
       setIsEditModalOpen(true);
   }
 
-  const handleUpdate = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       if (!editingMed) return;
 
@@ -163,8 +157,7 @@ export default function InventoryPage() {
             .map(name => name.trim())
             .filter(Boolean);
 
-      const updatedMed: Medication = {
-          ...editingMed,
+      const updatedMedData: Partial<Medication> = {
           name: formData.get('name') as string,
           scientificNames: scientificNamesArray,
           stock: parseInt(formData.get('stock') as string, 10),
@@ -176,10 +169,12 @@ export default function InventoryPage() {
           dosageForm: formData.get('dosageForm') as string,
       }
       
-      setAllInventory(prev => (prev || []).map(m => m.id === updatedMed.id ? updatedMed : m));
-      toast({ title: "تم تحديث الدواء", description: `تم تحديث بيانات ${updatedMed.name} بنجاح.` });
-      setIsEditModalOpen(false);
-      setEditingMed(null);
+      const success = await updateMedication(editingMed.id, updatedMedData);
+
+      if (success) {
+        setIsEditModalOpen(false);
+        setEditingMed(null);
+      }
   }
   
   const handleImportClick = () => {
@@ -196,9 +191,6 @@ export default function InventoryPage() {
     reader.onload = async (e) => {
       try {
         setIsImporting(true);
-        setImportProgress(0);
-        setImportMessage("جاري قراءة الملف...");
-
         const data = e.target?.result;
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
@@ -216,9 +208,11 @@ export default function InventoryPage() {
 
         const barcodeAliases = ['barcode', 'product_number', 'الباركود'];
         const nameAliases = ['name', 'الاسم'];
+        const stockAliases = ['stock', 'الكمية', 'quantity'];
 
         const barcodeIndex = headerRow.findIndex(h => barcodeAliases.some(alias => h.includes(alias)));
         const nameIndex = headerRow.findIndex(h => nameAliases.some(alias => h.includes(alias)));
+        const stockIndex = headerRow.findIndex(h => stockAliases.some(alias => h.includes(alias)));
         
         if (barcodeIndex === -1 || nameIndex === -1) {
           toast({
@@ -230,66 +224,31 @@ export default function InventoryPage() {
           return;
         }
 
-        const inventoryMap = new Map((allInventory || []).map(item => [item.id, item]));
+        const medicationsToProcess: Partial<Medication>[] = [];
+        const futureDate = new Date();
+        futureDate.setFullYear(futureDate.getFullYear() + 2);
+        const formattedExpDate = futureDate.toISOString().split('T')[0];
 
-        let updatedCount = 0;
-        let addedCount = 0;
-        const CHUNK_SIZE = 200;
-        const totalRows = rows.length;
+        for (const row of rows) {
+            const medId = String(row[barcodeIndex] || '').trim();
+            const medName = String(row[nameIndex] || 'Unnamed Product').trim();
+            const stock = stockIndex > -1 ? parseInt(String(row[stockIndex]), 10) : 0;
 
-        for (let i = 0; i < totalRows; i += CHUNK_SIZE) {
-            const chunk = rows.slice(i, i + CHUNK_SIZE);
-            
-            for (const row of chunk) {
-                const medId = String(row[barcodeIndex] || '').trim();
-                const medName = String(row[nameIndex] || 'Unnamed Product').trim();
+            if (!medId || !medName) continue;
 
-                if (!medId || !medName) {
-                    continue; // Skip empty or invalid rows
-                }
-
-                if (inventoryMap.has(medId)) {
-                    // Update existing medication
-                    const existingMed = inventoryMap.get(medId) as Medication;
-                    if (existingMed.name !== medName) {
-                        existingMed.name = medName;
-                        inventoryMap.set(medId, existingMed);
-                        updatedCount++;
-                    }
-                } else {
-                    // Add new medication
-                    const futureDate = new Date();
-                    futureDate.setFullYear(futureDate.getFullYear() + 2);
-                    const formattedExpDate = futureDate.toISOString().split('T')[0];
-
-                    const newMed: Medication = {
-                      id: medId,
-                      name: medName,
-                      stock: 0,
-                      reorderPoint: 10,
-                      price: 0,
-                      purchasePrice: 0,
-                      expirationDate: formattedExpDate,
-                    };
-                    inventoryMap.set(medId, newMed);
-                    addedCount++;
-                }
-            }
-
-            const progress = Math.round(((i + chunk.length) / totalRows) * 100);
-            setImportProgress(progress);
-            setImportMessage(`جاري معالجة ${i + chunk.length} من ${totalRows} صنفًا...`);
-
-            await new Promise(resolve => setTimeout(resolve, 0));
+            medicationsToProcess.push({
+                id: medId,
+                name: medName,
+                stock: isNaN(stock) ? 0 : stock,
+                reorderPoint: 10,
+                price: 0,
+                purchasePrice: 0,
+                expirationDate: formattedExpDate,
+            });
         }
-
-        setAllInventory(Array.from(inventoryMap.values()) as Medication[]);
-
         
-        toast({
-          title: 'اكتمل الاستيراد بنجاح',
-          description: `تم إضافة ${addedCount} صنفًا جديدًا وتحديث بيانات ${updatedCount} صنفًا.`,
-        });
+        await bulkAddOrUpdateInventory(medicationsToProcess);
+
 
       } catch (error) {
         console.error('Error importing from Excel:', error);
@@ -300,8 +259,6 @@ export default function InventoryPage() {
         });
       } finally {
         setIsImporting(false);
-        setImportProgress(0);
-        setImportMessage("");
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -387,7 +344,7 @@ export default function InventoryPage() {
             />
                <Button variant="outline" onClick={handleImportClick} disabled={isImporting}>
                   <Upload className="me-2 h-4 w-4" />
-                  استيراد Excel
+                  {isImporting ? "جاري الاستيراد..." : "استيراد Excel"}
               </Button>
               <input
                   type="file"
@@ -467,7 +424,7 @@ export default function InventoryPage() {
                                       <AlertDialogHeader>
                                           <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
                                           <AlertDialogDescription>
-                                              سيتم نقل هذا الدواء إلى سلة المحذوفات. يمكنك استعادته لاحقًا.
+                                              سيتم حذف هذا الدواء. هذه العملية لا يمكن التراجع عنها.
                                           </AlertDialogDescription>
                                       </AlertDialogHeader>
                                       <AlertDialogFooter>
