@@ -8,7 +8,7 @@ import { toast } from './use-toast';
 
 // This is a placeholder for your Laravel API URL.
 // You should set this in your .env.local file.
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 type AuthResponse = {
     token: string;
@@ -133,12 +133,15 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
         body: body ? JSON.stringify(body) : undefined,
     });
 
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: response.statusText }));
-        throw new Error(errorData.message || 'An API error occurred');
+    const responseData = await response.json();
+    
+    if (!response.ok || responseData.status === 'error') {
+        const errorMessage = responseData.message || response.statusText || 'An API error occurred';
+        throw new Error(errorMessage);
     }
 
-    return response.json();
+    // Return the data field from the standardized response
+    return responseData.data;
 }
 
 

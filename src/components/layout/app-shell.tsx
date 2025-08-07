@@ -44,6 +44,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+
 import type { UserPermissions } from "@/lib/types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -70,7 +72,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const navItems = React.useMemo(() => {
     if (!currentUser) return [];
-    if (currentUser.role === 'Admin' || currentUser.role === 'SuperAdmin') return allNavItems;
+    if (currentUser.role === 'Admin') return allNavItems;
+    // if (currentUser.role === 'Admin' || currentUser.role === 'SuperAdmin') return allNavItems;
 
     const permissions = currentUser.permissions || {
         sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false, trash: false
