@@ -54,7 +54,7 @@ const fileToDataUri = (file: File): Promise<string> => {
     });
 };
 
-const dosageForms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion"];
+const dosage_forms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion"];
 
 
 export default function PurchasesPage() {
@@ -73,7 +73,7 @@ export default function PurchasesPage() {
   const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
 
   // Purchase Form State
-  const [purchaseId, setPurchaseId] = React.useState('');
+  const [purchase_id, setPurchaseId] = React.useState('');
   const [purchaseSupplierId, setPurchaseSupplierId] = React.useState('');
   const [purchaseItems, setPurchaseItems] = React.useState<any[]>([]);
   
@@ -95,7 +95,7 @@ export default function PurchasesPage() {
   const [filteredPurchaseOrders, setFilteredPurchaseOrders] = React.useState<PurchaseOrder[]>([]);
   const [filteredSupplierReturns, setFilteredSupplierReturns] = React.useState<ReturnOrder[]>([]);
 
-  const [supplierName, setSupplierName] = React.useState("");
+  const [supplier_name, setSupplierName] = React.useState("");
   const [supplierContact, setSupplierContact] = React.useState("");
 
   React.useEffect(() => {
@@ -105,7 +105,7 @@ export default function PurchasesPage() {
     } else {
       const filtered = (purchaseOrders || []).filter(po => 
         po.id.toLowerCase().includes(term) ||
-        po.supplierName.toLowerCase().startsWith(term) ||
+        po.supplier_name.toLowerCase().startsWith(term) ||
         po.date.includes(term) ||
         (po.items || []).some(item => (item.name || '').toLowerCase().startsWith(term))
       );
@@ -120,7 +120,7 @@ export default function PurchasesPage() {
     } else {
       const filtered = (supplierReturns || []).filter(ret => 
         ret.id.toLowerCase().includes(term) ||
-        ret.supplierName.toLowerCase().startsWith(term) ||
+        ret.supplier_name.toLowerCase().startsWith(term) ||
         ret.date.includes(term) ||
         (ret.items || []).some(item => (item.name || '').toLowerCase().startsWith(term))
       );
@@ -141,17 +141,22 @@ export default function PurchasesPage() {
   
   const handleFinalizePurchase = async () => {
     const supplier = suppliers.find(s => s.id === purchaseSupplierId);
-    if (!purchaseId || !supplier || purchaseItems.length === 0) {
+    if (!purchase_id || !supplier || purchaseItems.length === 0) {
         toast({ variant: "destructive", title: "بيانات ناقصة", description: "رقم القائمة، المورد، والأصناف مطلوبة." });
         return;
     }
     
     const purchaseData = {
-        id: purchaseId,
+        id: purchase_id,
         supplier_id: supplier.id,
         supplier_name: supplier.name,
         date: new Date().toISOString().split('T')[0],
-        items: purchaseItems,
+        items: purchaseItems.map(item => ({
+            medication_id: item.medication_id,
+            name: item.name,
+            quantity: item.quantity,
+            purchase_price: item.purchase_price
+        })),
     }
 
     const success = await addPurchaseOrder(purchaseData);
@@ -165,7 +170,7 @@ export default function PurchasesPage() {
   const handleAddSupplier = async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const formData = new FormData(e.currentTarget);
-      const name = formData.get("supplierName") as string;
+      const name = formData.get("supplier_name") as string;
       const contact_person = formData.get("supplierContact") as string;
 
       if (!name) {
@@ -190,7 +195,7 @@ export default function PurchasesPage() {
         const filtered = (inventory || []).filter(med => 
             (med.name.toLowerCase().startsWith(lowercasedFilter) || 
              med.id.includes(lowercasedFilter) ||
-             (med.scientificNames && med.scientificNames.some(name => name.toLowerCase().startsWith(lowercasedFilter)))) && 
+             (med.scientific_names && med.scientific_names.some(name => name.toLowerCase().startsWith(lowercasedFilter)))) && 
              med.stock > 0
         );
         setReturnMedSuggestions(filtered.slice(0, 5));
@@ -227,10 +232,10 @@ export default function PurchasesPage() {
     }
 
     const newItem: ReturnOrderItem = {
-        medicationId: selectedMedForReturn.id,
+        medication_id: selectedMedForReturn.id,
         name: selectedMedForReturn.name,
         quantity: quantity,
-        purchasePrice: selectedMedForReturn.purchasePrice,
+        purchase_price: selectedMedForReturn.purchase_price,
         reason: returnItemReason
     };
     
@@ -245,7 +250,7 @@ export default function PurchasesPage() {
   };
   
   const handleRemoveFromReturnCart = (medId: string) => {
-    setReturnCart(prev => prev.filter(item => item.medicationId !== medId));
+    setReturnCart(prev => prev.filter(item => item.medication_id !== medId));
   }
 
   const handleFinalizeReturn = async () => {
@@ -262,7 +267,13 @@ export default function PurchasesPage() {
         supplier_id: supplier.id,
         supplier_name: supplier.name,
         date: new Date().toISOString().split('T')[0],
-        items: returnCart,
+        items: returnCart.map(item => ({
+            medication_id: item.medication_id,
+            name: item.name,
+            quantity: item.quantity,
+            purchase_price: item.purchase_price,
+            reason: item.reason
+        }))
     }
     
     const success = await addReturnOrder(returnData);
@@ -276,15 +287,15 @@ export default function PurchasesPage() {
   }
 
   function AddPurchaseItemForm({ onAddItem }: { onAddItem: (item: any) => void }) {
-    const [medicationId, setMedicationId] = React.useState('');
+    const [medication_id, setMedicationId] = React.useState('');
     const [medicationName, setMedicationName] = React.useState('');
-    const [scientificNames, setScientificNames] = React.useState('');
+    const [scientific_names, setScientificNames] = React.useState('');
     const [dosage, setDosage] = React.useState('');
-    const [dosageForm, setDosageForm] = React.useState('');
+    const [dosage_form, setDosageForm] = React.useState('');
     const [quantity, setQuantity] = React.useState('');
-    const [purchasePrice, setPurchasePrice] = React.useState('');
+    const [purchase_price, setPurchasePrice] = React.useState('');
     const [sellingPrice, setSellingPrice] = React.useState('');
-    const [expirationDate, setExpirationDate] = React.useState('');
+    const [expiration_date, setExpirationDate] = React.useState('');
     const [imageFile, setImageFile] = React.useState<File | null>(null);
     const [imagePreview, setImagePreview] = React.useState<string | null>(null);
 
@@ -304,23 +315,23 @@ export default function PurchasesPage() {
 
     const prefillFormWithMedData = React.useCallback((med: Medication) => {
         setMedicationName(med.name || '');
-        setScientificNames((med.scientificNames || []).join(', '));
+        setScientificNames((med.scientific_names || []).join(', '));
         setDosage(med.dosage || '');
-        setDosageForm(med.dosageForm || '');
+        setDosageForm(med.dosage_form || '');
         setSellingPrice(String(med.price || ''));
-        setPurchasePrice(String(med.purchasePrice || ''));
+        setPurchasePrice(String(med.purchase_price || ''));
         setImagePreview(med.image_url || null);
     }, []);
 
     React.useEffect(() => {
-        const medId = medicationId.trim();
+        const medId = medication_id.trim();
         if (medId) {
             const existingMed = (inventory || []).find(m => m.id === medId);
             if (existingMed) {
                 prefillFormWithMedData(existingMed);
             }
         }
-    }, [medicationId, inventory, prefillFormWithMedData]);
+    }, [medication_id, inventory, prefillFormWithMedData]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -333,12 +344,12 @@ export default function PurchasesPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        let medId = medicationId.trim();
+        let medId = medication_id.trim();
         if(!medId) {
             medId = Date.now().toString();
         }
         
-        let expDate = expirationDate;
+        let expDate = expiration_date;
         if (!expDate) {
             const futureDate = new Date();
             futureDate.setFullYear(futureDate.getFullYear() + 2);
@@ -353,11 +364,11 @@ export default function PurchasesPage() {
         const newItem = {
             medication_id: medId,
             name: medicationName,
-            scientific_names: scientificNames.split(',').map(s => s.trim()).filter(Boolean),
+            scientific_names: scientific_names.split(',').map(s => s.trim()).filter(Boolean),
             dosage,
-            dosage_form: dosageForm,
+            dosage_form: dosage_form,
             quantity: parseInt(quantity, 10),
-            purchase_price: parseFloat(purchasePrice),
+            purchase_price: parseFloat(purchase_price),
             price: parseFloat(sellingPrice),
             expiration_date: expDate,
             image_url,
@@ -376,27 +387,27 @@ export default function PurchasesPage() {
         <form onSubmit={handleSubmit} className="border-t pt-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-2">
                 <div className="flex flex-col gap-2">
-                    <Label htmlFor="medicationId">الباركود (يترك فارغاً للتوليد)</Label>
-                    <Input id="medicationId" value={medicationId} onChange={e => setMedicationId(e.target.value)} />
+                    <Label htmlFor="medication_id">الباركود (يترك فارغاً للتوليد)</Label>
+                    <Input id="medication_id" value={medication_id} onChange={e => setMedicationId(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-2">
                     <Label htmlFor="tradeName">الاسم التجاري</Label>
                     <Input id="tradeName" required value={medicationName} onChange={e => setMedicationName(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-2">
-                    <Label htmlFor="scientificNames">الاسم العلمي (يفصل بفاصلة ,)</Label>
-                    <Input id="scientificNames" value={scientificNames} onChange={e => setScientificNames(e.target.value)} />
+                    <Label htmlFor="scientific_names">الاسم العلمي (يفصل بفاصلة ,)</Label>
+                    <Input id="scientific_names" value={scientific_names} onChange={e => setScientificNames(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-2">
                     <Label htmlFor="dosage">الجرعة (مثال: 500mg)</Label>
                     <Input id="dosage" value={dosage} onChange={e => setDosage(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-2">
-                    <Label htmlFor="dosageForm">الشكل الدوائي</Label>
-                    <Select name="dosageForm" value={dosageForm} onValueChange={setDosageForm}>
-                        <SelectTrigger id="dosageForm"><SelectValue placeholder="اختر الشكل" /></SelectTrigger>
+                    <Label htmlFor="dosage_form">الشكل الدوائي</Label>
+                    <Select name="dosage_form" value={dosage_form} onValueChange={setDosageForm}>
+                        <SelectTrigger id="dosage_form"><SelectValue placeholder="اختر الشكل" /></SelectTrigger>
                         <SelectContent>
-                            {dosageForms.map(form => <SelectItem key={form} value={form}>{form}</SelectItem>)}
+                            {dosage_forms.map(form => <SelectItem key={form} value={form}>{form}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 </div>
@@ -405,16 +416,16 @@ export default function PurchasesPage() {
                     <Input id="quantity" type="number" required value={quantity} onChange={e => setQuantity(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-2">
-                    <Label htmlFor="purchasePricePerPurchaseUnit">سعر الشراء</Label>
-                    <Input id="purchasePricePerPurchaseUnit" type="number" required value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} />
+                    <Label htmlFor="purchase_pricePerPurchaseUnit">سعر الشراء</Label>
+                    <Input id="purchase_pricePerPurchaseUnit" type="number" required value={purchase_price} onChange={e => setPurchasePrice(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-2">
                     <Label htmlFor="sellingPricePerSaleUnit">سعر البيع</Label>
                     <Input id="sellingPricePerSaleUnit" type="number" required value={sellingPrice} onChange={e => setSellingPrice(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-2">
-                    <Label htmlFor="expirationDate">تاريخ الانتهاء (اختياري)</Label>
-                    <Input id="expirationDate" type="date" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} />
+                    <Label htmlFor="expiration_date">تاريخ الانتهاء (اختياري)</Label>
+                    <Input id="expiration_date" type="date" value={expiration_date} onChange={e => setExpirationDate(e.target.value)} />
                 </div>
                 <div className="md:col-span-3 flex flex-col gap-2">
                     <Label htmlFor="itemImage">صورة المنتج (اختياري)</Label>
@@ -455,12 +466,12 @@ export default function PurchasesPage() {
           <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <Label htmlFor="purchaseId">رقم قائمة الشراء</Label>
-                        <Input id="purchaseId" required value={purchaseId} onChange={e => setPurchaseId(e.target.value)} disabled={purchaseItems.length > 0} />
+                        <Label htmlFor="purchase_id">رقم قائمة الشراء</Label>
+                        <Input id="purchase_id" required value={purchase_id} onChange={e => setPurchaseId(e.target.value)} disabled={purchaseItems.length > 0} />
                     </div>
                     <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                            <Label htmlFor="supplierId">المورد</Label>
+                            <Label htmlFor="supplier_id">المورد</Label>
                              <Dialog open={isAddSupplierOpen} onOpenChange={setIsAddSupplierOpen}>
                                 <DialogTrigger asChild>
                                     <Button variant="link" size="sm" className="p-0 h-auto"><PlusCircle className="me-1 h-3 w-3"/> إضافة مورد</Button>
@@ -471,8 +482,8 @@ export default function PurchasesPage() {
                                     </DialogHeader>
                                       <form onSubmit={handleAddSupplier} className="space-y-4 pt-2">
                                           <div className="space-y-2">
-                                              <Label htmlFor="supplierName">اسم المورد</Label>
-                                              <Input id="supplierName" name="supplierName" required />
+                                              <Label htmlFor="supplier_name">اسم المورد</Label>
+                                              <Input id="supplier_name" name="supplier_name" required />
                                           </div>
                                           <div className="space-y-2">
                                               <Label htmlFor="supplierContact">الشخص المسؤول (اختياري)</Label>
@@ -486,8 +497,8 @@ export default function PurchasesPage() {
                                 </DialogContent>
                             </Dialog>
                         </div>
-                        <Select name="supplierId" required value={purchaseSupplierId} onValueChange={setPurchaseSupplierId} disabled={purchaseItems.length > 0}>
-                            <SelectTrigger id="supplierId"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
+                        <Select name="supplier_id" required value={purchaseSupplierId} onValueChange={setPurchaseSupplierId} disabled={purchaseItems.length > 0}>
+                            <SelectTrigger id="supplier_id"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
                             <SelectContent>{(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
@@ -568,21 +579,21 @@ export default function PurchasesPage() {
                                 <TableCell>
                                     <div className="flex items-center gap-2">
                                         <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", expandedRows.has(po.id) && "rotate-180")} />
-                                        {po.supplierName}
+                                        {po.supplier_name}
                                     </div>
                                 </TableCell>
                                 <TableCell></TableCell>
                                 <TableCell></TableCell>
-                                <TableCell className="font-mono">{po.totalAmount.toLocaleString()}</TableCell>
+                                <TableCell className="font-mono">{po.total_amount.toLocaleString()}</TableCell>
                                 <TableCell className="font-mono">{new Date(po.date).toLocaleDateString('ar-EG')}</TableCell>
                             </TableRow>
                             {expandedRows.has(po.id) && (po.items || []).map((item, index) => (
-                                <TableRow key={`${po.id}-${item.medicationId}-${index}`} className="bg-muted/10">
+                                <TableRow key={`${po.id}-${item.medication_id}-${index}`} className="bg-muted/10">
                                     <TableCell></TableCell>
                                     <TableCell className="pr-10">{item.name}</TableCell>
                                     <TableCell className="font-mono">{item.quantity}</TableCell>
-                                    <TableCell className="font-mono">{item.purchasePrice.toLocaleString()}</TableCell>
-                                    <TableCell className="font-mono">{(item.quantity * item.purchasePrice).toLocaleString()}</TableCell>
+                                    <TableCell className="font-mono">{item.purchase_price.toLocaleString()}</TableCell>
+                                    <TableCell className="font-mono">{(item.quantity * item.purchase_price).toLocaleString()}</TableCell>
                                     <TableCell></TableCell>
                                 </TableRow>
                             ))}
@@ -614,9 +625,9 @@ export default function PurchasesPage() {
                         <Input id="returnSlipId" value={returnSlipId} onChange={e => setReturnSlipId(e.target.value)} placeholder="مثال: RET-2024-001" required disabled={isReturnInfoLocked} />
                     </div>
                      <div className="space-y-2">
-                        <Label htmlFor="return-supplierId">المورد</Label>
+                        <Label htmlFor="return-supplier_id">المورد</Label>
                         <Select value={returnSupplierId} onValueChange={setReturnSupplierId} required disabled={isReturnInfoLocked}>
-                            <SelectTrigger id="return-supplierId"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
+                            <SelectTrigger id="return-supplier_id"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
                             <SelectContent>
                                 {(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                             </SelectContent>
@@ -645,7 +656,7 @@ export default function PurchasesPage() {
                                             >
                                                 <div>
                                                   <div>{med.name}</div>
-                                                  <div className="text-xs text-muted-foreground">{med.scientificNames?.join(', ')}</div>
+                                                  <div className="text-xs text-muted-foreground">{med.scientific_names?.join(', ')}</div>
                                                 </div>
                                                 <span className="text-sm text-muted-foreground font-mono">الرصيد: {med.stock}</span>
                                             </li>
@@ -683,13 +694,13 @@ export default function PurchasesPage() {
                       </TableHeader>
                       <TableBody>
                         {returnCart.map(item => (
-                          <TableRow key={item.medicationId}>
+                          <TableRow key={item.medication_id}>
                             <TableCell>{item.name}</TableCell>
                             <TableCell className="font-mono">{item.quantity}</TableCell>
                             <TableCell>{item.reason}</TableCell>
-                            <TableCell className="font-mono">{(item.quantity * item.purchasePrice).toLocaleString()}</TableCell>
+                            <TableCell className="font-mono">{(item.quantity * item.purchase_price).toLocaleString()}</TableCell>
                             <TableCell>
-                              <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleRemoveFromReturnCart(item.medicationId)}>
+                              <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleRemoveFromReturnCart(item.medication_id)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </TableCell>
@@ -741,21 +752,21 @@ export default function PurchasesPage() {
                                 <TableCell>
                                      <div className="flex items-center gap-2">
                                         <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", expandedRows.has(ret.id) && "rotate-180")} />
-                                        {ret.supplierName}
+                                        {ret.supplier_name}
                                     </div>
                                 </TableCell>
                                 <TableCell></TableCell>
                                 <TableCell></TableCell>
-                                <TableCell className="font-mono">{ret.totalAmount.toLocaleString()}</TableCell>
+                                <TableCell className="font-mono">{ret.total_amount.toLocaleString()}</TableCell>
                                 <TableCell className="font-mono">{new Date(ret.date).toLocaleDateString('ar-EG')}</TableCell>
                             </TableRow>
                              {expandedRows.has(ret.id) && (ret.items || []).map((item, index) => (
-                                <TableRow key={`${ret.id}-${item.medicationId}-${index}`} className="bg-muted/10">
+                                <TableRow key={`${ret.id}-${item.medication_id}-${index}`} className="bg-muted/10">
                                     <TableCell></TableCell>
                                     <TableCell className="pr-10">{item.name} <span className="text-xs text-muted-foreground">({item.reason})</span></TableCell>
                                     <TableCell className="font-mono">{item.quantity}</TableCell>
-                                    <TableCell className="font-mono">{item.purchasePrice.toLocaleString()}</TableCell>
-                                    <TableCell className="font-mono">{(item.quantity * item.purchasePrice).toLocaleString()}</TableCell>
+                                    <TableCell className="font-mono">{item.purchase_price.toLocaleString()}</TableCell>
+                                    <TableCell className="font-mono">{(item.quantity * item.purchase_price).toLocaleString()}</TableCell>
                                     <TableCell></TableCell>
                                 </TableRow>
                             ))}

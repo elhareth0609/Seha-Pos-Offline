@@ -46,11 +46,11 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
         </thead>
         <tbody>
           {sale.items.map((item) => (
-            <tr key={`${item.medicationId}-${item.isReturn}`} className={cn("border-b border-dashed", item.isReturn && 'text-red-600')}>
+            <tr key={`${item.medication_id}-${item.isReturn}`} className={cn("border-b border-dashed", item.isReturn && 'text-red-600')}>
               <td className="p-2">
                 <div>{item.name} {item.isReturn && "(مرتجع)"}</div>
-                {(item.scientificNames || []).length > 0 && (
-                    <div className="text-xs text-gray-500">({(item.scientificNames || []).join(', ')})</div>
+                {(item.scientific_names || []).length > 0 && (
+                    <div className="text-xs text-gray-500">({(item.scientific_names || []).join(', ')})</div>
                 )}
               </td>
               <td className="p-2 text-center font-mono">{item.quantity}</td>

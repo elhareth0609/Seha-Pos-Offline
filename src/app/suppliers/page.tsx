@@ -85,7 +85,7 @@ export default function SuppliersPage() {
   const handleAddSupplier = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const name = formData.get("supplierName") as string;
+    const name = formData.get("supplier_name") as string;
     const contact_person = formData.get("supplierContact") as string;
     
     const newSupplier = await addSupplier({ name, contact_person });
@@ -132,12 +132,12 @@ export default function SuppliersPage() {
   const supplierAccounts = React.useMemo(() => {
     if (!isClient) return [];
     return suppliers.map(supplier => {
-      const purchases = purchaseOrders.filter(po => po.supplierId === supplier.id && po.status === "Received");
-      const returns = supplierReturns.filter(ret => ret.supplierId === supplier.id);
-      const payments = supplierPayments.filter(p => p.supplierId === supplier.id);
+      const purchases = purchaseOrders.filter(po => po.supplier_id === supplier.id && po.status === "Received");
+      const returns = supplierReturns.filter(ret => ret.supplier_id === supplier.id);
+      const payments = supplierPayments.filter(p => p.supplier_id === supplier.id);
 
-      const totalPurchases = purchases.reduce((acc, po) => acc + po.totalAmount, 0);
-      const totalReturns = returns.reduce((acc, ret) => acc + ret.totalAmount, 0);
+      const totalPurchases = purchases.reduce((acc, po) => acc + po.total_amount, 0);
+      const totalReturns = returns.reduce((acc, ret) => acc + ret.total_amount, 0);
       const totalPayments = payments.reduce((acc, p) => acc + p.amount, 0);
 
       const netDebt = totalPurchases - totalReturns - totalPayments;
@@ -153,13 +153,13 @@ export default function SuppliersPage() {
   }, [suppliers, purchaseOrders, supplierReturns, supplierPayments, isClient]);
   
   const handleOpenStatement = (supplierAccount: typeof supplierAccounts[0]) => {
-      const supplierPurchases = purchaseOrders.filter(po => po.supplierId === supplierAccount.id);
-      const supplierReturnsData = supplierReturns.filter(ret => ret.supplierId === supplierAccount.id);
-      const supplierPaymentsData = supplierPayments.filter(p => p.supplierId === supplierAccount.id);
+      const supplierPurchases = purchaseOrders.filter(po => po.supplier_id === supplierAccount.id);
+      const supplierReturnsData = supplierReturns.filter(ret => ret.supplier_id === supplierAccount.id);
+      const supplierPaymentsData = supplierPayments.filter(p => p.supplier_id === supplierAccount.id);
 
       const allTransactions = [
-          ...supplierPurchases.map(p => ({ ...p, transType: 'شراء' as const, amount: p.totalAmount, details: `فاتورة شراء #${p.id}` })),
-          ...supplierReturnsData.map(r => ({ ...r, transType: 'استرجاع' as const, amount: r.totalAmount, details: `قائمة استرجاع #${r.id}` })),
+          ...supplierPurchases.map(p => ({ ...p, transType: 'شراء' as const, amount: p.total_amount, details: `فاتورة شراء #${p.id}` })),
+          ...supplierReturnsData.map(r => ({ ...r, transType: 'استرجاع' as const, amount: r.total_amount, details: `قائمة استرجاع #${r.id}` })),
           ...supplierPaymentsData.map(p => ({ ...p, transType: 'دفعة' as const, amount: p.amount, details: p.notes || `دفعة نقدية` }))
       ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -240,8 +240,8 @@ export default function SuppliersPage() {
                     </DialogHeader>
                     <form onSubmit={handleAddSupplier} className="space-y-4 pt-2">
                         <div className="space-y-2">
-                            <Label htmlFor="supplierName">اسم المورد</Label>
-                            <Input id="supplierName" name="supplierName" required />
+                            <Label htmlFor="supplier_name">اسم المورد</Label>
+                            <Input id="supplier_name" name="supplier_name" required />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="supplierContact">الشخص المسؤول (اختياري)</Label>

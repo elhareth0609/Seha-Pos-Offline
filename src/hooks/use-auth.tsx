@@ -73,8 +73,8 @@ interface AuthContextType {
   
   // Suppliers
   addSupplier: (data: Partial<Supplier>) => Promise<Supplier | null>;
-  updateSupplier: (supplierId: string, data: Partial<Supplier>) => Promise<boolean>;
-  deleteSupplier: (supplierId: string) => Promise<boolean>;
+  updateSupplier: (supplier_id: string, data: Partial<Supplier>) => Promise<boolean>;
+  deleteSupplier: (supplier_id: string) => Promise<boolean>;
 
   // Patients
   addPatient: (name: string, phone?: string) => Promise<Patient | null>;
@@ -82,7 +82,7 @@ interface AuthContextType {
   deletePatient: (patientId: string) => Promise<boolean>;
   
   // Payments
-  addPayment: (supplierId: string, amount: number, notes?: string) => Promise<boolean>;
+  addPayment: (supplier_id: string, amount: number, notes?: string) => Promise<boolean>;
   
   // Purchases and Returns
   addPurchaseOrder: (data: any) => Promise<boolean>;
@@ -350,7 +350,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const updateUserHourlyRate = async (userId: string, rate: number) => {
         try {
             await apiRequest(`/users/${userId}/hourly-rate`, 'PUT', { hourly_rate: rate });
-            setUsers(prev => prev.map(u => u.id === userId ? { ...u, hourlyRate: rate } : u));
+            setUsers(prev => prev.map(u => u.id === userId ? { ...u, hourly_rate: rate } : u));
             toast({ title: "تم تحديث سعر الساعة" });
             return true;
         } catch (error: any) {
@@ -448,7 +448,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Update inventory state based on the sale
             const updatedInventory = [...inventory];
             newSale.items.forEach((item: SaleItem) => {
-                const medIndex = updatedInventory.findIndex(m => m.id === item.medicationId);
+                const medIndex = updatedInventory.findIndex(m => m.id === item.medication_id);
                 if (medIndex !== -1) {
                     updatedInventory[medIndex].stock += (item.isReturn ? item.quantity : -item.quantity);
                 }
@@ -467,19 +467,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch(e) { return null; }
     }
 
-    const updateSupplier = async (supplierId: string, data: Partial<Supplier>) => {
+    const updateSupplier = async (supplier_id: string, data: Partial<Supplier>) => {
         try {
-            const updatedSupplier = await apiRequest(`/suppliers/${supplierId}`, 'PUT', data);
-            setSuppliers(prev => prev.map(s => s.id === supplierId ? updatedSupplier : s));
+            const updatedSupplier = await apiRequest(`/suppliers/${supplier_id}`, 'PUT', data);
+            setSuppliers(prev => prev.map(s => s.id === supplier_id ? updatedSupplier : s));
             toast({ title: "تم تحديث المورد بنجاح" });
             return true;
         } catch (e) { return false; }
     }
 
-    const deleteSupplier = async (supplierId: string) => {
+    const deleteSupplier = async (supplier_id: string) => {
         try {
-            const trashedItem = await apiRequest(`/suppliers/${supplierId}`, 'DELETE');
-            setSuppliers(prev => prev.filter(s => s.id !== supplierId));
+            const trashedItem = await apiRequest(`/suppliers/${supplier_id}`, 'DELETE');
+            setSuppliers(prev => prev.filter(s => s.id !== supplier_id));
             setTrash(prev => [...prev, trashedItem]);
             toast({ title: "تم نقل المورد إلى سلة المحذوفات" });
             return true;
@@ -514,9 +514,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (e) { return false; }
     }
 
-    const addPayment = async (supplierId: string, amount: number, notes?: string) => {
+    const addPayment = async (supplier_id: string, amount: number, notes?: string) => {
         try {
-            const newPayment = await apiRequest('/payments', 'POST', { supplier_id: supplierId, amount, notes });
+            const newPayment = await apiRequest('/payments', 'POST', { supplier_id: supplier_id, amount, notes });
             setPayments(prev => [...prev, newPayment]);
             toast({ title: `تم تسجيل دفعة بمبلغ ${amount.toLocaleString()}` });
             return true;

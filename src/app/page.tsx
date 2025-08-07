@@ -40,25 +40,28 @@ export default function Dashboard() {
     setIsClient(true);
   }, []);
 
-  const totalRevenue = sales.reduce((acc, sale) => acc + (sale.total || 0), 0);
+  const totalRevenue = sales.reduce((acc, sale) => {
+    const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
+    return acc + (isNaN(total) ? 0 : total);
+  }, 0);
   const totalProfit = sales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
   const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
   const lowStockItems = inventory.filter(
-    (item) => item.stock < item.reorderPoint
+    (item) => item.stock < item.reorder_point
   );
 
-  const reorderPointItems = inventory.filter(
-    (item) => item.stock > 0 && item.stock <= item.reorderPoint
+  const reorder_pointItems = inventory.filter(
+    (item) => item.stock > 0 && item.stock <= item.reorder_point
   );
   
   const expirationThreshold = settings.expirationThresholdDays || 90;
 
   const expiringSoonItems = inventory.filter(item => {
-    if (!item.expirationDate) return false;
-    const daysLeft = differenceInDays(parseISO(item.expirationDate), new Date());
+    if (!item.expiration_date) return false;
+    const daysLeft = differenceInDays(parseISO(item.expiration_date), new Date());
     return daysLeft > 0 && daysLeft <= expirationThreshold;
-  }).sort((a,b) => differenceInDays(parseISO(a.expirationDate), new Date()) - differenceInDays(parseISO(b.expirationDate), new Date()));
+  }).sort((a,b) => differenceInDays(parseISO(a.expiration_date), new Date()) - differenceInDays(parseISO(b.expiration_date), new Date()));
   
   const topSellingMedications = React.useMemo(() => {
     const stats: { [medId: string]: { name: string; quantity: number } } = {};
@@ -67,18 +70,18 @@ export default function Dashboard() {
         (sale.items || []).forEach(item => {
             if (item.isReturn) return; 
 
-            if (!stats[item.medicationId]) {
-                stats[item.medicationId] = {
+            if (!stats[item.medication_id]) {
+                stats[item.medication_id] = {
                     name: item.name,
                     quantity: 0,
                 };
             }
-            stats[item.medicationId].quantity += item.quantity;
+            stats[item.medication_id].quantity += item.quantity;
         });
     });
 
     const statsArray = Object.keys(stats).map(medId => ({
-        medicationId: medId,
+        medication_id: medId,
         name: stats[medId].name,
         quantity: stats[medId].quantity
     }));
@@ -108,7 +111,10 @@ export default function Dashboard() {
         }
     });
 
-    const currentTotalRevenue = filteredSales.reduce((acc, sale) => acc + (sale.total || 0), 0);
+    const currentTotalRevenue = filteredSales.reduce((acc, sale) => {
+    const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
+    return acc + (isNaN(total) ? 0 : total);
+  }, 0);
     const currentTotalProfit = filteredSales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
     const currentProfitMargin = currentTotalRevenue > 0 ? (currentTotalProfit / currentTotalRevenue) * 100 : 0;
     const invoiceCount = filteredSales.length;
@@ -194,7 +200,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono">
-              {totalRevenue.toLocaleString()}
+                {totalRevenue.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
               مجموع المبالغ النهائية لجميع الفواتير.
@@ -233,7 +239,7 @@ export default function Dashboard() {
             <AlertTriangle className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono">{reorderPointItems.length}</div>
+            <div className="text-2xl font-bold font-mono">{reorder_pointItems.length}</div>
             <p className="text-xs text-muted-foreground">
               أصناف عند نقطة إعادة الطلب
             </p>
@@ -277,7 +283,7 @@ export default function Dashboard() {
                         <DollarSign className="h-5 w-5" />
                     </div>
                     <div className="text-3xl font-bold font-mono">
-                        {salesPerformance.totalRevenue.toLocaleString()}
+                          {salesPerformance.totalRevenue}
                     </div>
                     <p className="text-xs text-muted-foreground font-mono">من {salesPerformance.invoiceCount} فاتورة</p>
                 </div>
@@ -287,7 +293,7 @@ export default function Dashboard() {
                         <TrendingUp className="h-5 w-5 text-green-600" />
                     </div>
                     <div className="text-3xl font-bold text-green-600 font-mono">
-                        {salesPerformance.totalProfit.toLocaleString()}
+                        {salesPerformance.totalProfit.toFixed(2)}
                     </div>
                     <p className="text-xs text-muted-foreground">الربح بعد طرح تكلفة البضاعة والخصومات</p>
                 </div>
@@ -330,7 +336,7 @@ export default function Dashboard() {
                               <TableRow key={item.id}>
                                   <TableCell>{item.name}</TableCell>
                                   <TableCell><Badge variant="destructive" className="font-mono">{item.stock}</Badge></TableCell>
-                                  <TableCell className="font-mono">{item.reorderPoint}</TableCell>
+                                  <TableCell className="font-mono">{item.reorder_point}</TableCell>
                               </TableRow>
                           )) : (
                               <TableRow>
@@ -364,8 +370,8 @@ export default function Dashboard() {
                           {expiringSoonItems.length > 0 ? expiringSoonItems.slice(0,5).map(item => (
                               <TableRow key={item.id}>
                                   <TableCell>{item.name}</TableCell>
-                                  <TableCell className="font-mono">{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
-                                  <TableCell><Badge variant="secondary" className="bg-yellow-400 text-yellow-900 font-mono">{differenceInDays(parseISO(item.expirationDate), new Date())} يوم</Badge></TableCell>
+                                  <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('ar-EG')}</TableCell>
+                                  <TableCell><Badge variant="secondary" className="bg-yellow-400 text-yellow-900 font-mono">{differenceInDays(parseISO(item.expiration_date), new Date())} يوم</Badge></TableCell>
                               </TableRow>
                           )) : (
                               <TableRow>
@@ -391,7 +397,7 @@ export default function Dashboard() {
                   </TableHeader>
                   <TableBody>
                       {topSellingMedications.length > 0 ? topSellingMedications.map((item) => (
-                          <TableRow key={item.medicationId}>
+                          <TableRow key={item.medication_id}>
                               <TableCell className="font-medium">{item.name}</TableCell>
                               <TableCell className="text-left font-mono">{item.quantity}</TableCell>
                           </TableRow>

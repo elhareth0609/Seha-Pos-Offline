@@ -62,7 +62,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import AdCarousel from "@/components/ui/ad-carousel";
 
 
-const dosageForms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion"];
+const dosage_forms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion"];
 
 export default function InventoryPage() {
   const { scopedData, updateMedication, deleteMedication, bulkAddOrUpdateInventory } = useAuth();
@@ -124,16 +124,16 @@ export default function InventoryPage() {
       const lowercasedFilter = searchTerm.toLowerCase().trim();
       const filtered = sortedInventory.filter((item) =>
           (item.name || '').toLowerCase().startsWith(lowercasedFilter) ||
-          (item.id && item.id.toLowerCase().includes(lowercasedFilter)) ||
-          (item.scientificNames && item.scientificNames.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
+          (item.id && item.id.toString().toLowerCase().includes(lowercasedFilter)) ||
+          (item.scientific_names && item.scientific_names.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
       );
       setFilteredInventory(filtered);
     }
   }, [searchTerm, sortedInventory, isClient]);
 
-  const getStockStatus = (stock: number, reorderPoint: number) => {
+  const getStockStatus = (stock: number, reorder_point: number) => {
     if (stock <= 0) return <Badge variant="destructive">نفد من المخزون</Badge>
-    if (stock < reorderPoint) return <Badge variant="secondary" className="bg-yellow-400 text-yellow-900">مخزون منخفض</Badge>
+    if (stock < reorder_point) return <Badge variant="secondary" className="bg-yellow-400 text-yellow-900">مخزون منخفض</Badge>
     return <Badge variant="secondary" className="bg-green-300 text-green-900">متوفر</Badge>
   }
 
@@ -152,21 +152,21 @@ export default function InventoryPage() {
 
       const formData = new FormData(e.currentTarget);
       
-       const scientificNamesArray = (formData.get('scientificNames') as string)
+       const scientific_namesArray = (formData.get('scientific_names') as string)
             .split(',')
             .map(name => name.trim())
             .filter(Boolean);
 
       const updatedMedData: Partial<Medication> = {
           name: formData.get('name') as string,
-          scientificNames: scientificNamesArray,
+          scientific_names: scientific_namesArray,
           stock: parseInt(formData.get('stock') as string, 10),
-          reorderPoint: parseInt(formData.get('reorderPoint') as string, 10),
+          reorder_point: parseInt(formData.get('reorder_point') as string, 10),
           price: parseFloat(formData.get('price') as string),
-          purchasePrice: parseFloat(formData.get('purchasePrice') as string),
-          expirationDate: formData.get('expirationDate') as string,
+          purchase_price: parseFloat(formData.get('purchase_price') as string),
+          expiration_date: formData.get('expiration_date') as string,
           dosage: formData.get('dosage') as string,
-          dosageForm: formData.get('dosageForm') as string,
+          dosage_form: formData.get('dosage_form') as string,
       }
       
       const success = await updateMedication(editingMed.id, updatedMedData);
@@ -240,10 +240,10 @@ export default function InventoryPage() {
                 id: medId,
                 name: medName,
                 stock: isNaN(stock) ? 0 : stock,
-                reorderPoint: 10,
+                reorder_point: 10,
                 price: 0,
-                purchasePrice: 0,
-                expirationDate: formattedExpDate,
+                purchase_price: 0,
+                expiration_date: formattedExpDate,
             });
         }
         
@@ -385,15 +385,15 @@ export default function InventoryPage() {
                         )}
                         <div>
                           <span className="font-medium">{item.name}</span>
-                          <div className="text-xs text-muted-foreground">{item.scientificNames?.join(', ')}</div>
+                          <div className="text-xs text-muted-foreground">{item.scientific_names?.join(', ')}</div>
                         </div>
                     </div>
                   </TableCell>
                   <TableCell className="text-center font-mono">{item.stock}</TableCell>
-                  <TableCell className="text-center font-mono">{item.reorderPoint}</TableCell>
-                  <TableCell className="font-mono">{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
+                  <TableCell className="text-center font-mono">{item.reorder_point}</TableCell>
+                  <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('ar-EG')}</TableCell>
                   <TableCell className="text-center font-mono">{item.price.toLocaleString()}</TableCell>
-                  <TableCell>{getStockStatus(item.stock, item.reorderPoint)}</TableCell>
+                  <TableCell>{getStockStatus(item.stock, item.reorder_point)}</TableCell>
                   <TableCell>
                       <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -468,8 +468,8 @@ export default function InventoryPage() {
                                   <Input id="edit-name" name="name" defaultValue={editingMed.name} required />
                               </div>
                                <div className="space-y-2">
-                                  <Label htmlFor="edit-scientificNames">الاسم العلمي (يفصل بفاصلة ,)</Label>
-                                  <Input id="edit-scientificNames" name="scientificNames" defaultValue={editingMed.scientificNames?.join(', ')} />
+                                  <Label htmlFor="edit-scientific_names">الاسم العلمي (يفصل بفاصلة ,)</Label>
+                                  <Input id="edit-scientific_names" name="scientific_names" defaultValue={editingMed.scientific_names?.join(', ')} />
                               </div>
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -478,11 +478,11 @@ export default function InventoryPage() {
                                   <Input id="edit-dosage" name="dosage" defaultValue={editingMed.dosage} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="edit-dosageForm">الشكل الدوائي</Label>
-                                    <Select name="dosageForm" defaultValue={editingMed.dosageForm}>
-                                        <SelectTrigger id="edit-dosageForm"><SelectValue placeholder="اختر الشكل" /></SelectTrigger>
+                                    <Label htmlFor="edit-dosage_form">الشكل الدوائي</Label>
+                                    <Select name="dosage_form" defaultValue={editingMed.dosage_form}>
+                                        <SelectTrigger id="edit-dosage_form"><SelectValue placeholder="اختر الشكل" /></SelectTrigger>
                                         <SelectContent>
-                                            {dosageForms.map(form => <SelectItem key={form} value={form}>{form}</SelectItem>)}
+                                            {dosage_forms.map(form => <SelectItem key={form} value={form}>{form}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -491,15 +491,15 @@ export default function InventoryPage() {
                                   <Input id="edit-stock" name="stock" type="number" defaultValue={editingMed.stock} required />
                                 </div>
                                <div className="space-y-2">
-                                  <Label htmlFor="edit-reorderPoint">نقطة إعادة الطلب</Label>
-                                  <Input id="edit-reorderPoint" name="reorderPoint" type="number" defaultValue={editingMed.reorderPoint} required />
+                                  <Label htmlFor="edit-reorder_point">نقطة إعادة الطلب</Label>
+                                  <Input id="edit-reorder_point" name="reorder_point" type="number" defaultValue={editingMed.reorder_point} required />
                               </div>
                              
                           </div>
                            <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                  <Label htmlFor="edit-purchasePrice">سعر الشراء</Label>
-                                  <Input id="edit-purchasePrice" name="purchasePrice" type="number" step="1" defaultValue={editingMed.purchasePrice} required />
+                                  <Label htmlFor="edit-purchase_price">سعر الشراء</Label>
+                                  <Input id="edit-purchase_price" name="purchase_price" type="number" step="1" defaultValue={editingMed.purchase_price} required />
                                 </div>
                                 <div className="space-y-2">
                                   <Label htmlFor="edit-price">سعر البيع</Label>
@@ -507,8 +507,8 @@ export default function InventoryPage() {
                               </div>
                           </div>
                           <div className="space-y-2">
-                                  <Label htmlFor="edit-expirationDate">تاريخ الانتهاء</Label>
-                                  <Input id="edit-expirationDate" name="expirationDate" type="date" defaultValue={editingMed.expirationDate} required />
+                                  <Label htmlFor="edit-expiration_date">تاريخ الانتهاء</Label>
+                                  <Input id="edit-expiration_date" name="expiration_date" type="date" defaultValue={new Date(editingMed.expiration_date).toISOString().split('T')[0]} required />
                               </div>
                           <DialogFooter>
                               <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>

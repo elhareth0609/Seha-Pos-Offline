@@ -203,9 +203,9 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
             .filter(item => !item.isReturn)
             .map(item => ({
                 tradeName: item.name,
-                scientificNames: item.scientificNames || [],
+                scientific_names: item.scientific_names || [],
                 dosage: item.dosage || 'N/A',
-                dosageForm: item.dosageForm || 'N/A'
+                dosage_form: item.dosage_form || 'N/A'
             }));
             
         try {
@@ -364,25 +364,25 @@ export default function SalesPage() {
   const addToCart = React.useCallback((medication: Medication) => {
     if (mode !== 'new') return;
     setCart((prevCart) => {
-      const existingItem = prevCart.find(item => item.medicationId === medication.id && !item.isReturn)
+      const existingItem = prevCart.find(item => item.medication_id === medication.id && !item.isReturn)
       if (existingItem) {
         return prevCart.map(item =>
-          item.medicationId === medication.id && !item.isReturn
+          item.medication_id === medication.id && !item.isReturn
             ? { ...item, quantity: item.quantity + 1 }
             : item
         )
       }
       return [...prevCart, { 
-          medicationId: medication.id, 
+          medication_id: medication.id, 
           name: medication.name, 
-          scientificNames: medication.scientificNames, 
+          scientific_names: medication.scientific_names, 
           quantity: 1, 
           price: medication.price || 0,
-          purchasePrice: medication.purchasePrice, 
-          expirationDate: medication.expirationDate, 
+          purchase_price: medication.purchase_price, 
+          expiration_date: medication.expiration_date, 
           isReturn: false, 
           dosage: medication.dosage,
-          dosageForm: medication.dosageForm,
+          dosage_form: medication.dosage_form,
         }]
     })
     setSearchTerm("")
@@ -430,7 +430,7 @@ export default function SalesPage() {
         const lowercasedFilter = value.toLowerCase().trim();
         const filtered = (allInventory || []).filter((item) =>
             (item.name && item.name.toLowerCase().startsWith(lowercasedFilter)) ||
-            (item.scientificNames && item.scientificNames.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
+            (item.scientific_names && item.scientific_names.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
         );
         setSuggestions(filtered.slice(0, 5));
     } else {
@@ -467,22 +467,22 @@ export default function SalesPage() {
     }
   }, [suggestions, allInventory, searchTerm, addToCart, mode, toast]);
 
-  const updateQuantity = (medicationId: string, quantity: number) => {
+  const updateQuantity = (medication_id: string, quantity: number) => {
     if (mode !== 'new') return;
     if (quantity <= 0) {
-      removeFromCart(medicationId)
+      removeFromCart(medication_id)
     } else {
-      setCart(cart => cart.map(item => item.medicationId === medicationId ? { ...item, quantity } : item))
+      setCart(cart => cart.map(item => item.medication_id === medication_id ? { ...item, quantity } : item))
     }
   }
   
-  const updateTotalPrice = (medicationId: string, newTotalPriceStr: string) => {
+  const updateTotalPrice = (medication_id: string, newTotalPriceStr: string) => {
     if (mode !== 'new') return;
     
     // Allow empty string to reset or clear
     if (newTotalPriceStr.trim() === '') {
         setCart(cart => cart.map(item => {
-            if (item.medicationId === medicationId) {
+            if (item.medication_id === medication_id) {
                 return { ...item, price: 0 }; 
             }
             return item;
@@ -494,7 +494,7 @@ export default function SalesPage() {
     if (isNaN(newTotalPrice) || newTotalPrice < 0) return;
 
     setCart(cart => cart.map(item => {
-      if (item.medicationId === medicationId) {
+      if (item.medication_id === medication_id) {
         // Calculate new unit price based on the total. Avoid division by zero.
         const newUnitPrice = item.quantity > 0 ? newTotalPrice / item.quantity : 0;
         return { ...item, price: newUnitPrice };
@@ -503,15 +503,15 @@ export default function SalesPage() {
     }));
   };
 
-  const removeFromCart = (medicationId: string) => {
+  const removeFromCart = (medication_id: string) => {
     if (mode !== 'new') return;
-    setCart(cart => cart.filter(item => item.medicationId !== medicationId))
+    setCart(cart => cart.filter(item => item.medication_id !== medication_id))
   }
 
-  const toggleReturn = (medicationId: string) => {
+  const toggleReturn = (medication_id: string) => {
     if (mode !== 'new') return;
     setCart(cart => cart.map(item => 
-      item.medicationId === medicationId 
+      item.medication_id === medication_id 
         ? { ...item, isReturn: !item.isReturn } 
         : item
     ));
@@ -523,7 +523,7 @@ export default function SalesPage() {
   }, 0);
 
   const totalProfit = cart.reduce((acc, item) => {
-      const itemProfit = (item.price - item.purchasePrice) * item.quantity;
+      const itemProfit = (item.price - item.purchase_price) * item.quantity;
       return item.isReturn ? acc - itemProfit : acc + itemProfit;
   }, 0);
   
@@ -550,7 +550,7 @@ export default function SalesPage() {
     
     for (const itemInCart of cart) {
         if (!itemInCart.isReturn) {
-            const med = allInventory.find(m => m.id === itemInCart.medicationId);
+            const med = allInventory.find(m => m.id === itemInCart.medication_id);
             if (!med || med.stock < itemInCart.quantity) {
                 toast({ variant: 'destructive', title: `كمية غير كافية من ${itemInCart.name}`, description: `الكمية المطلوبة ${itemInCart.quantity}, المتوفر ${med?.stock ?? 0}` });
                 return;
@@ -639,14 +639,14 @@ export default function SalesPage() {
   const filteredPatients = (patients || []).filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()));
 
   const findAlternatives = (currentItem: SaleItem): Medication[] => {
-    if (!currentItem.scientificNames || currentItem.scientificNames.length === 0) {
+    if (!currentItem.scientific_names || currentItem.scientific_names.length === 0) {
         return [];
     }
-    const currentScientificNames = currentItem.scientificNames.map(s => s.toLowerCase());
+    const currentScientificNames = currentItem.scientific_names.map(s => s.toLowerCase());
 
     return allInventory.filter(med => 
-        med.id !== currentItem.medicationId && // Exclude the item itself
-        med.scientificNames?.some(scName => currentScientificNames.includes(scName.toLowerCase()))
+        med.id !== currentItem.medication_id && // Exclude the item itself
+        med.scientific_names?.some(scName => currentScientificNames.includes(scName.toLowerCase()))
     );
 };
 
@@ -686,7 +686,7 @@ export default function SalesPage() {
                                                     )}
                                                     <div>
                                                       <div className="font-medium">{med.name}</div>
-                                                      <div className="text-xs text-muted-foreground">{med.scientificNames?.join(', ')}</div>
+                                                      <div className="text-xs text-muted-foreground">{med.scientific_names?.join(', ')}</div>
                                                     </div>
                                                 </div>
                                                  <span className="text-sm text-muted-foreground font-mono">{med.price.toLocaleString()}</span>
@@ -744,19 +744,19 @@ export default function SalesPage() {
                         <>
                             <div className="md:hidden divide-y divide-border">
                                 {cart.map((item) => {
-                                    const medInInventory = allInventory.find(med => med.id === item.medicationId);
+                                    const medInInventory = allInventory.find(med => med.id === item.medication_id);
                                     const stock = medInInventory?.stock ?? 0;
                                     const remainingStock = stock - item.quantity;
-                                    const isBelowCost = item.price < item.purchasePrice;
+                                    const isBelowCost = item.price < item.purchase_price;
                                     const totalPrice = item.price * item.quantity;
                                     const alternatives = findAlternatives(item);
                                     return (
-                                        <div key={item.medicationId} className={cn("flex flex-col gap-3 p-3", item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
+                                        <div key={item.medication_id} className={cn("flex flex-col gap-3 p-3", item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
                                             <div className="flex justify-between items-start gap-2">
                                                 <div className="flex-grow">
                                                     <div className="flex items-center gap-1 font-medium">
-                                                        <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" disabled={mode !== 'new'} className="me-2"/>
-                                                        {item.name} {item.dosage} {item.dosageForm}
+                                                        <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medication_id)} aria-label="Mark as return" disabled={mode !== 'new'} className="me-2"/>
+                                                        {item.name} {item.dosage} {item.dosage_form}
                                                         {alternatives.length > 0 && (
                                                             <Popover>
                                                                 <PopoverTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6 text-primary/70 hover:text-primary"><Replace className="h-4 w-4" /></Button></PopoverTrigger>
@@ -776,24 +776,24 @@ export default function SalesPage() {
                                                             </Popover>
                                                         )}
                                                     </div>
-                                                    <div className="text-xs text-muted-foreground">({(item.scientificNames || []).join(', ')})</div>
+                                                    <div className="text-xs text-muted-foreground">({(item.scientific_names || []).join(', ')})</div>
                                                 </div>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeFromCart(item.medicationId)} disabled={mode !== 'new'}><X className="h-4 w-4 text-destructive" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeFromCart(item.medication_id)} disabled={mode !== 'new'}><X className="h-4 w-4 text-destructive" /></Button>
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-3 items-end">
                                                 <div className="space-y-1">
                                                     <Label className="text-xs">الكمية</Label>
                                                     <div className="flex items-center justify-center gap-2 border rounded-md p-1">
-                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity - 1)} disabled={mode !== 'new'}><MinusCircle className="h-4 w-4" /></Button>
+                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medication_id, item.quantity - 1)} disabled={mode !== 'new'}><MinusCircle className="h-4 w-4" /></Button>
                                                         <span className="font-mono">{item.quantity}</span>
-                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity + 1)} disabled={mode !== 'new'}><PlusCircle className="h-4 w-4" /></Button>
+                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medication_id, item.quantity + 1)} disabled={mode !== 'new'}><PlusCircle className="h-4 w-4" /></Button>
                                                     </div>
                                                 </div>
                                                 <div className="space-y-1">
-                                                     <Label htmlFor={`price-${item.medicationId}`} className="text-xs">السعر الإجمالي</Label>
+                                                     <Label htmlFor={`price-${item.medication_id}`} className="text-xs">السعر الإجمالي</Label>
                                                      <div className="relative">
-                                                        <Input id={`price-${item.medicationId}`} type="number" value={item.price * item.quantity} onChange={(e) => updateTotalPrice(item.medicationId, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={mode !== 'new'} />
+                                                        <Input id={`price-${item.medication_id}`} type="number" value={item.price * item.quantity} onChange={(e) => updateTotalPrice(item.medication_id, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={mode !== 'new'} />
                                                         {isBelowCost && !item.isReturn && (
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
@@ -808,7 +808,7 @@ export default function SalesPage() {
                                              <div className="text-xs text-muted-foreground mt-1 flex gap-2">
                                                 <span>الرصيد: {stock}</span>
                                                 {!item.isReturn && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
-                                                <span>| الشراء: <span className="font-mono">{item.purchasePrice}</span></span>
+                                                <span>| الشراء: <span className="font-mono">{item.purchase_price}</span></span>
                                              </div>
                                         </div>
                                     )
@@ -827,21 +827,21 @@ export default function SalesPage() {
                               </TableHeader>
                               <TableBody>
                                   {cart.map((item) => {
-                                    const medInInventory = allInventory.find(med => med.id === item.medicationId);
+                                    const medInInventory = allInventory.find(med => med.id === item.medication_id);
                                     const stock = medInInventory?.stock ?? 0;
                                     const remainingStock = stock - item.quantity;
-                                    const isBelowCost = item.price < item.purchasePrice;
+                                    const isBelowCost = item.price < item.purchase_price;
                                     const totalPrice = item.price * item.quantity;
                                     const alternatives = findAlternatives(item);
 
                                     return (
-                                        <TableRow key={item.medicationId} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
+                                        <TableRow key={item.medication_id} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
                                             <TableCell className="text-center">
-                                                <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medicationId)} aria-label="Mark as return" disabled={mode !== 'new'}/>
+                                                <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medication_id)} aria-label="Mark as return" disabled={mode !== 'new'}/>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-1">
-                                                    <span className="font-medium">{item.name} {item.dosage} {item.dosageForm}</span>
+                                                    <span className="font-medium">{item.name} {item.dosage} {item.dosage_form}</span>
                                                     {alternatives.length > 0 && (
                                                         <Popover>
                                                             <PopoverTrigger asChild>
@@ -873,18 +873,18 @@ export default function SalesPage() {
                                                         </Popover>
                                                     )}
                                                 </div>
-                                                <div className="text-xs text-muted-foreground">({(item.scientificNames || []).join(', ')})</div>
+                                                <div className="text-xs text-muted-foreground">({(item.scientific_names || []).join(', ')})</div>
                                                 <div className="text-xs text-muted-foreground flex gap-2">
                                                     <span>الرصيد: {stock}</span> 
                                                     {!item.isReturn && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
-                                                    <span>| الشراء: <span className="font-mono">{item.purchasePrice}</span></span>
+                                                    <span>| الشراء: <span className="font-mono">{item.purchase_price}</span></span>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
                                             <div className="flex items-center justify-center gap-2">
-                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity - 1)} disabled={mode !== 'new'}><MinusCircle className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medication_id, item.quantity - 1)} disabled={mode !== 'new'}><MinusCircle className="h-4 w-4" /></Button>
                                                 <span className="font-mono">{item.quantity}</span>
-                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medicationId, item.quantity + 1)} disabled={mode !== 'new'}><PlusCircle className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.medication_id, item.quantity + 1)} disabled={mode !== 'new'}><PlusCircle className="h-4 w-4" /></Button>
                                             </div>
                                             </TableCell>
                                             <TableCell>
@@ -892,7 +892,7 @@ export default function SalesPage() {
                                                     <Input 
                                                       type="text"
                                                       value={item.price * item.quantity}
-                                                      onChange={(e) => updateTotalPrice(item.medicationId, e.target.value)} 
+                                                      onChange={(e) => updateTotalPrice(item.medication_id, e.target.value)} 
                                                       className={cn("w-24 h-9 text-center font-mono", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )}
                                                       step="1" 
                                                       min="0" 
@@ -910,7 +910,7 @@ export default function SalesPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-left">
-                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medicationId)} disabled={mode !== 'new'}><X className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.medication_id)} disabled={mode !== 'new'}><X className="h-4 w-4" /></Button>
                                             </TableCell>
                                         </TableRow>
                                     );
@@ -1037,7 +1037,7 @@ export default function SalesPage() {
                                                   </TableHeader>
                                                   <TableBody>
                                                       {cart.map(item => (
-                                                          <TableRow key={item.medicationId} className={cn(item.isReturn && "text-destructive")}>
+                                                          <TableRow key={item.medication_id} className={cn(item.isReturn && "text-destructive")}>
                                                               <TableCell>{item.name} {item.isReturn && "(مرتجع)"}</TableCell>
                                                               <TableCell className="text-center font-mono">{item.quantity}</TableCell>
                                                               <TableCell className="text-left font-mono">{((item.isReturn ? -1 : 1) * item.price * item.quantity).toLocaleString()}</TableCell>

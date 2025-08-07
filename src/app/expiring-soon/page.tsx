@@ -33,17 +33,17 @@ export default function ExpiringSoonPage() {
   React.useEffect(() => {
     const today = new Date();
     const filtered = (allInventory || []).filter((item) => {
-        if (!item.expirationDate) return false;
-        const expirationDate = parseISO(item.expirationDate);
-        const daysUntilExpiration = differenceInDays(expirationDate, today);
+        if (!item.expiration_date) return false;
+        const expiration_date = parseISO(item.expiration_date);
+        const daysUntilExpiration = differenceInDays(expiration_date, today);
         return daysUntilExpiration >= 0 && daysUntilExpiration <= expirationThreshold;
-    }).sort((a, b) => differenceInDays(parseISO(a.expirationDate), today) - differenceInDays(parseISO(b.expirationDate), today));
+    }).sort((a, b) => differenceInDays(parseISO(a.expiration_date), today) - differenceInDays(parseISO(b.expiration_date), today));
     setExpiringMedications(filtered);
   }, [allInventory, expirationThreshold]);
 
-  const getExpirationBadge = (expirationDate: string) => {
+  const getExpirationBadge = (expiration_date: string) => {
     const today = new Date();
-    const expDate = parseISO(expirationDate);
+    const expDate = parseISO(expiration_date);
     const daysLeft = differenceInDays(expDate, today);
 
     if (daysLeft < 0) {
@@ -58,9 +58,9 @@ export default function ExpiringSoonPage() {
     return null;
   };
 
-  const formatDaysLeft = (expirationDate: string) => {
+  const formatDaysLeft = (expiration_date: string) => {
       const today = new Date();
-      const expDate = parseISO(expirationDate);
+      const expDate = parseISO(expiration_date);
       const daysLeft = differenceInDays(expDate, today);
        if (daysLeft < 0) {
         return "منتهي";
@@ -92,9 +92,9 @@ export default function ExpiringSoonPage() {
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.name}</TableCell>
                 <TableCell className="font-mono">{item.stock}</TableCell>
-                <TableCell className="font-mono">{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</TableCell>
-                <TableCell className="font-mono">{formatDaysLeft(item.expirationDate)}</TableCell>
-                <TableCell>{getExpirationBadge(item.expirationDate)}</TableCell>
+                <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('ar-EG')}</TableCell>
+                <TableCell className="font-mono">{formatDaysLeft(item.expiration_date)}</TableCell>
+                <TableCell>{getExpirationBadge(item.expiration_date)}</TableCell>
               </TableRow>
             )) : (
                 <TableRow>

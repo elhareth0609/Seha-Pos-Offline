@@ -65,19 +65,19 @@ export default function SuperAdminReportsPage() {
         if (!selectedPharmacyId || !pharmacyData) return null;
 
         const { sales, inventory } = pharmacyData;
-        const pharmacyUsers: User[] = users.filter(u => u.pharmacyId === selectedPharmacyId && u.role === 'Employee');
+        const pharmacyUsers: User[] = users.filter(u => u.pharmacy_id === parseInt(selectedPharmacyId) && u.role === "Employee");
 
         const totalRevenue = sales.reduce((acc, sale) => acc + (sale.total || 0), 0);
         const totalProfit = sales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
         const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
         
-        const lowStockItems = inventory.filter(item => item.stock < item.reorderPoint).slice(0, 5);
+        const lowStockItems = inventory.filter(item => item.stock < item.reorder_point).slice(0, 5);
         
         const topSellingItems = sales
             .flatMap(s => s.items)
             .reduce((acc, item) => {
                 if (!item.isReturn) {
-                    acc[item.medicationId] = (acc[item.medicationId] || 0) + item.quantity;
+                    acc[item.medication_id] = (acc[item.medication_id] || 0) + item.quantity;
                 }
                 return acc;
             }, {} as { [key: string]: number });
@@ -85,8 +85,8 @@ export default function SuperAdminReportsPage() {
         const topSoldArray = Object.entries(topSellingItems)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5)
-            .map(([medicationId, quantity]) => {
-                const med = inventory.find(m => m.id === medicationId);
+            .map(([medication_id, quantity]) => {
+                const med = inventory.find(m => m.id === medication_id);
                 return { name: med?.name || 'غير معروف', quantity };
             });
 
@@ -125,7 +125,6 @@ export default function SuperAdminReportsPage() {
                         </SelectTrigger>
                         <SelectContent>
                             {Object.entries(pharmacySettings).map(([pharmacyId, pharmacy]: [string, AppSettings]) => {
-                                console.log(pharmacyId, pharmacy);
                                 return (
                                     <SelectItem key={pharmacyId} value={pharmacyId}>
                                         {pharmacy?.pharmacyName || 'صيدلية جديدة'}
@@ -198,7 +197,7 @@ export default function SuperAdminReportsPage() {
                                             <TableRow key={item.id}>
                                                 <TableCell>{item.name}</TableCell>
                                                 <TableCell><Badge variant="destructive" className="font-mono">{item.stock}</Badge></TableCell>
-                                                <TableCell className="font-mono">{item.reorderPoint}</TableCell>
+                                                <TableCell className="font-mono">{item.reorder_point}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>

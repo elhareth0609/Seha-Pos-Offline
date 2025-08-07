@@ -234,7 +234,7 @@ export default function SettingsPage() {
     }
 
     const handleClearData = async () => {
-        if (!currentUser?.pharmacyId) {
+        if (!currentUser?.pharmacy_id) {
             toast({ variant: "destructive", title: "خطأ", description: "لم يتم العثور على معرف الصيدلية." });
             return;
         }
@@ -282,7 +282,7 @@ export default function SettingsPage() {
 
     const openTimeLogDialog = (user: User) => {
         setEditingUser(user);
-        setCurrentUserHourlyRate(String(user.hourlyRate || 0));
+        setCurrentUserHourlyRate(String(user.hourly_rate || 0));
         setDateFrom("");
         setDateTo("");
         setIsTimeLogDialogOpen(true);
@@ -298,7 +298,7 @@ export default function SettingsPage() {
         await updateUserHourlyRate(editingUser.id, rate);
     };
 
-    const pharmacyUsers = users.filter(u => u.pharmacyId === currentUser?.pharmacyId && u.role !== 'SuperAdmin');
+    const pharmacyUsers = users.filter(u => u.pharmacy_id === currentUser?.pharmacy_id && u.role !== 'SuperAdmin');
     
     const filteredTimeLogs = React.useMemo(() => {
         if (!editingUser) return [];
@@ -328,7 +328,7 @@ export default function SettingsPage() {
         return acc;
     }, 0);
     const totalHours = totalMinutes / 60;
-    const totalSalary = totalHours * (editingUser?.hourlyRate || 0);
+    const totalSalary = totalHours * (editingUser?.hourly_rate || 0);
 
     if (!isClient || !currentUser) {
         return (
@@ -492,7 +492,7 @@ export default function SettingsPage() {
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="font-mono">
-                                        {(user.hourlyRate || 0).toLocaleString()}
+                                        {(user.hourly_rate || 0).toLocaleString()}
                                     </TableCell>
                                     <TableCell className="text-left">
                                         {user.role !== 'Admin' && (
@@ -649,8 +649,8 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
                     <div className="md:col-span-2 space-y-4">
                         <div className="flex items-center gap-2">
-                            <Label htmlFor="hourlyRate">سعر الساعة:</Label>
-                            <Input id="hourlyRate" type="number" value={currentUserHourlyRate} onChange={(e) => setCurrentUserHourlyRate(e.target.value)} className="w-24"/>
+                            <Label htmlFor="hourly_rate">سعر الساعة:</Label>
+                            <Input id="hourly_rate" type="number" value={currentUserHourlyRate} onChange={(e) => setCurrentUserHourlyRate(e.target.value)} className="w-24"/>
                             <Button onClick={handleSaveHourlyRate} size="sm">حفظ</Button>
                         </div>
                         <div className="flex gap-2 items-end">
@@ -679,7 +679,7 @@ export default function SettingsPage() {
                                 {filteredTimeLogs.map(log => {
                                     const duration = log.clockOut ? formatDistanceStrict(new Date(log.clockOut), new Date(log.clockIn), { locale: ar, unit: 'minute' }) : "جارٍ العمل";
                                     const minutes = log.clockOut ? differenceInMinutes(new Date(log.clockOut), new Date(log.clockIn)) : 0;
-                                    const salary = (minutes / 60) * (editingUser?.hourlyRate || 0);
+                                    const salary = (minutes / 60) * (editingUser?.hourly_rate || 0);
 
                                     return (
                                         <TableRow key={log.id}>

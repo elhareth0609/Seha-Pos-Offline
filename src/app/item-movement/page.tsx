@@ -59,7 +59,7 @@ export default function ItemMovementPage() {
             const filtered = inventory.filter(item => 
                 (item.name || '').toLowerCase().startsWith(lowercasedFilter) || 
                 (item.id || '').toLowerCase().includes(lowercasedFilter) ||
-                (item.scientificNames && item.scientificNames.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
+                (item.scientific_names && item.scientific_names.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
             );
             setSuggestions(filtered.slice(0, 5));
         } else {
@@ -73,20 +73,20 @@ export default function ItemMovementPage() {
         setSuggestions([]);
 
         const purchases = purchaseOrders
-            .flatMap(po => (po.items || []).map(item => ({ ...item, date: po.date, supplierName: po.supplierName, documentId: po.id })))
-            .filter(item => item.medicationId === med.id)
+            .flatMap(po => (po.items || []).map(item => ({ ...item, date: po.date, supplier_name: po.supplier_name, documentId: po.id })))
+            .filter(item => item.medication_id === med.id)
             .map(item => ({
                 date: item.date,
                 type: 'شراء' as const,
                 quantity: item.quantity,
-                price: item.purchasePrice,
+                price: item.purchase_price,
                 documentId: item.documentId,
-                actor: item.supplierName,
+                actor: item.supplier_name,
             }));
 
         const saleEvents = sales
             .flatMap(s => (s.items || []).map(item => ({ ...item, date: s.date, patientName: s.patientName || 'زبون', documentId: s.id })))
-            .filter(item => item.medicationId === med.id)
+            .filter(item => item.medication_id === med.id)
             .map(item => ({
                 date: item.date,
                 type: item.isReturn ? 'مرتجع زبون' as const : 'بيع' as const,
@@ -97,15 +97,15 @@ export default function ItemMovementPage() {
             }));
 
         const returnsToSupplier = supplierReturns
-            .flatMap(r => (r.items || []).map(item => ({ ...item, date: r.date, supplierName: r.supplierName, documentId: r.id })))
-            .filter(item => item.medicationId === med.id)
+            .flatMap(r => (r.items || []).map(item => ({ ...item, date: r.date, supplier_name: r.supplier_name, documentId: r.id })))
+            .filter(item => item.medication_id === med.id)
             .map(item => ({
                 date: item.date,
                 type: 'مرتجع للمورد' as const,
                 quantity: -item.quantity,
-                price: item.purchasePrice,
+                price: item.purchase_price,
                 documentId: item.documentId,
-                actor: item.supplierName,
+                actor: item.supplier_name,
             }));
         
         const allEvents = [...purchases, ...saleEvents, ...returnsToSupplier]
@@ -185,7 +185,7 @@ export default function ItemMovementPage() {
                                         >
                                             <div>
                                                 <div>{med.name}</div>
-                                                <div className="text-xs text-muted-foreground">{med.scientificNames?.join(', ')}</div>
+                                                <div className="text-xs text-muted-foreground">{med.scientific_names?.join(', ')}</div>
                                             </div>
                                             <span className="text-sm text-muted-foreground font-mono">الرصيد: {med.stock}</span>
                                         </li>

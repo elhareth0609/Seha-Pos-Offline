@@ -19,28 +19,28 @@ export type UserPermissions = {
 export type Medication = {
   id: string; 
   name: string; 
-  scientificNames?: string[];
+  scientific_names?: string[];
   image_url?: string;
   stock: number;
-  reorderPoint: number;
+  reorder_point: number;
   price: number; 
-  purchasePrice: number; 
-  expirationDate: string;
+  purchase_price: number; 
+  expiration_date: string;
   dosage?: string;
-  dosageForm?: string;
+  dosage_form?: string;
 };
 
 export type SaleItem = {
-  medicationId: string;
+  medication_id: string;
   name: string; 
-  scientificNames?: string[];
+  scientific_names?: string[];
   quantity: number;
   price: number;
-  purchasePrice: number;
-  expirationDate?: string;
+  purchase_price: number;
+  expiration_date?: string;
   isReturn?: boolean;
   dosage?: string;
-  dosageForm?: string;
+  dosage_form?: string;
 };
 
 export type Sale = {
@@ -57,44 +57,44 @@ export type Sale = {
 };
 
 export type PurchaseOrderItem = {
-  medicationId: string;
+  medication_id: string;
   name: string; // tradeName
   quantity: number;
-  purchasePrice: number;
+  purchase_price: number;
 };
 
 export type PurchaseOrder = {
   id: string;
-  supplierId: string;
-  supplierName: string;
+  supplier_id: string;
+  supplier_name: string;
   date: string;
   items: PurchaseOrderItem[];
   status: "Pending" | "Received" | "Cancelled";
-  totalAmount: number;
+  total_amount: number;
 };
 
 export type ReturnOrderItem = {
-  medicationId: string;
+  medication_id: string;
   name: string;
   quantity: number; // in sale units
-  purchasePrice: number; // per sale unit
+  purchase_price: number; // per sale unit
   reason: string;
 };
 
 export type ReturnOrder = {
   id: string;
-  supplierId: string;
-  supplierName: string;
+  supplier_id: string;
+  supplier_name: string;
   date: string;
   items: ReturnOrderItem[];
-  totalAmount: number;
-  purchaseId?: string; // Optional: Link to the original purchase order
+  total_amount: number;
+  purchase_id?: string; // Optional: Link to the original purchase order
 };
 
 export type SupplierPayment = {
     id: string;
     date: string;
-    supplierId: string;
+    supplier_id: string;
     amount: number;
     notes?: string;
 }
@@ -115,8 +115,8 @@ export type User = {
   email?: string;
   pin?: string;
   permissions?: UserPermissions;
-  hourlyRate?: number;
-  pharmacyId?: string;
+  hourly_rate?: number;
+  pharmacy_id?: string;
   created_at: string; // ISO date string
   image1DataUri?: string;
 };
@@ -171,9 +171,9 @@ export type Advertisement = {
 // AI Flow Schemas
 const MedicationInfoSchema = z.object({
   tradeName: z.string().describe('The commercial trade name of the medication.'),
-  scientificNames: z.array(z.string()).optional().describe('The active scientific names of the medication.'),
+  scientific_names: z.array(z.string()).optional().describe('The active scientific names of the medication.'),
   dosage: z.string().describe('The dosage strength of the medication (e.g., "500mg", "100mg/5ml").'),
-  dosageForm: z.string().describe('The form of the medication (e.g., "Tablet", "Syrup", "Capsule").'),
+  dosage_form: z.string().describe('The form of the medication (e.g., "Tablet", "Syrup", "Capsule").'),
 });
 
 export const DoseCalculationInputSchema = z.object({
