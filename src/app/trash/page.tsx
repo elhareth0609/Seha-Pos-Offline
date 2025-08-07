@@ -38,11 +38,8 @@ import { buttonVariants } from "@/components/ui/button"
 
 
 export default function TrashPage() {
-  const { currentUser, users, setUsers, scopedData } = useAuth();
+  const { currentUser, scopedData, restoreItem, permDelete, clearTrash } = useAuth();
   const { trash: [trash, setTrash] } = scopedData;
-  const { inventory: [allInventory, setAllInventory] } = scopedData;
-  const { patients: [allPatients, setAllPatients] } = scopedData;
-  const { suppliers: [allSuppliers, setAllSuppliers] } = scopedData;
   
   const { toast } = useToast();
 
@@ -53,33 +50,16 @@ export default function TrashPage() {
     user: 'موظف',
   }
 
-  const handleRestore = (itemToRestore: TrashItem) => {
-    switch (itemToRestore.itemType) {
-      case 'medication':
-        setAllInventory(prev => [itemToRestore.data as Medication, ...prev]);
-        break;
-      case 'patient':
-        setAllPatients(prev => [itemToRestore.data as Patient, ...prev]);
-        break;
-       case 'supplier':
-        setAllSuppliers(prev => [itemToRestore.data as Supplier, ...prev]);
-        break;
-       case 'user':
-        setUsers(prev => [...(prev || []), itemToRestore.data as User]);
-        break;
-    }
-    setTrash(prev => prev.filter(item => item.id !== itemToRestore.id));
-    toast({ title: "تمت الاستعادة", description: `تمت استعادة "${itemToRestore.data.name}" بنجاح.` });
+  const handleRestore = async (itemToRestore: TrashItem) => {
+    await restoreItem(itemToRestore.id);
   };
 
-  const handlePermanentDelete = (itemToDelete: TrashItem) => {
-    setTrash(prev => prev.filter(item => item.id !== itemToDelete.id));
-    toast({ variant: 'destructive', title: "تم الحذف نهائياً", description: `تم حذف "${itemToDelete.data.name}" بشكل دائم.` });
+  const handlePermanentDelete = async (itemToDelete: TrashItem) => {
+    await permDelete(itemToDelete.id);
   };
 
-  const handleClearTrash = () => {
-    setTrash([]);
-    toast({ variant: 'destructive', title: "تم تفريغ سلة المحذوفات" });
+  const handleClearTrash = async () => {
+    await clearTrash();
   }
 
   const sortedTrash = Array.isArray(trash) ? [...trash].sort((a, b) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime()) : [];

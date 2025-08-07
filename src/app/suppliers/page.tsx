@@ -11,7 +11,7 @@ import {
     CardFooter,
 } from "@/components/ui/card"
 import { useAuth } from "@/hooks/use-auth"
-import type { Supplier, PurchaseOrder, ReturnOrder, SupplierPayment, TrashItem } from "@/lib/types"
+import type { Supplier, PurchaseOrder, ReturnOrder, SupplierPayment } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import {
@@ -62,12 +62,11 @@ type StatementItem = {
 };
 
 export default function SuppliersPage() {
-  const { scopedData } = useAuth();
-  const [suppliers, setSuppliers] = scopedData.suppliers;
-  const [purchaseOrders, setPurchaseOrders] = scopedData.purchaseOrders;
-  const [supplierReturns, setSupplierReturns] = scopedData.supplierReturns;
-  const [supplierPayments, setSupplierPayments] = scopedData.payments;
-  const [trash, setTrash] = scopedData.trash;
+  const { scopedData, addSupplier, updateSupplier, deleteSupplier, addPayment } = useAuth();
+  const [suppliers] = scopedData.suppliers;
+  const [purchaseOrders] = scopedData.purchaseOrders;
+  const [supplierReturns] = scopedData.supplierReturns;
+  const [supplierPayments] = scopedData.payments;
 
   const [isClient, setIsClient] = React.useState(false)
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
@@ -83,27 +82,19 @@ export default function SuppliersPage() {
     setIsClient(true)
   }, [])
   
-  const handleAddSupplier = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAddSupplier = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const name = formData.get("supplierName") as string;
-    const contact = formData.get("supplierContact") as string;
-    if (!name) {
-        toast({ variant: "destructive", title: "اسم المورد مطلوب" });
-        return;
+    const contactPerson = formData.get("supplierContact") as string;
+    
+    const newSupplier = await addSupplier({ name, contactPerson });
+    if(newSupplier) {
+        setIsAddDialogOpen(false);
     }
-    const newSupplier: Supplier = {
-        id: `SUP${Date.now()}`,
-        name,
-        contactPerson: contact,
-    };
-    setSuppliers(prev => [newSupplier, ...prev]);
-
-    setIsAddDialogOpen(false);
-    toast({ title: "تمت إضافة المورد بنجاح" });
   };
 
-  const handleUpdateSupplier = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleUpdateSupplier = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!editingSupplier) return;
 
@@ -111,46 +102,18 @@ export default function SuppliersPage() {
     const name = formData.get('name') as string;
     const contactPerson = formData.get('contactPerson') as string;
 
-    const updatedSupplier: Supplier = { ...editingSupplier, name, contactPerson };
-
-    setSuppliers(prev => prev.map(s => s.id === updatedSupplier.id ? updatedSupplier : s));
-    
-    setPurchaseOrders(prev => prev.map(po => po.supplierId === updatedSupplier.id ? { ...po, supplierName: updatedSupplier.name } : po));
-    setSupplierReturns(prev => prev.map(ret => ret.supplierId === updatedSupplier.id ? { ...ret, supplierName: updatedSupplier.name } : ret));
-
-    toast({ title: "تم تحديث بيانات المورد" });
-    setIsEditDialogOpen(false);
-    setEditingSupplier(null);
-  }
-
-  const handleDeleteSupplier = (supplier: Supplier) => {
-    const hasTransactions = 
-        purchaseOrders.some(p => p.supplierId === supplier.id) ||
-        supplierReturns.some(r => r.supplierId === supplier.id) ||
-        supplierPayments.some(sp => sp.supplierId === supplier.id);
-
-    if (hasTransactions) {
-        toast({
-            variant: "destructive",
-            title: "لا يمكن حذف المورد",
-            description: "هذا المورد لديه معاملات مسجلة (مشتريات، مرتجعات، دفعات). لا يمكن حذفه للحفاظ على السجلات المالية."
-        });
-        return;
+    const success = await updateSupplier(editingSupplier.id, { name, contactPerson });
+    if(success) {
+        setIsEditDialogOpen(false);
+        setEditingSupplier(null);
     }
-
-    const newTrashItem: TrashItem = {
-      id: `TRASH-${Date.now()}`,
-      deletedAt: new Date().toISOString(),
-      itemType: 'supplier',
-      data: supplier,
-    };
-    setTrash(prev => [newTrashItem, ...prev]);
-
-    setSuppliers(prev => prev.filter(s => s.id !== supplier.id));
-    toast({ title: "تم نقل المورد إلى سلة المحذوفات" });
   }
 
-  const handleAddPayment = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleDeleteSupplier = async (supplier: Supplier) => {
+    await deleteSupplier(supplier.id);
+  }
+
+  const handleAddPayment = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selectedSupplier) return;
 
@@ -158,23 +121,12 @@ export default function SuppliersPage() {
     const amount = parseFloat(formData.get('amount') as string);
     const notes = formData.get('notes') as string;
 
-    if (isNaN(amount) || amount <= 0) {
-        toast({ variant: 'destructive', title: 'مبلغ غير صالح', description: "الرجاء إدخال مبلغ صحيح أكبر من صفر." });
-        return;
-    }
+    const success = await addPayment(selectedSupplier.id, amount, notes);
 
-    const newPayment: SupplierPayment = {
-        id: `PAY-${Date.now()}`,
-        supplierId: selectedSupplier.id,
-        amount,
-        date: new Date().toISOString(),
-        notes,
-    };
-    
-    setSupplierPayments(prev => [newPayment, ...prev]);
-    toast({ title: 'تم تسجيل الدفعة بنجاح!' });
-    setIsPaymentDialogOpen(false);
-    setSelectedSupplier(null);
+    if (success) {
+        setIsPaymentDialogOpen(false);
+        setSelectedSupplier(null);
+    }
   }
 
   const supplierAccounts = React.useMemo(() => {
@@ -334,7 +286,7 @@ export default function SuppliersPage() {
                                             <AlertDialogHeader>
                                                 <AlertDialogTitle>هل أنت متأكد من حذف {account.name}؟</AlertDialogTitle>
                                                 <AlertDialogDescription>
-                                                    سيتم نقل هذا المورد إلى سلة المحذوفات.
+                                                    سيتم حذف هذا المورد نهائياً.
                                                 </AlertDialogDescription>
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
