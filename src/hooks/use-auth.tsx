@@ -6,8 +6,6 @@ import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Sup
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 
-// This is a placeholder for your Laravel API URL.
-// You should set this in your .env.local file.
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 type AuthResponse = {
@@ -135,13 +133,14 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
 
     const responseData = await response.json();
     
-    if (!response.ok || responseData.status === 'error') {
-        const errorMessage = responseData.message || response.statusText || 'An API error occurred';
+    if (!response.ok) {
+        // Use message from Laravel's JSON response if available
+        const errorMessage = responseData.message || 'An API error occurred';
         throw new Error(errorMessage);
     }
 
-    // Return the data field from the standardized response
-    return responseData.data;
+    // Laravel wraps responses in a 'data' key, let's handle that.
+    return responseData.data ?? responseData;
 }
 
 
@@ -198,11 +197,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     React.useEffect(() => {
         const checkInitialState = async () => {
             try {
-                // Check if the system has been set up (i.e., if a SuperAdmin exists)
                 const setupStatus = await apiRequest('/setup/status');
                 setIsSetup(setupStatus.is_setup);
 
-                // If a token exists, try to re-authenticate
                 const token = localStorage.getItem('authToken');
                 if (token) {
                     const data: AuthResponse = await apiRequest('/user');
@@ -329,69 +326,93 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     
     const updateUserHourlyRate = async (userId: string, rate: number) => {
-        // This function will need a dedicated API endpoint in Laravel
-        toast({ title: "ملاحظة: تحتاج هذه الميزة إلى واجهة برمجية مخصصة" });
-        return false;
+        try {
+            await apiRequest(`/users/${userId}/hourly-rate`, 'PUT', { hourly_rate: rate });
+            setUsers(prev => prev.map(u => u.id === userId ? { ...u, hourlyRate: rate } : u));
+            return true;
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'فشل تحديث سعر الساعة', description: error.message });
+            return false;
+        }
     };
     
     const getAllPharmacySettings = async (): Promise<Record<string, AppSettings>> => {
-        // This function will need a dedicated API endpoint in Laravel for SuperAdmins
-        toast({ title: "ملاحظة: تحتاج هذه الميزة إلى واجهة برمجية مخصصة" });
-        return {};
+        try {
+            return await apiRequest('/superadmin/pharmacies/settings');
+        } catch(e: any) {
+            toast({ variant: 'destructive', title: 'فشل جلب الإعدادات', description: e.message });
+            return {};
+        }
     };
 
     const getPharmacyData = async (pharmacyId: string) => {
-        // This function will need a dedicated API endpoint in Laravel for SuperAdmins
-        toast({ title: "ملاحظة: تحتاج هذه الميزة إلى واجهة برمجية مخصصة" });
-        return { sales: [], inventory: [] };
+         try {
+            return await apiRequest(`/superadmin/pharmacies/${pharmacyId}`);
+        } catch(e: any) {
+            toast({ variant: 'destructive', title: 'فشل جلب بيانات الصيدلية', description: e.message });
+            return { sales: [], inventory: [] };
+        }
     };
 
     const addAdvertisement = async (title: string, imageUrl: string) => {
-        // This function will need a dedicated API endpoint in Laravel for SuperAdmins
-        toast({ title: "ملاحظة: تحتاج هذه الميزة إلى واجهة برمجية مخصصة" });
+         try {
+            const newAd = await apiRequest('/advertisements', 'POST', { title, image_url: imageUrl });
+            setAdvertisements(prev => [...prev, newAd]);
+        } catch(e: any) {
+            toast({ variant: 'destructive', title: 'فشل إضافة الإعلان', description: e.message });
+        }
     };
 
     const updateAdvertisement = async (adId: string, data: Partial<Omit<Advertisement, 'id' | 'createdAt'>>) => {
-        // This function will need a dedicated API endpoint in Laravel for SuperAdmins
-        toast({ title: "ملاحظة: تحتاج هذه الميزة إلى واجهة برمجية مخصصة" });
+        try {
+            const updatedAd = await apiRequest(`/advertisements/${adId}`, 'PUT', data);
+            setAdvertisements(prev => prev.map(ad => ad.id === adId ? updatedAd : ad));
+        } catch(e: any) {
+            toast({ variant: 'destructive', title: 'فشل تحديث الإعلان', description: e.message });
+        }
     };
 
     const deleteAdvertisement = async (adId: string) => {
-        // This function will need a dedicated API endpoint in Laravel for SuperAdmins
-        toast({ title: "ملاحظة: تحتاج هذه الميزة إلى واجهة برمجية مخصصة" });
+        try {
+            await apiRequest(`/advertisements/${adId}`, 'DELETE');
+            setAdvertisements(prev => prev.filter(ad => ad.id !== adId));
+        } catch(e: any) {
+            toast({ variant: 'destructive', title: 'فشل حذف الإعلان', description: e.message });
+        }
     };
 
-    const createSetter = <T,>(
+    // --- Scoped Data Setters ---
+
+    const createSetter = <T extends {id: any}>(
         setter: React.Dispatch<React.SetStateAction<T[]>>,
+        resource: string
     ) => async (value: T[] | ((val: T[]) => T[])) => {
-        // The logic for updating data should now happen inside each component
-        // which calls a specific API endpoint. This setter just updates the local state.
+        // This is now just an optimistic update. The actual API call should be made in the component.
+        // For example, when adding a new item, the component will call the API,
+        // and on success, it will update the state using this setter.
         setter(value);
     };
 
     const setScopedSettings = async (value: AppSettings | ((val: AppSettings) => AppSettings)) => {
        const newSettings = typeof value === 'function' ? value(settings) : value;
        try {
-           await apiRequest('/settings', 'POST', newSettings);
-           setSettings(newSettings);
+           const updatedSettings = await apiRequest('/settings', 'POST', newSettings);
+           setSettings(updatedSettings);
        } catch (error: any) {
            toast({ variant: 'destructive', title: 'فشل حفظ الإعدادات', description: error.message });
        }
     };
     
-    // This scopedData now mostly just provides the state and a local setter.
-    // The responsibility of calling the API is moved to the components themselves
-    // to make the system more modular.
     const scopedData: ScopedDataContextType = {
-        inventory: [inventory, createSetter(setInventory)],
-        sales: [sales, createSetter(setSales)],
-        suppliers: [suppliers, createSetter(setSuppliers)],
-        patients: [patients, createSetter(setPatients)],
-        trash: [trash, createSetter(setTrash)],
-        payments: [payments, createSetter(setPayments)],
-        purchaseOrders: [purchaseOrders, createSetter(setPurchaseOrders)],
-        supplierReturns: [supplierReturns, createSetter(setSupplierReturns)],
-        timeLogs: [timeLogs, createSetter(setTimeLogs)],
+        inventory: [inventory, createSetter(setInventory, 'medications')],
+        sales: [sales, createSetter(setSales, 'sales')],
+        suppliers: [suppliers, createSetter(setSuppliers, 'suppliers')],
+        patients: [patients, createSetter(setPatients, 'patients')],
+        trash: [trash, createSetter(setTrash, 'trash')],
+        payments: [payments, createSetter(setPayments, 'payments')],
+        purchaseOrders: [purchaseOrders, createSetter(setPurchaseOrders, 'purchase-orders')],
+        supplierReturns: [supplierReturns, createSetter(setSupplierReturns, 'return-orders')],
+        timeLogs: [timeLogs, createSetter(setTimeLogs, 'time-logs')],
         settings: [settings, setScopedSettings],
     };
 
@@ -418,3 +439,5 @@ export function useAuth() {
   }
   return context;
 }
+
+    
