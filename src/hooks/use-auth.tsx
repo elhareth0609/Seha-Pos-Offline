@@ -59,8 +59,39 @@ interface AuthContextType {
   addAdvertisement: (title: string, imageUrl: string) => Promise<void>;
   updateAdvertisement: (adId: string, data: Partial<Omit<Advertisement, 'id' | 'createdAt'>>) => Promise<void>;
   deleteAdvertisement: (adId: string) => Promise<void>;
-
+  clearPharmacyData: () => Promise<void>;
+  
   scopedData: ScopedDataContextType;
+
+  // Inventory Management
+  updateMedication: (medId: string, data: Partial<Medication>) => Promise<boolean>;
+  deleteMedication: (medId: string) => Promise<boolean>;
+  bulkAddOrUpdateInventory: (items: Partial<Medication>[]) => Promise<boolean>;
+
+  // Sales
+  addSale: (saleData: any) => Promise<Sale | null>;
+  
+  // Suppliers
+  addSupplier: (data: Partial<Supplier>) => Promise<Supplier | null>;
+  updateSupplier: (supplierId: string, data: Partial<Supplier>) => Promise<boolean>;
+  deleteSupplier: (supplierId: string) => Promise<boolean>;
+
+  // Patients
+  addPatient: (name: string, phone?: string) => Promise<Patient | null>;
+  updatePatient: (patientId: string, data: Partial<Patient>) => Promise<boolean>;
+  deletePatient: (patientId: string) => Promise<boolean>;
+  
+  // Payments
+  addPayment: (supplierId: string, amount: number, notes?: string) => Promise<boolean>;
+  
+  // Purchases and Returns
+  addPurchaseOrder: (data: any) => Promise<boolean>;
+  addReturnOrder: (data: any) => Promise<boolean>;
+  
+  // Trash
+  restoreItem: (itemId: string) => Promise<boolean>;
+  permDelete: (itemId: string) => Promise<boolean>;
+  clearTrash: () => Promise<boolean>;
   
   activeInvoice: ActiveInvoice;
   setActiveInvoice: React.Dispatch<React.SetStateAction<ActiveInvoice>>;
@@ -68,15 +99,15 @@ interface AuthContextType {
 }
 
 export interface ScopedDataContextType {
-    inventory: [Medication[], (value: Medication[] | ((val: Medication[]) => Medication[])) => void];
-    sales: [Sale[], (value: Sale[] | ((val: Sale[]) => Sale[])) => void];
-    suppliers: [Supplier[], (value: Supplier[] | ((val: Supplier[]) => Supplier[])) => void];
-    patients: [Patient[], (value: Patient[] | ((val: Patient[]) => Patient[])) => void];
-    trash: [TrashItem[], (value: TrashItem[] | ((val: TrashItem[]) => TrashItem[])) => void];
-    payments: [SupplierPayment[], (value: SupplierPayment[] | ((val: SupplierPayment[]) => SupplierPayment[])) => void];
-    purchaseOrders: [PurchaseOrder[], (value: PurchaseOrder[] | ((val: PurchaseOrder[]) => PurchaseOrder[])) => void];
-    supplierReturns: [ReturnOrder[], (value: ReturnOrder[] | ((val: ReturnOrder[]) => ReturnOrder[])) => void];
-    timeLogs: [TimeLog[], (value: TimeLog[] | ((val: TimeLog[]) => TimeLog[])) => void];
+    inventory: [Medication[], React.Dispatch<React.SetStateAction<Medication[]>>];
+    sales: [Sale[], React.Dispatch<React.SetStateAction<Sale[]>>];
+    suppliers: [Supplier[], React.Dispatch<React.SetStateAction<Supplier[]>>];
+    patients: [Patient[], React.Dispatch<React.SetStateAction<Patient[]>>];
+    trash: [TrashItem[], React.Dispatch<React.SetStateAction<TrashItem[]>>];
+    payments: [SupplierPayment[], React.Dispatch<React.SetStateAction<SupplierPayment[]>>];
+    purchaseOrders: [PurchaseOrder[], React.Dispatch<React.SetStateAction<PurchaseOrder[]>>];
+    supplierReturns: [ReturnOrder[], React.Dispatch<React.SetStateAction<ReturnOrder[]>>];
+    timeLogs: [TimeLog[], React.Dispatch<React.SetStateAction<TimeLog[]>>];
     settings: [AppSettings, (value: AppSettings | ((val: AppSettings) => AppSettings)) => void];
 }
 
@@ -91,20 +122,6 @@ const fallbackAppSettings: AppSettings = {
     invoiceFooterMessage: "شكرًا لزيارتكم!",
 }
 
-const emptyDataSetter = () => { console.warn("Attempted to set data without a valid user context."); };
-
-const emptyScopedData: ScopedDataContextType = {
-    inventory: [[], emptyDataSetter as any],
-    sales: [[], emptyDataSetter as any],
-    suppliers: [[], emptyDataSetter as any],
-    patients: [[], emptyDataSetter as any],
-    trash: [[], emptyDataSetter as any],
-    payments: [[], emptyDataSetter as any],
-    purchaseOrders: [[], emptyDataSetter as any],
-    supplierReturns: [[], emptyDataSetter as any],
-    timeLogs: [[], emptyDataSetter as any],
-    settings: [fallbackAppSettings, emptyDataSetter as any],
-};
 
 const initialActiveInvoice: ActiveInvoice = {
     cart: [],
@@ -125,22 +142,29 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
-        method,
-        headers,
-        body: body ? JSON.stringify(body) : undefined,
-    });
+    try {
+        const response = await fetch(`${API_URL}${endpoint}`, {
+            method,
+            headers,
+            body: body ? JSON.stringify(body) : undefined,
+        });
 
-    const responseData = await response.json();
-    
-    if (!response.ok) {
-        // Use message from Laravel's JSON response if available
-        const errorMessage = responseData.message || 'An API error occurred';
-        throw new Error(errorMessage);
+        if (response.status === 204) { // No Content
+            return null;
+        }
+
+        const responseData = await response.json();
+        
+        if (!response.ok) {
+            const errorMessage = responseData.message || 'An API error occurred';
+            throw new Error(errorMessage);
+        }
+
+        return responseData.data ?? responseData;
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'خطأ في الشبكة', description: error.message });
+        throw error;
     }
-
-    // Laravel wraps responses in a 'data' key, let's handle that.
-    return responseData.data ?? responseData;
 }
 
 
@@ -224,7 +248,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsSetup(true);
             return true;
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'فشل الإعداد', description: error.message });
             return false;
         } finally {
             setLoading(false);
@@ -238,7 +261,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setAllData(data);
             return data.user;
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'فشل تسجيل الدخول', description: error.message });
             return null;
         } finally {
             setLoading(false);
@@ -264,7 +286,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUsers(prev => [...prev, newUser]);
             return true;
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'فشل إنشاء المدير', description: error.message });
             return false;
         }
     };
@@ -275,7 +296,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUsers(prev => [...prev, newUser]);
             return true;
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'فشل إضافة الموظف', description: error.message });
             return false;
         }
     }
@@ -287,18 +307,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (currentUser?.id === userId) setCurrentUser(updatedUser);
             return true;
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'فشل تحديث المستخدم', description: error.message });
             return false;
         }
     };
     
     const deleteUser = async (userId: string, permanent: boolean = false) => {
         try {
-            await apiRequest(`/users/${userId}`, 'DELETE', { permanent });
+            if (permanent) {
+                 await apiRequest(`/users/${userId}`, 'DELETE', { permanent: true });
+            } else {
+                const trashedItem = await apiRequest(`/users/${userId}`, 'DELETE');
+                setTrash(prev => [...prev, trashedItem]);
+            }
             setUsers(prev => prev.filter(u => u.id !== userId));
             return true;
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'فشل حذف المستخدم', description: error.message });
             return false;
         }
     };
@@ -309,7 +332,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUsers(prev => prev.map(u => u.id === userId ? { ...u, status } : u));
             return true;
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'فشل تغيير الحالة', description: error.message });
             return false;
         }
     };
@@ -318,9 +340,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             await apiRequest(`/users/${userId}/permissions`, 'PUT', { permissions });
             setUsers(prev => prev.map(u => u.id === userId ? { ...u, permissions } : u));
+            toast({ title: "تم تحديث الصلاحيات بنجاح" });
             return true;
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'فشل تحديث الصلاحيات', description: error.message });
             return false;
         }
     };
@@ -329,9 +351,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             await apiRequest(`/users/${userId}/hourly-rate`, 'PUT', { hourly_rate: rate });
             setUsers(prev => prev.map(u => u.id === userId ? { ...u, hourlyRate: rate } : u));
+            toast({ title: "تم تحديث سعر الساعة" });
             return true;
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'فشل تحديث سعر الساعة', description: error.message });
             return false;
         }
     };
@@ -340,7 +362,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             return await apiRequest('/superadmin/pharmacies/settings');
         } catch(e: any) {
-            toast({ variant: 'destructive', title: 'فشل جلب الإعدادات', description: e.message });
             return {};
         }
     };
@@ -349,17 +370,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
          try {
             return await apiRequest(`/superadmin/pharmacies/${pharmacyId}`);
         } catch(e: any) {
-            toast({ variant: 'destructive', title: 'فشل جلب بيانات الصيدلية', description: e.message });
             return { sales: [], inventory: [] };
         }
     };
+    
+    const clearPharmacyData = async () => {
+        try {
+            await apiRequest('/settings/clear-data', 'DELETE');
+            toast({ title: "تم مسح البيانات بنجاح" });
+            logout();
+        } catch (e: any) {
+            // Error already handled by apiRequest
+        }
+    };
+
 
     const addAdvertisement = async (title: string, imageUrl: string) => {
          try {
             const newAd = await apiRequest('/advertisements', 'POST', { title, image_url: imageUrl });
             setAdvertisements(prev => [...prev, newAd]);
         } catch(e: any) {
-            toast({ variant: 'destructive', title: 'فشل إضافة الإعلان', description: e.message });
+             // Error already handled by apiRequest
         }
     };
 
@@ -368,7 +399,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const updatedAd = await apiRequest(`/advertisements/${adId}`, 'PUT', { show_on: data.showOn });
             setAdvertisements(prev => prev.map(ad => ad.id === adId ? updatedAd : ad));
         } catch(e: any) {
-            toast({ variant: 'destructive', title: 'فشل تحديث الإعلان', description: e.message });
+             // Error already handled by apiRequest
         }
     };
 
@@ -377,42 +408,196 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await apiRequest(`/advertisements/${adId}`, 'DELETE');
             setAdvertisements(prev => prev.filter(ad => ad.id !== adId));
         } catch(e: any) {
-            toast({ variant: 'destructive', title: 'فشل حذف الإعلان', description: e.message });
+            // Error already handled by apiRequest
         }
     };
 
-    // --- Scoped Data Setters ---
+    // --- Scoped Data Functions ---
+    const updateMedication = async (medId: string, data: Partial<Medication>) => {
+        try {
+            const updatedMed = await apiRequest(`/medications/${medId}`, 'PUT', data);
+            setInventory(prev => prev.map(m => m.id === medId ? updatedMed : m));
+            toast({ title: "تم تحديث الدواء بنجاح" });
+            return true;
+        } catch (e) { return false; }
+    }
+    
+    const deleteMedication = async (medId: string) => {
+        try {
+            const trashedItem = await apiRequest(`/medications/${medId}`, 'DELETE');
+            setInventory(prev => prev.filter(m => m.id !== medId));
+            setTrash(prev => [...prev, trashedItem]);
+            toast({ title: "تم نقل الدواء إلى سلة المحذوفات" });
+            return true;
+        } catch (e) { return false; }
+    }
+    
+    const bulkAddOrUpdateInventory = async (items: Partial<Medication>[]) => {
+        try {
+            const { updated_inventory, new_count, updated_count } = await apiRequest('/medications/bulk', 'POST', { items });
+            setInventory(updated_inventory);
+            toast({ title: "اكتمل الاستيراد", description: `تمت إضافة ${new_count} أصناف جديدة وتحديث ${updated_count} أصناف.` });
+            return true;
+        } catch (e) { return false; }
+    }
 
-    const createSetter = <T extends {id: any}>(
-        setter: React.Dispatch<React.SetStateAction<T[]>>,
-        resource: string
-    ) => async (value: T[] | ((val: T[]) => T[])) => {
-        // This is now just an optimistic update. The actual API call should be made in the component.
-        // For example, when adding a new item, the component will call the API,
-        // and on success, it will update the state using this setter.
-        setter(value);
+    const addSale = async (saleData: any) => {
+        try {
+            const newSale = await apiRequest('/sales', 'POST', saleData);
+            setSales(prev => [newSale, ...prev]);
+            // Update inventory state based on the sale
+            const updatedInventory = [...inventory];
+            newSale.items.forEach((item: SaleItem) => {
+                const medIndex = updatedInventory.findIndex(m => m.id === item.medicationId);
+                if (medIndex !== -1) {
+                    updatedInventory[medIndex].stock += (item.isReturn ? item.quantity : -item.quantity);
+                }
+            });
+            setInventory(updatedInventory);
+            return newSale;
+        } catch (e) { return null; }
+    }
+
+    const addSupplier = async (data: Partial<Supplier>) => {
+        try {
+            const newSupplier = await apiRequest('/suppliers', 'POST', data);
+            setSuppliers(prev => [newSupplier, ...prev]);
+            toast({ title: "تمت إضافة المورد بنجاح" });
+            return newSupplier;
+        } catch(e) { return null; }
+    }
+
+    const updateSupplier = async (supplierId: string, data: Partial<Supplier>) => {
+        try {
+            const updatedSupplier = await apiRequest(`/suppliers/${supplierId}`, 'PUT', data);
+            setSuppliers(prev => prev.map(s => s.id === supplierId ? updatedSupplier : s));
+            toast({ title: "تم تحديث المورد بنجاح" });
+            return true;
+        } catch (e) { return false; }
+    }
+
+    const deleteSupplier = async (supplierId: string) => {
+        try {
+            const trashedItem = await apiRequest(`/suppliers/${supplierId}`, 'DELETE');
+            setSuppliers(prev => prev.filter(s => s.id !== supplierId));
+            setTrash(prev => [...prev, trashedItem]);
+            toast({ title: "تم نقل المورد إلى سلة المحذوفات" });
+            return true;
+        } catch (e) { return false; }
+    }
+
+    const addPatient = async (name: string, phone?: string) => {
+        try {
+            const newPatient = await apiRequest('/patients', 'POST', { name, phone });
+            setPatients(prev => [newPatient, ...prev]);
+            toast({ title: "تمت إضافة المريض بنجاح" });
+            return newPatient;
+        } catch (e) { return null; }
+    }
+
+    const updatePatient = async (patientId: string, data: Partial<Patient>) => {
+        try {
+            const updatedPatient = await apiRequest(`/patients/${patientId}`, 'PUT', data);
+            setPatients(prev => prev.map(p => p.id === patientId ? updatedPatient : p));
+            toast({ title: "تم تحديث المريض بنجاح" });
+            return true;
+        } catch (e) { return false; }
+    }
+
+    const deletePatient = async (patientId: string) => {
+        try {
+            const trashedItem = await apiRequest(`/patients/${patientId}`, 'DELETE');
+            setPatients(prev => prev.filter(p => p.id !== patientId));
+            setTrash(prev => [...prev, trashedItem]);
+            toast({ title: "تم نقل المريض إلى سلة المحذوفات" });
+            return true;
+        } catch (e) { return false; }
+    }
+
+    const addPayment = async (supplierId: string, amount: number, notes?: string) => {
+        try {
+            const newPayment = await apiRequest('/payments', 'POST', { supplier_id: supplierId, amount, notes });
+            setPayments(prev => [...prev, newPayment]);
+            toast({ title: `تم تسجيل دفعة بمبلغ ${amount.toLocaleString()}` });
+            return true;
+        } catch (e) { return false; }
+    }
+
+    const addPurchaseOrder = async (data: any) => {
+        try {
+            const { purchase_order, updated_inventory } = await apiRequest('/purchase-orders', 'POST', data);
+            setPurchaseOrders(prev => [purchase_order, ...prev]);
+            setInventory(updated_inventory); // The backend returns the whole updated inventory
+            toast({ title: "تم تسجيل قائمة الشراء بنجاح" });
+            return true;
+        } catch (e) { return false; }
     };
+    
+    const addReturnOrder = async (data: any) => {
+        try {
+            const { return_order, updated_inventory } = await apiRequest('/return-orders', 'POST', data);
+            setSupplierReturns(prev => [return_order, ...prev]);
+            setInventory(updated_inventory);
+            toast({ title: "تم تسجيل قائمة الإرجاع بنجاح" });
+            return true;
+        } catch (e) { return false; }
+    };
+
+    const restoreItem = async (itemId: string) => {
+        try {
+            const { restored_item, item_type } = await apiRequest(`/trash/${itemId}`, 'PUT');
+            setTrash(prev => prev.filter(t => t.id !== itemId));
+            // Add the restored item back to its respective list
+            switch(item_type) {
+                case 'medication': setInventory(prev => [restored_item, ...prev]); break;
+                case 'patient': setPatients(prev => [restored_item, ...prev]); break;
+                case 'supplier': setSuppliers(prev => [restored_item, ...prev]); break;
+                case 'user': setUsers(prev => [restored_item, ...prev]); break;
+            }
+            toast({ title: "تم استعادة العنصر بنجاح" });
+            return true;
+        } catch(e) { return false; }
+    }
+    
+    const permDelete = async (itemId: string) => {
+         try {
+            await apiRequest(`/trash/${itemId}`, 'DELETE');
+            setTrash(prev => prev.filter(t => t.id !== itemId));
+            toast({ title: "تم حذف العنصر نهائيًا" });
+            return true;
+        } catch(e) { return false; }
+    }
+    
+    const clearTrash = async () => {
+        try {
+            await apiRequest('/trash/clear', 'DELETE');
+            setTrash([]);
+            toast({ title: "تم تفريغ سلة المحذوفات" });
+            return true;
+        } catch(e) { return false; }
+    }
 
     const setScopedSettings = async (value: AppSettings | ((val: AppSettings) => AppSettings)) => {
        const newSettings = typeof value === 'function' ? value(settings) : value;
        try {
            const updatedSettings = await apiRequest('/settings', 'POST', newSettings);
            setSettings(updatedSettings);
+           toast({ title: "تم حفظ الإعدادات" });
        } catch (error: any) {
-           toast({ variant: 'destructive', title: 'فشل حفظ الإعدادات', description: error.message });
+           // Error handled by apiRequest
        }
     };
     
     const scopedData: ScopedDataContextType = {
-        inventory: [inventory, createSetter(setInventory, 'medications')],
-        sales: [sales, createSetter(setSales, 'sales')],
-        suppliers: [suppliers, createSetter(setSuppliers, 'suppliers')],
-        patients: [patients, createSetter(setPatients, 'patients')],
-        trash: [trash, createSetter(setTrash, 'trash')],
-        payments: [payments, createSetter(setPayments, 'payments')],
-        purchaseOrders: [purchaseOrders, createSetter(setPurchaseOrders, 'purchase-orders')],
-        supplierReturns: [supplierReturns, createSetter(setSupplierReturns, 'return-orders')],
-        timeLogs: [timeLogs, createSetter(setTimeLogs, 'time-logs')],
+        inventory: [inventory, setInventory],
+        sales: [sales, setSales],
+        suppliers: [suppliers, setSuppliers],
+        patients: [patients, setPatients],
+        trash: [trash, setTrash],
+        payments: [payments, setPayments],
+        purchaseOrders: [purchaseOrders, setPurchaseOrders],
+        supplierReturns: [supplierReturns, setSupplierReturns],
+        timeLogs: [timeLogs, setTimeLogs],
         settings: [settings, setScopedSettings],
     };
 
@@ -423,8 +608,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             currentUser, users, setUsers, isAuthenticated, loading, isSetup, 
             setupAdmin, login, logout, registerUser, deleteUser, updateUser, 
             updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData,
-            getAllPharmacySettings, getPharmacyData,
+            getAllPharmacySettings, getPharmacyData, clearPharmacyData,
             advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement,
+            updateMedication, deleteMedication, bulkAddOrUpdateInventory,
+            addSale,
+            addSupplier, updateSupplier, deleteSupplier,
+            addPatient, updatePatient, deletePatient,
+            addPayment,
+            addPurchaseOrder,
+            addReturnOrder,
+            restoreItem, permDelete, clearTrash,
             activeInvoice, setActiveInvoice, resetActiveInvoice
         }}>
             {children}
@@ -439,5 +632,3 @@ export function useAuth() {
   }
   return context;
 }
-
-    
