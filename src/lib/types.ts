@@ -20,7 +20,7 @@ export type Medication = {
   id: string; 
   name: string; 
   scientificNames?: string[];
-  imageUrl?: string;
+  image_url?: string;
   stock: number;
   reorderPoint: number;
   price: number; 
@@ -102,9 +102,9 @@ export type SupplierPayment = {
 export type Supplier = {
   id: string;
   name: string;
-  contactPerson?: string;
-  phone?: string;
-  email?: string;
+  contact_person?: string;
+  // phone?: string;
+  // email?: string;
 };
 
 export type User = {
@@ -117,7 +117,7 @@ export type User = {
   permissions?: UserPermissions;
   hourlyRate?: number;
   pharmacyId?: string;
-  createdAt: string; // ISO date string
+  created_at: string; // ISO date string
   image1DataUri?: string;
 };
 
@@ -156,10 +156,10 @@ export type TrashItem = {
 export type Advertisement = {
     id: string;
     title: string;
-    imageUrl: string;
-    isActive: boolean;
-    createdAt: string;
-    showOn: {
+    image_url: string;
+    // is_active: boolean;
+    created_at: string;
+    show_on: {
         dashboard: boolean;
         sales: boolean;
         reports: boolean;

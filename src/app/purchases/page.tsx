@@ -180,7 +180,7 @@ export default function PurchasesPage() {
       setDosage(med.dosage || '');
       setDosageForm(med.dosageForm || '');
       setPurchaseSellingPrice(String(med.price || 0));
-      setImagePreview(med.imageUrl || null);
+      setImagePreview(med.image_url || null);
   };
   
   React.useEffect(() => {
@@ -218,9 +218,9 @@ export default function PurchasesPage() {
     
     const scientificNamesArray = scientificNames.split(',').map(name => name.trim()).filter(Boolean);
     
-    let imageUrl: string | undefined = undefined;
+    let image_url: string | undefined = undefined;
     if (imageFile) {
-        imageUrl = await fileToDataUri(imageFile);
+        image_url = await fileToDataUri(imageFile);
     }
 
     let expDate = purchaseExpirationDate;
@@ -246,9 +246,9 @@ export default function PurchasesPage() {
       existingMed.scientificNames = scientificNamesArray;
       existingMed.dosage = dosage;
       existingMed.dosageForm = dosageForm;
-      if (imageUrl) existingMed.imageUrl = imageUrl;
+      if (image_url) existingMed.image_url = image_url;
       // If image is removed, keep existing image
-      else if (imagePreview) existingMed.imageUrl = imagePreview;
+      else if (imagePreview) existingMed.image_url = imagePreview;
 
       newInventory[medicationIndex] = existingMed;
       toast({
@@ -270,7 +270,7 @@ export default function PurchasesPage() {
           dosage: dosage,
           dosageForm: dosageForm,
       };
-      if (imageUrl) newMedication.imageUrl = imageUrl;
+      if (image_url) newMedication.image_url = image_url;
       newInventory.unshift(newMedication);
       toast({
           title: "تم استلام البضاعة",
@@ -320,7 +320,7 @@ export default function PurchasesPage() {
       const newSupplier: Supplier = {
           id: `SUP${Date.now()}`,
           name: supplierName,
-          contactPerson: supplierContact,
+          contact_person: supplierContact,
       };
 
       setSuppliers(prev => [newSupplier, ...(prev || [])]);

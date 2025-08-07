@@ -86,9 +86,9 @@ export default function SuppliersPage() {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const name = formData.get("supplierName") as string;
-    const contactPerson = formData.get("supplierContact") as string;
+    const contact_person = formData.get("supplierContact") as string;
     
-    const newSupplier = await addSupplier({ name, contactPerson });
+    const newSupplier = await addSupplier({ name, contact_person });
     if(newSupplier) {
         setIsAddDialogOpen(false);
     }
@@ -100,9 +100,9 @@ export default function SuppliersPage() {
 
     const formData = new FormData(event.currentTarget);
     const name = formData.get('name') as string;
-    const contactPerson = formData.get('contactPerson') as string;
+    const contact_person = formData.get('contact_person') as string;
 
-    const success = await updateSupplier(editingSupplier.id, { name, contactPerson });
+    const success = await updateSupplier(editingSupplier.id, { name, contact_person });
     if(success) {
         setIsEditDialogOpen(false);
         setEditingSupplier(null);
@@ -262,7 +262,7 @@ export default function SuppliersPage() {
                         <div className="flex justify-between items-start">
                            <div>
                                 <CardTitle>{account.name}</CardTitle>
-                                <CardDescription>{account.contactPerson || 'لا يوجد جهة اتصال'}</CardDescription>
+                                <CardDescription>{account.contact_person || 'لا يوجد جهة اتصال'}</CardDescription>
                            </div>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -378,7 +378,7 @@ export default function SuppliersPage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="edit-supplier-contact">الشخص المسؤول (اختياري)</Label>
-                        <Input id="edit-supplier-contact" name="contactPerson" defaultValue={editingSupplier.contactPerson || ''} />
+                        <Input id="edit-supplier-contact" name="contact_person" defaultValue={editingSupplier.contact_person || ''} />
                     </div>
                     <DialogFooter className="pt-2">
                         <DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose>

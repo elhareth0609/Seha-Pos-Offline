@@ -56,8 +56,8 @@ interface AuthContextType {
   getPharmacyData: (pharmacyId: string) => Promise<{ sales: Sale[], inventory: Medication[] }>;
   
   advertisements: Advertisement[];
-  addAdvertisement: (title: string, imageUrl: string) => Promise<void>;
-  updateAdvertisement: (adId: string, data: Partial<Omit<Advertisement, 'id' | 'createdAt'>>) => Promise<void>;
+  addAdvertisement: (title: string, image_url: string) => Promise<void>;
+  updateAdvertisement: (adId: string, data: Partial<Omit<Advertisement, 'id' | 'created_at'>>) => Promise<void>;
   deleteAdvertisement: (adId: string) => Promise<void>;
   clearPharmacyData: () => Promise<void>;
   
@@ -385,18 +385,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
 
-    const addAdvertisement = async (title: string, imageUrl: string) => {
+    const addAdvertisement = async (title: string, image_url: string) => {
          try {
-            const newAd = await apiRequest('/advertisements', 'POST', { title, image_url: imageUrl });
+            const newAd = await apiRequest('/advertisements', 'POST', { title, image_url });
             setAdvertisements(prev => [...prev, newAd]);
         } catch(e: any) {
              // Error already handled by apiRequest
         }
     };
 
-    const updateAdvertisement = async (adId: string, data: Partial<Omit<Advertisement, 'id' | 'createdAt'>>) => {
+    const updateAdvertisement = async (adId: string, data: Partial<Omit<Advertisement, 'id' | 'created_at'>>) => {
         try {
-            const updatedAd = await apiRequest(`/advertisements/${adId}`, 'PUT', { show_on: data.showOn });
+            const updatedAd = await apiRequest(`/advertisements/${adId}`, 'PUT', data);
             setAdvertisements(prev => prev.map(ad => ad.id === adId ? updatedAd : ad));
         } catch(e: any) {
              // Error already handled by apiRequest

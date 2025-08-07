@@ -165,11 +165,11 @@ export default function SuperAdminPage() {
         setAdImagePreview(null);
     };
 
-    const handleShowOnPageChange = (adId: string, page: keyof Advertisement['showOn'], checked: boolean) => {
+    const handleShowOnPageChange = (adId: string, page: keyof Advertisement['show_on'], checked: boolean) => {
         const ad = advertisements.find(a => a.id === adId);
         if (ad) {
-            const newShowOn = { ...ad.showOn, [page]: checked };
-            updateAdvertisement(adId, { showOn: newShowOn });
+            const new_show_on = { ...ad.show_on, [page]: checked };
+            updateAdvertisement(adId, { show_on: new_show_on });
         }
     }
 
@@ -177,6 +177,7 @@ export default function SuperAdminPage() {
     const pharmacyAdmins = users.filter(u => u.role === 'Admin');
     const totalEmployees = users.filter(u => u.role === 'Employee').length;
 
+    console.log(users)
     if (!currentUser || currentUser.role !== 'SuperAdmin') {
         return null;
     }
@@ -326,7 +327,7 @@ export default function SuperAdminPage() {
                                 <div key={ad.id} className="p-3 border rounded-md flex flex-col gap-4">
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-center gap-3">
-                                            <Image src={ad.imageUrl} alt={ad.title} width={64} height={36} className="rounded-sm object-cover" />
+                                            <Image src={ad.image_url} alt={ad.title} width={64} height={36} className="rounded-sm object-cover" />
                                             <div>
                                                 <p className="font-semibold">{ad.title}</p>
                                                 <p className="text-xs text-muted-foreground">{ad.id}</p>
@@ -353,19 +354,19 @@ export default function SuperAdminPage() {
                                         <Label className="text-sm font-medium">عرض في الصفحات التالية:</Label>
                                         <div className="grid grid-cols-2 gap-2 text-xs">
                                             <div className="flex items-center gap-2">
-                                                <Checkbox id={`dashboard-${ad.id}`} checked={ad.showOn?.dashboard} onCheckedChange={(c) => handleShowOnPageChange(ad.id, 'dashboard', !!c)} />
+                                                <Checkbox id={`dashboard-${ad.id}`} checked={ad.show_on?.dashboard} onCheckedChange={(c) => handleShowOnPageChange(ad.id, 'dashboard', !!c)} />
                                                 <Label htmlFor={`dashboard-${ad.id}`} className="flex items-center gap-1 cursor-pointer"><LayoutDashboard className="h-3 w-3"/> تحكم</Label>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <Checkbox id={`sales-${ad.id}`} checked={ad.showOn?.sales} onCheckedChange={(c) => handleShowOnPageChange(ad.id, 'sales', !!c)} />
+                                                <Checkbox id={`sales-${ad.id}`} checked={ad.show_on?.sales} onCheckedChange={(c) => handleShowOnPageChange(ad.id, 'sales', !!c)} />
                                                 <Label htmlFor={`sales-${ad.id}`} className="flex items-center gap-1 cursor-pointer"><ShoppingCart className="h-3 w-3"/> مبيعات</Label>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <Checkbox id={`reports-${ad.id}`} checked={ad.showOn?.reports} onCheckedChange={(c) => handleShowOnPageChange(ad.id, 'reports', !!c)} />
+                                                <Checkbox id={`reports-${ad.id}`} checked={ad.show_on?.reports} onCheckedChange={(c) => handleShowOnPageChange(ad.id, 'reports', !!c)} />
                                                 <Label htmlFor={`reports-${ad.id}`} className="flex items-center gap-1 cursor-pointer"><FileText className="h-3 w-3"/> تقارير</Label>
                                             </div>
                                              <div className="flex items-center gap-2">
-                                                <Checkbox id={`inventory-${ad.id}`} checked={ad.showOn?.inventory} onCheckedChange={(c) => handleShowOnPageChange(ad.id, 'inventory', !!c)} />
+                                                <Checkbox id={`inventory-${ad.id}`} checked={ad.show_on?.inventory} onCheckedChange={(c) => handleShowOnPageChange(ad.id, 'inventory', !!c)} />
                                                 <Label htmlFor={`inventory-${ad.id}`} className="flex items-center gap-1 cursor-pointer"><Boxes className="h-3 w-3"/> مخزون</Label>
                                             </div>
                                         </div>

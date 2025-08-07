@@ -15,7 +15,7 @@ import { Skeleton } from './skeleton';
 import type { Advertisement } from '@/lib/types';
 
 interface AdCarouselProps {
-    page: keyof Advertisement['showOn'];
+    page: keyof Advertisement['show_on'];
 }
 
 export default function AdCarousel({ page }: AdCarouselProps) {
@@ -25,7 +25,7 @@ export default function AdCarousel({ page }: AdCarouselProps) {
     );
 
     const filteredAds = React.useMemo(() => {
-        return (advertisements || []).filter(ad => ad.showOn && ad.showOn[page]);
+        return (advertisements || []).filter(ad => ad.show_on && ad.show_on[page]);
     }, [advertisements, page]);
 
     if (loading) {
@@ -52,7 +52,7 @@ export default function AdCarousel({ page }: AdCarouselProps) {
                             <CardContent className="p-0 flex items-center justify-center aspect-video sm:aspect-[4/1] relative">
                                 <Image
                                     
-                                    src={ad.imageUrl}
+                                    src={ad.image_url}
                                     alt={ad.title}
                                     layout="fill"
                                     objectFit="cover"
