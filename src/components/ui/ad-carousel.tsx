@@ -51,6 +51,7 @@ export default function AdCarousel({ page }: AdCarouselProps) {
                         <Card className="overflow-hidden">
                             <CardContent className="p-0 flex items-center justify-center aspect-video sm:aspect-[4/1] relative">
                                 <Image
+                                    
                                     src={ad.imageUrl}
                                     alt={ad.title}
                                     layout="fill"
