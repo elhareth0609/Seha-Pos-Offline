@@ -1,5 +1,5 @@
 // import { doc, getDoc, setDoc, collection, getDocs, query, where, deleteDoc } from 'firebase/firestore';
-// // import { db } from './firebase';
+// import { db } from './firebase';
 
 // type StorageType = 'localStorage' | 'sessionStorage';
 
