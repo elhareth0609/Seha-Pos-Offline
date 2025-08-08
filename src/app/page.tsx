@@ -44,7 +44,12 @@ export default function Dashboard() {
     const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
     return acc + (isNaN(total) ? 0 : total);
   }, 0);
-  const totalProfit = sales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
+  const totalProfit = sales.reduce((acc, sale) => {
+      const  total = (typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0))) -
+      (typeof sale.discount === 'number' ? sale.discount : parseFloat(String(sale.discount || 0)));
+      return acc + (isNaN(total) ? 0 : total);
+  }, 0);
+  // const totalProfit = sales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
   const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
   const lowStockItems = inventory.filter(
@@ -115,7 +120,11 @@ export default function Dashboard() {
     const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
     return acc + (isNaN(total) ? 0 : total);
   }, 0);
-    const currentTotalProfit = filteredSales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
+    const currentTotalProfit = filteredSales.reduce((acc, sale) => {
+      const  total = (typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0))) -
+      (typeof sale.discount === 'number' ? sale.discount : parseFloat(String(sale.discount || 0)));
+      return acc + (isNaN(total) ? 0 : total);
+  }, 0);
     const currentProfitMargin = currentTotalRevenue > 0 ? (currentTotalProfit / currentTotalRevenue) * 100 : 0;
     const invoiceCount = filteredSales.length;
 
@@ -293,7 +302,7 @@ export default function Dashboard() {
                         <TrendingUp className="h-5 w-5 text-green-600" />
                     </div>
                     <div className="text-3xl font-bold text-green-600 font-mono">
-                        {salesPerformance.totalProfit.toFixed(2)}
+                        {salesPerformance.totalProfit.toLocaleString()}
                     </div>
                     <p className="text-xs text-muted-foreground">الربح بعد طرح تكلفة البضاعة والخصومات</p>
                 </div>

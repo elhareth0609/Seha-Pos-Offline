@@ -172,14 +172,22 @@ export default function ReportsPage() {
         return dateMatch && searchMatch;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
-    const totalSalesValue = filteredSales.reduce((acc, sale) => acc + (sale.total || 0), 0);
-    const totalProfit = filteredSales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
+    const totalSalesValue = filteredSales.reduce((acc, sale) => {
+        const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
+        return acc + (isNaN(total) ? 0 : total);
+    }, 0);
+    const totalProfit = filteredSales.reduce((acc, sale) => {
+        const  total = (typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0))) -
+        (typeof sale.discount === 'number' ? sale.discount : parseFloat(String(sale.discount || 0)));
+        return acc + (isNaN(total) ? 0 : total);
+    }, 0);
+    // const totalProfit = filteredSales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
 
     if (!isClient) {
         return (
             <div className="space-y-6">
                  <div className="grid gap-4 md:grid-cols-3">
-                    <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
+                    <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader> <CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
                     <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
                     <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
                 </div>

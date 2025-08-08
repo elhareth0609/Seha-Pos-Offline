@@ -155,7 +155,13 @@ export default function PurchasesPage() {
             medication_id: item.medication_id,
             name: item.name,
             quantity: item.quantity,
-            purchase_price: item.purchase_price
+            purchase_price: item.purchase_price,
+            expiration_date: item.expiration_date,
+            scientific_names: item.scientific_names,
+            image_url: item.image_url,
+            price: item.price,
+            dosage: item.dosage,
+            dosage_form: item.dosage_form,
         })),
     }
 
@@ -297,7 +303,7 @@ export default function PurchasesPage() {
     const [sellingPrice, setSellingPrice] = React.useState('');
     const [expiration_date, setExpirationDate] = React.useState('');
     const [imageFile, setImageFile] = React.useState<File | null>(null);
-    const [imagePreview, setImagePreview] = React.useState<string | null>(null);
+    const [imagePreview, setImagePreview] = React.useState<string>('');
 
     const resetForm = () => {
         setMedicationId('');
@@ -310,7 +316,7 @@ export default function PurchasesPage() {
         setSellingPrice('');
         setExpirationDate('');
         setImageFile(null);
-        setImagePreview(null);
+        setImagePreview('');
     };
 
     const prefillFormWithMedData = React.useCallback((med: Medication) => {
@@ -320,7 +326,7 @@ export default function PurchasesPage() {
         setDosageForm(med.dosage_form || '');
         setSellingPrice(String(med.price || ''));
         setPurchasePrice(String(med.purchase_price || ''));
-        setImagePreview(med.image_url || null);
+        setImagePreview(med.image_url || '');
     }, []);
 
     React.useEffect(() => {
@@ -356,7 +362,7 @@ export default function PurchasesPage() {
             expDate = futureDate.toISOString().split('T')[0];
         }
         
-        let image_url: string | undefined = imagePreview || undefined;
+        let image_url: string = imagePreview || '';
         if (imageFile) {
             image_url = await fileToDataUri(imageFile);
         }
@@ -371,7 +377,8 @@ export default function PurchasesPage() {
             purchase_price: parseFloat(purchase_price),
             price: parseFloat(sellingPrice),
             expiration_date: expDate,
-            image_url,
+            image_url: image_url,
+
         };
 
         if (!newItem.name || !newItem.quantity || !newItem.purchase_price || !newItem.price) {
@@ -434,7 +441,7 @@ export default function PurchasesPage() {
                         {imagePreview && (
                             <div className="relative w-16 h-16 shrink-0">
                                 <Image src={imagePreview} alt="معاينة" fill className="rounded-md object-cover" />
-                                <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-5 w-5 rounded-full" onClick={() => { setImageFile(null); setImagePreview(null); }}>
+                                <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-5 w-5 rounded-full" onClick={() => { setImageFile(null); setImagePreview(''); }}>
                                     <X className="h-3 w-3" />
                                 </Button>
                             </div>

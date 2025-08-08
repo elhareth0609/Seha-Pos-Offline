@@ -677,7 +677,7 @@ export default function SalesPage() {
                                             <li key={med.id} className="p-3 hover:bg-accent rounded-md flex justify-between items-center"
                                                 onMouseDown={(e) => { e.preventDefault(); addToCart(med); }}>
                                                 <div className="flex items-center gap-3">
-                                                    {med.image_url ? (
+                                                    {typeof med.image_url === 'string' && med.image_url !== "" ? (
                                                         <Image src={med.image_url} alt={med.name || ''} width={32} height={32} className="rounded-sm object-cover h-8 w-8" />
                                                     ) : (
                                                         <div className="h-8 w-8 flex items-center justify-center rounded-sm bg-muted text-muted-foreground">

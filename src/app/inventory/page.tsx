@@ -376,7 +376,7 @@ export default function InventoryPage() {
                   <TableCell className="font-mono text-xs">{item.id}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                        {item.image_url ? (
+                        {typeof item.image_url === 'string' && item.image_url !== "" ? (
                             <Image src={item.image_url} alt={item.name} width={40} height={40} className="rounded-sm object-cover h-10 w-10" />
                         ) : (
                             <div className="h-10 w-10 flex items-center justify-center rounded-sm bg-muted text-muted-foreground">
