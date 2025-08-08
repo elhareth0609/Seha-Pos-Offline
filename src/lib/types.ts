@@ -38,7 +38,7 @@ export type SaleItem = {
   price: number;
   purchase_price: number;
   expiration_date?: string;
-  isReturn?: boolean;
+  is_return?: boolean;
   dosage?: string;
   dosage_form?: string;
 };
@@ -148,8 +148,8 @@ export type AppSettings = {
 
 export type TrashItem = {
   id: string; // Unique ID for the trash entry
-  deletedAt: string; // ISO date string
-  itemType: 'medication' | 'patient' | 'supplier' | 'user';
+  deleted_at: string; // ISO date string
+  item_type: 'medication' | 'patient' | 'supplier' | 'user';
   data: Medication | Patient | Supplier | User;
 };
 

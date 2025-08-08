@@ -58,7 +58,7 @@ export default function ItemMovementPage() {
             const lowercasedFilter = value.toLowerCase();
             const filtered = inventory.filter(item => 
                 (item.name || '').toLowerCase().startsWith(lowercasedFilter) || 
-                (item.id || '').toLowerCase().includes(lowercasedFilter) ||
+                String(item.id).toLowerCase().includes(lowercasedFilter) ||
                 (item.scientific_names && item.scientific_names.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
             );
             setSuggestions(filtered.slice(0, 5));
@@ -89,8 +89,8 @@ export default function ItemMovementPage() {
             .filter(item => item.medication_id === med.id)
             .map(item => ({
                 date: item.date,
-                type: item.isReturn ? 'مرتجع زبون' as const : 'بيع' as const,
-                quantity: item.isReturn ? item.quantity : -item.quantity,
+                type: item.is_return ? 'مرتجع زبون' as const : 'بيع' as const,
+                quantity: item.is_return ? item.quantity : -item.quantity,
                 price: item.price,
                 documentId: item.documentId,
                 actor: item.patientName,

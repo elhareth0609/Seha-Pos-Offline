@@ -43,7 +43,7 @@ export default function TrashPage() {
   
   const { toast } = useToast();
 
-  const itemTypeLabels = {
+  const item_typeLabels = {
     medication: 'دواء',
     patient: 'مريض',
     supplier: 'مورد',
@@ -62,7 +62,7 @@ export default function TrashPage() {
     await clearTrash();
   }
 
-  const sortedTrash = Array.isArray(trash) ? [...trash].sort((a, b) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime()) : [];
+  const sortedTrash = Array.isArray(trash) ? [...trash].sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime()) : [];
 
 
   return (
@@ -111,9 +111,9 @@ export default function TrashPage() {
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.data.name}</TableCell>
                 <TableCell>
-                  <Badge variant="secondary">{itemTypeLabels[item.itemType]}</Badge>
+                  <Badge variant="secondary">{item_typeLabels[item.item_type]}</Badge>
                 </TableCell>
-                <TableCell>{new Date(item.deletedAt).toLocaleString('ar-EG')}</TableCell>
+                <TableCell>{new Date(item.deleted_at).toLocaleString('ar-EG')}</TableCell>
                 <TableCell className="text-left space-x-2 space-x-reverse">
                     <Button variant="outline" size="sm" onClick={() => handleRestore(item)}>
                         <RotateCcw className="me-2 h-4 w-4"/>

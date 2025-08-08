@@ -73,7 +73,7 @@ export default function Dashboard() {
 
     sales.forEach(sale => {
         (sale.items || []).forEach(item => {
-            if (item.isReturn) return; 
+            if (item.is_return) return; 
 
             if (!stats[item.medication_id]) {
                 stats[item.medication_id] = {

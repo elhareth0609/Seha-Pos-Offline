@@ -65,18 +65,25 @@ export default function SuperAdminReportsPage() {
         if (!selectedPharmacyId || !pharmacyData) return null;
 
         const { sales, inventory } = pharmacyData;
-        const pharmacyUsers: User[] = users.filter(u => u.pharmacy_id === parseInt(selectedPharmacyId) && u.role === "Employee");
+        const pharmacyUsers: User[] = users.filter(u => String(u.pharmacy_id) === selectedPharmacyId && u.role === "Employee");
 
-        const totalRevenue = sales.reduce((acc, sale) => acc + (sale.total || 0), 0);
-        const totalProfit = sales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
+        const totalRevenue = sales.reduce((acc, sale) => {
+            const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
+            return acc + (isNaN(total) ? 0 : total);
+        }, 0);
+        const totalProfit = sales.reduce((acc, sale) => {
+            const  total = (typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0))) -
+            (typeof sale.discount === 'number' ? sale.discount : parseFloat(String(sale.discount || 0)));
+            return acc + (isNaN(total) ? 0 : total);
+        }, 0);
         const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
         
         const lowStockItems = inventory.filter(item => item.stock < item.reorder_point).slice(0, 5);
-        
+        console.log(sales)
         const topSellingItems = sales
             .flatMap(s => s.items)
             .reduce((acc, item) => {
-                if (!item.isReturn) {
+                if (!item.is_return) {
                     acc[item.medication_id] = (acc[item.medication_id] || 0) + item.quantity;
                 }
                 return acc;

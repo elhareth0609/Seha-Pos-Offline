@@ -22,15 +22,15 @@ function SuperAdminLoginDialog() {
     const handleSuperAdminLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         const user = await login(email, pin);
-        // if (user) {
-        //     if (user.role === 'SuperAdmin') {
-        //         router.push('/superadmin');
-        //     } else {
-        //         router.push('/');
-        //     }
-        // } else {
-        //     toast({ variant: 'destructive', title: 'بيانات الدخول غير صحيحة' });
-        // }
+        if (user) {
+            if (user.role === 'SuperAdmin') {
+                router.push('/superadmin');
+            } else {
+                router.push('/');
+            }
+        } else {
+            toast({ variant: 'destructive', title: 'بيانات الدخول غير صحيحة' });
+        }
     };
 
     return (

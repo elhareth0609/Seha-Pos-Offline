@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -13,30 +12,19 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
     const { loading, isSetup, isAuthenticated, currentUser } = useAuth();
     const pathname = usePathname();
     const router = useRouter();
-    const [isInitialRedirectDone, setIsInitialRedirectDone] = React.useState(false);
 
     React.useEffect(() => {
-        if (loading) return;
-
-        if (!isInitialRedirectDone) {
-            if (isAuthenticated) {
-                if (currentUser?.role === 'SuperAdmin') {
-                    if (!pathname.startsWith('/superadmin')) {
-                        router.replace('/superadmin');
-                    }
-                } else {
-                    if (pathname === '/' || pathname.startsWith('/superadmin')) {
-                        router.replace('/sales');
-                    }
-                }
-            }
-            // Mark redirect as done even if not authenticated to prevent loops
-            setIsInitialRedirectDone(true);
+        if (loading || !isAuthenticated || !currentUser) return;
+        
+        if (currentUser.role === 'SuperAdmin' && !pathname.startsWith('/superadmin')) {
+            router.replace('/superadmin');
+        } else if (currentUser.role !== 'SuperAdmin' && (pathname === '/' || pathname.startsWith('/superadmin'))) {
+            router.replace('/sales');
         }
-    }, [loading, isAuthenticated, currentUser, pathname, router, isInitialRedirectDone]);
+    }, [loading, isAuthenticated, currentUser, pathname, router]);
 
-
-    if (loading || (isAuthenticated && !isInitialRedirectDone)) {
+    // Show loading spinner
+    if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-muted/40">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -44,36 +32,56 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
         );
     }
 
+    // Show setup page if not set up
     if (!isSetup) {
         return <SetupPage />;
     }
 
+    // Show login page if not authenticated
     if (!isAuthenticated) {
         return <LoginPage />;
     }
 
-    // Render layout based on role after loading and initial redirect checks
-    if(pathname?.startsWith('/superadmin')) {
-        if (currentUser?.role === 'SuperAdmin') {
-            return <>{children}</>;
-        }
-        // While redirecting, show a loader
+    // Wait for currentUser to be available
+    if (!currentUser) {
         return (
-             <div className="flex items-center justify-center min-h-screen bg-muted/40">
+            <div className="flex items-center justify-center min-h-screen bg-muted/40">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
             </div>
         );
     }
-    
-    // For non-superadmin users
-    if (currentUser?.role !== 'SuperAdmin') {
-        return <AppShell>{children}</AppShell>;
+
+    // Check if SuperAdmin needs to be redirected - show loading instead of flashing dashboard
+    if (currentUser.role === 'SuperAdmin' && !pathname.startsWith('/superadmin')) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-muted/40">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
+        );
     }
-    
-    // Fallback loader while redirecting superadmin from a non-superadmin page
-    return (
-         <div className="flex items-center justify-center min-h-screen bg-muted/40">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        </div>
-    );
+
+    // Check if non-SuperAdmin needs to be redirected from SuperAdmin routes or root
+    if (currentUser.role !== 'SuperAdmin' && (pathname === '/' || pathname.startsWith('/superadmin'))) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-muted/40">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    // Handle SuperAdmin routes
+    if (pathname?.startsWith('/superadmin')) {
+        if (currentUser.role === 'SuperAdmin') {
+            return <>{children}</>;
+        }
+        // This shouldn't happen due to redirect check above, but just in case
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-muted/40">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    // Handle regular user routes
+    return <AppShell>{children}</AppShell>;
 }

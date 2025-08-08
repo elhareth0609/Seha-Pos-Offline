@@ -166,7 +166,7 @@ export default function ReportsPage() {
             sale.id?.toString().toLowerCase().includes(term) ||
             (sale.patientName || '').toLowerCase().startsWith(term) ||
             (sale.items || []).some(item => item.name.toLowerCase().startsWith(term)) ||
-            (term === 'مرتجع' && (sale.items || []).some(item => item.isReturn))
+            (term === 'مرتجع' && (sale.items || []).some(item => item.is_return))
         );
 
         return dateMatch && searchMatch;
@@ -339,13 +339,13 @@ export default function ReportsPage() {
                                                         </TableHeader>
                                                         <TableBody>
                                                             {(sale.items || []).map((item, index) => (
-                                                                <TableRow key={`${sale.id}-${item.medication_id}-${index}`} className={cn(item.isReturn && "text-destructive")}>
+                                                                <TableRow key={`${sale.id}-${item.medication_id}-${index}`} className={cn(item.is_return && "text-destructive")}>
                                                                     <TableCell>{item.name}</TableCell>
                                                                     <TableCell className="font-mono">{item.quantity}</TableCell>
                                                                     <TableCell className="font-mono">{item.price.toLocaleString()}</TableCell>
                                                                     <TableCell className="font-mono">{(item.quantity * item.price).toLocaleString()}</TableCell>
                                                                     <TableCell>
-                                                                        {item.isReturn && <Badge variant="destructive">مرتجع</Badge>}
+                                                                        {item.is_return && <Badge variant="destructive">مرتجع</Badge>}
                                                                     </TableCell>
                                                                 </TableRow>
                                                             ))}

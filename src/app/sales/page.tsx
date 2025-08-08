@@ -200,7 +200,7 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
         setResults(null);
 
         const medicationsInput: DoseCalculationInput['medications'] = cartItems
-            .filter(item => !item.isReturn)
+            .filter(item => !item.is_return)
             .map(item => ({
                 tradeName: item.name,
                 scientific_names: item.scientific_names || [],
@@ -364,10 +364,10 @@ export default function SalesPage() {
   const addToCart = React.useCallback((medication: Medication) => {
     if (mode !== 'new') return;
     setCart((prevCart) => {
-      const existingItem = prevCart.find(item => item.medication_id === medication.id && !item.isReturn)
+      const existingItem = prevCart.find(item => item.medication_id === medication.id && !item.is_return)
       if (existingItem) {
         return prevCart.map(item =>
-          item.medication_id === medication.id && !item.isReturn
+          item.medication_id === medication.id && !item.is_return
             ? { ...item, quantity: item.quantity + 1 }
             : item
         )
@@ -380,7 +380,7 @@ export default function SalesPage() {
           price: medication.price || 0,
           purchase_price: medication.purchase_price, 
           expiration_date: medication.expiration_date, 
-          isReturn: false, 
+          is_return: false, 
           dosage: medication.dosage,
           dosage_form: medication.dosage_form,
         }]
@@ -512,19 +512,19 @@ export default function SalesPage() {
     if (mode !== 'new') return;
     setCart(cart => cart.map(item => 
       item.medication_id === medication_id 
-        ? { ...item, isReturn: !item.isReturn } 
+        ? { ...item, is_return: !item.is_return } 
         : item
     ));
   };
 
   const subtotal = cart.reduce((total, item) => {
       const itemTotal = item.price * item.quantity;
-      return item.isReturn ? total - itemTotal : total + itemTotal;
+      return item.is_return ? total - itemTotal : total + itemTotal;
   }, 0);
 
   const totalProfit = cart.reduce((acc, item) => {
       const itemProfit = (item.price - item.purchase_price) * item.quantity;
-      return item.isReturn ? acc - itemProfit : acc + itemProfit;
+      return item.is_return ? acc - itemProfit : acc + itemProfit;
   }, 0);
   
   const discountAmount = React.useMemo(() => {
@@ -549,7 +549,7 @@ export default function SalesPage() {
     }
     
     for (const itemInCart of cart) {
-        if (!itemInCart.isReturn) {
+        if (!itemInCart.is_return) {
             const med = allInventory.find(m => m.id === itemInCart.medication_id);
             if (!med || med.stock < itemInCart.quantity) {
                 toast({ variant: 'destructive', title: `كمية غير كافية من ${itemInCart.name}`, description: `الكمية المطلوبة ${itemInCart.quantity}, المتوفر ${med?.stock ?? 0}` });
@@ -751,11 +751,11 @@ export default function SalesPage() {
                                     const totalPrice = item.price * item.quantity;
                                     const alternatives = findAlternatives(item);
                                     return (
-                                        <div key={item.medication_id} className={cn("flex flex-col gap-3 p-3", item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
+                                        <div key={item.medication_id} className={cn("flex flex-col gap-3 p-3", item.is_return && "bg-red-50 dark:bg-red-900/20")}>
                                             <div className="flex justify-between items-start gap-2">
                                                 <div className="flex-grow">
                                                     <div className="flex items-center gap-1 font-medium">
-                                                        <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medication_id)} aria-label="Mark as return" disabled={mode !== 'new'} className="me-2"/>
+                                                        <Checkbox checked={!!item.is_return} onCheckedChange={() => toggleReturn(item.medication_id)} aria-label="Mark as return" disabled={mode !== 'new'} className="me-2"/>
                                                         {item.name} {item.dosage} {item.dosage_form}
                                                         {alternatives.length > 0 && (
                                                             <Popover>
@@ -793,8 +793,8 @@ export default function SalesPage() {
                                                 <div className="space-y-1">
                                                      <Label htmlFor={`price-${item.medication_id}`} className="text-xs">السعر الإجمالي</Label>
                                                      <div className="relative">
-                                                        <Input id={`price-${item.medication_id}`} type="number" value={item.price * item.quantity} onChange={(e) => updateTotalPrice(item.medication_id, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={mode !== 'new'} />
-                                                        {isBelowCost && !item.isReturn && (
+                                                        <Input id={`price-${item.medication_id}`} type="number" value={item.price * item.quantity} onChange={(e) => updateTotalPrice(item.medication_id, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={mode !== 'new'} />
+                                                        {isBelowCost && !item.is_return && (
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
                                                                     <div className="absolute -top-2 -left-2 text-destructive"><AlertTriangle className="h-4 w-4" /></div>
@@ -807,7 +807,7 @@ export default function SalesPage() {
                                             </div>
                                              <div className="text-xs text-muted-foreground mt-1 flex gap-2">
                                                 <span>الرصيد: {stock}</span>
-                                                {!item.isReturn && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
+                                                {!item.is_return && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
                                                 <span>| الشراء: <span className="font-mono">{item.purchase_price}</span></span>
                                              </div>
                                         </div>
@@ -835,9 +835,9 @@ export default function SalesPage() {
                                     const alternatives = findAlternatives(item);
 
                                     return (
-                                        <TableRow key={item.medication_id} className={cn(item.isReturn && "bg-red-50 dark:bg-red-900/20")}>
+                                        <TableRow key={item.medication_id} className={cn(item.is_return && "bg-red-50 dark:bg-red-900/20")}>
                                             <TableCell className="text-center">
-                                                <Checkbox checked={!!item.isReturn} onCheckedChange={() => toggleReturn(item.medication_id)} aria-label="Mark as return" disabled={mode !== 'new'}/>
+                                                <Checkbox checked={!!item.is_return} onCheckedChange={() => toggleReturn(item.medication_id)} aria-label="Mark as return" disabled={mode !== 'new'}/>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-1">
@@ -876,7 +876,7 @@ export default function SalesPage() {
                                                 <div className="text-xs text-muted-foreground">({(item.scientific_names || []).join(', ')})</div>
                                                 <div className="text-xs text-muted-foreground flex gap-2">
                                                     <span>الرصيد: {stock}</span> 
-                                                    {!item.isReturn && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
+                                                    {!item.is_return && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
                                                     <span>| الشراء: <span className="font-mono">{item.purchase_price}</span></span>
                                                 </div>
                                             </TableCell>
@@ -893,11 +893,11 @@ export default function SalesPage() {
                                                       type="text"
                                                       value={item.price * item.quantity}
                                                       onChange={(e) => updateTotalPrice(item.medication_id, e.target.value)} 
-                                                      className={cn("w-24 h-9 text-center font-mono", isBelowCost && !item.isReturn && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )}
+                                                      className={cn("w-24 h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )}
                                                       step="1" 
                                                       min="0" 
                                                       disabled={mode !== 'new'} />
-                                                    {isBelowCost && !item.isReturn && (
+                                                    {isBelowCost && !item.is_return && (
                                                       <Tooltip>
                                                         <TooltipTrigger asChild>
                                                           <div className="absolute -top-2 -left-2 text-destructive" title="السعر أقل من الكلفة!">
@@ -1037,10 +1037,10 @@ export default function SalesPage() {
                                                   </TableHeader>
                                                   <TableBody>
                                                       {cart.map(item => (
-                                                          <TableRow key={item.medication_id} className={cn(item.isReturn && "text-destructive")}>
-                                                              <TableCell>{item.name} {item.isReturn && "(مرتجع)"}</TableCell>
+                                                          <TableRow key={item.medication_id} className={cn(item.is_return && "text-destructive")}>
+                                                              <TableCell>{item.name} {item.is_return && "(مرتجع)"}</TableCell>
                                                               <TableCell className="text-center font-mono">{item.quantity}</TableCell>
-                                                              <TableCell className="text-left font-mono">{((item.isReturn ? -1 : 1) * item.price * item.quantity).toLocaleString()}</TableCell>
+                                                              <TableCell className="text-left font-mono">{((item.is_return ? -1 : 1) * item.price * item.quantity).toLocaleString()}</TableCell>
                                                           </TableRow>
                                                       ))}
                                                   </TableBody>

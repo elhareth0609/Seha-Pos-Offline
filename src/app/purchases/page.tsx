@@ -81,7 +81,7 @@ export default function PurchasesPage() {
   const [returnSlipId, setReturnSlipId] = React.useState('');
   const [returnSupplierId, setReturnSupplierId] = React.useState('');
   const [returnCart, setReturnCart] = React.useState<ReturnOrderItem[]>([]);
-  const [isReturnInfoLocked, setIsReturnInfoLocked] = React.useState(false);
+  const [is_returnInfoLocked, setIsReturnInfoLocked] = React.useState(false);
   const [returnMedSearchTerm, setReturnMedSearchTerm] = React.useState("");
   const [returnMedSuggestions, setReturnMedSuggestions] = React.useState<Medication[]>([]);
   const [selectedMedForReturn, setSelectedMedForReturn] = React.useState<Medication | null>(null);
@@ -629,11 +629,11 @@ export default function PurchasesPage() {
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="returnSlipId">رقم قائمة الاسترجاع</Label>
-                        <Input id="returnSlipId" value={returnSlipId} onChange={e => setReturnSlipId(e.target.value)} placeholder="مثال: RET-2024-001" required disabled={isReturnInfoLocked} />
+                        <Input id="returnSlipId" value={returnSlipId} onChange={e => setReturnSlipId(e.target.value)} placeholder="مثال: RET-2024-001" required disabled={is_returnInfoLocked} />
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="return-supplier_id">المورد</Label>
-                        <Select value={returnSupplierId} onValueChange={setReturnSupplierId} required disabled={isReturnInfoLocked}>
+                        <Select value={returnSupplierId} onValueChange={setReturnSupplierId} required disabled={is_returnInfoLocked}>
                             <SelectTrigger id="return-supplier_id"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
                             <SelectContent>
                                 {(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
@@ -652,7 +652,7 @@ export default function PurchasesPage() {
                             placeholder="ابحث هنا..."
                             autoComplete="off"
                         />
-                         {returnMedSuggestions.length > 0 && (
+                        {returnMedSuggestions.length > 0 && (
                             <Card className="absolute z-10 w-full mt-1 bg-background shadow-lg border">
                                 <CardContent className="p-0">
                                     <ul className="divide-y divide-border">

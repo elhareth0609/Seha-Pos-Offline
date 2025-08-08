@@ -78,7 +78,7 @@ export default function InventoryPage() {
   const { toast } = useToast();
 
   const [printingMed, setPrintingMed] = React.useState<Medication | null>(null);
-  const printComponentRef = React.useRef(null);
+  const printComponentRef = React.useRef<HTMLDivElement>(null);
   const medToPrintRef = React.useRef<Medication | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 

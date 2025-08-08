@@ -450,12 +450,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             newSale.items.forEach((item: SaleItem) => {
                 const medIndex = updatedInventory.findIndex(m => m.id === item.medication_id);
                 if (medIndex !== -1) {
-                    updatedInventory[medIndex].stock += (item.isReturn ? item.quantity : -item.quantity);
+                    updatedInventory[medIndex].stock += (item.is_return ? item.quantity : -item.quantity);
                 }
             });
             setInventory(updatedInventory);
             return newSale;
-        } catch (e) { return null; }
+        } catch (e) { 
+            return null; 
+        }
     }
 
     const addSupplier = async (data: Partial<Supplier>) => {
