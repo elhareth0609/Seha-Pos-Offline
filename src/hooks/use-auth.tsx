@@ -6,7 +6,7 @@ import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Sup
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://midgram-pos.sadeem-labs.com/api';
 
 type AuthResponse = {
     token: string;
