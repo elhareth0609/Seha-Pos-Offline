@@ -17,7 +17,7 @@ import Link from 'next/link';
 const editSuperAdminSchema = z.object({
     name: z.string().min(3, { message: "الاسم مطلوب" }),
     email: z.string().email({ message: "بريد إلكتروني غير صالح" }),
-    pin: z.string().optional().refine(val => val === '' || /^\d{6}$/.test(val!), { message: "رمز PIN يجب أن يكون 6 أرقام" }),
+    pin: z.string().optional().refine(val => val === '', { message: "رمز PIN يجب أن يكون 6 رموز على الأقل" }),
     confirmPin: z.string().optional(),
 }).refine(data => {
     if (data.pin) {
@@ -99,14 +99,14 @@ export default function SuperAdminAccountPage() {
                              <FormField control={form.control} name="pin" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>رمز PIN الجديد</FormLabel>
-                                    <FormControl><Input type="password" inputMode="numeric" maxLength={6} {...field} /></FormControl>
+                                    <FormControl><Input type="password"   {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
                              <FormField control={form.control} name="confirmPin" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>تأكيد رمز PIN الجديد</FormLabel>
-                                    <FormControl><Input type="password" inputMode="numeric" maxLength={6} {...field} /></FormControl>
+                                    <FormControl><Input type="password"   {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />

@@ -18,8 +18,10 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
         
         if (currentUser.role === 'SuperAdmin' && !pathname.startsWith('/superadmin')) {
             router.replace('/superadmin');
-        } else if (currentUser.role !== 'SuperAdmin' && (pathname === '/' || pathname.startsWith('/superadmin'))) {
-            router.replace('/sales');
+        } else if (currentUser.role !== 'SuperAdmin' && pathname.startsWith('/superadmin')) {
+            router.replace('/');
+        } else if ((currentUser.role === 'Admin' || currentUser.role === 'Employee')) {
+            // return ;
         }
     }, [loading, isAuthenticated, currentUser, pathname, router]);
 
@@ -61,7 +63,7 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
     }
 
     // Check if non-SuperAdmin needs to be redirected from SuperAdmin routes or root
-    if (currentUser.role !== 'SuperAdmin' && (pathname === '/' || pathname.startsWith('/superadmin'))) {
+    if (currentUser.role !== 'SuperAdmin' && (pathname.startsWith('/superadmin'))) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-muted/40">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />

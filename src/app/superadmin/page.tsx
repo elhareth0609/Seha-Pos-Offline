@@ -27,7 +27,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 const addAdminSchema = z.object({
     name: z.string().min(3, { message: "الاسم مطلوب" }),
     email: z.string().email({ message: "بريد إلكتروني غير صالح" }),
-    pin: z.string().regex(/^\d{6}$/, { message: "رمز PIN يجب أن يكون 6 أرقام" }),
+    pin: z.string().min(6, { message: "يجب أن يتكون رمز PIN من 6 أحرف على الأقل." }),
 });
 
 type AddAdminFormValues = z.infer<typeof addAdminSchema>;
@@ -45,7 +45,7 @@ function AdminRow({ admin, onDelete, onToggleStatus }: { admin: User, onDelete: 
     const [showPin, setShowPin] = React.useState(false);
 
     return (
-         <TableRow>
+        <TableRow>
             <TableCell className="font-medium">{admin.name}</TableCell>
             <TableCell className="hidden sm:table-cell">{admin.email}</TableCell>
             <TableCell className="hidden lg:table-cell">
@@ -62,7 +62,7 @@ function AdminRow({ admin, onDelete, onToggleStatus }: { admin: User, onDelete: 
                 </Badge>
             </TableCell>
             <TableCell className="text-left">
-                 <DropdownMenu>
+                <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                     </DropdownMenuTrigger>
@@ -246,7 +246,7 @@ export default function SuperAdminPage() {
                                                 <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
                                             )} />
                                             <FormField control={addAdminForm.control} name="pin" render={({ field }) => (
-                                                <FormItem><FormLabel>رمز PIN (6 أرقام)</FormLabel><FormControl><Input type="password" inputMode="numeric" maxLength={6} {...field} /></FormControl><FormMessage /></FormItem>
+                                                <FormItem><FormLabel>رمز PIN (6 رموز)</FormLabel><FormControl><Input type="password"   {...field} /></FormControl><FormMessage /></FormItem>
                                             )} />
                                             <DialogFooter className="pt-4">
                                                 <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>

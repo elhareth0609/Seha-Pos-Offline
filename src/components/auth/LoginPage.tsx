@@ -48,7 +48,7 @@ function SuperAdminLoginDialog() {
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="superadmin-pin">رمز PIN</Label>
-                    <Input id="superadmin-pin" type="password" value={pin} onChange={(e) => setPin(e.target.value)} maxLength={6} required />
+                    <Input id="superadmin-pin" type="password" value={pin} onChange={(e) => setPin(e.target.value)}  required />
                 </div>
                 <DialogFooter>
                     <DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose>
@@ -120,7 +120,7 @@ export default function LoginPage() {
                             </div>
                             <div className="space-y-2 text-right">
                                 <Label htmlFor="login-pin">رمز PIN</Label>
-                                <Input id="login-pin" type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={6} required placeholder="••••" />
+                                <Input id="login-pin" type="password"  value={pin} onChange={(e) => setPin(e.target.value)}  required placeholder="••••" />
                             </div>
                         </CardContent>
                         <CardFooter className="flex-col gap-4">
