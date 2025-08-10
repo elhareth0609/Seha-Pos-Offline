@@ -381,7 +381,9 @@ export default function SuppliersPage() {
                         <Input id="edit-supplier-contact" name="contact_person" defaultValue={editingSupplier.contact_person || ''} />
                     </div>
                     <DialogFooter className="pt-2">
-                        <DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose>
+                        <DialogClose asChild>
+                            <Button variant="outline" type="button">إلغاء</Button>
+                        </DialogClose>
                         <Button type="submit" variant="success">حفظ التغييرات</Button>
                     </DialogFooter>
                 </form>

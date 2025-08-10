@@ -1,6 +1,4 @@
-
 "use client"
-
 import * as React from "react"
 import {
   Card,
@@ -42,7 +40,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/hooks/use-auth"
 
-
 export default function PatientsPage() {
   const { scopedData, addPatient, updatePatient, deletePatient } = useAuth();
   const [patients] = scopedData.patients;
@@ -53,34 +50,100 @@ export default function PatientsPage() {
   const [newPatientName, setNewPatientName] = React.useState("");
   const [newPatientPhone, setNewPatientPhone] = React.useState("");
   
+  // Validation states for Add form
+  const [addNameError, setAddNameError] = React.useState("");
+  const [addPhoneError, setAddPhoneError] = React.useState("");
+  
   const [editingPatient, setEditingPatient] = React.useState<Patient | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
-
+  
+  // Validation states for Edit form
+  const [editNameError, setEditNameError] = React.useState("");
+  const [editPhoneError, setEditPhoneError] = React.useState("");
+  
   const resetAddDialog = () => {
     setNewPatientName("");
     setNewPatientPhone("");
+    setAddNameError("");
+    setAddPhoneError("");
     setIsAddDialogOpen(false);
   }
-
+  
+  const validateAddForm = () => {
+    let isValid = true;
+    
+    // Reset errors
+    setAddNameError("");
+    setAddPhoneError("");
+    
+    // Validate name
+    if (!newPatientName.trim()) {
+      setAddNameError("الاسم مطلوب");
+      isValid = false;
+    } else if (newPatientName.trim().length < 2) {
+      setAddNameError("الاسم يجب أن يكون حرفين على الأقل");
+      isValid = false;
+    }
+    
+    // Validate phone (optional but if provided must be valid)
+    if (newPatientPhone.trim() && !/^[0-9+\- ]+$/.test(newPatientPhone)) {
+      setAddPhoneError("رقم الهاتف يجب أن يحتوي على أرقام فقط");
+      isValid = false;
+    }
+    
+    return isValid;
+  }
+  
   const handleAddPatient = async () => {
+    if (!validateAddForm()) return;
+    
     const success = await addPatient(newPatientName, newPatientPhone);
     if (success) {
       resetAddDialog();
     }
   }
-
+  
   const openEditDialog = (patient: Patient) => {
     setEditingPatient(patient);
+    setEditNameError("");
+    setEditPhoneError("");
     setIsEditDialogOpen(true);
   }
-
+  
+  const validateEditForm = (name: string, phone: string) => {
+    let isValid = true;
+    
+    // Reset errors
+    setEditNameError("");
+    setEditPhoneError("");
+    
+    // Validate name
+    if (!name.trim()) {
+      setEditNameError("الاسم مطلوب");
+      isValid = false;
+    } else if (name.trim().length < 2) {
+      setEditNameError("الاسم يجب أن يكون حرفين على الأقل");
+      isValid = false;
+    }
+    
+    // Validate phone (optional but if provided must be valid)
+    if (phone.trim() && !/^[0-9+\- ]+$/.test(phone)) {
+      setEditPhoneError("رقم الهاتف يجب أن يحتوي على أرقام فقط");
+      isValid = false;
+    }
+    
+    return isValid;
+  }
+  
   const handleEditPatient = async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       if (!editingPatient) return;
-
+      
       const formData = new FormData(e.currentTarget);
       const name = formData.get("name") as string;
       const phone = formData.get("phone") as string;
+      
+      if (!validateEditForm(name, phone)) return;
       
       const success = await updatePatient(editingPatient.id, { name, phone });
       
@@ -89,16 +152,16 @@ export default function PatientsPage() {
         setEditingPatient(null);
       }
   }
-
+  
   const handleDeletePatient = async (patientId: string) => {
       await deletePatient(patientId);
   }
-
+  
   const filteredPatients = (patients || []).filter(p => 
     p.name.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
     (p.phone && p.phone.includes(searchTerm))
   );
-
+  
   return (
     <Card>
       <CardHeader>
@@ -117,22 +180,43 @@ export default function PatientsPage() {
                     <DialogHeader>
                         <DialogTitle>إضافة صديق جديد</DialogTitle>
                         <DialogDescription>
-                           أدخل تفاصيل المريض لحفظها في سجلاتك.
+                            أدخل تفاصيل المريض لحفظها في سجلاتك.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="patient-name" className="text-right">الاسم</Label>
-                            <Input id="patient-name" value={newPatientName} onChange={(e) => setNewPatientName(e.target.value)} className="col-span-3" placeholder="مثال: محمد عبدالله" />
+                            <div className="col-span-3">
+                                <Input 
+                                    id="patient-name" 
+                                    type="text" 
+                                    value={newPatientName} 
+                                    onChange={(e) => setNewPatientName(e.target.value)} 
+                                    className={addNameError ? "border-destructive" : ""} 
+                                    placeholder="مثال: محمد عبدالله" 
+                                    required 
+                                />
+                                {addNameError && <p className="text-sm text-destructive mt-1">{addNameError}</p>}
+                            </div>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="patient-phone" className="text-right">رقم الهاتف</Label>
-                            <Input id="patient-phone" value={newPatientPhone} onChange={(e) => setNewPatientPhone(e.target.value)} className="col-span-3" placeholder="اختياري" />
+                            <div className="col-span-3">
+                                <Input 
+                                    id="patient-phone" 
+                                    type="tel" 
+                                    value={newPatientPhone} 
+                                    onChange={(e) => setNewPatientPhone(e.target.value)} 
+                                    className={addPhoneError ? "border-destructive" : ""} 
+                                    placeholder="اختياري" 
+                                />
+                                {addPhoneError && <p className="text-sm text-destructive mt-1">{addPhoneError}</p>}
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
-                           <Button variant="outline" onClick={resetAddDialog}>إلغاء</Button>
+                            <Button variant="outline" onClick={resetAddDialog}>إلغاء</Button>
                         </DialogClose>
                         <Button type="button" onClick={handleAddPatient} variant="success">إضافة</Button>
                     </DialogFooter>
@@ -213,7 +297,14 @@ export default function PatientsPage() {
             </TableBody>
         </Table>
       </CardContent>
-       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+       <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+            setIsEditDialogOpen(open);
+            if (!open) {
+                setEditingPatient(null);
+                setEditNameError("");
+                setEditPhoneError("");
+            }
+        }}>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>تعديل بيانات المريض</DialogTitle>
@@ -222,11 +313,28 @@ export default function PatientsPage() {
                     <form onSubmit={handleEditPatient} className="space-y-4 pt-4">
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="edit-patient-name" className="text-right">الاسم</Label>
-                            <Input id="edit-patient-name" name="name" defaultValue={editingPatient.name} required className="col-span-3"/>
+                            <div className="col-span-3">
+                                <Input 
+                                    id="edit-patient-name" 
+                                    name="name" 
+                                    defaultValue={editingPatient.name} 
+                                    required 
+                                    className={editNameError ? "border-destructive" : ""} 
+                                />
+                                {editNameError && <p className="text-sm text-destructive mt-1">{editNameError}</p>}
+                            </div>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="edit-patient-phone" className="text-right">رقم الهاتف</Label>
-                            <Input id="edit-patient-phone" name="phone" defaultValue={editingPatient.phone} className="col-span-3"/>
+                            <div className="col-span-3">
+                                <Input 
+                                    id="edit-patient-phone" 
+                                    name="phone" 
+                                    defaultValue={editingPatient.phone} 
+                                    className={editPhoneError ? "border-destructive" : ""} 
+                                />
+                                {editPhoneError && <p className="text-sm text-destructive mt-1">{editPhoneError}</p>}
+                            </div>
                         </div>
                         <DialogFooter>
                             <DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose>

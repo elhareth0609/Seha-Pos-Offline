@@ -506,10 +506,12 @@ export default function InventoryPage() {
                                   <Input id="edit-price" name="price" type="number" step="1" defaultValue={editingMed.price} required />
                               </div>
                           </div>
-                          <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
                                   <Label htmlFor="edit-expiration_date">تاريخ الانتهاء</Label>
                                   <Input id="edit-expiration_date" name="expiration_date" type="date" defaultValue={new Date(editingMed.expiration_date).toISOString().split('T')[0]} required />
                               </div>
+                          </div>
                           <DialogFooter>
                               <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
                               <Button type="submit" variant="success">حفظ التغييرات</Button>
