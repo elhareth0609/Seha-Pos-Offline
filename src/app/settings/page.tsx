@@ -148,7 +148,7 @@ function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (o
                         )} />
                         <FormField control={addUserForm.control} name="pin" render={({ field }) => (
                             <FormItem>
-                                <FormLabel>رمز PIN (6 رموز)</FormLabel>
+                                <FormLabel>رمز PIN</FormLabel>
                                 <FormControl><Input type="password"   {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>

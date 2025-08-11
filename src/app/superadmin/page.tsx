@@ -246,7 +246,7 @@ export default function SuperAdminPage() {
                                                 <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
                                             )} />
                                             <FormField control={addAdminForm.control} name="pin" render={({ field }) => (
-                                                <FormItem><FormLabel>رمز PIN (6 رموز)</FormLabel><FormControl><Input type="password"   {...field} /></FormControl><FormMessage /></FormItem>
+                                                <FormItem><FormLabel>رمز PIN</FormLabel><FormControl><Input type="password"   {...field} /></FormControl><FormMessage /></FormItem>
                                             )} />
                                             <DialogFooter className="pt-4">
                                                 <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>

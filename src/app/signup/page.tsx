@@ -71,7 +71,7 @@ export default function SignUpPage() {
                         </div>
                          <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="signup-pin">رمز PIN (6 رموز)</Label>
+                                <Label htmlFor="signup-pin">رمز PIN</Label>
                                 <Input id="signup-pin" type="password" value={pin} onChange={(e) => setPin(e.target.value)}  required />
                             </div>
                             <div className="space-y-2">

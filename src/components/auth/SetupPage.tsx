@@ -59,13 +59,13 @@ export default function SetupPage() {
                             <Label htmlFor="admin-name">اسم المدير العام</Label>
                             <Input id="admin-name" value={adminName} onChange={(e) => setAdminName(e.target.value)} placeholder="مثال: علي المدير" required />
                         </div>
-                         <div className="space-y-2">
+                        <div className="space-y-2">
                             <Label htmlFor="email">البريد الإلكتروني</Label>
                             <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="superadmin@example.com" required />
                         </div>
-                         <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="pin">رمز PIN (6 رموز)</Label>
+                                <Label htmlFor="pin">رمز PIN</Label>
                                 <Input id="pin" type="password"  value={pin} onChange={(e) => setPin(e.target.value)} required />
                             </div>
                             <div className="space-y-2">
