@@ -385,13 +385,14 @@ export default function Dashboard() {
                           <TableBody>
                               {reorder_pointItems.length > 0 ? reorder_pointItems.map(item => (
                                   <TableRow key={item.id}>
-                                      <TableCell>
+                                      <TableCell className="text-right">
                                           <div className="font-medium">{item.name}</div>
                                           <div className="text-xs text-muted-foreground">{item.scientific_names?.join(', ')}</div>
                                           <div className="text-xs text-muted-foreground font-mono">{item.barcodes?.join(', ')}</div>
                                       </TableCell>
-                                      <TableCell><Badge variant="secondary" className="bg-yellow-400 text-yellow-900 font-mono">{item.stock}</Badge></TableCell>
-                                      <TableCell><Badge variant="outline" className="font-mono">{item.reorder_point}</Badge></TableCell>
+                                      <TableCell className="text-right">
+                                        <Badge variant="destructive" className="font-mono">{item.stock}</Badge>
+                                      </TableCell>
                                   </TableRow>
                               )) : (
                                   <TableRow>
@@ -424,20 +425,24 @@ export default function Dashboard() {
                       <TableBody>
                           {expiredItems.length > 0 && expiredItems.map(item => (
                               <TableRow key={item.id}>
-                                  <TableCell>
+                                  <TableCell className="text-right">
                                       <div className="font-medium">{item.name}</div>
                                       <div className="text-xs text-muted-foreground font-mono">{item.barcodes?.join(', ')}</div>
                                   </TableCell>
-                                  <TableCell><Badge variant="destructive">منتهي الصلاحية</Badge></TableCell>
+                                  <TableCell className="text-right">
+                                    <Badge variant="destructive">منتهي الصلاحية</Badge>
+                                  </TableCell>
                               </TableRow>
                           ))}
                           {expiringSoonItems.length > 0 && expiringSoonItems.map(item => (
                               <TableRow key={item.id}>
-                                  <TableCell>
+                                  <TableCell className="text-right">
                                       <div className="font-medium">{item.name}</div>
                                       <div className="text-xs text-muted-foreground font-mono">{item.barcodes?.join(', ')}</div>
                                   </TableCell>
-                                  <TableCell><Badge variant="secondary" className="bg-yellow-400 text-yellow-900 font-mono">{differenceInDays(parseISO(item.expiration_date), today)} يوم</Badge></TableCell>
+                                  <TableCell className="text-right">
+                                    <Badge variant="secondary" className="bg-yellow-400 text-yellow-900 font-mono">{differenceInDays(parseISO(item.expiration_date), new Date())} يوم</Badge>
+                                  </TableCell>
                               </TableRow>
                           ))}
                           {expiredItems.length === 0 && expiringSoonItems.length === 0 && (
@@ -460,15 +465,15 @@ export default function Dashboard() {
               <Table>
                   <TableHeader>
                       <TableRow>
-                          <TableHead>الدواء</TableHead>
-                          <TableHead className="text-left">الكمية المباعة</TableHead>
+                          <TableHead >الدواء</TableHead>
+                          <TableHead>الكمية المباعة</TableHead>
                       </TableRow>
                   </TableHeader>
                   <TableBody>
                       {topSellingMedications.length > 0 ? topSellingMedications.map((item) => (
                           <TableRow key={item.medication_id}>
-                              <TableCell className="font-medium">{item.name}</TableCell>
-                              <TableCell className="text-left font-mono">{item.quantity}</TableCell>
+                              <TableCell className="font-medium text-right">{item.name}</TableCell>
+                              <TableCell className="font-mono text-right">{item.quantity}</TableCell>
                           </TableRow>
                       )) : (
                           <TableRow>
