@@ -98,8 +98,7 @@ export default function Dashboard() {
   
   const expirationThreshold = settings.expirationThresholdDays || 90;
   
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Start of today for consistent comparison
+  const today = startOfToday();
 
   const expiredItems = inventory.filter(item => {
     if (!item.expiration_date) return false;
@@ -111,7 +110,7 @@ export default function Dashboard() {
     const expDate = parseISO(item.expiration_date);
     const daysLeft = differenceInDays(expDate, today);
     return daysLeft >= 0 && daysLeft <= expirationThreshold;
-  }).sort((a,b) => differenceInDays(parseISO(a.expiration_date), new Date()) - differenceInDays(parseISO(b.expiration_date), new Date()));
+  }).sort((a,b) => differenceInDays(parseISO(a.expiration_date), today) - differenceInDays(parseISO(b.expiration_date), today));
   
   const topSellingMedications = React.useMemo(() => {
     const stats: { [medId: string]: { name: string; quantity: number } } = {};
@@ -283,9 +282,6 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono">{reorder_pointItems.length}</div>
-            <p className="text-xs text-muted-foreground">
-              أصناف عند نقطة إعادة الطلب
-            </p>
           </CardContent>
         </Card>
         <Card>
@@ -295,9 +291,6 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono">{expiringSoonItems.length}</div>
-            <p className="text-xs text-muted-foreground">
-              ستنتهي صلاحيتها خلال {expirationThreshold} يومًا
-            </p>
           </CardContent>
         </Card>
       </div>
@@ -374,7 +367,6 @@ export default function Dashboard() {
               <CardHeader className="flex-row items-center justify-between">
                   <div>
                       <CardTitle>تحتاج إعادة طلب</CardTitle>
-                      <CardDescription>أصناف وصلت أو تجاوزت نقطة الطلب.</CardDescription>
                   </div>
                   <Link href="/inventory">
                       <Button variant="outline">عرض المخزون</Button>
@@ -387,10 +379,11 @@ export default function Dashboard() {
                               <TableRow>
                                   <TableHead>الاسم</TableHead>
                                   <TableHead>المخزون</TableHead>
+                                  <TableHead>نقطة الطلب</TableHead>
                               </TableRow>
                           </TableHeader>
                           <TableBody>
-                              {lowStockItems.length > 0 ? lowStockItems.map(item => (
+                              {reorder_pointItems.length > 0 ? reorder_pointItems.map(item => (
                                   <TableRow key={item.id}>
                                       <TableCell className="text-right">
                                           <div className="font-medium">{item.name}</div>
@@ -403,7 +396,7 @@ export default function Dashboard() {
                                   </TableRow>
                               )) : (
                                   <TableRow>
-                                      <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد أصناف.</TableCell>
+                                      <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">لا توجد أصناف.</TableCell>
                                   </TableRow>
                               )}
                           </TableBody>
@@ -412,10 +405,9 @@ export default function Dashboard() {
               </CardContent>
           </Card>
           <Card>
-              <CardHeader>
+              <CardHeader className="flex-row items-center justify-between">
                   <div>
                       <CardTitle>قريب الانتهاء ومنتهي الصلاحية</CardTitle>
-                      <CardDescription>أصناف قاربت على الانتهاء أو منتهية.</CardDescription>
                   </div>
                    <Link href="/expiring-soon">
                       <Button variant="outline">عرض الكل</Button>
@@ -499,3 +491,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

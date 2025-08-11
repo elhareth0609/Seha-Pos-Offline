@@ -14,7 +14,6 @@ export type UserPermissions = {
     settings: boolean;
     trash: boolean;
     salesPriceModification: boolean;
-    allowDataCorrection: boolean;
 };
 
 export type Medication = {

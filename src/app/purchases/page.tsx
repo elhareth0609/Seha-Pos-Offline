@@ -162,6 +162,7 @@ export default function PurchasesPage() {
             price: item.price,
             dosage: item.dosage,
             dosage_form: item.dosage_form,
+            reorder_point: item.reorder_point,
         })),
     }
 
@@ -305,6 +306,7 @@ export default function PurchasesPage() {
     const [purchase_price, setPurchasePrice] = React.useState('');
     const [sellingPrice, setSellingPrice] = React.useState('');
     const [expiration_date, setExpirationDate] = React.useState('');
+    const [reorder_point, setReorderPoint] = React.useState('10');
     const [imageFile, setImageFile] = React.useState<File | null>(null);
     const [imagePreview, setImagePreview] = React.useState<string>('');
 
@@ -318,6 +320,7 @@ export default function PurchasesPage() {
         setPurchasePrice('');
         setSellingPrice('');
         setExpirationDate('');
+        setReorderPoint('10');
         setImageFile(null);
         setImagePreview('');
     };
@@ -329,6 +332,7 @@ export default function PurchasesPage() {
         setDosageForm(med.dosage_form || '');
         setSellingPrice(String(med.price || ''));
         setPurchasePrice(String(med.purchase_price || ''));
+        setReorderPoint(String(med.reorder_point || '10'));
         setImagePreview(med.image_url || '');
     }, []);
 
@@ -379,8 +383,8 @@ export default function PurchasesPage() {
             purchase_price: parseFloat(purchase_price),
             price: parseFloat(sellingPrice),
             expiration_date: expDate,
+            reorder_point: parseInt(reorder_point, 10),
             image_url: image_url,
-
         };
 
         if (!newItem.name || !newItem.quantity || !newItem.purchase_price || !newItem.price) {
@@ -420,6 +424,12 @@ export default function PurchasesPage() {
                         </SelectContent>
                     </Select>
                 </div>
+                 <div className="flex flex-col gap-2">
+                    <Label htmlFor="expiration_date">تاريخ الانتهاء</Label>
+                    <Input id="expiration_date" type="date" value={expiration_date} onChange={e => setExpirationDate(e.target.value)} required/>
+                </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="flex flex-col gap-2">
                     <Label htmlFor="quantity">الكمية</Label>
                     <Input id="quantity" type="number" required value={quantity} onChange={e => setQuantity(e.target.value)} />
@@ -433,22 +443,22 @@ export default function PurchasesPage() {
                     <Input id="sellingPricePerSaleUnit" type="number" required value={sellingPrice} onChange={e => setSellingPrice(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-2">
-                    <Label htmlFor="expiration_date">تاريخ الانتهاء</Label>
-                    <Input id="expiration_date" type="date" value={expiration_date} onChange={e => setExpirationDate(e.target.value)} required/>
+                    <Label htmlFor="reorder_point">نقطة إعادة الطلب</Label>
+                    <Input id="reorder_point" type="number" required value={reorder_point} onChange={e => setReorderPoint(e.target.value)} />
                 </div>
-                <div className="md:col-span-3 flex flex-col gap-2">
-                    <Label htmlFor="itemImage">صورة المنتج (اختياري)</Label>
-                    <div className="flex items-center gap-4">
-                        <Input id="itemImage" type="file" accept="image/*" onChange={handleImageChange} className="pt-2 text-xs h-10 flex-1" />
-                        {imagePreview && (
-                            <div className="relative w-16 h-16 shrink-0">
-                                <Image src={imagePreview} alt="معاينة" fill className="rounded-md object-cover" />
-                                <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-5 w-5 rounded-full" onClick={() => { setImageFile(null); setImagePreview(''); }}>
-                                    <X className="h-3 w-3" />
-                                </Button>
-                            </div>
-                        )}
-                    </div>
+            </div>
+            <div className="flex flex-col gap-2">
+                <Label htmlFor="itemImage">صورة المنتج (اختياري)</Label>
+                <div className="flex items-center gap-4">
+                    <Input id="itemImage" type="file" accept="image/*" onChange={handleImageChange} className="pt-2 text-xs h-10 flex-1" />
+                    {imagePreview && (
+                        <div className="relative w-16 h-16 shrink-0">
+                            <Image src={imagePreview} alt="معاينة" fill className="rounded-md object-cover" />
+                            <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-5 w-5 rounded-full" onClick={() => { setImageFile(null); setImagePreview(''); }}>
+                                <X className="h-3 w-3" />
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </div>
             <Button type="submit" className="w-full">إضافة إلى القائمة</Button>
