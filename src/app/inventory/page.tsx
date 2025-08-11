@@ -636,10 +636,6 @@ export default function InventoryPage() {
                                                   <X className="h-3 w-3" />
                                               </Button>
                                           </div>
-                                      ) : (
-                                          <div className="h-10 w-10 flex items-center justify-center rounded-sm bg-muted text-muted-foreground">
-                                              <Package className="h-5 w-5" />
-                                          </div>
                                       )}
                                   </div>
                               </div>
