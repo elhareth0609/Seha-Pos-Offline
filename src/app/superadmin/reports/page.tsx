@@ -200,7 +200,13 @@ export default function SuperAdminReportsPage() {
                             <CardHeader><CardTitle>أصناف منخفضة المخزون</CardTitle></CardHeader>
                             <CardContent>
                                 <Table>
-                                    <TableHeader><TableRow><TableHead>الدواء</TableHead><TableHead>المخزون</TableHead><TableHead>نقطة الطلب</TableHead></TableRow></TableHeader>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>الدواء</TableHead>
+                                            <TableHead>المخزون</TableHead>
+                                            <TableHead>نقطة الطلب</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
                                     <TableBody>
                                         {selectedPharmacyData.lowStockItems.map(item => (
                                             <TableRow key={item.id}>
