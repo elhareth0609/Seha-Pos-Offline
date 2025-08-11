@@ -405,6 +405,9 @@ export default function InventoryPage() {
   const handleRemoveEditImage = () => {
     setEditImageFile(null);
     setEditImagePreview('');
+    if (editingMed) {
+        setEditingMed({ ...editingMed, image_url: '' });
+    }
   };
 
   if (!isClient) {
@@ -626,7 +629,7 @@ export default function InventoryPage() {
                                   <Label htmlFor="edit-image_url">صورة الدواء</Label>
                                   <div className="flex items-center gap-4">
                                       <Input id="edit-image_url" type="file" accept="image/*" onChange={handleEditImageChange} className="pt-2 text-xs h-10 flex-1" />
-                                      {editImagePreview && (
+                                      {typeof editImagePreview === 'string' && editImagePreview !== "" && (
                                           <div className="relative w-16 h-16 shrink-0">
                                               <Image src={editImagePreview} alt="معاينة" fill className="rounded-md object-cover" />
                                               <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-5 w-5 rounded-full" onClick={handleRemoveEditImage}>
