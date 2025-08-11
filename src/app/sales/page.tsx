@@ -370,7 +370,7 @@ export default function SalesPage() {
         // Expiration check
         const today = new Date();
         today.setHours(0,0,0,0);
-        if (medication.expiration_date && differenceInDays(parseISO(medication.expiration_date), today) < 0) {
+        if (medication.expiration_date && parseISO(medication.expiration_date) < today) {
             toast({ variant: 'destructive', title: 'منتج منتهي الصلاحية', description: `لا يمكن بيع ${medication.name} لأنه منتهي الصلاحية.` });
             return;
         }

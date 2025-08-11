@@ -55,8 +55,7 @@ export default function ExpiringSoonPage() {
         .filter((item) => {
             if (!item.expiration_date) return false;
             const expiration_date = parseISO(item.expiration_date);
-            const daysUntilExpiration = differenceInDays(expiration_date, today);
-            return daysUntilExpiration < 0;
+            return expiration_date < today;
         })
         .filter(item => 
             item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -73,11 +72,12 @@ export default function ExpiringSoonPage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Start of today
     const expDate = parseISO(expiration_date);
-    const daysLeft = differenceInDays(expDate, today);
-
-    if (daysLeft < 0) {
+    
+    if (expDate < today) {
         return <Badge variant="destructive">منتهي الصلاحية</Badge>
     }
+
+    const daysLeft = differenceInDays(expDate, today);
     if (daysLeft <= 30) {
       return <Badge variant="destructive">ينتهي قريبًا جدًا</Badge>
     }

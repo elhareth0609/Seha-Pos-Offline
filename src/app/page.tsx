@@ -97,16 +97,19 @@ export default function Dashboard() {
   );
   
   const expirationThreshold = settings.expirationThresholdDays || 90;
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Start of today for consistent comparison
 
   const expiredItems = inventory.filter(item => {
     if (!item.expiration_date) return false;
-    const daysLeft = differenceInDays(parseISO(item.expiration_date), new Date());
-    return daysLeft < 0;
+    return parseISO(item.expiration_date) < today;
   });
 
   const expiringSoonItems = inventory.filter(item => {
     if (!item.expiration_date) return false;
-    const daysLeft = differenceInDays(parseISO(item.expiration_date), new Date());
+    const expDate = parseISO(item.expiration_date);
+    const daysLeft = differenceInDays(expDate, today);
     return daysLeft >= 0 && daysLeft <= expirationThreshold;
   }).sort((a,b) => differenceInDays(parseISO(a.expiration_date), new Date()) - differenceInDays(parseISO(b.expiration_date), new Date()));
   
