@@ -28,75 +28,75 @@ type AuthResponse = {
 };
 
 type ActiveInvoice = {
-  cart: SaleItem[];
-  discountValue: string;
-  discountType: 'fixed' | 'percentage';
-  patientId: string | null;
-  paymentMethod: 'cash' | 'card';
+    cart: SaleItem[];
+    discountValue: string;
+    discountType: 'fixed' | 'percentage';
+    patientId: string | null;
+    paymentMethod: 'cash' | 'card';
 };
 
 interface AuthContextType {
-  currentUser: User | null;
-  users: User[];
-  setUsers: React.Dispatch<React.SetStateAction<User[]>>;
-  isAuthenticated: boolean;
-  isSetup: boolean;
-  loading: boolean;
-  setupAdmin: (name: string, email: string, pin: string) => Promise<boolean>;
-  createPharmacyAdmin: (name: string, email: string, pin: string) => Promise<boolean>;
-  login: (email: string, pin: string) => Promise<User | null>;
-  logout: () => void;
-  registerUser: (name: string, email: string, pin: string) => Promise<boolean>;
-  deleteUser: (userId: string, permanent?: boolean) => Promise<boolean>;
-  updateUser: (userId: string, name: string, email: string, pin?: string) => Promise<boolean>;
-  updateUserPermissions: (userId: string, permissions: UserPermissions) => Promise<boolean>;
-  updateUserHourlyRate: (userId: string, rate: number) => Promise<boolean>;
-  toggleUserStatus: (userId: string) => Promise<boolean>;
-  getAllPharmacySettings: () => Promise<Record<string, AppSettings>>;
-  getPharmacyData: (pharmacyId: string) => Promise<{ sales: Sale[], inventory: Medication[] }>;
-  
-  advertisements: Advertisement[];
-  addAdvertisement: (title: string, image_url: string) => Promise<void>;
-  updateAdvertisement: (adId: string, data: Partial<Omit<Advertisement, 'id' | 'created_at'>>) => Promise<void>;
-  deleteAdvertisement: (adId: string) => Promise<void>;
-  clearPharmacyData: () => Promise<void>;
-  
-  scopedData: ScopedDataContextType;
+    currentUser: User | null;
+    users: User[];
+    setUsers: React.Dispatch<React.SetStateAction<User[]>>;
+    isAuthenticated: boolean;
+    isSetup: boolean;
+    loading: boolean;
+    setupAdmin: (name: string, email: string, pin: string) => Promise<boolean>;
+    createPharmacyAdmin: (name: string, email: string, pin: string) => Promise<boolean>;
+    login: (email: string, pin: string) => Promise<User | null>;
+    logout: () => void;
+    registerUser: (name: string, email: string, pin: string) => Promise<boolean>;
+    deleteUser: (userId: string, permanent?: boolean) => Promise<boolean>;
+    updateUser: (userId: string, name: string, email: string, pin?: string) => Promise<boolean>;
+    updateUserPermissions: (userId: string, permissions: UserPermissions) => Promise<boolean>;
+    updateUserHourlyRate: (userId: string, rate: number) => Promise<boolean>;
+    toggleUserStatus: (userId: string) => Promise<boolean>;
+    getAllPharmacySettings: () => Promise<Record<string, AppSettings>>;
+    getPharmacyData: (pharmacyId: string) => Promise<{ sales: Sale[], inventory: Medication[] }>;
+    
+    advertisements: Advertisement[];
+    addAdvertisement: (title: string, image_url: string) => Promise<void>;
+    updateAdvertisement: (adId: string, data: Partial<Omit<Advertisement, 'id' | 'created_at'>>) => Promise<void>;
+    deleteAdvertisement: (adId: string) => Promise<void>;
+    clearPharmacyData: () => Promise<void>;
+    
+    scopedData: ScopedDataContextType;
 
-  // Inventory Management
-  addMedication: (data: Partial<Medication>) => Promise<boolean>;
-  updateMedication: (medId: string, data: Partial<Medication>) => Promise<boolean>;
-  deleteMedication: (medId: string) => Promise<boolean>;
-  bulkAddOrUpdateInventory: (items: Partial<Medication>[]) => Promise<boolean>;
+    // Inventory Management
+    addMedication: (data: Partial<Medication>) => Promise<boolean>;
+    updateMedication: (medId: string, data: Partial<Medication>) => Promise<boolean>;
+    deleteMedication: (medId: string) => Promise<boolean>;
+    bulkAddOrUpdateInventory: (items: Partial<Medication>[]) => Promise<boolean>;
 
-  // Sales
-  addSale: (saleData: any) => Promise<Sale | null>;
-  
-  // Suppliers
-  addSupplier: (data: Partial<Supplier>) => Promise<Supplier | null>;
-  updateSupplier: (supplier_id: string, data: Partial<Supplier>) => Promise<boolean>;
-  deleteSupplier: (supplier_id: string) => Promise<boolean>;
+    // Sales
+    addSale: (saleData: any) => Promise<Sale | null>;
+    
+    // Suppliers
+    addSupplier: (data: Partial<Supplier>) => Promise<Supplier | null>;
+    updateSupplier: (supplier_id: string, data: Partial<Supplier>) => Promise<boolean>;
+    deleteSupplier: (supplier_id: string) => Promise<boolean>;
 
-  // Patients
-  addPatient: (name: string, phone?: string) => Promise<Patient | null>;
-  updatePatient: (patientId: string, data: Partial<Patient>) => Promise<boolean>;
-  deletePatient: (patientId: string) => Promise<boolean>;
-  
-  // Payments
-  addPayment: (supplier_id: string, amount: number, notes?: string) => Promise<boolean>;
-  
-  // Purchases and Returns
-  addPurchaseOrder: (data: any) => Promise<boolean>;
-  addReturnOrder: (data: any) => Promise<boolean>;
-  
-  // Trash
-  restoreItem: (itemId: string) => Promise<boolean>;
-  permDelete: (itemId: string) => Promise<boolean>;
-  clearTrash: () => Promise<boolean>;
-  
-  activeInvoice: ActiveInvoice;
-  setActiveInvoice: React.Dispatch<React.SetStateAction<ActiveInvoice>>;
-  resetActiveInvoice: () => void;
+    // Patients
+    addPatient: (name: string, phone?: string) => Promise<Patient | null>;
+    updatePatient: (patientId: string, data: Partial<Patient>) => Promise<boolean>;
+    deletePatient: (patientId: string) => Promise<boolean>;
+    
+    // Payments
+    addPayment: (supplier_id: string, amount: number, notes?: string) => Promise<boolean>;
+    
+    // Purchases and Returns
+    addPurchaseOrder: (data: any) => Promise<boolean>;
+    addReturnOrder: (data: any) => Promise<boolean>;
+    
+    // Trash
+    restoreItem: (itemId: string) => Promise<boolean>;
+    permDelete: (itemId: string) => Promise<boolean>;
+    clearTrash: () => Promise<boolean>;
+    
+    activeInvoice: ActiveInvoice;
+    setActiveInvoice: React.Dispatch<React.SetStateAction<ActiveInvoice>>;
+    resetActiveInvoice: () => void;
 }
 
 export interface ScopedDataContextType {
