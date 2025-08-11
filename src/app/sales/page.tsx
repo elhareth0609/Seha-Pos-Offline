@@ -391,7 +391,7 @@ export default function SalesPage() {
                 scientific_names: medication.scientific_names, 
                 quantity: 1, 
                 price: medication.price || 0,
-                purchase_price: medication.purchase_price, 
+                purchase_price: medication.purchase_price || 0, 
                 expiration_date: medication.expiration_date, 
                 is_return: false, 
                 dosage: medication.dosage,
@@ -538,12 +538,12 @@ export default function SalesPage() {
   };
 
   const subtotal = cart.reduce((total, item) => {
-      const itemTotal = item.price * item.quantity;
+      const itemTotal = (item.price || 0) * (item.quantity || 0);
       return item.is_return ? total - itemTotal : total + itemTotal;
   }, 0);
 
   const totalProfit = cart.reduce((acc, item) => {
-      const itemProfit = (item.price - item.purchase_price) * item.quantity;
+      const itemProfit = ((item.price || 0) - (item.purchase_price || 0)) * (item.quantity || 0);
       return item.is_return ? acc - itemProfit : acc + itemProfit;
   }, 0);
   
@@ -709,7 +709,7 @@ export default function SalesPage() {
                                                       <div className="text-xs text-muted-foreground">{med.scientific_names?.join(', ')}</div>
                                                     </div>
                                                 </div>
-                                                 <span className="text-sm text-muted-foreground font-mono">{med.price.toLocaleString()}</span>
+                                                 <span className="text-sm text-muted-foreground font-mono">{(med.price || 0).toLocaleString()}</span>
                                             </li>
                                         ))}
                                     </ul>
@@ -767,7 +767,7 @@ export default function SalesPage() {
                                     const medInInventory = allInventory.find(med => med.id === item.id);
                                     const stock = medInInventory?.stock ?? 0;
                                     const remainingStock = stock - item.quantity;
-                                    const isBelowCost = item.price < item.purchase_price;
+                                    const isBelowCost = (item.price || 0) < (item.purchase_price || 0);
                                     const alternatives = findAlternatives(item);
                                     return (
                                         <div key={item.id} className={cn("flex flex-col gap-3 p-3", item.is_return && "bg-red-50 dark:bg-red-900/20")}>
@@ -808,7 +808,7 @@ export default function SalesPage() {
                                                 <div className="space-y-1">
                                                      <Label htmlFor={`price-sm-${item.id}`} className="text-xs">السعر الإجمالي</Label>
                                                      <div className="relative">
-                                                        <Input id={`price-sm-${item.id}`} type="number" value={item.price * item.quantity} onChange={(e) => updateTotalPrice(item.id, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={mode !== 'new' || !priceModificationAllowed} />
+                                                        <Input id={`price-sm-${item.id}`} type="number" value={(item.price || 0) * (item.quantity || 0)} onChange={(e) => updateTotalPrice(item.id, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={mode !== 'new' || !priceModificationAllowed} />
                                                         {isBelowCost && !item.is_return && (
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
@@ -845,7 +845,7 @@ export default function SalesPage() {
                                     const medInInventory = allInventory.find(med => med.id === item.id);
                                     const stock = medInInventory?.stock ?? 0;
                                     const remainingStock = stock - item.quantity;
-                                    const isBelowCost = item.price < item.purchase_price;
+                                    const isBelowCost = (item.price || 0) < (item.purchase_price || 0);
                                     const alternatives = findAlternatives(item);
 
                                     return (
@@ -908,7 +908,7 @@ export default function SalesPage() {
                                                 <div className="relative">
                                                     <Input 
                                                       type="text"
-                                                      value={item.price * item.quantity}
+                                                      value={(item.price || 0) * (item.quantity || 0)}
                                                       onChange={(e) => updateTotalPrice(item.id, e.target.value)} 
                                                       className={cn("w-24 h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )}
                                                       step="1" 
@@ -1057,7 +1057,7 @@ export default function SalesPage() {
                                                           <TableRow key={item.id} className={cn(item.is_return && "text-destructive")}>
                                                               <TableCell>{item.name} {item.is_return && "(مرتجع)"}</TableCell>
                                                               <TableCell className="text-center font-mono">{item.quantity}</TableCell>
-                                                              <TableCell className="text-left font-mono">{((item.is_return ? -1 : 1) * item.price * item.quantity).toLocaleString()}</TableCell>
+                                                              <TableCell className="text-left font-mono">{((item.is_return ? -1 : 1) * (item.price || 0) * (item.quantity || 0)).toLocaleString()}</TableCell>
                                                           </TableRow>
                                                       ))}
                                                   </TableBody>
