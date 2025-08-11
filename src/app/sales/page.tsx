@@ -66,6 +66,7 @@ import { useOnlineStatus } from "@/hooks/use-online-status"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import AdCarousel from "@/components/ui/ad-carousel"
+import { differenceInDays, parseISO } from "date-fns"
 
 const printElement = (element: HTMLElement, title: string = 'Print') => {
   const printWindow = window.open('', '_blank');
@@ -349,6 +350,8 @@ export default function SalesPage() {
   const [reviewIndex, setReviewIndex] = React.useState(0);
   const [isPrintReviewOpen, setIsPrintReviewOpen] = React.useState(false);
   const isOnline = useOnlineStatus();
+  const priceModificationAllowed = currentUser?.role === 'Admin' || currentUser?.permissions?.settings;
+
 
   const { toast } = useToast()
   
@@ -363,6 +366,13 @@ export default function SalesPage() {
 
     const addToCart = React.useCallback((medication: Medication) => {
         if (mode !== 'new') return;
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        if (medication.expiration_date && differenceInDays(parseISO(medication.expiration_date), today) < 0) {
+            toast({ variant: 'destructive', title: 'منتج منتهي الصلاحية', description: `لا يمكن بيع ${medication.name} لأنه منتهي الصلاحية.` });
+            return;
+        }
+
         setCart((prevCart) => {
             const existingItem = prevCart.find(item => item.id === medication.id && !item.is_return)
             // const existingItem = prevCart.find(item => item.id === medication.id && !item.is_return)
@@ -390,7 +400,7 @@ export default function SalesPage() {
         })
         setSearchTerm("")
         setSuggestions([])
-    }, [mode, setCart])
+    }, [mode, setCart, toast])
   
   const handleScan = React.useCallback((result: string) => {
     if (mode !== 'new') return;
@@ -477,14 +487,19 @@ export default function SalesPage() {
     }
   }, [suggestions, allInventory, searchTerm, addToCart, mode, toast]);
 
-  const updateQuantity = (id: string, quantity: number) => {
+  const updateQuantity = (id: string, newQuantityStr: string) => {
     if (mode !== 'new') return;
-    if (quantity <= 0) {
-      removeFromCart(id)
-    } else {
-      setCart(cart => cart.map(item => item.id === id ? { ...item, quantity } : item))
+    const quantity = parseInt(newQuantityStr, 10);
+    if (isNaN(quantity) || quantity < 0) {
+        return; // Or handle empty/invalid input
     }
-  }
+    if (quantity === 0) {
+        removeFromCart(id);
+    } else {
+        setCart(cart => cart.map(item => (item.id === id ? { ...item, quantity } : item)));
+    }
+};
+
   
   const updateTotalPrice = (id: string, newTotalPriceStr: string) => {
     if (mode !== 'new') return;
@@ -758,7 +773,6 @@ export default function SalesPage() {
                                     const stock = medInInventory?.stock ?? 0;
                                     const remainingStock = stock - item.quantity;
                                     const isBelowCost = item.price < item.purchase_price;
-                                    const totalPrice = item.price * item.quantity;
                                     const alternatives = findAlternatives(item);
                                     return (
                                         <div key={item.id} className={cn("flex flex-col gap-3 p-3", item.is_return && "bg-red-50 dark:bg-red-900/20")}>
@@ -793,17 +807,13 @@ export default function SalesPage() {
 
                                             <div className="grid grid-cols-2 gap-3 items-end">
                                                 <div className="space-y-1">
-                                                    <Label className="text-xs">الكمية</Label>
-                                                    <div className="flex items-center justify-center gap-2 border rounded-md p-1">
-                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity - 1)} disabled={mode !== 'new'}><MinusCircle className="h-4 w-4" /></Button>
-                                                        <span className="font-mono">{item.quantity}</span>
-                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity + 1)} disabled={mode !== 'new'}><PlusCircle className="h-4 w-4" /></Button>
-                                                    </div>
+                                                     <Label htmlFor={`quantity-sm-${item.id}`} className="text-xs">الكمية</Label>
+                                                     <Input id={`quantity-sm-${item.id}`} type="number" value={item.quantity} onChange={(e) => updateQuantity(item.id, e.target.value)} className="h-9 text-center font-mono" disabled={mode !== 'new'} />
                                                 </div>
                                                 <div className="space-y-1">
-                                                     <Label htmlFor={`price-${item.id}`} className="text-xs">السعر الإجمالي</Label>
+                                                     <Label htmlFor={`price-sm-${item.id}`} className="text-xs">السعر الإجمالي</Label>
                                                      <div className="relative">
-                                                        <Input id={`price-${item.id}`} type="number" value={item.price * item.quantity} onChange={(e) => updateTotalPrice(item.id, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={mode !== 'new'} />
+                                                        <Input id={`price-sm-${item.id}`} type="number" value={item.price * item.quantity} onChange={(e) => updateTotalPrice(item.id, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={mode !== 'new' || !priceModificationAllowed} />
                                                         {isBelowCost && !item.is_return && (
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
@@ -841,7 +851,6 @@ export default function SalesPage() {
                                     const stock = medInInventory?.stock ?? 0;
                                     const remainingStock = stock - item.quantity;
                                     const isBelowCost = item.price < item.purchase_price;
-                                    const totalPrice = item.price * item.quantity;
                                     const alternatives = findAlternatives(item);
 
                                     return (
@@ -891,11 +900,14 @@ export default function SalesPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                            <div className="flex items-center justify-center gap-2">
-                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity - 1)} disabled={mode !== 'new'}><MinusCircle className="h-4 w-4" /></Button>
-                                                <span className="font-mono">{item.quantity}</span>
-                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity + 1)} disabled={mode !== 'new'}><PlusCircle className="h-4 w-4" /></Button>
-                                            </div>
+                                             <Input
+                                                id={`quantity-${item.id}`}
+                                                type="number"
+                                                value={item.quantity}
+                                                onChange={(e) => updateQuantity(item.id, e.target.value)}
+                                                className="w-20 h-9 text-center font-mono"
+                                                disabled={mode !== 'new'}
+                                             />
                                             </TableCell>
                                             <TableCell>
                                                 <div className="relative">
@@ -906,7 +918,7 @@ export default function SalesPage() {
                                                       className={cn("w-24 h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )}
                                                       step="1" 
                                                       min="0" 
-                                                      disabled={mode !== 'new'} />
+                                                      disabled={mode !== 'new' || !priceModificationAllowed} />
                                                     {isBelowCost && !item.is_return && (
                                                       <Tooltip>
                                                         <TooltipTrigger asChild>

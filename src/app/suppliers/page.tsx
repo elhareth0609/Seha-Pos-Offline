@@ -75,7 +75,8 @@ export default function SuppliersPage() {
   const [editingSupplier, setEditingSupplier] = React.useState<Supplier | null>(null);
   const [selectedSupplier, setSelectedSupplier] = React.useState<Supplier | null>(null);
   const [isStatementOpen, setIsStatementOpen] = React.useState(false);
-  const [statementData, setStatementData] = React.useState<{ supplier: Supplier | null, items: StatementItem[] }>({ supplier: null, items: [] });
+  const [statementData, setStatementData] = { supplier: null, items: [] };
+  const [supplierSearchTerm, setSupplierSearchTerm] = React.useState("");
   const { toast } = useToast();
 
   React.useEffect(() => {
@@ -132,7 +133,7 @@ export default function SuppliersPage() {
   const supplierAccounts = React.useMemo(() => {
     if (!isClient) return [];
     return suppliers.map(supplier => {
-      const purchases = purchaseOrders.filter(po => po.supplier_id === supplier.id && po.status === "Received");
+      const purchases = purchaseOrders.filter(po => po.supplier_id === supplier.id);
       const returns = supplierReturns.filter(ret => ret.supplier_id === supplier.id);
       const payments = supplierPayments.filter(p => p.supplier_id === supplier.id);
 
@@ -152,43 +153,9 @@ export default function SuppliersPage() {
     });
   }, [suppliers, purchaseOrders, supplierReturns, supplierPayments, isClient]);
   
-  const handleOpenStatement = (supplierAccount: typeof supplierAccounts[0]) => {
-      const supplierPurchases = purchaseOrders.filter(po => po.supplier_id === supplierAccount.id);
-      const supplierReturnsData = supplierReturns.filter(ret => ret.supplier_id === supplierAccount.id);
-      const supplierPaymentsData = supplierPayments.filter(p => p.supplier_id === supplierAccount.id);
+  const filteredSupplierAccounts = supplierAccounts.filter(s => s.name.toLowerCase().includes(supplierSearchTerm.toLowerCase()));
 
-      const allTransactions = [
-          ...supplierPurchases.map(p => ({ ...p, transType: 'شراء' as const, amount: p.total_amount, details: `فاتورة شراء #${p.id}` })),
-          ...supplierReturnsData.map(r => ({ ...r, transType: 'استرجاع' as const, amount: r.total_amount, details: `قائمة استرجاع #${r.id}` })),
-          ...supplierPaymentsData.map(p => ({ ...p, transType: 'دفعة' as const, amount: p.amount, details: p.notes || `دفعة نقدية` }))
-      ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-      let runningBalance = 0;
-      const statementItems: StatementItem[] = allTransactions.map(trans => {
-          let debit = 0;
-          let credit = 0;
-
-          if (trans.transType === 'شراء') {
-              debit = trans.amount;
-              runningBalance += trans.amount;
-          } else {
-              credit = trans.amount;
-              runningBalance -= trans.amount;
-          }
-          
-          return {
-              date: trans.date,
-              type: trans.transType,
-              details: trans.details,
-              debit,
-              credit,
-              balance: runningBalance
-          };
-      });
-
-      setStatementData({ supplier: supplierAccount, items: statementItems.reverse() });
-      setIsStatementOpen(true);
-  }
+  
 
   if (!isClient) {
       return (
@@ -255,8 +222,16 @@ export default function SuppliersPage() {
                 </DialogContent>
             </Dialog>
         </div>
+        <div className="pb-4">
+            <Input 
+                placeholder="ابحث عن مورد..."
+                value={supplierSearchTerm}
+                onChange={(e) => setSupplierSearchTerm(e.target.value)}
+                className="max-w-sm"
+            />
+        </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {supplierAccounts.map(account => (
+            {filteredSupplierAccounts.map(account => (
                 <Card key={account.id} className="flex flex-col">
                     <CardHeader>
                         <div className="flex justify-between items-start">
@@ -328,9 +303,8 @@ export default function SuppliersPage() {
                         </div>
                     </CardContent>
                     <CardFooter className="flex-col sm:flex-row gap-2">
-                        <Button onClick={() => handleOpenStatement(account)} variant="outline" className="w-full">
-                           <FileText className="me-2 h-4 w-4" />
-                           عرض الكشف
+                        
+                           
                         </Button>
                         <Button variant="success" onClick={() => { setSelectedSupplier(account); setIsPaymentDialogOpen(true); }} className="w-full">
                             <DollarSign className="me-2 h-4 w-4" />
@@ -390,54 +364,6 @@ export default function SuppliersPage() {
             )}
         </DialogContent>
     </Dialog>
-    
-    <Dialog open={isStatementOpen} onOpenChange={setIsStatementOpen}>
-      <DialogContent className="max-w-4xl">
-        <DialogHeader>
-            <DialogTitle>كشف حساب المورد: {statementData.supplier?.name}</DialogTitle>
-            <DialogDescription>
-                سجل كامل لجميع المعاملات المالية مع هذا المورد.
-            </DialogDescription>
-        </DialogHeader>
-        <ScrollArea className="max-h-[60vh] border rounded-md">
-            <Table>
-                <TableHeader className="sticky top-0 bg-background">
-                    <TableRow>
-                        <TableHead>التاريخ والوقت</TableHead>
-                        <TableHead>النوع</TableHead>
-                        <TableHead>التفاصيل</TableHead>
-                        <TableHead className="text-destructive">مدين (علينا)</TableHead>
-                        <TableHead className="text-green-600">دائن (لنا)</TableHead>
-                        <TableHead>الرصيد</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {statementData.items.length > 0 ? statementData.items.map((item, index) => (
-                        <TableRow key={index}>
-                            <TableCell className="font-mono">{new Date(item.date).toLocaleString('ar-EG', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric' })}</TableCell>
-                            <TableCell>{item.type}</TableCell>
-                            <TableCell>{item.details}</TableCell>
-                            <TableCell className="font-mono text-destructive">{item.debit > 0 ? item.debit.toLocaleString() : '-'}</TableCell>
-                            <TableCell className="font-mono text-green-600">{item.credit > 0 ? item.credit.toLocaleString() : '-'}</TableCell>
-                            <TableCell className="font-mono font-semibold">{item.balance.toLocaleString()}</TableCell>
-                        </TableRow>
-                    )) : (
-                        <TableRow>
-                            <TableCell colSpan={6} className="text-center h-24">
-                                لا توجد معاملات لعرضها.
-                            </TableCell>
-                        </TableRow>
-                    )}
-                </TableBody>
-            </Table>
-        </ScrollArea>
-        <DialogFooter>
-            <DialogClose asChild>
-                <Button variant="outline">إغلاق</Button>
-            </DialogClose>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-    </>
+</>
   )
 }

@@ -152,7 +152,7 @@ export default function PurchasesPage() {
         supplier_name: supplier.name,
         date: new Date().toISOString().split('T')[0],
         items: purchaseItems.map(item => ({
-            medication_id: item.medication_id,
+            barcode: item.barcode, // Corrected from medication_id to barcode
             name: item.name,
             quantity: item.quantity,
             purchase_price: item.purchase_price,
@@ -335,7 +335,7 @@ export default function PurchasesPage() {
     React.useEffect(() => {
         const Barcode = barcode.trim();
         if (Barcode) {
-            const existingMed = (inventory || []).find(m => m.id === Barcode);
+            const existingMed = (inventory || []).find(m => m.barcode === Barcode);
             if (existingMed) {
                 prefillFormWithMedData(existingMed);
             }
@@ -360,9 +360,8 @@ export default function PurchasesPage() {
         
         let expDate = expiration_date;
         if (!expDate) {
-            const futureDate = new Date();
-            futureDate.setFullYear(futureDate.getFullYear() + 2);
-            expDate = futureDate.toISOString().split('T')[0];
+            toast({ variant: 'destructive', title: "تاريخ الصلاحية مطلوب", description: "الرجاء إدخال تاريخ صلاحية صالح." });
+            return;
         }
         
         let image_url: string = imagePreview || '';
@@ -434,8 +433,8 @@ export default function PurchasesPage() {
                     <Input id="sellingPricePerSaleUnit" type="number" required value={sellingPrice} onChange={e => setSellingPrice(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-2">
-                    <Label htmlFor="expiration_date">تاريخ الانتهاء (اختياري)</Label>
-                    <Input id="expiration_date" type="date" value={expiration_date} onChange={e => setExpirationDate(e.target.value)} />
+                    <Label htmlFor="expiration_date">تاريخ الانتهاء</Label>
+                    <Input id="expiration_date" type="date" value={expiration_date} onChange={e => setExpirationDate(e.target.value)} required/>
                 </div>
                 <div className="md:col-span-3 flex flex-col gap-2">
                     <Label htmlFor="itemImage">صورة المنتج (اختياري)</Label>
@@ -598,7 +597,7 @@ export default function PurchasesPage() {
                                 <TableCell className="font-mono">{new Date(po.date).toLocaleDateString('ar-EG')}</TableCell>
                             </TableRow>
                             {expandedRows.has(po.id) && (po.items || []).map((item, index) => (
-                                <TableRow key={`${po.id}-${item.medication_id}-${index}`} className="bg-muted/10">
+                                <TableRow key={`${po.id}-${item.id}-${index}`} className="bg-muted/10">
                                     <TableCell></TableCell>
                                     <TableCell className="pr-10">{item.name}</TableCell>
                                     <TableCell className="font-mono">{item.quantity}</TableCell>
@@ -796,5 +795,3 @@ export default function PurchasesPage() {
     </Tabs>
   )
 }
-
-    

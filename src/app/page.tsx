@@ -22,11 +22,14 @@ import { Badge } from "@/components/ui/badge";
 import type { Medication, Sale, AppSettings } from "@/lib/types";
 import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, isWithinInterval, isToday } from 'date-fns';
+import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, isWithinInterval, isToday, endOfMonth, endOfWeek, subMonths, startOfYear, endOfYear } from 'date-fns';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import AdCarousel from "@/components/ui/ad-carousel";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function Dashboard() {
   const { scopedData } = useAuth();
@@ -35,10 +38,43 @@ export default function Dashboard() {
   const [settings] = scopedData.settings;
   const [isClient, setIsClient] = React.useState(false);
   const [timeFilter, setTimeFilter] = React.useState<'today' | 'week' | 'month' | 'all'>('month');
-  
+  const [dateFrom, setDateFrom] = React.useState<string>(startOfMonth(new Date()).toISOString().split('T')[0]);
+  const [dateTo, setDateTo] = React.useState<string>(endOfMonth(new Date()).toISOString().split('T')[0]);
+
+
   React.useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const handleTimeFilterChange = (value: string) => {
+    const now = new Date();
+    switch (value) {
+        case 'today':
+            setDateFrom(now.toISOString().split('T')[0]);
+            setDateTo(now.toISOString().split('T')[0]);
+            break;
+        case 'week':
+            setDateFrom(startOfWeek(now, { weekStartsOn: 6 }).toISOString().split('T')[0]);
+            setDateTo(endOfWeek(now, { weekStartsOn: 6 }).toISOString().split('T')[0]);
+            break;
+        case 'month':
+            setDateFrom(startOfMonth(now).toISOString().split('T')[0]);
+            setDateTo(endOfMonth(now).toISOString().split('T')[0]);
+            break;
+        case 'last_month':
+            const lastMonth = subMonths(now, 1);
+            setDateFrom(startOfMonth(lastMonth).toISOString().split('T')[0]);
+            setDateTo(endOfMonth(lastMonth).toISOString().split('T')[0]);
+            break;
+        case 'year':
+            setDateFrom(startOfYear(now).toISOString().split('T')[0]);
+            setDateTo(endOfYear(now).toISOString().split('T')[0]);
+            break;
+        default:
+            setDateFrom("");
+            setDateTo("");
+    }
+  }
 
   const totalRevenue = sales.reduce((acc, sale) => {
     const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
@@ -62,10 +98,16 @@ export default function Dashboard() {
   
   const expirationThreshold = settings.expirationThresholdDays || 90;
 
+  const expiredItems = inventory.filter(item => {
+    if (!item.expiration_date) return false;
+    const daysLeft = differenceInDays(parseISO(item.expiration_date), new Date());
+    return daysLeft < 0;
+  });
+
   const expiringSoonItems = inventory.filter(item => {
     if (!item.expiration_date) return false;
     const daysLeft = differenceInDays(parseISO(item.expiration_date), new Date());
-    return daysLeft > 0 && daysLeft <= expirationThreshold;
+    return daysLeft >= 0 && daysLeft <= expirationThreshold;
   }).sort((a,b) => differenceInDays(parseISO(a.expiration_date), new Date()) - differenceInDays(parseISO(b.expiration_date), new Date()));
   
   const topSellingMedications = React.useMemo(() => {
@@ -97,39 +139,28 @@ export default function Dashboard() {
   const salesPerformance = React.useMemo(() => {
     if (!isClient) return { totalRevenue: 0, totalProfit: 0, profitMargin: 0, invoiceCount: 0 };
     
-    const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 6 }); // Saturday
-    const monthStart = startOfMonth(now);
+    let filteredSales = sales;
 
-    const filteredSales = sales.filter(sale => {
-        const saleDate = parseISO(sale.date);
-        switch (timeFilter) {
-            case 'today':
-                return isToday(saleDate);
-            case 'week':
-                return isWithinInterval(saleDate, { start: weekStart, end: now });
-            case 'month':
-                return isWithinInterval(saleDate, { start: monthStart, end: now });
-            case 'all':
-            default:
-                return true;
-        }
-    });
+    if (dateFrom && dateTo) {
+        const from = new Date(dateFrom);
+        const to = new Date(dateTo);
+        to.setHours(23, 59, 59, 999);
+        filteredSales = sales.filter(sale => isWithinInterval(parseISO(sale.date), { start: from, end: to }));
+    }
 
     const currentTotalRevenue = filteredSales.reduce((acc, sale) => {
-    const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
-    return acc + (isNaN(total) ? 0 : total);
-  }, 0);
+        const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
+        return acc + (isNaN(total) ? 0 : total);
+    }, 0);
     const currentTotalProfit = filteredSales.reduce((acc, sale) => {
-      const  total = (typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0))) -
-      (typeof sale.discount === 'number' ? sale.discount : parseFloat(String(sale.discount || 0)));
-      return acc + (isNaN(total) ? 0 : total);
-  }, 0);
+        const total = (typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0))) - (typeof sale.discount === 'number' ? sale.discount : parseFloat(String(sale.discount || 0)));
+        return acc + (isNaN(total) ? 0 : total);
+    }, 0);
     const currentProfitMargin = currentTotalRevenue > 0 ? (currentTotalProfit / currentTotalRevenue) * 100 : 0;
     const invoiceCount = filteredSales.length;
 
     return { totalRevenue: currentTotalRevenue, totalProfit: currentTotalProfit, profitMargin: currentProfitMargin, invoiceCount };
-  }, [sales, timeFilter, isClient]);
+  }, [sales, dateFrom, dateTo, isClient]);
 
 
   if (!isClient) {
@@ -276,14 +307,29 @@ export default function Dashboard() {
                         اختر الفترة الزمنية لعرض إحصائيات المبيعات والأرباح.
                     </CardDescription>
                 </div>
-                <Tabs defaultValue="month" onValueChange={(value) => setTimeFilter(value as any)} dir="ltr">
-                    <TabsList>
-                        <TabsTrigger value="today">اليوم</TabsTrigger>
-                        <TabsTrigger value="week">الأسبوع</TabsTrigger>
-                        <TabsTrigger value="month">الشهر</TabsTrigger>
-                        <TabsTrigger value="all">الكلي</TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <div className="grid grid-cols-2 gap-2 flex-grow">
+                         <div className="space-y-1">
+                            <Label htmlFor="date-from" className="text-xs">من</Label>
+                            <Input id="date-from" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-9"/>
+                        </div>
+                        <div className="space-y-1">
+                            <Label htmlFor="date-to" className="text-xs">إلى</Label>
+                            <Input id="date-to" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-9"/>
+                        </div>
+                    </div>
+                     <div className="flex items-end">
+                        <Tabs defaultValue="month" onValueChange={handleTimeFilterChange} dir="ltr">
+                            <TabsList className="h-9">
+                                <TabsTrigger value="today">اليوم</TabsTrigger>
+                                <TabsTrigger value="week">أسبوع</TabsTrigger>
+                                <TabsTrigger value="month">شهر</TabsTrigger>
+                                <TabsTrigger value="last_month">آخر شهر</TabsTrigger>
+                                <TabsTrigger value="year">سنة</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                    </div>
+                </div>
             </CardHeader>
             <CardContent className="grid gap-6 pt-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
@@ -292,7 +338,7 @@ export default function Dashboard() {
                         <DollarSign className="h-5 w-5" />
                     </div>
                     <div className="text-3xl font-bold font-mono">
-                          {salesPerformance.totalRevenue}
+                          {salesPerformance.totalRevenue.toLocaleString()}
                     </div>
                     <p className="text-xs text-muted-foreground font-mono">من {salesPerformance.invoiceCount} فاتورة</p>
                 </div>
@@ -324,71 +370,88 @@ export default function Dashboard() {
           <Card>
               <CardHeader className="flex-row items-center justify-between">
                   <div>
-                      <CardTitle>أصناف منخفضة المخزون</CardTitle>
-                      <CardDescription>هذه الأصناف وصلت أو تجاوزت نقطة إعادة الطلب.</CardDescription>
+                      <CardTitle>تحتاج إعادة طلب</CardTitle>
+                      <CardDescription>أصناف وصلت أو تجاوزت نقطة الطلب.</CardDescription>
                   </div>
                   <Link href="/inventory">
                       <Button variant="outline">عرض المخزون</Button>
                   </Link>
               </CardHeader>
               <CardContent>
-                  <Table>
-                      <TableHeader>
-                          <TableRow>
-                              <TableHead>الاسم</TableHead>
-                              <TableHead>المخزون</TableHead>
-                              <TableHead>نقطة الطلب</TableHead>
-                          </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                          {lowStockItems.length > 0 ? lowStockItems.slice(0,5).map(item => (
-                              <TableRow key={item.id}>
-                                  <TableCell>{item.name}</TableCell>
-                                  <TableCell><Badge variant="destructive" className="font-mono">{item.stock}</Badge></TableCell>
-                                  <TableCell className="font-mono">{item.reorder_point}</TableCell>
-                              </TableRow>
-                          )) : (
+                   <ScrollArea className="h-64">
+                      <Table>
+                          <TableHeader>
                               <TableRow>
-                                  <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">لا توجد أصناف منخفضة المخزون.</TableCell>
+                                  <TableHead>الاسم</TableHead>
+                                  <TableHead>المخزون</TableHead>
                               </TableRow>
-                          )}
-                      </TableBody>
-                  </Table>
+                          </TableHeader>
+                          <TableBody>
+                              {lowStockItems.length > 0 ? lowStockItems.map(item => (
+                                  <TableRow key={item.id}>
+                                      <TableCell>
+                                          <div className="font-medium">{item.name}</div>
+                                          <div className="text-xs text-muted-foreground">{item.scientific_names?.join(', ')}</div>
+                                          <div className="text-xs text-muted-foreground font-mono">{item.barcode}</div>
+                                      </TableCell>
+                                      <TableCell><Badge variant="destructive" className="font-mono">{item.stock}</Badge></TableCell>
+                                  </TableRow>
+                              )) : (
+                                  <TableRow>
+                                      <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد أصناف.</TableCell>
+                                  </TableRow>
+                              )}
+                          </TableBody>
+                      </Table>
+                  </ScrollArea>
               </CardContent>
           </Card>
           <Card>
-              <CardHeader className="flex-row items-center justify-between">
+              <CardHeader>
                   <div>
-                      <CardTitle>أصناف قريبة الانتهاء</CardTitle>
-                      <CardDescription>ستنتهي صلاحية هذه الأصناف خلال {expirationThreshold} يومًا.</CardDescription>
+                      <CardTitle>قريب الانتهاء ومنتهي الصلاحية</CardTitle>
+                      <CardDescription>أصناف قاربت على الانتهاء أو منتهية.</CardDescription>
                   </div>
                    <Link href="/expiring-soon">
                       <Button variant="outline">عرض الكل</Button>
                   </Link>
               </CardHeader>
               <CardContent>
+                  <ScrollArea className="h-64">
                    <Table>
                       <TableHeader>
                           <TableRow>
                               <TableHead>الاسم</TableHead>
-                              <TableHead>تاريخ الانتهاء</TableHead>
-                              <TableHead>الأيام المتبقية</TableHead>
+                              <TableHead>الحالة</TableHead>
                           </TableRow>
                       </TableHeader>
                       <TableBody>
-                          {expiringSoonItems.length > 0 ? expiringSoonItems.slice(0,5).map(item => (
+                          {expiredItems.length > 0 && expiredItems.map(item => (
                               <TableRow key={item.id}>
-                                  <TableCell>{item.name}</TableCell>
-                                  <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('ar-EG')}</TableCell>
+                                  <TableCell>
+                                      <div className="font-medium">{item.name}</div>
+                                      <div className="text-xs text-muted-foreground font-mono">{item.barcode}</div>
+                                  </TableCell>
+                                  <TableCell><Badge variant="destructive">منتهي الصلاحية</Badge></TableCell>
+                              </TableRow>
+                          ))}
+                          {expiringSoonItems.length > 0 && expiringSoonItems.map(item => (
+                              <TableRow key={item.id}>
+                                  <TableCell>
+                                      <div className="font-medium">{item.name}</div>
+                                      <div className="text-xs text-muted-foreground font-mono">{item.barcode}</div>
+                                  </TableCell>
                                   <TableCell><Badge variant="secondary" className="bg-yellow-400 text-yellow-900 font-mono">{differenceInDays(parseISO(item.expiration_date), new Date())} يوم</Badge></TableCell>
                               </TableRow>
-                          )) : (
-                              <TableRow>
-                                  <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">لا توجد أصناف قريبة الانتهاء.</TableCell>
+                          ))}
+                          {expiredItems.length === 0 && expiringSoonItems.length === 0 && (
+                             <TableRow>
+                                  <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد أصناف.</TableCell>
                               </TableRow>
                           )}
                       </TableBody>
                   </Table>
+                </ScrollArea>
               </CardContent>
           </Card>
           <Card>
@@ -397,6 +460,7 @@ export default function Dashboard() {
                 <CardDescription>أفضل 5 أدوية مبيعًا حسب الكمية.</CardDescription>
             </CardHeader>
             <CardContent>
+             <ScrollArea className="h-64">
               <Table>
                   <TableHeader>
                       <TableRow>
@@ -419,6 +483,7 @@ export default function Dashboard() {
                       )}
                   </TableBody>
               </Table>
+              </ScrollArea>
             </CardContent>
           </Card>
       </div>
