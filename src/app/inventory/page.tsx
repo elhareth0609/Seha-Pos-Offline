@@ -92,7 +92,7 @@ export default function InventoryPage() {
     reorder_point: 10,
     price: 0,
     purchase_price: 0,
-    expiration_date: new Date(new Date().setFullYear(new Date().getFullYear() + 2)).toISOString().split('T')[0],
+    expiration_date: '',
     dosage: '',
     dosage_form: '',
     image_url: ''
@@ -235,7 +235,7 @@ export default function InventoryPage() {
       reorder_point: 10,
       price: 0,
       purchase_price: 0,
-      expiration_date: new Date(new Date().setFullYear(new Date().getFullYear() + 2)).toISOString().split('T')[0],
+      expiration_date: '',
       dosage: '',
       dosage_form: '',
       image_url: ''
