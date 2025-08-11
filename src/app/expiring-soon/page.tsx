@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import type { Medication, AppSettings } from "@/lib/types"
-import { differenceInDays, parseISO } from 'date-fns'
+import { differenceInDays, parseISO, startOfToday } from 'date-fns'
 import { useAuth } from "@/hooks/use-auth"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -35,8 +35,7 @@ export default function ExpiringSoonPage() {
   const expirationThreshold = settings.expirationThresholdDays || 90;
 
   React.useEffect(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Start of today
+    const today = startOfToday();
 
     const filteredExpiring = (allInventory || [])
         .filter((item) => {
@@ -69,8 +68,7 @@ export default function ExpiringSoonPage() {
   }, [allInventory, expirationThreshold, searchTerm]);
 
   const getExpirationBadge = (expiration_date: string) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Start of today
+    const today = startOfToday();
     const expDate = parseISO(expiration_date);
     
     if (expDate < today) {
@@ -88,8 +86,7 @@ export default function ExpiringSoonPage() {
   };
 
   const formatDaysLeft = (expiration_date: string) => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Start of today
+      const today = startOfToday();
       const expDate = parseISO(expiration_date);
       const daysLeft = differenceInDays(expDate, today);
        if (daysLeft < 0) {

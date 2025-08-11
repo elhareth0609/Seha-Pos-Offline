@@ -98,8 +98,7 @@ export default function Dashboard() {
   
   const expirationThreshold = settings.expirationThresholdDays || 90;
   
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Start of today for consistent comparison
+  const today = startOfToday();
 
   const expiredItems = inventory.filter(item => {
     if (!item.expiration_date) return false;
@@ -111,7 +110,7 @@ export default function Dashboard() {
     const expDate = parseISO(item.expiration_date);
     const daysLeft = differenceInDays(expDate, today);
     return daysLeft >= 0 && daysLeft <= expirationThreshold;
-  }).sort((a,b) => differenceInDays(parseISO(a.expiration_date), new Date()) - differenceInDays(parseISO(b.expiration_date), new Date()));
+  }).sort((a,b) => differenceInDays(parseISO(a.expiration_date), today) - differenceInDays(parseISO(b.expiration_date), today));
   
   const topSellingMedications = React.useMemo(() => {
     const stats: { [medId: string]: { name: string; quantity: number } } = {};
@@ -446,7 +445,7 @@ export default function Dashboard() {
                                       <div className="font-medium">{item.name}</div>
                                       <div className="text-xs text-muted-foreground font-mono">{item.barcodes?.join(', ')}</div>
                                   </TableCell>
-                                  <TableCell><Badge variant="secondary" className="bg-yellow-400 text-yellow-900 font-mono">{differenceInDays(parseISO(item.expiration_date), new Date())} يوم</Badge></TableCell>
+                                  <TableCell><Badge variant="secondary" className="bg-yellow-400 text-yellow-900 font-mono">{differenceInDays(parseISO(item.expiration_date), today)} يوم</Badge></TableCell>
                               </TableRow>
                           ))}
                           {expiredItems.length === 0 && expiringSoonItems.length === 0 && (
