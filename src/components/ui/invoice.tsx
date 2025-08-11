@@ -16,7 +16,11 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
   }
 
   const { pharmacyName, pharmacyAddress, pharmacyPhone } = settings;
-  const subtotal = sale.total + (sale.discount || 0);
+  const subtotal = sale.items.reduce((acc, item) => {
+      const itemTotal = (item.price || 0) * (item.quantity || 0);
+      return item.is_return ? acc - itemTotal : acc + itemTotal;
+  }, 0);
+
 
   return (
     <div ref={ref} className="p-8 font-sans text-gray-800 bg-white">
