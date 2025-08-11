@@ -76,7 +76,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // if (currentUser.role === 'Admin' || currentUser.role === 'SuperAdmin') return allNavItems;
 
     const permissions = currentUser.permissions || {
-        sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false, trash: false, salesPriceModification: false, allowDataCorrection: false,
+        sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false, trash: false, salesPriceModification: false,
     };
 
     const permissionMap: { [key: string]: keyof UserPermissions } = {

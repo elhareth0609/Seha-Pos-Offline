@@ -104,7 +104,6 @@ const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: stri
     { key: 'trash', label: 'الوصول إلى سلة المحذوفات' },
     { key: 'settings', label: 'الوصول إلى الإعدادات' },
     { key: 'salesPriceModification', label: 'تعديل أسعار البيع في الفاتورة' },
-    { key: 'allowDataCorrection', label: 'تعديل سجلات مؤرشفة (خطير)' },
 ];
 
 function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
@@ -254,7 +253,7 @@ export default function SettingsPage() {
     const openPermissionsDialog = (user: User) => {
         setEditingUser(user);
         const permissions = user.permissions || {
-            sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false, trash: false, salesPriceModification: false, allowDataCorrection: false,
+            sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false, trash: false, salesPriceModification: false,
         };
         setCurrentUserPermissions(permissions);
         setIsPermissionsDialogOpen(true);
