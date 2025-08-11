@@ -104,7 +104,7 @@ const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: stri
     { key: 'trash', label: 'الوصول إلى سلة المحذوفات' },
     { key: 'settings', label: 'الوصول إلى الإعدادات' },
     { key: 'salesPriceModification', label: 'تعديل أسعار البيع في الفاتورة' },
-    { key: 'allowDataCorrection', label: 'السماح بتصحيح البيانات (حساس)' },
+    { key: 'allowDataCorrection', label: 'تعديل سجلات مؤرشفة (خطير)' },
 ];
 
 function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
@@ -725,3 +725,5 @@ export default function SettingsPage() {
     </div>
   )
 }
+
+    
