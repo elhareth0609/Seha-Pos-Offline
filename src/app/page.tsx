@@ -392,7 +392,7 @@ export default function Dashboard() {
                                       <TableCell>
                                           <div className="font-medium">{item.name}</div>
                                           <div className="text-xs text-muted-foreground">{item.scientific_names?.join(', ')}</div>
-                                          <div className="text-xs text-muted-foreground font-mono">{item.barcode}</div>
+                                          <div className="text-xs text-muted-foreground font-mono">{item.barcodes?.join(', ')}</div>
                                       </TableCell>
                                       <TableCell><Badge variant="destructive" className="font-mono">{item.stock}</Badge></TableCell>
                                   </TableRow>
@@ -430,7 +430,7 @@ export default function Dashboard() {
                               <TableRow key={item.id}>
                                   <TableCell>
                                       <div className="font-medium">{item.name}</div>
-                                      <div className="text-xs text-muted-foreground font-mono">{item.barcode}</div>
+                                      <div className="text-xs text-muted-foreground font-mono">{item.barcodes?.join(', ')}</div>
                                   </TableCell>
                                   <TableCell><Badge variant="destructive">منتهي الصلاحية</Badge></TableCell>
                               </TableRow>
@@ -439,7 +439,7 @@ export default function Dashboard() {
                               <TableRow key={item.id}>
                                   <TableCell>
                                       <div className="font-medium">{item.name}</div>
-                                      <div className="text-xs text-muted-foreground font-mono">{item.barcode}</div>
+                                      <div className="text-xs text-muted-foreground font-mono">{item.barcodes?.join(', ')}</div>
                                   </TableCell>
                                   <TableCell><Badge variant="secondary" className="bg-yellow-400 text-yellow-900 font-mono">{differenceInDays(parseISO(item.expiration_date), new Date())} يوم</Badge></TableCell>
                               </TableRow>

@@ -18,7 +18,7 @@ export type UserPermissions = {
 
 export type Medication = {
   id: string;
-  barcode: string;
+  barcodes: string[];
   name: string; 
   scientific_names?: string[];
   image_url?: string;

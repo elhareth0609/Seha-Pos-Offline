@@ -59,7 +59,7 @@ export default function ItemMovementPage() {
             const filtered = inventory.filter(item => 
                 (item.name || '').toLowerCase().startsWith(lowercasedFilter) || 
                 String(item.id).toLowerCase().includes(lowercasedFilter) ||
-                item.barcode && item.barcode.toLowerCase().includes(lowercasedFilter) ||
+                (item.barcodes && item.barcodes.some(barcode => barcode.toLowerCase().includes(lowercasedFilter))) ||
                 (item.scientific_names && item.scientific_names.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
             );
             setSuggestions(filtered.slice(0, 5));

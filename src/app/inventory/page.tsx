@@ -1,3 +1,4 @@
+
 "use client"
 import * as React from "react"
 import * as XLSX from 'xlsx';
@@ -86,6 +87,7 @@ export default function InventoryPage() {
     id: '',
     name: '',
     scientific_names: [],
+    barcodes: [],
     stock: 0,
     reorder_point: 10,
     price: 0,
@@ -150,7 +152,7 @@ export default function InventoryPage() {
       const lowercasedFilter = searchTerm.toLowerCase().trim();
       const filtered = sortedInventory.filter((item) =>
           (item.name || '').toLowerCase().startsWith(lowercasedFilter) ||
-          (item.barcode && item.barcode.toString().toLowerCase().includes(lowercasedFilter)) ||
+          (item.barcodes && item.barcodes.some(barcode => barcode.toString().toLowerCase().includes(lowercasedFilter))) ||
           (item.id && item.id.toString().toLowerCase().includes(lowercasedFilter)) ||
           (item.scientific_names && item.scientific_names.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
       );
@@ -188,9 +190,15 @@ export default function InventoryPage() {
             .split(',')
             .map(name => name.trim())
             .filter(Boolean);
+      
+      const barcodesArray = (formData.get('barcodes') as string)
+            .split(',')
+            .map(bc => bc.trim())
+            .filter(Boolean);
+
       const updatedMedData: Partial<Medication> = {
           id: editingMed.id as string,
-          barcode: formData.get('barcode') as string,
+          barcodes: barcodesArray,
           name: formData.get('name') as string,
           scientific_names: scientific_namesArray,
           stock: parseInt(formData.get('stock') as string, 10),
@@ -221,7 +229,7 @@ export default function InventoryPage() {
     setNewMed({
       id: '',
       name: '',
-      barcode: '',
+      barcodes: [],
       scientific_names: [],
       stock: 0,
       reorder_point: 10,
@@ -250,9 +258,14 @@ export default function InventoryPage() {
          .split(',')
          .map(name => name.trim())
          .filter(Boolean);
+
+    const barcodesArray = (formData.get('barcodes') as string)
+         .split(',')
+         .map(bc => bc.trim())
+         .filter(Boolean);
     
     const newMedData: Partial<Medication> = {
-        barcode: formData.get('barcode') as string,
+        barcodes: barcodesArray,
         name: formData.get('name') as string,
         scientific_names: scientific_namesArray,
         stock: parseInt(formData.get('stock') as string, 10),
@@ -329,7 +342,7 @@ export default function InventoryPage() {
             const stock = stockIndex > -1 ? parseInt(String(row[stockIndex]), 10) : 0;
             if (!barcode || !medName) continue;
             medicationsToProcess.push({
-                barcode: barcode,
+                barcodes: [barcode],
                 name: medName,
                 stock: isNaN(stock) ? 0 : stock,
                 reorder_point: 10,
@@ -442,7 +455,7 @@ export default function InventoryPage() {
     <>
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
         <div ref={printComponentRef}>
-           {printingMed && <Barcode value={printingMed.id} />}
+           {printingMed && <Barcode value={(printingMed.barcodes[0] || printingMed.id)} />}
         </div>
       </div>
       <Card>
@@ -487,7 +500,6 @@ export default function InventoryPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>المعرف</TableHead>
                 <TableHead>الباركود</TableHead>
                 <TableHead>الاسم</TableHead>
                 <TableHead className="text-center">المخزون</TableHead>
@@ -501,8 +513,7 @@ export default function InventoryPage() {
             <TableBody>
               {filteredInventory.length > 0 ? filteredInventory.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="font-mono text-xs">{item.id}</TableCell>
-                  <TableCell className="font-mono text-xs">{item.barcode}</TableCell>
+                  <TableCell className="font-mono text-xs">{item.barcodes?.join(', ')}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
                         {typeof item.image_url === 'string' && item.image_url !== "" ? (
@@ -594,8 +605,8 @@ export default function InventoryPage() {
                       <form onSubmit={handleUpdate} className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                  <Label htmlFor="edit-id">الباركود</Label>
-                                  <Input id="edit-id" name="barcode" defaultValue={editingMed.barcode} required />
+                                  <Label htmlFor="edit-barcodes">الباركود (يفصل بفاصلة ,)</Label>
+                                  <Input id="edit-barcodes" name="barcodes" defaultValue={editingMed.barcodes?.join(', ')} required />
                               </div>
                               <div className="space-y-2">
                                   <Label htmlFor="edit-name">الاسم التجاري</Label>
@@ -683,8 +694,8 @@ export default function InventoryPage() {
                 <form onSubmit={handleAdd} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="add-id">الباركود (يترك فارغاً للتوليد)</Label>
-                            <Input id="add-id" name="barcode" defaultValue={newMed.barcode} />
+                            <Label htmlFor="add-barcodes">الباركود (يفصل بفاصلة ,)</Label>
+                            <Input id="add-barcodes" name="barcodes" defaultValue={newMed.barcodes?.join(', ')} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="add-name">الاسم التجاري</Label>

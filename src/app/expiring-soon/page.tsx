@@ -47,7 +47,7 @@ export default function ExpiringSoonPage() {
         })
         .filter(item => 
             item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            (item.barcode?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+            (item.barcodes?.some(barcode => barcode.toLowerCase().includes(searchTerm.toLowerCase())) || false)
         )
         .sort((a, b) => differenceInDays(parseISO(a.expiration_date), today) - differenceInDays(parseISO(b.expiration_date), today));
     
@@ -60,7 +60,7 @@ export default function ExpiringSoonPage() {
         })
         .filter(item => 
             item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            (item.barcode?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+            (item.barcodes?.some(barcode => barcode.toLowerCase().includes(searchTerm.toLowerCase())) || false)
         )
         .sort((a, b) => differenceInDays(parseISO(b.expiration_date), today) - differenceInDays(parseISO(a.expiration_date), today));
 
@@ -114,7 +114,7 @@ export default function ExpiringSoonPage() {
           <TableRow key={item.id}>
             <TableCell>
               <div className="font-medium">{item.name}</div>
-              <div className="text-xs text-muted-foreground font-mono">{item.barcode}</div>
+              <div className="text-xs text-muted-foreground font-mono">{item.barcodes?.join(', ')}</div>
             </TableCell>
             <TableCell className="font-mono">{item.stock}</TableCell>
             <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('ar-EG')}</TableCell>
