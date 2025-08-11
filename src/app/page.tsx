@@ -379,6 +379,7 @@ export default function Dashboard() {
                               <TableRow>
                                   <TableHead>الاسم</TableHead>
                                   <TableHead>المخزون</TableHead>
+                                  <TableHead>نقطة الطلب</TableHead>
                               </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -394,7 +395,7 @@ export default function Dashboard() {
                                   </TableRow>
                               )) : (
                                   <TableRow>
-                                      <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد أصناف.</TableCell>
+                                      <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">لا توجد أصناف.</TableCell>
                                   </TableRow>
                               )}
                           </TableBody>
@@ -489,4 +490,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
