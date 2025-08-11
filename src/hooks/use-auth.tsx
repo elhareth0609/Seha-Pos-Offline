@@ -64,6 +64,7 @@ interface AuthContextType {
   scopedData: ScopedDataContextType;
 
   // Inventory Management
+  addMedication: (data: Partial<Medication>) => Promise<boolean>;
   updateMedication: (medId: string, data: Partial<Medication>) => Promise<boolean>;
   deleteMedication: (medId: string) => Promise<boolean>;
   bulkAddOrUpdateInventory: (items: Partial<Medication>[]) => Promise<boolean>;
@@ -413,6 +414,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     // --- Scoped Data Functions ---
+    const addMedication = async (data: Partial<Medication>) => {
+        try {
+            const newMed = await apiRequest('/medications', 'POST', data);
+            setInventory(prev => [...prev, newMed]);
+            return true;
+        } catch (e) { return false; }
+    }
     const updateMedication = async (medId: string, data: Partial<Medication>) => {
         try {
             const updatedMed = await apiRequest(`/medications/${medId}`, 'PUT', data);
@@ -448,7 +456,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Update inventory state based on the sale
             const updatedInventory = [...inventory];
             newSale.items.forEach((item: SaleItem) => {
-                const medIndex = updatedInventory.findIndex(m => m.id === item.medication_id);
+                const medIndex = updatedInventory.findIndex(m => m.id === item.id);
+                // const medIndex = updatedInventory.findIndex(m => m.id === item.medication_id);
                 if (medIndex !== -1) {
                     updatedInventory[medIndex].stock += (item.is_return ? item.quantity : -item.quantity);
                 }
@@ -612,7 +621,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData,
             getAllPharmacySettings, getPharmacyData, clearPharmacyData,
             advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement,
-            updateMedication, deleteMedication, bulkAddOrUpdateInventory,
+            addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory,
             addSale,
             addSupplier, updateSupplier, deleteSupplier,
             addPatient, updatePatient, deletePatient,

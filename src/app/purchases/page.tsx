@@ -104,7 +104,7 @@ export default function PurchasesPage() {
       setFilteredPurchaseOrders(purchaseOrders);
     } else {
       const filtered = (purchaseOrders || []).filter(po => 
-        po.id.toLowerCase().includes(term) ||
+        String(po.id).toLowerCase().includes(term) ||
         po.supplier_name.toLowerCase().startsWith(term) ||
         po.date.includes(term) ||
         (po.items || []).some(item => (item.name || '').toLowerCase().startsWith(term))
@@ -119,7 +119,7 @@ export default function PurchasesPage() {
       setFilteredSupplierReturns(supplierReturns);
     } else {
       const filtered = (supplierReturns || []).filter(ret => 
-        ret.id.toLowerCase().includes(term) ||
+        String(ret.id).toLowerCase().includes(term) ||
         ret.supplier_name.toLowerCase().startsWith(term) ||
         ret.date.includes(term) ||
         (ret.items || []).some(item => (item.name || '').toLowerCase().startsWith(term))
@@ -200,9 +200,10 @@ export default function PurchasesPage() {
         const lowercasedFilter = value.toLowerCase();
         const filtered = (inventory || []).filter(med => 
             (med.name.toLowerCase().startsWith(lowercasedFilter) || 
-             med.id.includes(lowercasedFilter) ||
-             (med.scientific_names && med.scientific_names.some(name => name.toLowerCase().startsWith(lowercasedFilter)))) && 
-             med.stock > 0
+              String(med.id).includes(lowercasedFilter) ||
+              med.barcode.includes(lowercasedFilter) ||
+              (med.scientific_names && med.scientific_names.some(name => name.toLowerCase().startsWith(lowercasedFilter)))) && 
+              med.stock > 0
         );
         setReturnMedSuggestions(filtered.slice(0, 5));
     } else {
@@ -238,6 +239,7 @@ export default function PurchasesPage() {
     }
 
     const newItem: ReturnOrderItem = {
+        id: selectedMedForReturn.id,
         medication_id: selectedMedForReturn.id,
         name: selectedMedForReturn.name,
         quantity: quantity,
@@ -274,6 +276,7 @@ export default function PurchasesPage() {
         supplier_name: supplier.name,
         date: new Date().toISOString().split('T')[0],
         items: returnCart.map(item => ({
+            id: item.id,
             medication_id: item.medication_id,
             name: item.name,
             quantity: item.quantity,
@@ -293,7 +296,7 @@ export default function PurchasesPage() {
   }
 
   function AddPurchaseItemForm({ onAddItem }: { onAddItem: (item: any) => void }) {
-    const [medication_id, setMedicationId] = React.useState('');
+    const [barcode, setBarcode] = React.useState('');
     const [medicationName, setMedicationName] = React.useState('');
     const [scientific_names, setScientificNames] = React.useState('');
     const [dosage, setDosage] = React.useState('');
@@ -306,7 +309,7 @@ export default function PurchasesPage() {
     const [imagePreview, setImagePreview] = React.useState<string>('');
 
     const resetForm = () => {
-        setMedicationId('');
+        setBarcode('');
         setMedicationName('');
         setScientificNames('');
         setDosage('');
@@ -330,14 +333,14 @@ export default function PurchasesPage() {
     }, []);
 
     React.useEffect(() => {
-        const medId = medication_id.trim();
-        if (medId) {
-            const existingMed = (inventory || []).find(m => m.id === medId);
+        const Barcode = barcode.trim();
+        if (Barcode) {
+            const existingMed = (inventory || []).find(m => m.id === Barcode);
             if (existingMed) {
                 prefillFormWithMedData(existingMed);
             }
         }
-    }, [medication_id, inventory, prefillFormWithMedData]);
+    }, [barcode, inventory, prefillFormWithMedData]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -350,9 +353,9 @@ export default function PurchasesPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        let medId = medication_id.trim();
-        if(!medId) {
-            medId = Date.now().toString();
+        let Barcode = barcode.trim();
+        if(!Barcode) {
+            Barcode = Date.now().toString();
         }
         
         let expDate = expiration_date;
@@ -368,7 +371,7 @@ export default function PurchasesPage() {
         }
         
         const newItem = {
-            medication_id: medId,
+            barcode: barcode,
             name: medicationName,
             scientific_names: scientific_names.split(',').map(s => s.trim()).filter(Boolean),
             dosage,
@@ -394,8 +397,8 @@ export default function PurchasesPage() {
         <form onSubmit={handleSubmit} className="border-t pt-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-2">
                 <div className="flex flex-col gap-2">
-                    <Label htmlFor="medication_id">الباركود (يترك فارغاً للتوليد)</Label>
-                    <Input id="medication_id" value={medication_id} onChange={e => setMedicationId(e.target.value)} />
+                    <Label htmlFor="barcode">الباركود (يترك فارغاً للتوليد)</Label>
+                    <Input id="barcode" value={barcode} onChange={e => setBarcode(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-2">
                     <Label htmlFor="tradeName">الاسم التجاري</Label>

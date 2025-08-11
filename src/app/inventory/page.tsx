@@ -1,6 +1,4 @@
-
 "use client"
-
 import * as React from "react"
 import * as XLSX from 'xlsx';
 import Image from 'next/image';
@@ -52,7 +50,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
 import type { Medication } from "@/lib/types"
-import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package } from "lucide-react"
+import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package, Plus, X } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import Barcode from '@/components/ui/barcode';
@@ -61,29 +59,59 @@ import { useAuth } from "@/hooks/use-auth";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AdCarousel from "@/components/ui/ad-carousel";
 
-
 const dosage_forms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion"];
 
-export default function InventoryPage() {
-  const { scopedData, updateMedication, deleteMedication, bulkAddOrUpdateInventory } = useAuth();
-  const [allInventory] = scopedData.inventory;
+// Helper function to convert file to data URI
+const fileToDataUri = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
 
+export default function InventoryPage() {
+  const { scopedData, updateMedication, deleteMedication, bulkAddOrUpdateInventory, addMedication } = useAuth();
+  const [allInventory] = scopedData.inventory;
   const [filteredInventory, setFilteredInventory] = React.useState<Medication[]>([]);
   const [searchTerm, setSearchTerm] = React.useState("");
   
   const [editingMed, setEditingMed] = React.useState<Medication | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+  
+  // New state for add medication modal
+  const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
+  const [newMed, setNewMed] = React.useState<Partial<Medication>>({
+    id: '',
+    name: '',
+    scientific_names: [],
+    stock: 0,
+    reorder_point: 10,
+    price: 0,
+    purchase_price: 0,
+    expiration_date: new Date(new Date().setFullYear(new Date().getFullYear() + 2)).toISOString().split('T')[0],
+    dosage: '',
+    dosage_form: '',
+    image_url: ''
+  });
+  
+  // Image states for add form
+  const [addImageFile, setAddImageFile] = React.useState<File | null>(null);
+  const [addImagePreview, setAddImagePreview] = React.useState<string>('');
+  
+  // Image states for edit form
+  const [editImageFile, setEditImageFile] = React.useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = React.useState<string>('');
+  
   const [isClient, setIsClient] = React.useState(false)
-
   const { toast } = useToast();
-
   const [printingMed, setPrintingMed] = React.useState<Medication | null>(null);
   const printComponentRef = React.useRef<HTMLDivElement>(null);
   const medToPrintRef = React.useRef<Medication | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-
   const [isImporting, setIsImporting] = React.useState(false);
-
+  
   const handlePrint = () => {
     if (medToPrintRef.current) {
         const printWindow = window.open('', '_blank');
@@ -97,7 +125,6 @@ export default function InventoryPage() {
     }
   };
 
-
   const triggerPrint = (med: Medication) => {
       medToPrintRef.current = med;
       setPrintingMed(med);
@@ -110,54 +137,60 @@ export default function InventoryPage() {
     }
   }, [printingMed]);
 
-
   React.useEffect(() => {
     setIsClient(true)
   }, [])
-
+  
   const sortedInventory = React.useMemo(() => {
     return [...(allInventory || [])].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   }, [allInventory]);
-
+  
   React.useEffect(() => {
     if (isClient) {
       const lowercasedFilter = searchTerm.toLowerCase().trim();
       const filtered = sortedInventory.filter((item) =>
           (item.name || '').toLowerCase().startsWith(lowercasedFilter) ||
+          (item.barcode && item.barcode.toString().toLowerCase().includes(lowercasedFilter)) ||
           (item.id && item.id.toString().toLowerCase().includes(lowercasedFilter)) ||
           (item.scientific_names && item.scientific_names.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
       );
       setFilteredInventory(filtered);
     }
   }, [searchTerm, sortedInventory, isClient]);
-
+  
   const getStockStatus = (stock: number, reorder_point: number) => {
     if (stock <= 0) return <Badge variant="destructive">نفد من المخزون</Badge>
     if (stock < reorder_point) return <Badge variant="secondary" className="bg-yellow-400 text-yellow-900">مخزون منخفض</Badge>
     return <Badge variant="secondary" className="bg-green-300 text-green-900">متوفر</Badge>
   }
-
+  
   const handleDelete = async (med: Medication) => {
       await deleteMedication(med.id);
   }
-
+  
   const openEditModal = (med: Medication) => {
       setEditingMed(med);
+      setEditImagePreview(med.image_url || '');
       setIsEditModalOpen(true);
   }
-
+  
   const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       if (!editingMed) return;
-
       const formData = new FormData(e.currentTarget);
+      
+      let image_url = editingMed.image_url || '';
+      if (editImageFile) {
+          image_url = await fileToDataUri(editImageFile);
+      }
       
        const scientific_namesArray = (formData.get('scientific_names') as string)
             .split(',')
             .map(name => name.trim())
             .filter(Boolean);
-
       const updatedMedData: Partial<Medication> = {
+          id: editingMed.id as string,
+          barcode: formData.get('barcode') as string,
           name: formData.get('name') as string,
           scientific_names: scientific_namesArray,
           stock: parseInt(formData.get('stock') as string, 10),
@@ -167,26 +200,93 @@ export default function InventoryPage() {
           expiration_date: formData.get('expiration_date') as string,
           dosage: formData.get('dosage') as string,
           dosage_form: formData.get('dosage_form') as string,
+          image_url: image_url
       }
       
       const success = await updateMedication(editingMed.id, updatedMedData);
-
       if (success) {
         setIsEditModalOpen(false);
         setEditingMed(null);
+        setEditImageFile(null);
+        setEditImagePreview('');
+        toast({
+          title: "تم التحديث بنجاح",
+          description: `تم تحديث بيانات الدواء ${updatedMedData.name} بنجاح.`,
+        });
       }
   }
+  
+  // Function to handle adding a new medication
+  const openAddModal = () => {
+    setNewMed({
+      id: '',
+      name: '',
+      barcode: '',
+      scientific_names: [],
+      stock: 0,
+      reorder_point: 10,
+      price: 0,
+      purchase_price: 0,
+      expiration_date: new Date(new Date().setFullYear(new Date().getFullYear() + 2)).toISOString().split('T')[0],
+      dosage: '',
+      dosage_form: '',
+      image_url: ''
+    });
+    setAddImageFile(null);
+    setAddImagePreview('');
+    setIsAddModalOpen(true);
+  };
+  
+  const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    let image_url = newMed.image_url || '';
+    if (addImageFile) {
+        image_url = await fileToDataUri(addImageFile);
+    }
+    
+    const scientific_namesArray = (formData.get('scientific_names') as string)
+         .split(',')
+         .map(name => name.trim())
+         .filter(Boolean);
+    
+    const newMedData: Partial<Medication> = {
+        barcode: formData.get('barcode') as string,
+        name: formData.get('name') as string,
+        scientific_names: scientific_namesArray,
+        stock: parseInt(formData.get('stock') as string, 10),
+        reorder_point: parseInt(formData.get('reorder_point') as string, 10),
+        price: parseFloat(formData.get('price') as string),
+        purchase_price: parseFloat(formData.get('purchase_price') as string),
+        expiration_date: formData.get('expiration_date') as string,
+        dosage: formData.get('dosage') as string,
+        dosage_form: formData.get('dosage_form') as string,
+        image_url: image_url,
+    };
+    
+    // Generate a unique ID if not provided
+    const success = await addMedication(newMedData);
+    if (success) {
+      setIsAddModalOpen(false);
+      setAddImageFile(null);
+      setAddImagePreview('');
+      toast({
+        title: "تمت الإضافة بنجاح",
+        description: `تم إضافة الدواء ${newMedData.name} بنجاح.`,
+      });
+    }
+  };
   
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
-
+  
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
     }
-
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
@@ -196,20 +296,16 @@ export default function InventoryPage() {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-
         if (jsonData.length < 2) {
           toast({ variant: 'destructive', title: 'ملف فارغ', description: 'الملف لا يحتوي على بيانات.' });
           setIsImporting(false);
           return;
         }
-
         const headerRow: string[] = jsonData[0].map(h => String(h).toLowerCase().trim());
         const rows = jsonData.slice(1);
-
         const barcodeAliases = ['barcode', 'product_number', 'الباركود'];
         const nameAliases = ['name', 'الاسم'];
         const stockAliases = ['stock', 'الكمية', 'quantity'];
-
         const barcodeIndex = headerRow.findIndex(h => barcodeAliases.some(alias => h.includes(alias)));
         const nameIndex = headerRow.findIndex(h => nameAliases.some(alias => h.includes(alias)));
         const stockIndex = headerRow.findIndex(h => stockAliases.some(alias => h.includes(alias)));
@@ -223,21 +319,17 @@ export default function InventoryPage() {
           setIsImporting(false);
           return;
         }
-
         const medicationsToProcess: Partial<Medication>[] = [];
         const futureDate = new Date();
         futureDate.setFullYear(futureDate.getFullYear() + 2);
         const formattedExpDate = futureDate.toISOString().split('T')[0];
-
         for (const row of rows) {
-            const medId = String(row[barcodeIndex] || '').trim();
+            const barcode = String(row[barcodeIndex] || '').trim();
             const medName = String(row[nameIndex] || 'Unnamed Product').trim();
             const stock = stockIndex > -1 ? parseInt(String(row[stockIndex]), 10) : 0;
-
-            if (!medId || !medName) continue;
-
+            if (!barcode || !medName) continue;
             medicationsToProcess.push({
-                id: medId,
+                barcode: barcode,
                 name: medName,
                 stock: isNaN(stock) ? 0 : stock,
                 reorder_point: 10,
@@ -248,7 +340,10 @@ export default function InventoryPage() {
         }
         
         await bulkAddOrUpdateInventory(medicationsToProcess);
-
+        toast({
+          title: "تم الاستيراد بنجاح",
+          description: `تم استيراد ${medicationsToProcess.length} دواء بنجاح.`,
+        });
 
       } catch (error) {
         console.error('Error importing from Excel:', error);
@@ -267,6 +362,33 @@ export default function InventoryPage() {
     reader.readAsArrayBuffer(file);
   };
 
+  // Image handlers for add form
+  const handleAddImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setAddImageFile(file);
+      setAddImagePreview(URL.createObjectURL(file));
+    }
+  };
+  
+  const handleRemoveAddImage = () => {
+    setAddImageFile(null);
+    setAddImagePreview('');
+  };
+  
+  // Image handlers for edit form
+  const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setEditImageFile(file);
+      setEditImagePreview(URL.createObjectURL(file));
+    }
+  };
+  
+  const handleRemoveEditImage = () => {
+    setEditImageFile(null);
+    setEditImagePreview('');
+  };
 
   if (!isClient) {
     return (
@@ -284,6 +406,7 @@ export default function InventoryPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead>المعرف</TableHead>
                                 <TableHead>الباركود</TableHead>
                                 <TableHead>الاسم</TableHead>
                                 <TableHead className="text-center">المخزون</TableHead>
@@ -342,17 +465,21 @@ export default function InventoryPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-sm"
             />
-               <Button variant="outline" onClick={handleImportClick} disabled={isImporting}>
-                  <Upload className="me-2 h-4 w-4" />
-                  {isImporting ? "جاري الاستيراد..." : "استيراد Excel"}
-              </Button>
-              <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  className="hidden"
-                  accept=".xlsx, .xls"
-              />
+            <Button variant="success" onClick={openAddModal}>
+              <Plus className="me-2 h-4 w-4" />
+              إضافة دواء
+            </Button>
+            <Button variant="outline" onClick={handleImportClick} disabled={isImporting}>
+              <Upload className="me-2 h-4 w-4" />
+              {isImporting ? "جاري الاستيراد..." : "استيراد Excel"}
+            </Button>
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                accept=".xlsx, .xls"
+            />
           </div>
         </CardHeader>
         <CardContent>
@@ -360,6 +487,7 @@ export default function InventoryPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>المعرف</TableHead>
                 <TableHead>الباركود</TableHead>
                 <TableHead>الاسم</TableHead>
                 <TableHead className="text-center">المخزون</TableHead>
@@ -374,6 +502,7 @@ export default function InventoryPage() {
               {filteredInventory.length > 0 ? filteredInventory.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-mono text-xs">{item.id}</TableCell>
+                  <TableCell className="font-mono text-xs">{item.barcode}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
                         {typeof item.image_url === 'string' && item.image_url !== "" ? (
@@ -452,6 +581,7 @@ export default function InventoryPage() {
         </CardContent>
       </Card>
       
+      {/* Edit Medication Dialog */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
@@ -464,12 +594,32 @@ export default function InventoryPage() {
                       <form onSubmit={handleUpdate} className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-2">
+                                  <Label htmlFor="edit-id">الباركود</Label>
+                                  <Input id="edit-id" name="barcode" defaultValue={editingMed.barcode} required />
+                              </div>
+                              <div className="space-y-2">
                                   <Label htmlFor="edit-name">الاسم التجاري</Label>
                                   <Input id="edit-name" name="name" defaultValue={editingMed.name} required />
                               </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                <div className="space-y-2">
                                   <Label htmlFor="edit-scientific_names">الاسم العلمي (يفصل بفاصلة ,)</Label>
                                   <Input id="edit-scientific_names" name="scientific_names" defaultValue={editingMed.scientific_names?.join(', ')} />
+                              </div>
+                              <div className="space-y-2">
+                                  <Label htmlFor="edit-image_url">صورة الدواء</Label>
+                                  <div className="flex items-center gap-4">
+                                      <Input id="edit-image_url" type="file" accept="image/*" onChange={handleEditImageChange} className="pt-2 text-xs h-10 flex-1" />
+                                      {editImagePreview && (
+                                          <div className="relative w-16 h-16 shrink-0">
+                                              <Image src={editImagePreview} alt="معاينة" fill className="rounded-md object-cover" />
+                                              <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-5 w-5 rounded-full" onClick={handleRemoveEditImage}>
+                                                  <X className="h-3 w-3" />
+                                              </Button>
+                                          </div>
+                                      )}
+                                  </div>
                               </div>
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -518,6 +668,93 @@ export default function InventoryPage() {
                           </DialogFooter>
                       </form>
                   )}
+            </DialogContent>
+        </Dialog>
+        
+        {/* Add Medication Dialog */}
+        <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+            <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>إضافة دواء جديد</DialogTitle>
+                    <DialogDescription>
+                         أدخل تفاصيل الدواء الجديد.
+                    </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleAdd} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="add-id">الباركود (يترك فارغاً للتوليد)</Label>
+                            <Input id="add-id" name="barcode" defaultValue={newMed.barcode} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="add-name">الاسم التجاري</Label>
+                            <Input id="add-name" name="name" defaultValue={newMed.name} required />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="add-scientific_names">الاسم العلمي (يفصل بفاصلة ,)</Label>
+                            <Input id="add-scientific_names" name="scientific_names" defaultValue={newMed.scientific_names?.join(', ')} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="add-image_url">صورة الدواء</Label>
+                            <div className="flex items-center gap-4">
+                                <Input id="add-image_url" type="file" accept="image/*" onChange={handleAddImageChange} className="pt-2 text-xs h-10 flex-1" />
+                                {addImagePreview && (
+                                    <div className="relative w-16 h-16 shrink-0">
+                                        <Image src={addImagePreview} alt="معاينة" fill className="rounded-md object-cover" />
+                                        <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-5 w-5 rounded-full" onClick={handleRemoveAddImage}>
+                                            <X className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="add-dosage">الجرعة</Label>
+                            <Input id="add-dosage" name="dosage" defaultValue={newMed.dosage} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="add-dosage_form">الشكل الدوائي</Label>
+                            <Select name="dosage_form" defaultValue={newMed.dosage_form}>
+                                <SelectTrigger id="add-dosage_form"><SelectValue placeholder="اختر الشكل" /></SelectTrigger>
+                                <SelectContent>
+                                    {dosage_forms.map(form => <SelectItem key={form} value={form}>{form}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="add-stock">رصيد المخزون</Label>
+                            <Input id="add-stock" name="stock" type="number" defaultValue={newMed.stock} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="add-reorder_point">نقطة إعادة الطلب</Label>
+                            <Input id="add-reorder_point" name="reorder_point" type="number" defaultValue={newMed.reorder_point} required />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="add-purchase_price">سعر الشراء</Label>
+                            <Input id="add-purchase_price" name="purchase_price" type="number" step="1" defaultValue={newMed.purchase_price} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="add-price">سعر البيع</Label>
+                            <Input id="add-price" name="price" type="number" step="1" defaultValue={newMed.price} required />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="add-expiration_date">تاريخ الانتهاء</Label>
+                            <Input id="add-expiration_date" name="expiration_date" type="date" defaultValue={newMed.expiration_date} required />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                        <Button type="submit" variant="success">إضافة الدواء</Button>
+                    </DialogFooter>
+                </form>
             </DialogContent>
         </Dialog>
     </>

@@ -17,7 +17,8 @@ export type UserPermissions = {
 };
 
 export type Medication = {
-  id: string; 
+  id: string;
+  barcode: string;
   name: string; 
   scientific_names?: string[];
   image_url?: string;
@@ -31,6 +32,7 @@ export type Medication = {
 };
 
 export type SaleItem = {
+  id: string;
   medication_id: string;
   name: string; 
   scientific_names?: string[];
@@ -57,7 +59,8 @@ export type Sale = {
 };
 
 export type PurchaseOrderItem = {
-  medication_id: string;
+  id: string;
+  medication_id?: string;
   name: string; // tradeName
   quantity: number;
   purchase_price: number;
@@ -74,6 +77,7 @@ export type PurchaseOrder = {
 };
 
 export type ReturnOrderItem = {
+  id: string;
   medication_id: string;
   name: string;
   quantity: number; // in sale units

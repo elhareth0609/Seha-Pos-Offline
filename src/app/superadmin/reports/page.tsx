@@ -79,7 +79,7 @@ export default function SuperAdminReportsPage() {
         const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
         
         const lowStockItems = inventory.filter(item => item.stock < item.reorder_point).slice(0, 5);
-        console.log(sales)
+        // console.log(sales)
         const topSellingItems = sales
             .flatMap(s => s.items)
             .reduce((acc, item) => {
@@ -93,8 +93,10 @@ export default function SuperAdminReportsPage() {
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5)
             .map(([medication_id, quantity]) => {
-                const med = inventory.find(m => m.id === medication_id);
-                return { name: med?.name || 'غير معروف', quantity };
+                console.log(medication_id, quantity);
+                const med = inventory.find(m => m.id == medication_id);
+                console.log("med ", med);
+                return { name: med?.name || 'غير معروف', quantity, medication_id };
             });
 
         return {
@@ -181,20 +183,20 @@ export default function SuperAdminReportsPage() {
                     </div>
 
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                         <Card>
+                        <Card>
                             <CardHeader><CardTitle>الأصناف الأكثر مبيعًا</CardTitle></CardHeader>
                             <CardContent>
                                 <Table>
                                     <TableHeader><TableRow><TableHead>الدواء</TableHead><TableHead>الكمية المباعة</TableHead></TableRow></TableHeader>
                                     <TableBody>
                                         {selectedPharmacyData.topSoldArray.map(item => (
-                                            <TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell className="font-mono">{item.quantity}</TableCell></TableRow>
+                                            <TableRow key={item.medication_id}><TableCell>{item.name}</TableCell><TableCell className="font-mono">{item.quantity}</TableCell></TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
                             </CardContent>
                         </Card>
-                         <Card>
+                        <Card>
                             <CardHeader><CardTitle>أصناف منخفضة المخزون</CardTitle></CardHeader>
                             <CardContent>
                                 <Table>
