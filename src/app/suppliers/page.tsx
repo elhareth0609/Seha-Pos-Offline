@@ -321,7 +321,7 @@ export default function SuppliersPage() {
                         </div>
                          <div className="flex justify-between items-center pt-2 border-t font-bold text-base">
                             <span className="flex items-center gap-2">
-                                <Scale className="h-4 w-4" /> صافي الدين المستحق:
+                                <Scale className="h-4 w-4" /> إجمالي الديون:
                             </span>
                             <span className="font-mono text-destructive">{account.netDebt.toLocaleString()}</span>
                         </div>

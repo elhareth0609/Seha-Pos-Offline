@@ -387,21 +387,23 @@ export default function Dashboard() {
                               <TableRow>
                                   <TableHead>الاسم</TableHead>
                                   <TableHead>المخزون</TableHead>
+                                  <TableHead>نقطة الطلب</TableHead>
                               </TableRow>
                           </TableHeader>
                           <TableBody>
-                              {lowStockItems.length > 0 ? lowStockItems.map(item => (
+                              {reorder_pointItems.length > 0 ? reorder_pointItems.map(item => (
                                   <TableRow key={item.id}>
                                       <TableCell>
                                           <div className="font-medium">{item.name}</div>
                                           <div className="text-xs text-muted-foreground">{item.scientific_names?.join(', ')}</div>
                                           <div className="text-xs text-muted-foreground font-mono">{item.barcodes?.join(', ')}</div>
                                       </TableCell>
-                                      <TableCell><Badge variant="destructive" className="font-mono">{item.stock}</Badge></TableCell>
+                                      <TableCell><Badge variant="secondary" className="bg-yellow-400 text-yellow-900 font-mono">{item.stock}</Badge></TableCell>
+                                      <TableCell><Badge variant="outline" className="font-mono">{item.reorder_point}</Badge></TableCell>
                                   </TableRow>
                               )) : (
                                   <TableRow>
-                                      <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد أصناف.</TableCell>
+                                      <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">لا توجد أصناف.</TableCell>
                                   </TableRow>
                               )}
                           </TableBody>
