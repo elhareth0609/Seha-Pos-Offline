@@ -481,7 +481,7 @@ export default function Dashboard() {
                       {topSellingMedications.length > 0 ? topSellingMedications.map((item) => (
                           <TableRow key={item.medication_id}>
                               <TableCell className="font-medium text-right">{item.name}</TableCell>
-                              <TableCell className="text-left font-mono text-right">{item.quantity}</TableCell>
+                              <TableCell className="font-mono text-right">{item.quantity}</TableCell>
                           </TableRow>
                       )) : (
                           <TableRow>
