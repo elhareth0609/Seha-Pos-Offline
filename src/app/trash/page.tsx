@@ -108,7 +108,7 @@ export default function TrashPage() {
           </TableHeader>
           <TableBody>
             {sortedTrash.length > 0 ? sortedTrash.map((item) => (
-              <TableRow key={item.id}>
+              <TableRow key={`${item.id}-${item.deleted_at}`}>
                 <TableCell className="font-medium">{item.data.name}</TableCell>
                 <TableCell>
                   <Badge variant="secondary">{item_typeLabels[item.item_type]}</Badge>
