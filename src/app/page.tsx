@@ -282,9 +282,6 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono">{reorder_pointItems.length}</div>
-            <p className="text-xs text-muted-foreground">
-              أصناف عند نقطة إعادة الطلب
-            </p>
           </CardContent>
         </Card>
         <Card>
@@ -294,9 +291,6 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono">{expiringSoonItems.length}</div>
-            <p className="text-xs text-muted-foreground">
-              ستنتهي صلاحيتها خلال {expirationThreshold} يومًا
-            </p>
           </CardContent>
         </Card>
       </div>
