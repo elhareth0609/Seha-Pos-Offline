@@ -367,7 +367,6 @@ export default function Dashboard() {
               <CardHeader className="flex-row items-center justify-between">
                   <div>
                       <CardTitle>تحتاج إعادة طلب</CardTitle>
-                      <CardDescription>أصناف وصلت أو تجاوزت نقطة الطلب.</CardDescription>
                   </div>
                   <Link href="/inventory">
                       <Button variant="outline">عرض المخزون</Button>
@@ -405,10 +404,9 @@ export default function Dashboard() {
               </CardContent>
           </Card>
           <Card>
-              <CardHeader>
+              <CardHeader className="flex-row items-center justify-between">
                   <div>
                       <CardTitle>قريب الانتهاء ومنتهي الصلاحية</CardTitle>
-                      <CardDescription>أصناف قاربت على الانتهاء أو منتهية.</CardDescription>
                   </div>
                    <Link href="/expiring-soon">
                       <Button variant="outline">عرض الكل</Button>
@@ -488,3 +486,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
