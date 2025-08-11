@@ -350,7 +350,7 @@ export default function SalesPage() {
   const [reviewIndex, setReviewIndex] = React.useState(0);
   const [isPrintReviewOpen, setIsPrintReviewOpen] = React.useState(false);
   const isOnline = useOnlineStatus();
-  const priceModificationAllowed = currentUser?.role === 'Admin' || currentUser?.permissions?.settings;
+  const priceModificationAllowed = currentUser?.role === 'Admin' || currentUser?.permissions?.salesPriceModification;
 
 
   const { toast } = useToast()
@@ -404,7 +404,7 @@ export default function SalesPage() {
   
   const handleScan = React.useCallback((result: string) => {
     if (mode !== 'new') return;
-    const scannedMedication = allInventory.find(med => med.barcode === result);
+    const scannedMedication = allInventory.find(med => med.barcodes.includes(result));
     if (scannedMedication) {
       addToCart(scannedMedication);
       toast({ title: 'تمت الإضافة إلى السلة', description: `تمت إضافة ${scannedMedication.name} بنجاح.` });
@@ -422,9 +422,9 @@ export default function SalesPage() {
     const handler = setTimeout(() => {
         if (searchTerm.length > 5 && suggestions.length === 0) { // Typical barcode length check
             const lowercasedSearchTerm = searchTerm.toLowerCase();
-            const medicationById = allInventory.find(med => med.barcode && med.barcode?.toLowerCase() === lowercasedSearchTerm);
-            if (medicationById) {
-                addToCart(medicationById);
+            const medicationByBarcode = allInventory.find(med => med.barcodes && med.barcodes.some(bc => bc.toLowerCase() === lowercasedSearchTerm));
+            if (medicationByBarcode) {
+                addToCart(medicationByBarcode);
             }
         }
     }, 100); // Debounce time in ms
@@ -443,7 +443,7 @@ export default function SalesPage() {
         const lowercasedFilter = value.toLowerCase().trim();
         const filtered = (allInventory || []).filter((item) =>
             (item.name && item.name.toLowerCase().startsWith(lowercasedFilter)) ||
-            (item.barcode && item.barcode.toLowerCase().startsWith(lowercasedFilter)) ||
+            (item.barcodes && item.barcodes.some(barcode => barcode.toLowerCase().startsWith(lowercasedFilter))) ||
             (item.scientific_names && item.scientific_names.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
         );
         setSuggestions(filtered.slice(0, 5));
@@ -463,13 +463,8 @@ export default function SalesPage() {
         }
         
         const lowercasedSearchTerm = searchTerm.toLowerCase();
-        const medicationById = allInventory.find(med => med.id && med.id.toLowerCase() === lowercasedSearchTerm);
-        if (medicationById) {
-            addToCart(medicationById);
-            return;
-        }
         
-        const medicationByBarcode = allInventory.find(med => med.barcode && med.barcode.toLowerCase() === lowercasedSearchTerm);
+        const medicationByBarcode = allInventory.find(med => med.barcodes && med.barcodes.some(bc => bc.toLowerCase() === lowercasedSearchTerm));
         if (medicationByBarcode) {
             addToCart(medicationByBarcode);
             return;

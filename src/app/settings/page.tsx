@@ -103,6 +103,7 @@ const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: stri
     { key: 'expiringSoon', label: 'الوصول إلى قريب الانتهاء' },
     { key: 'trash', label: 'الوصول إلى سلة المحذوفات' },
     { key: 'settings', label: 'الوصول إلى الإعدادات' },
+    { key: 'salesPriceModification', label: 'تعديل أسعار البيع في الفاتورة' },
 ];
 
 function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
@@ -252,7 +253,7 @@ export default function SettingsPage() {
     const openPermissionsDialog = (user: User) => {
         setEditingUser(user);
         const permissions = user.permissions || {
-            sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false, trash: false
+            sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false, trash: false, salesPriceModification: false,
         };
         setCurrentUserPermissions(permissions);
         setIsPermissionsDialogOpen(true);
@@ -591,7 +592,7 @@ export default function SettingsPage() {
                         <div key={p.key} className="flex items-center space-x-2 space-x-reverse">
                             <Checkbox
                                 id={`perm-${p.key}`}
-                                checked={currentUserPermissions[p.key]}
+                                checked={currentUserPermissions[p.key as keyof UserPermissions]}
                                 onCheckedChange={(checked) => handlePermissionChange(p.key as keyof UserPermissions, !!checked)}
                             />
                             <Label htmlFor={`perm-${p.key}`} className="flex-1 cursor-pointer">{p.label}</Label>
