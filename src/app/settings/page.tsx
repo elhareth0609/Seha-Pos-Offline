@@ -74,7 +74,7 @@ type SettingsFormValues = z.infer<typeof settingsSchema>
 const addUserSchema = z.object({
     name: z.string().min(3, { message: "الرجاء إدخال اسم مكون من 3 أحرف على الأقل." }),
     email: z.string().email({ message: "الرجاء إدخال بريد إلكتروني صالح."}),
-    pin: z.string().min(6, { message: "يجب أن يتكون رمز PIN من 6 أحرف على الأقل." }),
+    pin: z.string().length(6, { message: "يجب أن يتكون رمز PIN من 6 أرقام." }),
 });
 
 type AddUserFormValues = z.infer<typeof addUserSchema>;
@@ -82,7 +82,7 @@ type AddUserFormValues = z.infer<typeof addUserSchema>;
 const editUserSchema = z.object({
     name: z.string().min(3, { message: "الرجاء إدخال اسم مكون من 3 أحرف على الأقل." }),
     email: z.string().email({ message: "الرجاء إدخال بريد إلكتروني صالح."}),
-    pin: z.string().optional().refine(val => val === '', { message: "يجب أن يتكون رمز PIN من 6 رموز على الأقل." }),
+    pin: z.string().optional().refine(val => !val || val.length === 6, { message: "رمز PIN يجب أن يكون 6 أرقام." }),
     confirmPin: z.string().optional(),
 }).refine(data => data.pin === data.confirmPin, {
     message: "رموز PIN غير متطابقة",
@@ -104,6 +104,7 @@ const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: stri
     { key: 'trash', label: 'الوصول إلى سلة المحذوفات' },
     { key: 'settings', label: 'الوصول إلى الإعدادات' },
     { key: 'salesPriceModification', label: 'تعديل أسعار البيع في الفاتورة' },
+    { key: 'allowDataCorrection', label: 'السماح بتصحيح البيانات (حساس)' },
 ];
 
 function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
@@ -150,7 +151,7 @@ function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (o
                         <FormField control={addUserForm.control} name="pin" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>رمز PIN</FormLabel>
-                                <FormControl><Input type="password"   {...field} /></FormControl>
+                                <FormControl><Input type="password"  maxLength={6} {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
@@ -253,7 +254,7 @@ export default function SettingsPage() {
     const openPermissionsDialog = (user: User) => {
         setEditingUser(user);
         const permissions = user.permissions || {
-            sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false, trash: false, salesPriceModification: false,
+            sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false, trash: false, salesPriceModification: false, allowDataCorrection: false,
         };
         setCurrentUserPermissions(permissions);
         setIsPermissionsDialogOpen(true);
@@ -628,13 +629,13 @@ export default function SettingsPage() {
                             <FormItem>
                                 <FormLabel>رمز PIN الجديد (اختياري)</FormLabel>
                                 <FormControl>
-                                    <Input type="password"   {...field} placeholder="اتركه فارغًا لعدم التغيير" />
+                                    <Input type="password"  maxLength={6} {...field} placeholder="اتركه فارغًا لعدم التغيير" />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
                         <FormField control={editUserForm.control} name="confirmPin" render={({ field }) => (
-                            <FormItem><FormLabel>تأكيد رمز PIN الجديد</FormLabel><FormControl><Input type="password"   {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>تأكيد رمز PIN الجديد</FormLabel><FormControl><Input type="password"  maxLength={6} {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
                         <DialogFooter className="pt-4">
                             <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>

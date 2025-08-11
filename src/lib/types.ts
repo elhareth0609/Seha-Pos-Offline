@@ -1,5 +1,4 @@
 
-
 import { z } from 'zod';
 
 export type UserPermissions = {
@@ -15,6 +14,7 @@ export type UserPermissions = {
     settings: boolean;
     trash: boolean;
     salesPriceModification: boolean;
+    allowDataCorrection: boolean;
 };
 
 export type Medication = {
@@ -53,9 +53,9 @@ export type Sale = {
   total: number;
   profit: number;
   discount?: number;
-  patientId: string | null;
+  patient_id: string | null;
   patientName?: string;
-  employeeId: string;
+  employee_id: string;
   employeeName: string;
 };
 

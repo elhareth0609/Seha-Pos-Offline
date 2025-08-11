@@ -75,7 +75,7 @@ export default function SuppliersPage() {
   const [editingSupplier, setEditingSupplier] = React.useState<Supplier | null>(null);
   const [selectedSupplier, setSelectedSupplier] = React.useState<Supplier | null>(null);
   const [isStatementOpen, setIsStatementOpen] = React.useState(false);
-  const [statementData, setStatementData] = { supplier: null, items: [] };
+  const [statementData, setStatementData] = React.useState<{ supplier: Supplier | null; items: StatementItem[] }>({ supplier: null, items: [] });
   const [supplierSearchTerm, setSupplierSearchTerm] = React.useState("");
   const { toast } = useToast();
 
@@ -129,6 +129,30 @@ export default function SuppliersPage() {
         setSelectedSupplier(null);
     }
   }
+
+  const handleShowStatement = (supplier: Supplier) => {
+    const supplierPurchases = purchaseOrders.filter(po => po.supplier_id === supplier.id)
+        .map(po => ({ date: po.date, type: 'شراء' as const, details: `فاتورة شراء #${po.id}`, debit: po.total_amount, credit: 0 }));
+
+    const supplierReturnsData = supplierReturns.filter(ret => ret.supplier_id === supplier.id)
+        .map(ret => ({ date: ret.date, type: 'استرجاع' as const, details: `إرجاع #${ret.id}`, debit: 0, credit: ret.total_amount }));
+
+    const supplierPaymentsData = supplierPayments.filter(p => p.supplier_id === supplier.id)
+        .map(p => ({ date: p.date, type: 'دفعة' as const, details: `دفعة نقدية ${p.notes ? `(${p.notes})` : ''}`, debit: 0, credit: p.amount }));
+
+    const allTransactions = [...supplierPurchases, ...supplierReturnsData, ...supplierPaymentsData]
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    let runningBalance = 0;
+    const statementItems = allTransactions.map(t => {
+        runningBalance += t.debit - t.credit;
+        return { ...t, balance: runningBalance };
+    });
+    
+    setStatementData({ supplier, items: statementItems.reverse() });
+    setIsStatementOpen(true);
+  };
+
 
   const supplierAccounts = React.useMemo(() => {
     if (!isClient) return [];
@@ -303,8 +327,8 @@ export default function SuppliersPage() {
                         </div>
                     </CardContent>
                     <CardFooter className="flex-col sm:flex-row gap-2">
-                        
-                           
+                        <Button variant="outline" className="w-full" onClick={() => handleShowStatement(account)}>
+                           <FileText className="me-2 h-4 w-4" /> كشف حساب
                         </Button>
                         <Button variant="success" onClick={() => { setSelectedSupplier(account); setIsPaymentDialogOpen(true); }} className="w-full">
                             <DollarSign className="me-2 h-4 w-4" />
@@ -362,6 +386,47 @@ export default function SuppliersPage() {
                     </DialogFooter>
                 </form>
             )}
+        </DialogContent>
+    </Dialog>
+
+    <Dialog open={isStatementOpen} onOpenChange={setIsStatementOpen}>
+        <DialogContent className="max-w-3xl">
+            <DialogHeader>
+                <DialogTitle>كشف حساب المورد: {statementData.supplier?.name}</DialogTitle>
+                <DialogDescription>
+                    عرض تفصيلي لجميع الحركات المالية للمورد.
+                </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="max-h-[60vh] mt-4">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>التاريخ</TableHead>
+                            <TableHead>البيان</TableHead>
+                            <TableHead>مدين (له)</TableHead>
+                            <TableHead>دائن (عليه)</TableHead>
+                            <TableHead>الرصيد</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {statementData.items.map((item, index) => (
+                            <TableRow key={index}>
+                                <TableCell className="text-xs">{new Date(item.date).toLocaleDateString('ar-EG')}</TableCell>
+                                <TableCell>
+                                    <div className="font-medium">{item.type}</div>
+                                    <div className="text-xs text-muted-foreground">{item.details}</div>
+                                </TableCell>
+                                <TableCell className="font-mono text-red-600">{item.debit > 0 ? item.debit.toLocaleString() : '-'}</TableCell>
+                                <TableCell className="font-mono text-green-600">{item.credit > 0 ? item.credit.toLocaleString() : '-'}</TableCell>
+                                <TableCell className="font-mono font-semibold">{item.balance.toLocaleString()}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </ScrollArea>
+             <DialogFooter>
+                <DialogClose asChild><Button variant="outline">إغلاق</Button></DialogClose>
+            </DialogFooter>
         </DialogContent>
     </Dialog>
 </>
