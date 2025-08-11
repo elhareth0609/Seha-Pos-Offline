@@ -388,6 +388,9 @@ export default function Dashboard() {
                                       <TableCell>
                                         <Badge variant="destructive" className="font-mono">{item.stock}</Badge>
                                       </TableCell>
+                                      <TableCell className="text-right">
+                                        <div className="font-medium">{item.reorder_point}</div>
+                                      </TableCell>
                                   </TableRow>
                               )) : (
                                   <TableRow>
