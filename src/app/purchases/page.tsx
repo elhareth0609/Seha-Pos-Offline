@@ -152,7 +152,7 @@ export default function PurchasesPage() {
         supplier_name: supplier.name,
         date: new Date().toISOString().split('T')[0],
         items: purchaseItems.map(item => ({
-            barcode: item.barcode, // Corrected from medication_id to barcode
+            barcodes: item.barcodes,
             name: item.name,
             quantity: item.quantity,
             purchase_price: item.purchase_price,
@@ -201,7 +201,7 @@ export default function PurchasesPage() {
         const filtered = (inventory || []).filter(med => 
             (med.name.toLowerCase().startsWith(lowercasedFilter) || 
               String(med.id).includes(lowercasedFilter) ||
-              med.barcode.includes(lowercasedFilter) ||
+              (med.barcodes || []).some(barcode => barcode.toLowerCase().includes(lowercasedFilter)) ||
               (med.scientific_names && med.scientific_names.some(name => name.toLowerCase().startsWith(lowercasedFilter)))) && 
               med.stock > 0
         );
@@ -296,12 +296,12 @@ export default function PurchasesPage() {
   }
 
   function AddPurchaseItemForm({ onAddItem }: { onAddItem: (item: any) => void }) {
-    const [barcode, setBarcode] = React.useState('');
+    const [barcodes, setBarcodes] = React.useState('');
     const [medicationName, setMedicationName] = React.useState('');
     const [scientific_names, setScientificNames] = React.useState('');
     const [dosage, setDosage] = React.useState('');
     const [dosage_form, setDosageForm] = React.useState('');
-    const [quantity, setQuantity] = React.useState('');
+    const [quantity, setQuantity] = React.useState('1');
     const [purchase_price, setPurchasePrice] = React.useState('');
     const [sellingPrice, setSellingPrice] = React.useState('');
     const [expiration_date, setExpirationDate] = React.useState('');
@@ -309,12 +309,12 @@ export default function PurchasesPage() {
     const [imagePreview, setImagePreview] = React.useState<string>('');
 
     const resetForm = () => {
-        setBarcode('');
+        setBarcodes('');
         setMedicationName('');
         setScientificNames('');
         setDosage('');
         setDosageForm('');
-        setQuantity('');
+        setQuantity('1');
         setPurchasePrice('');
         setSellingPrice('');
         setExpirationDate('');
@@ -333,14 +333,14 @@ export default function PurchasesPage() {
     }, []);
 
     React.useEffect(() => {
-        const Barcode = barcode.trim();
-        if (Barcode) {
-            const existingMed = (inventory || []).find(m => m.barcode === Barcode);
+        const firstBarcode = barcodes.split(',')[0].trim();
+        if (firstBarcode) {
+            const existingMed = (inventory || []).find(m => (m.barcodes || []).includes(firstBarcode));
             if (existingMed) {
                 prefillFormWithMedData(existingMed);
             }
         }
-    }, [barcode, inventory, prefillFormWithMedData]);
+    }, [barcodes, inventory, prefillFormWithMedData]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -353,9 +353,9 @@ export default function PurchasesPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        let Barcode = barcode.trim();
-        if(!Barcode) {
-            Barcode = Date.now().toString();
+        let barcodeArray = barcodes.split(',').map(bc => bc.trim()).filter(Boolean);
+        if(barcodeArray.length === 0) {
+            barcodeArray = [Date.now().toString()];
         }
         
         let expDate = expiration_date;
@@ -370,7 +370,7 @@ export default function PurchasesPage() {
         }
         
         const newItem = {
-            barcode: barcode,
+            barcodes: barcodeArray,
             name: medicationName,
             scientific_names: scientific_names.split(',').map(s => s.trim()).filter(Boolean),
             dosage,
@@ -396,8 +396,8 @@ export default function PurchasesPage() {
         <form onSubmit={handleSubmit} className="border-t pt-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-2">
                 <div className="flex flex-col gap-2">
-                    <Label htmlFor="barcode">الباركود (يترك فارغاً للتوليد)</Label>
-                    <Input id="barcode" value={barcode} onChange={e => setBarcode(e.target.value)} />
+                    <Label htmlFor="barcodes">الباركود (يفصل بفاصلة , للتعدد)</Label>
+                    <Input id="barcodes" value={barcodes} onChange={e => setBarcodes(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-2">
                     <Label htmlFor="tradeName">الاسم التجاري</Label>
