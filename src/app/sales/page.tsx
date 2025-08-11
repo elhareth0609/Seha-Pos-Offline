@@ -404,7 +404,7 @@ export default function SalesPage() {
   
   const handleScan = React.useCallback((result: string) => {
     if (mode !== 'new') return;
-    const scannedMedication = allInventory.find(med => med.barcodes.includes(result));
+    const scannedMedication = allInventory.find(med => (med.barcodes || []).includes(result));
     if (scannedMedication) {
       addToCart(scannedMedication);
       toast({ title: 'تمت الإضافة إلى السلة', description: `تمت إضافة ${scannedMedication.name} بنجاح.` });
@@ -908,7 +908,7 @@ export default function SalesPage() {
                                                 <div className="relative">
                                                     <Input 
                                                       type="text"
-                                                      value={(item.price || 0) * (item.quantity || 0)}
+                                                      value={((item.price || 0) * (item.quantity || 0))}
                                                       onChange={(e) => updateTotalPrice(item.id, e.target.value)} 
                                                       className={cn("w-24 h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )}
                                                       step="1" 
@@ -1191,3 +1191,5 @@ export default function SalesPage() {
     </>
   )
 }
+
+    

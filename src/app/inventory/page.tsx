@@ -150,9 +150,13 @@ export default function InventoryPage() {
   React.useEffect(() => {
     if (isClient) {
       const lowercasedFilter = searchTerm.toLowerCase().trim();
+      if (!lowercasedFilter) {
+          setFilteredInventory(sortedInventory);
+          return;
+      }
       const filtered = sortedInventory.filter((item) =>
           (item.name || '').toLowerCase().startsWith(lowercasedFilter) ||
-          (item.barcodes && item.barcodes.some(barcode => barcode.toString().toLowerCase().includes(lowercasedFilter))) ||
+          (item.barcodes && item.barcodes.some(barcode => barcode.toLowerCase().includes(lowercasedFilter))) ||
           (item.id && item.id.toString().toLowerCase().includes(lowercasedFilter)) ||
           (item.scientific_names && item.scientific_names.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
       );
@@ -738,7 +742,7 @@ export default function InventoryPage() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="add-stock">رصيد المخزون</Label>
-                            <Input id="add-stock" name="stock" type="number" defaultValue={newMed.stock} required />
+                            <Input id="add-stock" name="stock" type="number" defaultValue={1} required />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="add-reorder_point">نقطة إعادة الطلب</Label>
@@ -771,3 +775,5 @@ export default function InventoryPage() {
     </>
   )
 }
+
+    
