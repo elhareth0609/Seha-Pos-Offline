@@ -624,7 +624,7 @@ export default function SalesPage() {
           cart: saleToReview.items,
           discountValue: (saleToReview.discount || 0).toString(),
           discountType: 'fixed',
-          patientId: saleToReview.patientId,
+          patientId: saleToReview.patient_id || null,
           paymentMethod: 'cash'
         });
         setReviewIndex(index);
