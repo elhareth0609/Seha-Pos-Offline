@@ -366,6 +366,8 @@ export default function SalesPage() {
 
     const addToCart = React.useCallback((medication: Medication) => {
         if (mode !== 'new') return;
+        
+        // Expiration check
         const today = new Date();
         today.setHours(0,0,0,0);
         if (medication.expiration_date && differenceInDays(parseISO(medication.expiration_date), today) < 0) {
@@ -373,13 +375,22 @@ export default function SalesPage() {
             return;
         }
 
+        // Stock check
+        if (medication.stock <= 0) {
+            toast({ variant: 'destructive', title: 'نفد من المخزون', description: `لا يمكن بيع ${medication.name} لأن الكمية 0.` });
+            return;
+        }
+
         setCart((prevCart) => {
             const existingItem = prevCart.find(item => item.id === medication.id && !item.is_return)
-            // const existingItem = prevCart.find(item => item.id === medication.id && !item.is_return)
+
             if (existingItem) {
+                 if (existingItem.quantity >= medication.stock) {
+                    toast({ variant: 'destructive', title: 'كمية غير كافية', description: `لا يمكن إضافة المزيد من ${medication.name}. الرصيد المتوفر: ${medication.stock}` });
+                    return prevCart;
+                }
                 return prevCart.map(item =>
                     item.id === medication.id && !item.is_return
-                    // item.id === medication.id && !item.is_return
                     ? { ...item, quantity: item.quantity + 1 }
                     : item
                 )
@@ -400,7 +411,7 @@ export default function SalesPage() {
         })
         setSearchTerm("")
         setSuggestions([])
-    }, [mode, setCart, toast])
+    }, [mode, setCart, toast, allInventory])
   
   const handleScan = React.useCallback((result: string) => {
     if (mode !== 'new') return;
@@ -548,7 +559,7 @@ export default function SalesPage() {
   }, 0);
   
   const discountAmount = React.useMemo(() => {
-    const value = parseFloat(discountValue);
+    const value = parseFloat(String(discountValue));
     if (isNaN(value) || value < 0) return 0;
     if (discountType === 'percentage') {
         return (subtotal * value) / 100;
@@ -766,7 +777,7 @@ export default function SalesPage() {
                                 {cart.map((item) => {
                                     const medInInventory = allInventory.find(med => med.id === item.id);
                                     const stock = medInInventory?.stock ?? 0;
-                                    const remainingStock = stock - item.quantity;
+                                    const remainingStock = stock - (item.quantity || 0);
                                     const isBelowCost = (item.price || 0) < (item.purchase_price || 0);
                                     const alternatives = findAlternatives(item);
                                     return (
@@ -803,12 +814,12 @@ export default function SalesPage() {
                                             <div className="grid grid-cols-2 gap-3 items-end">
                                                 <div className="space-y-1">
                                                      <Label htmlFor={`quantity-sm-${item.id}`} className="text-xs">الكمية</Label>
-                                                     <Input id={`quantity-sm-${item.id}`} type="number" value={item.quantity} onChange={(e) => updateQuantity(item.id, e.target.value)} className="h-9 text-center font-mono" disabled={mode !== 'new'} />
+                                                     <Input id={`quantity-sm-${item.id}`} type="number" value={item.quantity || ''} onChange={(e) => updateQuantity(item.id, e.target.value)} className="h-9 text-center font-mono" disabled={mode !== 'new'} />
                                                 </div>
                                                 <div className="space-y-1">
                                                      <Label htmlFor={`price-sm-${item.id}`} className="text-xs">السعر الإجمالي</Label>
                                                      <div className="relative">
-                                                        <Input id={`price-sm-${item.id}`} type="number" value={(item.price || 0) * (item.quantity || 0)} onChange={(e) => updateTotalPrice(item.id, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={mode !== 'new' || !priceModificationAllowed} />
+                                                        <Input id={`price-sm-${item.id}`} type="number" value={((item.price || 0) * (item.quantity || 0))} onChange={(e) => updateTotalPrice(item.id, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={mode !== 'new' || !priceModificationAllowed} />
                                                         {isBelowCost && !item.is_return && (
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
@@ -823,7 +834,7 @@ export default function SalesPage() {
                                              <div className="text-xs text-muted-foreground mt-1 flex gap-2">
                                                 <span>الرصيد: {stock}</span>
                                                 {!item.is_return && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
-                                                <span>| الشراء: <span className="font-mono">{item.purchase_price}</span></span>
+                                                <span>| الشراء: <span className="font-mono">{item.purchase_price || 0}</span></span>
                                              </div>
                                         </div>
                                     )
@@ -844,7 +855,7 @@ export default function SalesPage() {
                                   {cart.map((item) => {
                                     const medInInventory = allInventory.find(med => med.id === item.id);
                                     const stock = medInInventory?.stock ?? 0;
-                                    const remainingStock = stock - item.quantity;
+                                    const remainingStock = stock - (item.quantity || 0);
                                     const isBelowCost = (item.price || 0) < (item.purchase_price || 0);
                                     const alternatives = findAlternatives(item);
 
@@ -891,14 +902,14 @@ export default function SalesPage() {
                                                 <div className="text-xs text-muted-foreground flex gap-2">
                                                     <span>الرصيد: {stock}</span> 
                                                     {!item.is_return && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
-                                                    <span>| الشراء: <span className="font-mono">{item.purchase_price}</span></span>
+                                                    <span>| الشراء: <span className="font-mono">{item.purchase_price || 0}</span></span>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
                                              <Input
                                                 id={`quantity-${item.id}`}
                                                 type="number"
-                                                value={item.quantity}
+                                                value={item.quantity || ''}
                                                 onChange={(e) => updateQuantity(item.id, e.target.value)}
                                                 className="w-20 h-9 text-center font-mono"
                                                 disabled={mode !== 'new'}
@@ -1003,7 +1014,7 @@ export default function SalesPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Label htmlFor="discount" className="text-md shrink-0">خصم</Label>
-                        <Input id="discount" type="text" value={discountValue} onChange={e => setActiveInvoice(prev => ({...prev, discountValue: e.target.value}))} className="h-9 w-full bg-background ltr:text-left rtl:text-right font-mono" placeholder="0" disabled={mode !== 'new'}/>
+                        <Input id="discount" type="text" value={discountValue || ''} onChange={e => setActiveInvoice(prev => ({...prev, discountValue: e.target.value}))} className="h-9 w-full bg-background ltr:text-left rtl:text-right font-mono" placeholder="0" disabled={mode !== 'new'}/>
                         <RadioGroup defaultValue="fixed" value={discountType} onValueChange={(value: any) => setActiveInvoice(prev => ({...prev, discountType: value}))} className="flex" disabled={mode !== 'new'}>
                             <Button type="button" size="sm" variant={discountType === 'fixed' ? 'secondary' : 'ghost'} onClick={() => setActiveInvoice(prev => ({...prev, discountType: 'fixed'}))}>IQD</Button>
                             <Button type="button" size="icon" variant={discountType === 'percentage' ? 'secondary' : 'ghost'} onClick={() => setActiveInvoice(prev => ({...prev, discountType: 'percentage'}))} className="h-9 w-9"><Percent className="h-4 w-4" /></Button>
@@ -1191,5 +1202,3 @@ export default function SalesPage() {
     </>
   )
 }
-
-    
