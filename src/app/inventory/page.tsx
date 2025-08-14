@@ -507,6 +507,7 @@ export default function InventoryPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>المعرف</TableHead>
                 <TableHead>الباركود</TableHead>
                 <TableHead>الاسم</TableHead>
                 <TableHead className="text-center">المخزون</TableHead>
@@ -520,6 +521,7 @@ export default function InventoryPage() {
             <TableBody>
               {filteredInventory.length > 0 ? filteredInventory.map((item) => (
                 <TableRow key={item.id}>
+                  <TableCell className="font-mono text-xs">{item.id}</TableCell>
                   <TableCell className="font-mono text-xs">{item.barcodes?.join(', ')}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -560,28 +562,28 @@ export default function InventoryPage() {
                                   طباعة الباركود
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                               <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                      <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive">
-                                        <Trash2 className="me-2 h-4 w-4" />
-                                        حذف
-                                      </button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                          <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                              سيتم حذف هذا الدواء. هذه العملية لا يمكن التراجع عنها.
-                                          </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                          <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                          <AlertDialogAction onClick={() => handleDelete(item)} className={buttonVariants({ variant: "destructive" })}>
-                                              نعم، قم بالحذف
-                                          </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                  </AlertDialogContent>
-                              </AlertDialog>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive">
+                                          <Trash2 className="me-2 h-4 w-4" />
+                                          حذف
+                                        </button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                سيتم حذف هذا الدواء. هذه العملية لا يمكن التراجع عنها.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDelete(item)} className={buttonVariants({ variant: "destructive" })}>
+                                                نعم، قم بالحذف
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                           </DropdownMenuContent>
                       </DropdownMenu>
                   </TableCell>
@@ -605,10 +607,10 @@ export default function InventoryPage() {
                 <DialogHeader>
                     <DialogTitle>تعديل بيانات الدواء</DialogTitle>
                     <DialogDescription>
-                         قم بتحديث تفاصيل الدواء.
+                        قم بتحديث تفاصيل الدواء.
                     </DialogDescription>
                 </DialogHeader>
-                   {editingMed && (
+                  {editingMed && (
                       <form onSubmit={handleUpdate} className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-2">
@@ -621,7 +623,7 @@ export default function InventoryPage() {
                               </div>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                               <div className="space-y-2">
+                              <div className="space-y-2">
                                   <Label htmlFor="edit-scientific_names">الاسم العلمي (يفصل بفاصلة ,)</Label>
                                   <Input id="edit-scientific_names" name="scientific_names" defaultValue={editingMed.scientific_names?.join(', ')} />
                               </div>
