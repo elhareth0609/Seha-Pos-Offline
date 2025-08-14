@@ -286,7 +286,7 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">أصناف قريبة الانتهاء</CardTitle>
+            <CardTitle className="text-sm font-medium">قريب الانتهاء</CardTitle>
             <Clock className="h-4 w-4 text-amber-600" />
           </CardHeader>
           <CardContent>
@@ -379,18 +379,13 @@ export default function Dashboard() {
                               <TableRow>
                                   <TableHead>الاسم</TableHead>
                                   <TableHead>المخزون</TableHead>
-                                  <TableHead>نقطة الطلب</TableHead>
                               </TableRow>
                           </TableHeader>
                           <TableBody>
                               {reorder_pointItems.length > 0 ? reorder_pointItems.map(item => (
                                   <TableRow key={item.id}>
-                                      <TableCell className="text-right">
-                                          <div className="font-medium">{item.name}</div>
-                                          <div className="text-xs text-muted-foreground">{item.scientific_names?.join(', ')}</div>
-                                          <div className="text-xs text-muted-foreground font-mono">{item.barcodes?.join(', ')}</div>
-                                      </TableCell>
-                                      <TableCell className="text-right">
+                                      <TableCell className="font-medium">{item.name}</TableCell>
+                                      <TableCell>
                                         <Badge variant="destructive" className="font-mono">{item.stock}</Badge>
                                       </TableCell>
                                       <TableCell className="text-right">
@@ -399,7 +394,7 @@ export default function Dashboard() {
                                   </TableRow>
                               )) : (
                                   <TableRow>
-                                      <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">لا توجد أصناف.</TableCell>
+                                      <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد أصناف.</TableCell>
                                   </TableRow>
                               )}
                           </TableBody>
