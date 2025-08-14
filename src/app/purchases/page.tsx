@@ -41,7 +41,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import type { PurchaseOrder, Medication, Supplier, ReturnOrder, PurchaseOrderItem, ReturnOrderItem } from "@/lib/types"
-import { PlusCircle, ChevronDown, Trash2, X } from "lucide-react"
+import { PlusCircle, ChevronDown, Trash2, X, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth";
 
@@ -296,7 +296,7 @@ export default function PurchasesPage() {
     }
   }
 
-  function AddPurchaseItemForm({ onAddItem }: { onAddItem: (item: any) => void }) {
+function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdit }: { onAddItem: (item: any) => void; onUpdateItem: (item: any) => void; editingItem: any | null; onCancelEdit: () => void; }) {
     const [barcodes, setBarcodes] = React.useState('');
     const [medicationName, setMedicationName] = React.useState('');
     const [scientific_names, setScientificNames] = React.useState('');
@@ -309,6 +309,26 @@ export default function PurchasesPage() {
     const [reorder_point, setReorderPoint] = React.useState('10');
     const [imageFile, setImageFile] = React.useState<File | null>(null);
     const [imagePreview, setImagePreview] = React.useState<string>('');
+
+    const isEditing = editingItem !== null;
+
+    React.useEffect(() => {
+        if (isEditing) {
+            setBarcodes((editingItem.barcodes || []).join(', '));
+            setMedicationName(editingItem.name || '');
+            setScientificNames((editingItem.scientific_names || []).join(', '));
+            setDosage(editingItem.dosage || '');
+            setDosageForm(editingItem.dosage_form || '');
+            setQuantity(String(editingItem.quantity || '1'));
+            setPurchasePrice(String(editingItem.purchase_price || ''));
+            setSellingPrice(String(editingItem.price || ''));
+            setExpirationDate(editingItem.expiration_date || '');
+            setReorderPoint(String(editingItem.reorder_point || '10'));
+            setImageFile(null);
+            setImagePreview(editingItem.image_url || '');
+        }
+    }, [editingItem, isEditing]);
+
 
     const resetForm = () => {
         setBarcodes('');
@@ -323,6 +343,7 @@ export default function PurchasesPage() {
         setReorderPoint('10');
         setImageFile(null);
         setImagePreview('');
+        onCancelEdit();
     };
 
     const prefillFormWithMedData = React.useCallback((med: Medication) => {
@@ -337,6 +358,7 @@ export default function PurchasesPage() {
     }, []);
 
     React.useEffect(() => {
+        if (isEditing) return; // Don't auto-fill when editing
         const firstBarcode = barcodes.split(',')[0].trim();
         if (firstBarcode) {
             const existingMed = (inventory || []).find(m => (m.barcodes || []).includes(firstBarcode));
@@ -344,7 +366,7 @@ export default function PurchasesPage() {
                 prefillFormWithMedData(existingMed);
             }
         }
-    }, [barcodes, inventory, prefillFormWithMedData]);
+    }, [barcodes, inventory, prefillFormWithMedData, isEditing]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -373,7 +395,7 @@ export default function PurchasesPage() {
             image_url = await fileToDataUri(imageFile);
         }
         
-        const newItem = {
+        const newItemData = {
             barcodes: barcodeArray,
             name: medicationName,
             scientific_names: scientific_names.split(',').map(s => s.trim()).filter(Boolean),
@@ -387,17 +409,30 @@ export default function PurchasesPage() {
             image_url: image_url,
         };
 
-        if (!newItem.name || !newItem.quantity || !newItem.purchase_price || !newItem.price) {
+        if (!newItemData.name || !newItemData.quantity || !newItemData.purchase_price || !newItemData.price) {
             toast({ variant: 'destructive', title: "حقول ناقصة", description: "الاسم، الكمية، سعر الشراء، وسعر البيع مطلوبة." });
             return;
         }
         
-        onAddItem(newItem);
+        if (isEditing) {
+            onUpdateItem(newItemData);
+        } else {
+            onAddItem(newItemData);
+        }
         resetForm();
     };
 
     return (
         <form onSubmit={handleSubmit} className="border-t pt-6 space-y-4">
+             {isEditing && (
+                <Alert>
+                  <Pencil className="h-4 w-4" />
+                  <AlertTitle>وضع التعديل</AlertTitle>
+                  <AlertDescription>
+                    أنت الآن تقوم بتعديل عنصر موجود. اضغط على "تحديث العنصر" لحفظ التغييرات أو "إلغاء التعديل" للعودة.
+                  </AlertDescription>
+                </Alert>
+              )}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-2">
                 <div className="flex flex-col gap-2">
                     <Label htmlFor="barcodes">الباركود (يفصل بفاصلة , للتعدد)</Label>
@@ -461,10 +496,32 @@ export default function PurchasesPage() {
                     )}
                 </div>
             </div>
-            <Button type="submit" className="w-full">إضافة إلى القائمة</Button>
+            <div className="flex gap-2">
+                {isEditing && (
+                    <Button type="button" variant="outline" className="w-full" onClick={resetForm}>
+                      إلغاء التعديل
+                    </Button>
+                )}
+                 <Button type="submit" className="w-full" variant={isEditing ? 'default' : 'success'}>
+                    {isEditing ? 'تحديث العنصر' : 'إضافة إلى القائمة'}
+                 </Button>
+            </div>
         </form>
     );
   }
+
+  const [editingItemIndex, setEditingItemIndex] = React.useState<number | null>(null);
+
+  const handleEditItem = (index: number) => {
+    setEditingItemIndex(index);
+  };
+
+  const handleUpdateItem = (updatedItem: any) => {
+    if (editingItemIndex !== null) {
+      setPurchaseItems(prev => prev.map((item, index) => index === editingItemIndex ? updatedItem : item));
+      setEditingItemIndex(null);
+    }
+  };
 
   return (
      <Tabs defaultValue="new-purchase" className="w-full">
@@ -523,7 +580,12 @@ export default function PurchasesPage() {
                     </div>
                 </div>
                 
-                <AddPurchaseItemForm onAddItem={(item) => setPurchaseItems(prev => [...prev, item])} />
+                <AddPurchaseItemForm 
+                    onAddItem={(item) => setPurchaseItems(prev => [...prev, item])}
+                    onUpdateItem={handleUpdateItem}
+                    editingItem={editingItemIndex !== null ? purchaseItems[editingItemIndex] : null}
+                    onCancelEdit={() => setEditingItemIndex(null)}
+                />
                 
                 {purchaseItems.length > 0 && (
                   <div>
@@ -545,7 +607,10 @@ export default function PurchasesPage() {
                             <TableCell className="font-mono">{item.quantity}</TableCell>
                             <TableCell className="font-mono">{item.purchase_price.toLocaleString()}</TableCell>
                             <TableCell className="font-mono">{item.price.toLocaleString()}</TableCell>
-                            <TableCell>
+                            <TableCell className="flex justify-end gap-2">
+                              <Button variant="ghost" size="icon" className="text-primary h-8 w-8" onClick={() => handleEditItem(index)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
                               <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => setPurchaseItems(prev => prev.filter((_, i) => i !== index))}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -805,5 +870,7 @@ export default function PurchasesPage() {
     </Tabs>
   )
 }
+
+    
 
     
