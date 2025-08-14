@@ -184,6 +184,8 @@ function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => 
   );
 }
 
+
+
 function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
     const [patientAge, setPatientAge] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
@@ -350,7 +352,7 @@ export default function SalesPage() {
   const [reviewIndex, setReviewIndex] = React.useState(0);
   const [isPrintReviewOpen, setIsPrintReviewOpen] = React.useState(false);
   const isOnline = useOnlineStatus();
-  const priceModificationAllowed = currentUser?.role === 'Admin' || currentUser?.permissions?.salesPriceModification;
+  const priceModificationAllowed = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_salesPriceModification;
 
 
   const { toast } = useToast()
@@ -681,6 +683,12 @@ export default function SalesPage() {
     );
 };
 
+    const handleDiscountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        if (value === '' || /^\d*\.?\d*$/.test(value)) {
+            setActiveInvoice(prev => ({...prev, discountValue: value}));
+        }
+    };
 
   return (
     <>
@@ -1002,7 +1010,7 @@ export default function SalesPage() {
                       <Separator />
 
                       <div className="flex justify-between w-full text-md">
-                          <span>المجموع الفرعي</span>
+                          <span>المجموع</span>
                           <span className="font-mono">{subtotal.toLocaleString()}</span>
                       </div>
                        <div className={cn(
@@ -1014,7 +1022,17 @@ export default function SalesPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Label htmlFor="discount" className="text-md shrink-0">خصم</Label>
-                        <Input id="discount" type="text" value={discountValue || ''} onChange={e => setActiveInvoice(prev => ({...prev, discountValue: e.target.value}))} className="h-9 w-full bg-background ltr:text-left rtl:text-right font-mono" placeholder="0" disabled={mode !== 'new'}/>
+                        <Input 
+                        id="discount" 
+                        type="text" 
+                        value={discountValue || ''} 
+                        onChange={handleDiscountChange}
+                        className="h-9 w-full bg-background ltr:text-left rtl:text-right font-mono" 
+                        placeholder="0" 
+                        disabled={mode !== 'new'}
+                        inputMode="decimal"
+                        pattern="[0-9]*\.?[0-9]*"
+                        />
                         <RadioGroup defaultValue="fixed" value={discountType} onValueChange={(value: any) => setActiveInvoice(prev => ({...prev, discountType: value}))} className="flex" disabled={mode !== 'new'}>
                             <Button type="button" size="sm" variant={discountType === 'fixed' ? 'secondary' : 'ghost'} onClick={() => setActiveInvoice(prev => ({...prev, discountType: 'fixed'}))}>IQD</Button>
                             <Button type="button" size="icon" variant={discountType === 'percentage' ? 'secondary' : 'ghost'} onClick={() => setActiveInvoice(prev => ({...prev, discountType: 'percentage'}))} className="h-9 w-9"><Percent className="h-4 w-4" /></Button>
@@ -1077,7 +1095,7 @@ export default function SalesPage() {
                                           <Separator/>
                                           <div className="space-y-2 text-sm font-mono">
                                               {selectedPatient && <div className="flex justify-between"><span>المريض:</span><span>{selectedPatient.name}</span></div>}
-                                              <div className="flex justify-between"><span>المجموع الفرعي:</span><span>{subtotal.toLocaleString()}</span></div>
+                                              <div className="flex justify-between"><span>المجموع:</span><span>{subtotal.toLocaleString()}</span></div>
                                               <div className="flex justify-between"><span>الخصم:</span><span>-{discountAmount.toLocaleString()}</span></div>
                                                <div className={cn("flex justify-between", finalProfit >= 0 ? "text-green-600" : "text-destructive")}>
                                                    <span>الربح الصافي:</span>

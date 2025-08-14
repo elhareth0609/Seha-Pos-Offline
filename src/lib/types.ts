@@ -2,18 +2,19 @@
 import { z } from 'zod';
 
 export type UserPermissions = {
-    sales: boolean;
-    inventory: boolean;
-    purchases: boolean;
-    suppliers: boolean;
-    reports: boolean;
-    itemMovement: boolean;
-    patients: boolean;
-    expiringSoon: boolean;
-    guide: boolean;
-    settings: boolean;
-    trash: boolean;
-    salesPriceModification: boolean;
+    manage_sales: boolean;
+    manage_inventory: boolean;
+    manage_purchases: boolean;
+    manage_suppliers: boolean;
+    manage_reports: boolean;
+    manage_itemMovement: boolean;
+    manage_patients: boolean;
+    manage_expiringSoon: boolean;
+    manage_users: boolean;
+    manage_guide: boolean;
+    manage_settings: boolean;
+    manage_trash: boolean;
+    manage_salesPriceModification: boolean;
 };
 
 export type Medication = {
@@ -120,7 +121,7 @@ export type User = {
   pin?: string;
   permissions?: UserPermissions;
   hourly_rate?: number;
-  pharmacy_id?: string;
+  pharmacy_id: string;
   created_at: string; // ISO date string
   image1DataUri?: string;
 };
@@ -134,10 +135,10 @@ export type Patient = {
 
 export type TimeLog = {
   id: string;
-  userId: string;
-  pharmacyId: string;
-  clockIn: string; // ISO string
-  clockOut?: string; // ISO string
+  user_id: string;
+  pharmacy_id: string;
+  clock_in: string; // ISO string
+  clock_out?: string; // ISO string
 };
 
 export type AppSettings = {

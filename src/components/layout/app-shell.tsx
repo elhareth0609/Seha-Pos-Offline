@@ -76,21 +76,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // if (currentUser.role === 'Admin' || currentUser.role === 'SuperAdmin') return allNavItems;
 
     const permissions = currentUser.permissions || {
-        sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false, trash: false, salesPriceModification: false,
+        manage_sales: true, 
+        manage_inventory: true, 
+        manage_purchases: false, 
+        manage_suppliers: false, 
+        manage_reports: false, 
+        manage_itemMovement: true, 
+        manage_patients: true, 
+        manage_expiringSoon: true, 
+        manage_guide: true, 
+        manage_settings: false, 
+        manage_trash: false, 
+        manage_salesPriceModification: false,
     };
 
     const permissionMap: { [key: string]: keyof UserPermissions } = {
-        '/sales': 'sales',
-        '/inventory': 'inventory',
-        '/purchases': 'purchases',
-        '/suppliers': 'suppliers',
-        '/reports': 'reports',
-        '/item-movement': 'itemMovement',
-        '/patients': 'patients',
-        '/expiring-soon': 'expiringSoon',
-        '/guide': 'guide',
-        '/settings': 'settings',
-        '/trash': 'trash',
+        '/sales': 'manage_sales',
+        '/inventory': 'manage_inventory',
+        '/purchases': 'manage_purchases',
+        '/suppliers': 'manage_suppliers',
+        '/reports': 'manage_reports',
+        '/item-movement': 'manage_itemMovement',
+        '/patients': 'manage_patients',
+        '/expiring-soon': 'manage_expiringSoon',
+        '/guide': 'manage_guide',
+        '/settings': 'manage_settings',
+        '/trash': 'manage_trash',
     };
 
     return allNavItems.filter(item => {

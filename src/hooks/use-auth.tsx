@@ -188,6 +188,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [timeLogs, setTimeLogs] = React.useState<TimeLog[]>([]);
     const [settings, setSettings] = React.useState<AppSettings>(fallbackAppSettings);
     
+    const [activeTimeLogId, setActiveTimeLogId] = React.useState<string | null>(null);
+
     // Global data states
     const [advertisements, setAdvertisements] = React.useState<Advertisement[]>([]);
     
@@ -203,8 +205,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUsers(data.all_users_in_pharmacy || []);
         setAdvertisements(data.advertisements || []);
         
+        // Check if there's an active time log (without clockOut time)
+        
         const pd = data.pharmacy_data;
         if(pd) {
+            const activeLog = pd.timeLogs?.find(log => log.user_id === data.user.id && !log.clock_out);
+            if (activeLog) {
+                setActiveTimeLogId(activeLog.id);
+            }
             setInventory(pd.inventory || []);
             setSales(pd.sales || []);
             setSuppliers(pd.suppliers || []);
@@ -260,6 +268,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const data: AuthResponse = await apiRequest('/login', 'POST', { email, pin });
             setAllData(data);
+            // Create a new time log when user logs in (if not SuperAdmin)
+            if (data.user.role !== 'SuperAdmin' && data.user.role !== 'Admin') {
+                const newTimeLog: TimeLog = {
+                    id: `TL${Date.now()}`,
+                    user_id: data.user.id,
+                    pharmacy_id: data.user.pharmacy_id,
+                    clock_in: new Date().toISOString(),
+                };
+                
+                // Save the time log via API
+                const savedTimeLog = await apiRequest('/time-logs', 'POST', newTimeLog);
+                setTimeLogs(prev => [savedTimeLog, ...prev]);
+                setActiveTimeLogId(savedTimeLog.id);
+            }
             return data.user;
         } catch (error: any) {
             return null;
@@ -270,10 +292,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     const logout = async () => {
         try {
+            if (activeTimeLogId && currentUser?.role == 'Employee') {
+                await apiRequest(`/time-logs/${activeTimeLogId}`, 'PUT', {
+                    clockOut: new Date().toISOString()
+                });
+                
+                // Update local state
+                setTimeLogs(prev => prev.map(log => 
+                    log.id === activeTimeLogId 
+                        ? { ...log, clockOut: new Date().toISOString() }
+                        : log
+                ));
+                setActiveTimeLogId(null);
+            }
             await apiRequest('/logout', 'POST');
         } catch (error) {
             console.error("Logout failed:", error);
         } finally {
+            // End the active time log if exists
             localStorage.removeItem('authToken');
             setCurrentUser(null);
             setUsers([]);
