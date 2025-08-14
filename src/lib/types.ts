@@ -15,6 +15,7 @@ export type UserPermissions = {
     manage_settings: boolean;
     manage_trash: boolean;
     manage_salesPriceModification: boolean;
+    manage_previous_sales: boolean;
 };
 
 export type Medication = {
@@ -108,8 +109,6 @@ export type Supplier = {
   id: string;
   name: string;
   contact_person?: string;
-  // phone?: string;
-  // email?: string;
 };
 
 export type User = {
@@ -162,7 +161,6 @@ export type Advertisement = {
     id: string;
     title: string;
     image_url: string;
-    // is_active: boolean;
     created_at: string;
     show_on: {
         dashboard: boolean;
@@ -211,3 +209,20 @@ export type PaymentsData = { [pharmacyId: string]: SupplierPayment[] };
 export type TimeLogsData = { [pharmacyId: string]: TimeLog[] };
 export type PurchaseOrdersData = { [pharmacyId: string]: PurchaseOrder[] };
 export type ReturnsData = { [pharmacyId: string]: ReturnOrder[] };
+
+// Pagination response type from Laravel
+export type PaginatedResponse<T> = {
+  current_page: number;
+  data: T[];
+  first_page_url: string;
+  from: number;
+  last_page: number;
+  last_page_url: string;
+  links: { url: string | null; label: string; active: boolean }[];
+  next_page_url: string | null;
+  path: string;
+  per_page: number;
+  prev_page_url: string | null;
+  to: number;
+  total: number;
+};

@@ -51,7 +51,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput } from "@/lib/types"
-import { PlusCircle, MinusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, ArrowLeft, ArrowRight, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent } from "lucide-react"
+import { PlusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, ArrowLeft, ArrowRight, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2 } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -66,7 +66,8 @@ import { useOnlineStatus } from "@/hooks/use-online-status"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import AdCarousel from "@/components/ui/ad-carousel"
-import { differenceInDays, parseISO } from "date-fns"
+import { differenceInDays, parseISO, startOfToday } from "date-fns"
+import { Badge } from "@/components/ui/badge"
 
 const printElement = (element: HTMLElement, title: string = 'Print') => {
   const printWindow = window.open('', '_blank');
@@ -322,13 +323,29 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
     );
 }
 
+const getExpirationBadge = (expiration_date: string | undefined, threshold: number) => {
+    if (!expiration_date) return null;
+    const today = startOfToday();
+    const expDate = parseISO(expiration_date);
+    
+    if (expDate < today) {
+        return <Badge variant="destructive">منتهي</Badge>
+    }
+
+    const daysLeft = differenceInDays(expDate, today);
+    if (daysLeft <= threshold) {
+      return <Badge variant="secondary" className="bg-yellow-400 text-yellow-900">قريب الانتهاء</Badge>
+    }
+    return null;
+};
+
 export default function SalesPage() {
-  const { currentUser, scopedData, activeInvoice, setActiveInvoice, resetActiveInvoice, addPatient, addSale } = useAuth();
+  const { currentUser, scopedData, activeInvoice, setActiveInvoice, resetActiveInvoice, addPatient, addSale, updateSale, deleteSale } = useAuth();
   const [allInventory] = scopedData.inventory;
-  const [sales] = scopedData.sales;
+  const [sales, setSales] = scopedData.sales;
   const [patients] = scopedData.patients;
   const [settings] = scopedData.settings;
-  const { cart, discountType, discountValue, patientId, paymentMethod } = activeInvoice;
+  const { cart, discountType, discountValue, patientId, paymentMethod, saleIdToUpdate, reviewIndex } = activeInvoice;
   const setCart = (updater: (prev: SaleItem[]) => SaleItem[]) => {
       setActiveInvoice(prev => ({ ...prev, cart: updater(prev.cart) }));
   };
@@ -348,12 +365,11 @@ export default function SalesPage() {
   const [newPatientPhone, setNewPatientPhone] = React.useState("");
 
 
-  const [mode, setMode] = React.useState<'new' | 'review'>('new');
-  const [reviewIndex, setReviewIndex] = React.useState(0);
-  const [isPrintReviewOpen, setIsPrintReviewOpen] = React.useState(false);
+  const mode = saleIdToUpdate ? 'review' : 'new';
+  
   const isOnline = useOnlineStatus();
   const priceModificationAllowed = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_salesPriceModification;
-
+  const canManagePreviousSales = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_previous_sales;
 
   const { toast } = useToast()
   
@@ -369,7 +385,6 @@ export default function SalesPage() {
     const addToCart = React.useCallback((medication: Medication) => {
         if (mode !== 'new') return;
         
-        // Expiration check
         const today = new Date();
         today.setHours(0,0,0,0);
         if (medication.expiration_date && parseISO(medication.expiration_date) < today) {
@@ -377,7 +392,6 @@ export default function SalesPage() {
             return;
         }
 
-        // Stock check
         if (medication.stock <= 0) {
             toast({ variant: 'destructive', title: 'نفد من المخزون', description: `لا يمكن بيع ${medication.name} لأن الكمية 0.` });
             return;
@@ -428,19 +442,18 @@ export default function SalesPage() {
   }, [addToCart, allInventory, mode, toast]);
 
 
-  // Effect for automatic barcode search
   React.useEffect(() => {
     if (mode !== 'new') return;
 
     const handler = setTimeout(() => {
-        if (searchTerm.length > 5 && suggestions.length === 0) { // Typical barcode length check
+        if (searchTerm.length > 5 && suggestions.length === 0) {
             const lowercasedSearchTerm = searchTerm.toLowerCase();
             const medicationByBarcode = allInventory.find(med => med.barcodes && med.barcodes.some(bc => bc.toLowerCase() === lowercasedSearchTerm));
             if (medicationByBarcode) {
                 addToCart(medicationByBarcode);
             }
         }
-    }, 100); // Debounce time in ms
+    }, 100);
 
     return () => {
         clearTimeout(handler);
@@ -496,30 +509,16 @@ export default function SalesPage() {
   }, [suggestions, allInventory, searchTerm, addToCart, mode, toast]);
 
   const updateQuantity = (id: string, newQuantityStr: string) => {
-    if (mode !== 'new') return;
     const quantity = parseInt(newQuantityStr, 10);
-    if (isNaN(quantity) || quantity < 0) {
-        return; // Or handle empty/invalid input
-    }
-    if (quantity === 0) {
-        // removeFromCart(id);
-    } else {
-        setCart(cart => cart.map(item => (item.id === id ? { ...item, quantity } : item)));
-    }
-};
-
-  
-  const updateTotalPrice = (id: string, newTotalPriceStr: string) => {
-    if (mode !== 'new') return;
+    if (isNaN(quantity) || quantity < 0) return;
+    if (quantity === 0) return;
     
-    // Allow empty string to reset or clear
+    setCart(cart => cart.map(item => (item.id === id ? { ...item, quantity } : item)));
+  };
+
+  const updateTotalPrice = (id: string, newTotalPriceStr: string) => {
     if (newTotalPriceStr.trim() === '') {
-        setCart(cart => cart.map(item => {
-            if (item.id === id) {
-                return { ...item, price: 0 }; 
-            }
-            return item;
-        }));
+        setCart(cart => cart.map(item => (item.id === id ? { ...item, price: 0 } : item)));
         return;
     }
 
@@ -528,7 +527,6 @@ export default function SalesPage() {
 
     setCart(cart => cart.map(item => {
       if (item.id === id) {
-        // Calculate new unit price based on the total. Avoid division by zero.
         const newUnitPrice = item.quantity > 0 ? newTotalPrice / item.quantity : 0;
         return { ...item, price: newUnitPrice };
       }
@@ -537,12 +535,10 @@ export default function SalesPage() {
   };
 
   const removeFromCart = (id: string) => {
-    if (mode !== 'new') return;
     setCart(cart => cart.filter(item => item.id !== id))
   }
 
   const toggleReturn = (id: string) => {
-    if (mode !== 'new') return;
     setCart(cart => cart.map(item => 
       item.id === id 
         ? { ...item, is_return: !item.is_return } 
@@ -597,7 +593,8 @@ export default function SalesPage() {
   const handleFinalizeSale = async () => {
     if (!currentUser) return;
     
-    const newSaleData = {
+    const saleData = {
+        id: saleIdToUpdate, // Pass ID if updating
         items: cart,
         total: finalTotal,
         profit: totalProfit,
@@ -608,14 +605,24 @@ export default function SalesPage() {
         employee_name: currentUser.name,
     };
     
-    const newSale = await addSale(newSaleData);
+    const resultSale = saleIdToUpdate ? await updateSale(saleData) : await addSale(saleData);
 
-    if (newSale) {
-        toast({ title: "تمت العملية بنجاح", description: `تم تسجيل الفاتورة رقم ${newSale.id}` });
+    if (resultSale) {
+        toast({ title: saleIdToUpdate ? "تم تحديث الفاتورة بنجاح" : "تمت العملية بنجاح", description: `تم تسجيل الفاتورة رقم ${resultSale.id}` });
         
-        setSaleToPrint(newSale);
+        setSaleToPrint(resultSale);
         setIsCheckoutOpen(false);
         setIsReceiptOpen(true);
+    }
+  }
+
+  const handleDeleteCurrentSale = async () => {
+    if (!saleIdToUpdate) return;
+    const success = await deleteSale(saleIdToUpdate);
+    if(success) {
+        setSales(prev => prev.filter(s => s.id !== saleIdToUpdate));
+        handleNewInvoiceClick();
+        toast({ title: "تم حذف الفاتورة" });
     }
   }
 
@@ -623,26 +630,26 @@ export default function SalesPage() {
     if (index >= 0 && index < sortedSales.length) {
         const saleToReview = sortedSales[index];
         setActiveInvoice({
-          cart: saleToReview.items,
+          cart: saleToReview.items.map((i: SaleItem) => ({...i, id: i.medication_id})),
           discountValue: (saleToReview.discount || 0).toString(),
-          discountType: 'fixed',
+          discountType: 'fixed', // TODO: Save discount type on sale
           patientId: saleToReview.patient_id || null,
-          paymentMethod: 'cash'
+          paymentMethod: 'cash', // TODO: Save payment method on sale
+          saleIdToUpdate: saleToReview.id,
+          reviewIndex: index,
         });
-        setReviewIndex(index);
-        setMode('review');
         setSearchTerm('');
         setSuggestions([]);
     }
   };
 
-  const handleNextInvoice = () => { // Newer invoice
+  const handleNextInvoice = () => {
     if (reviewIndex > 0) {
         loadSaleForReview(reviewIndex - 1);
     }
   };
 
-  const handlePreviousInvoice = () => { // Older invoice
+  const handlePreviousInvoice = () => {
     if (mode === 'new' && sortedSales.length > 0) {
         loadSaleForReview(0);
     } else if (mode === 'review' && reviewIndex < sortedSales.length - 1) {
@@ -651,7 +658,6 @@ export default function SalesPage() {
   };
 
   const handleNewInvoiceClick = () => {
-    setMode('new');
     resetActiveInvoice();
     setSearchTerm('');
     setSaleToPrint(null);
@@ -678,7 +684,7 @@ export default function SalesPage() {
     const currentScientificNames = currentItem.scientific_names.map(s => s.toLowerCase());
 
     return allInventory.filter(med => 
-        med.id !== currentItem.id && // Exclude the item itself
+        med.id !== currentItem.id &&
         med.scientific_names?.some(scName => currentScientificNames.includes(scName.toLowerCase()))
     );
 };
@@ -728,7 +734,11 @@ export default function SalesPage() {
                                                         <div className="text-xs text-muted-foreground">{med.scientific_names?.join(', ')}</div>
                                                     </div>
                                                 </div>
-                                                <span className="text-sm text-muted-foreground font-mono">{(med.price || 0).toLocaleString()}</span>
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                  <span>{med.stock}</span>
+                                                  {getExpirationBadge(med.expiration_date, settings.expirationThresholdDays)}
+                                                  <span className="font-mono">{(med.price || 0).toLocaleString()}</span>
+                                                </div>
                                             </li>
                                         ))}
                                     </ul>
@@ -753,21 +763,23 @@ export default function SalesPage() {
                     <CardHeader className="py-4">
                         <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
                             <CardTitle className="text-xl">
-                                {mode === 'new' ? 'الفاتورة الحالية' : `عرض الفاتورة #${sortedSales[reviewIndex]?.id}`}
+                                {mode === 'new' ? 'الفاتورة الحالية' : `تعديل الفاتورة #${sortedSales[reviewIndex]?.id}`}
                             </CardTitle>
                             <div className="flex items-center gap-2">
+                                {(mode === 'review' || (mode === 'new' && sortedSales.length > 0)) && (
+                                    <>
+                                        <Button onClick={handlePreviousInvoice} variant="outline" size="icon" disabled={mode === 'review' && reviewIndex >= sortedSales.length - 1}>
+                                            <span className="sr-only">السابق</span> <ArrowRight/>
+                                        </Button>
+                                        <Button onClick={handleNextInvoice} variant="outline" size="icon" disabled={mode === 'review' && reviewIndex <= 0}>
+                                            <span className="sr-only">التالي</span> <ArrowLeft/>
+                                        </Button>
+                                    </>
+                                )}
                                 {mode === 'review' ? (
-                                        <>
-                                            <Button onClick={handleNewInvoiceClick} variant="secondary">
-                                                <FilePlus className="me-2"/> فاتورة جديدة
-                                            </Button>
-                                            <Button onClick={handlePreviousInvoice} variant="outline" size="icon" disabled={reviewIndex >= sortedSales.length - 1}>
-                                                <span className="sr-only">السابق</span> <ArrowRight/>
-                                            </Button>
-                                            <Button onClick={handleNextInvoice} variant="outline" size="icon" disabled={reviewIndex <= 0}>
-                                                <span className="sr-only">التالي</span> <ArrowLeft/>
-                                            </Button>
-                                        </>
+                                    <Button onClick={handleNewInvoiceClick} variant="secondary">
+                                        <FilePlus className="me-2"/> فاتورة جديدة
+                                    </Button>
                                 ) : (
                                     <Button onClick={handlePreviousInvoice} variant="outline" disabled={sortedSales.length === 0}>
                                         <ArrowRight className="me-2"/> مراجعة
@@ -816,18 +828,18 @@ export default function SalesPage() {
                                                     </div>
                                                     <div className="text-xs text-muted-foreground">({(item.scientific_names || []).join(', ')})</div>
                                                 </div>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeFromCart(item.id)} disabled={mode !== 'new'}><X className="h-4 w-4 text-destructive" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeFromCart(item.id)}><X className="h-4 w-4 text-destructive" /></Button>
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-3 items-end">
                                                 <div className="space-y-1">
                                                     <Label htmlFor={`quantity-sm-${item.id}`} className="text-xs">الكمية</Label>
-                                                    <Input id={`quantity-sm-${item.id}`} type="number" value={item.quantity || 1} min={1} onChange={(e) => updateQuantity(item.id, e.target.value)} className="h-9 text-center font-mono" disabled={mode !== 'new'} />
+                                                    <Input id={`quantity-sm-${item.id}`} type="number" value={item.quantity || 1} min={1} onChange={(e) => updateQuantity(item.id, e.target.value)} className="h-9 text-center font-mono" />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <Label htmlFor={`price-sm-${item.id}`} className="text-xs">السعر الإجمالي</Label>
                                                     <div className="relative">
-                                                        <Input id={`price-sm-${item.id}`} type="number" value={((item.price || 0) * (item.quantity || 0))} onChange={(e) => updateTotalPrice(item.id, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={mode !== 'new' || !priceModificationAllowed} />
+                                                        <Input id={`price-sm-${item.id}`} type="number" value={((item.price || 0) * (item.quantity || 0))} onChange={(e) => updateTotalPrice(item.id, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={!priceModificationAllowed} />
                                                         {isBelowCost && !item.is_return && (
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
@@ -870,7 +882,7 @@ export default function SalesPage() {
                                     return (
                                         <TableRow key={item.id} className={cn(item.is_return && "bg-red-50 dark:bg-red-900/20")}>
                                             <TableCell className="text-center">
-                                                <Checkbox checked={!!item.is_return} onCheckedChange={() => toggleReturn(item.id)} aria-label="Mark as return" disabled={mode !== 'new'}/>
+                                                <Checkbox checked={!!item.is_return} onCheckedChange={() => toggleReturn(item.id)} aria-label="Mark as return"/>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-1">
@@ -921,7 +933,6 @@ export default function SalesPage() {
                                                 onChange={(e) => updateQuantity(item.id, e.target.value)}
                                                 min={1}
                                                 className="w-20 h-9 text-center font-mono"
-                                                disabled={mode !== 'new'}
                                              />
                                             </TableCell>
                                             <TableCell>
@@ -933,7 +944,7 @@ export default function SalesPage() {
                                                       className={cn("w-24 h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )}
                                                       step="1" 
                                                       min="0" 
-                                                      disabled={mode !== 'new' || !priceModificationAllowed} />
+                                                      disabled={!priceModificationAllowed} />
                                                     {isBelowCost && !item.is_return && (
                                                       <Tooltip>
                                                         <TooltipTrigger asChild>
@@ -947,7 +958,7 @@ export default function SalesPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-left">
-                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.id)} disabled={mode !== 'new'}><X className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.id)}><X className="h-4 w-4" /></Button>
                                             </TableCell>
                                         </TableRow>
                                     );
@@ -958,8 +969,8 @@ export default function SalesPage() {
                       ) : (
                           <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
                               <PackageSearch className="h-16 w-16 mb-4" />
-                              <p className="text-lg">الفاتورة فارغة</p>
-                              <p className="text-sm">أضف منتجات لبدء عملية البيع.</p>
+                              <p className="text-lg">{mode === 'new' ? 'الفاتورة فارغة' : 'لا توجد أصناف في هذه الفاتورة'}</p>
+                              {mode === 'new' && <p className="text-sm">أضف منتجات لبدء عملية البيع.</p>}
                           </div>
                       )}
                       </ScrollArea>
@@ -976,7 +987,7 @@ export default function SalesPage() {
                        <div className="space-y-2">
                           <Dialog open={isPatientModalOpen} onOpenChange={setIsPatientModalOpen}>
                               <DialogTrigger asChild>
-                                  <Button variant="outline" className="w-full justify-start text-left font-normal" disabled={mode !== 'new'}>
+                                  <Button variant="outline" className="w-full justify-start text-left font-normal">
                                       <UserIcon className="me-2 text-muted-foreground" />
                                       {selectedPatient ? selectedPatient.name : "تحديد صديق الصيدلية (الزبون)"}
                                   </Button>
@@ -1030,11 +1041,10 @@ export default function SalesPage() {
                         onChange={handleDiscountChange}
                         className="h-9 w-full bg-background ltr:text-left rtl:text-right font-mono" 
                         placeholder="0" 
-                        disabled={mode !== 'new'}
                         inputMode="decimal"
                         pattern="[0-9]*\.?[0-9]*"
                         />
-                        <RadioGroup defaultValue="fixed" value={discountType} onValueChange={(value: any) => setActiveInvoice(prev => ({...prev, discountType: value}))} className="flex" disabled={mode !== 'new'}>
+                        <RadioGroup defaultValue="fixed" value={discountType} onValueChange={(value: any) => setActiveInvoice(prev => ({...prev, discountType: value}))} className="flex">
                             <Button type="button" size="sm" variant={discountType === 'fixed' ? 'secondary' : 'ghost'} onClick={() => setActiveInvoice(prev => ({...prev, discountType: 'fixed'}))}>IQD</Button>
                             <Button type="button" size="icon" variant={discountType === 'percentage' ? 'secondary' : 'ghost'} onClick={() => setActiveInvoice(prev => ({...prev, discountType: 'percentage'}))} className="h-9 w-9"><Percent className="h-4 w-4" /></Button>
                         </RadioGroup>
@@ -1046,9 +1056,8 @@ export default function SalesPage() {
                       </div>
                   </CardContent>
                   <CardFooter className="flex flex-col items-stretch gap-2">
-                      {mode === 'new' ? (
-                        <>
-                          <div className="flex gap-2">
+                      <div className="flex gap-2">
+                          {mode === 'new' && (
                               <Dialog open={isDosingAssistantOpen} onOpenChange={setIsDosingAssistantOpen}>
                                   <DialogTrigger asChild>
                                       <Button size="lg" variant="outline" className="w-1/4 relative" disabled={!isOnline || cart.length === 0} aria-label="مساعد الجرعات">
@@ -1062,111 +1071,111 @@ export default function SalesPage() {
                                   </DialogTrigger>
                                   <DosingAssistant cartItems={cart} />
                               </Dialog>
-                              <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-                                  <DialogTrigger asChild>
-                                      <Button size="lg" className="flex-1" onClick={handleCheckout} disabled={cart.length === 0} variant="success">
-                                          إتمام العملية
-                                      </Button>
-                                  </DialogTrigger>
-                                  <DialogContent>
-                                      <DialogHeader>
-                                          <DialogTitle>تأكيد الفاتورة</DialogTitle>
-                                      </DialogHeader>
-                                      <div className="space-y-4">
-                                          <div className="max-h-64 overflow-y-auto p-1">
-                                              <Table>
-                                                  <TableHeader>
-                                                      <TableRow>
-                                                          <TableHead>المنتج</TableHead>
-                                                          <TableHead className="text-center">الكمية</TableHead>
-                                                          <TableHead className="text-left">السعر</TableHead>
+                          )}
+                          <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
+                              <DialogTrigger asChild>
+                                  <Button size="lg" className="flex-1" onClick={handleCheckout} disabled={cart.length === 0} variant={mode === 'review' ? 'default' : 'success'}>
+                                      {mode === 'review' ? 'تحديث الفاتورة' : 'إتمام العملية'}
+                                  </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                  <DialogHeader>
+                                      <DialogTitle>{mode === 'review' ? 'تأكيد التعديل' : 'تأكيد الفاتورة'}</DialogTitle>
+                                  </DialogHeader>
+                                  <div className="space-y-4">
+                                      <div className="max-h-64 overflow-y-auto p-1">
+                                          <Table>
+                                              <TableHeader><TableRow><TableHead>المنتج</TableHead><TableHead className="text-center">الكمية</TableHead><TableHead className="text-left">السعر</TableHead></TableRow></TableHeader>
+                                              <TableBody>
+                                                  {cart.map(item => (
+                                                      <TableRow key={item.id} className={cn(item.is_return && "text-destructive")}>
+                                                          <TableCell>{item.name} {item.is_return && "(مرتجع)"}</TableCell>
+                                                          <TableCell className="text-center font-mono">{item.quantity}</TableCell>
+                                                          <TableCell className="text-left font-mono">{((item.is_return ? -1 : 1) * (item.price || 0) * (item.quantity || 0)).toLocaleString()}</TableCell>
                                                       </TableRow>
-                                                  </TableHeader>
-                                                  <TableBody>
-                                                      {cart.map(item => (
-                                                          <TableRow key={item.id} className={cn(item.is_return && "text-destructive")}>
-                                                              <TableCell>{item.name} {item.is_return && "(مرتجع)"}</TableCell>
-                                                              <TableCell className="text-center font-mono">{item.quantity}</TableCell>
-                                                              <TableCell className="text-left font-mono">{((item.is_return ? -1 : 1) * (item.price || 0) * (item.quantity || 0)).toLocaleString()}</TableCell>
-                                                          </TableRow>
-                                                      ))}
-                                                  </TableBody>
-                                              </Table>
-                                          </div>
-                                          <Separator/>
-                                          <div className="space-y-2 text-sm font-mono">
-                                              {selectedPatient && <div className="flex justify-between"><span>المريض:</span><span>{selectedPatient.name}</span></div>}
-                                              <div className="flex justify-between"><span>المجموع:</span><span>{subtotal.toLocaleString()}</span></div>
-                                              <div className="flex justify-between"><span>الخصم:</span><span>-{discountAmount.toLocaleString()}</span></div>
-                                               <div className={cn("flex justify-between", finalProfit >= 0 ? "text-green-600" : "text-destructive")}>
-                                                   <span>الربح الصافي:</span>
-                                                   <span>{finalProfit.toLocaleString()}</span>
-                                               </div>
-                                              <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>{finalTotal.toLocaleString()}</span></div>
-                                          </div>
-                                          <Separator />
-                                           <RadioGroup defaultValue="cash" value={paymentMethod} onValueChange={(value: any) => setActiveInvoice(prev => ({ ...prev, paymentMethod: value }))} className="flex gap-4 pt-2">
-                                                <Label htmlFor="payment-cash" className="flex items-center gap-2 cursor-pointer rounded-md border p-3 flex-1 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
-                                                    <RadioGroupItem value="cash" id="payment-cash" />
-                                                    الدفع نقداً
-                                                </Label>
-                                                <Label htmlFor="payment-card" className="flex items-center gap-2 cursor-pointer rounded-md border p-3 flex-1 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
-                                                    <RadioGroupItem value="card" id="payment-card" />
-                                                    بطاقة إلكترونية
-                                                </Label>
-                                            </RadioGroup>
+                                                  ))}
+                                              </TableBody>
+                                          </Table>
                                       </div>
-                                      <DialogFooter>
-                                          <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
-                                          <Button onClick={handleFinalizeSale} variant="success">تأكيد البيع</Button>
-                                      </DialogFooter>
-                                  </DialogContent>
-                              </Dialog>
-                          </div>
-                           <AlertDialog>
+                                      <Separator/>
+                                      <div className="space-y-2 text-sm font-mono">
+                                          {selectedPatient && <div className="flex justify-between"><span>المريض:</span><span>{selectedPatient.name}</span></div>}
+                                          <div className="flex justify-between"><span>المجموع:</span><span>{subtotal.toLocaleString()}</span></div>
+                                          <div className="flex justify-between"><span>الخصم:</span><span>-{discountAmount.toLocaleString()}</span></div>
+                                           <div className={cn("flex justify-between", finalProfit >= 0 ? "text-green-600" : "text-destructive")}>
+                                               <span>الربح الصافي:</span>
+                                               <span>{finalProfit.toLocaleString()}</span>
+                                           </div>
+                                          <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>{finalTotal.toLocaleString()}</span></div>
+                                      </div>
+                                      <Separator />
+                                       <RadioGroup defaultValue="cash" value={paymentMethod} onValueChange={(value: any) => setActiveInvoice(prev => ({ ...prev, paymentMethod: value }))} className="flex gap-4 pt-2">
+                                            <Label htmlFor="payment-cash" className="flex items-center gap-2 cursor-pointer rounded-md border p-3 flex-1 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
+                                                <RadioGroupItem value="cash" id="payment-cash" />
+                                                الدفع نقداً
+                                            </Label>
+                                            <Label htmlFor="payment-card" className="flex items-center gap-2 cursor-pointer rounded-md border p-3 flex-1 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
+                                                <RadioGroupItem value="card" id="payment-card" />
+                                                بطاقة إلكترونية
+                                            </Label>
+                                        </RadioGroup>
+                                  </div>
+                                  <DialogFooter>
+                                      <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
+                                      <Button onClick={handleFinalizeSale} variant={mode === 'review' ? 'default' : 'success'}>
+                                        {mode === 'review' ? 'تأكيد التعديل' : 'تأكيد البيع'}
+                                      </Button>
+                                  </DialogFooter>
+                              </DialogContent>
+                          </Dialog>
+                      </div>
+                       <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                              <Button variant="outline" className="w-full" disabled={cart.length === 0}>
+                                  <X className="me-2"/>
+                                  {mode === 'new' ? 'إلغاء الفاتورة' : 'إلغاء التعديل'}
+                              </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                              <AlertDialogHeader>
+                                  <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                      {mode === 'new' ? 'سيتم حذف جميع الأصناف من السلة الحالية.' : 'سيتم تجاهل جميع التغييرات التي قمت بها.'}
+                                  </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                  <AlertDialogCancel>تراجع</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleNewInvoiceClick()} className={buttonVariants({ variant: "destructive" })}>نعم</AlertDialogAction>
+                              </AlertDialogFooter>
+                          </AlertDialogContent>
+                      </AlertDialog>
+                      {mode === 'review' && canManagePreviousSales && (
+                         <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                  <Button variant="outline" className="w-full" disabled={cart.length === 0}>
-                                      <X className="me-2"/>
-                                      إلغاء الفاتورة
+                                  <Button variant="destructive" className="w-full">
+                                      <Trash2 className="me-2"/>
+                                      حذف الفاتورة نهائياً
                                   </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                   <AlertDialogHeader>
-                                      <AlertDialogTitle>هل أنت متأكد من إلغاء الفاتورة؟</AlertDialogTitle>
+                                      <AlertDialogTitle>هل أنت متأكد من حذف الفاتورة؟</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                          سيتم حذف جميع الأصناف من السلة الحالية.
+                                          لا يمكن التراجع عن هذا الإجراء. سيتم إعادة كميات الأصناف المباعة إلى المخزون.
                                       </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
                                       <AlertDialogCancel>تراجع</AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => {
-                                          resetActiveInvoice();
-                                          setSearchTerm('');
-                                          setSaleToPrint(null);
-                                          toast({ title: "تم إلغاء الفاتورة" });
-                                      }} className={buttonVariants({ variant: "destructive" })}>نعم، قم بالإلغاء</AlertDialogAction>
+                                      <AlertDialogAction onClick={handleDeleteCurrentSale} className={buttonVariants({ variant: "destructive" })}>نعم، قم بالحذف</AlertDialogAction>
                                   </AlertDialogFooter>
                               </AlertDialogContent>
                           </AlertDialog>
-                        </>
-                      ) : (
-                          <Button onClick={() => {
-                              setSaleToPrint(sortedSales[reviewIndex]);
-                              setIsPrintReviewOpen(true);
-                          }} className="w-full">
-                              <Printer className="me-2 h-4 w-4" />
-                              طباعة الفاتورة
-                          </Button>
                       )}
                   </CardFooter>
               </Card>
           </div>
         <Dialog open={isReceiptOpen} onOpenChange={(open) => {
-            if (!open) {
-                if (mode === 'new') {
-                    handleNewInvoiceClick();
-                }
-            }
+            if (!open) handleNewInvoiceClick();
             setIsReceiptOpen(open);
         }}>
             <DialogContent>
@@ -1192,27 +1201,6 @@ export default function SalesPage() {
                             طباعة الفاتورة
                         </Button>
                     </div>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-
-        <Dialog open={isPrintReviewOpen} onOpenChange={setIsPrintReviewOpen}>
-            <DialogContent className="sm:max-w-2xl">
-                <DialogHeader>
-                    <DialogTitle>طباعة الفاتورة #{saleToPrint?.id}</DialogTitle>
-                    <DialogDescription>معاينة سريعة قبل الطباعة.</DialogDescription>
-                </DialogHeader>
-                <div className="max-h-[60vh] overflow-y-auto border rounded-md bg-gray-50">
-                    <InvoiceTemplate sale={saleToPrint} settings={settings || null} ref={null} />
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button variant="outline">إغلاق</Button>
-                    </DialogClose>
-                    <Button onClick={handlePrint}>
-                        <Printer className="me-2 h-4 w-4" />
-                        طباعة
-                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

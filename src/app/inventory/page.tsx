@@ -50,7 +50,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
-import type { Medication } from "@/lib/types"
+import type { Medication, AppSettings } from "@/lib/types"
 import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package, Plus, X } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -73,46 +73,73 @@ const fileToDataUri = (file: File): Promise<string> => {
 };
 
 export default function InventoryPage() {
-  const { scopedData, updateMedication, deleteMedication, bulkAddOrUpdateInventory, addMedication } = useAuth();
-  const [allInventory] = scopedData.inventory;
-  const [filteredInventory, setFilteredInventory] = React.useState<Medication[]>([]);
+  const { 
+    scopedData, 
+    updateMedication, 
+    deleteMedication, 
+    bulkAddOrUpdateInventory, 
+    addMedication,
+    getPaginatedInventory 
+  } = useAuth();
+  
+  const [paginatedInventory, setPaginatedInventory] = React.useState<Medication[]>([]);
+  const [totalPages, setTotalPages] = React.useState(1);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [perPage, setPerPage] = React.useState(10);
+  const [loading, setLoading] = React.useState(true);
+
   const [searchTerm, setSearchTerm] = React.useState("");
   
   const [editingMed, setEditingMed] = React.useState<Medication | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   
-  // New state for add medication modal
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
   const [newMed, setNewMed] = React.useState<Partial<Medication>>({
-    id: '',
-    name: '',
-    scientific_names: [],
-    barcodes: [],
-    stock: 0,
-    reorder_point: 10,
-    price: 0,
-    purchase_price: 0,
-    expiration_date: '',
-    dosage: '',
-    dosage_form: '',
-    image_url: ''
+    id: '', name: '', scientific_names: [], barcodes: [], stock: 0,
+    reorder_point: 10, price: 0, purchase_price: 0, expiration_date: '',
+    dosage: '', dosage_form: '', image_url: ''
   });
   
-  // Image states for add form
   const [addImageFile, setAddImageFile] = React.useState<File | null>(null);
   const [addImagePreview, setAddImagePreview] = React.useState<string>('');
   
-  // Image states for edit form
   const [editImageFile, setEditImageFile] = React.useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = React.useState<string>('');
   
-  const [isClient, setIsClient] = React.useState(false)
   const { toast } = useToast();
   const [printingMed, setPrintingMed] = React.useState<Medication | null>(null);
   const printComponentRef = React.useRef<HTMLDivElement>(null);
   const medToPrintRef = React.useRef<Medication | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = React.useState(false);
+
+  // Fetch data
+  const fetchData = React.useCallback(async (page: number, limit: number, search: string) => {
+    setLoading(true);
+    try {
+        const data = await getPaginatedInventory(page, limit, search);
+        setPaginatedInventory(data.data);
+        setTotalPages(data.last_page);
+        setCurrentPage(data.current_page);
+    } catch (error) {
+        console.error("Failed to fetch inventory", error);
+        toast({ variant: "destructive", title: "فشل تحميل المخزون" });
+    } finally {
+        setLoading(false);
+    }
+  }, [getPaginatedInventory, toast]);
+  
+  React.useEffect(() => {
+    fetchData(currentPage, perPage, searchTerm);
+  }, [currentPage, perPage, fetchData]);
+
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      if (currentPage !== 1) setCurrentPage(1);
+      else fetchData(1, perPage, searchTerm);
+    }, 500); // Debounce search
+    return () => clearTimeout(handler);
+  }, [searchTerm, perPage, fetchData]);
   
   const handlePrint = () => {
     if (medToPrintRef.current) {
@@ -138,31 +165,6 @@ export default function InventoryPage() {
         setPrintingMed(null);
     }
   }, [printingMed]);
-
-  React.useEffect(() => {
-    setIsClient(true)
-  }, [])
-  
-  const sortedInventory = React.useMemo(() => {
-    return [...(allInventory || [])].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-  }, [allInventory]);
-  
-  React.useEffect(() => {
-    if (isClient) {
-      const lowercasedFilter = searchTerm.toLowerCase().trim();
-      if (!lowercasedFilter) {
-          setFilteredInventory(sortedInventory);
-          return;
-      }
-      const filtered = sortedInventory.filter((item) =>
-          (item.name || '').toLowerCase().startsWith(lowercasedFilter) ||
-          (item.barcodes && item.barcodes.some(barcode => barcode.toLowerCase().includes(lowercasedFilter))) ||
-          (item.id && item.id.toString().toLowerCase().includes(lowercasedFilter)) ||
-          (item.scientific_names && item.scientific_names.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
-      );
-      setFilteredInventory(filtered);
-    }
-  }, [searchTerm, sortedInventory, isClient]);
   
   const getStockStatus = (stock: number, reorder_point: number) => {
     if (stock <= 0) return <Badge variant="destructive">نفد من المخزون</Badge>
@@ -171,7 +173,8 @@ export default function InventoryPage() {
   }
   
   const handleDelete = async (med: Medication) => {
-      await deleteMedication(med.id);
+      const success = await deleteMedication(med.id);
+      if(success) fetchData(currentPage, perPage, searchTerm);
   }
   
   const openEditModal = (med: Medication) => {
@@ -221,6 +224,7 @@ export default function InventoryPage() {
         setEditingMed(null);
         setEditImageFile(null);
         setEditImagePreview('');
+        fetchData(currentPage, perPage, searchTerm);
         toast({
           title: "تم التحديث بنجاح",
           description: `تم تحديث بيانات الدواء ${updatedMedData.name} بنجاح.`,
@@ -228,21 +232,11 @@ export default function InventoryPage() {
       }
   }
   
-  // Function to handle adding a new medication
   const openAddModal = () => {
     setNewMed({
-      id: '',
-      name: '',
-      barcodes: [],
-      scientific_names: [],
-      stock: 0,
-      reorder_point: 10,
-      price: 0,
-      purchase_price: 0,
-      expiration_date: '',
-      dosage: '',
-      dosage_form: '',
-      image_url: ''
+      id: '', name: '', barcodes: [], scientific_names: [], stock: 0,
+      reorder_point: 10, price: 0, purchase_price: 0, expiration_date: '',
+      dosage: '', dosage_form: '', image_url: ''
     });
     setAddImageFile(null);
     setAddImagePreview('');
@@ -282,12 +276,12 @@ export default function InventoryPage() {
         image_url: image_url,
     };
     
-    // Generate a unique ID if not provided
     const success = await addMedication(newMedData);
     if (success) {
       setIsAddModalOpen(false);
       setAddImageFile(null);
       setAddImagePreview('');
+      fetchData(1, perPage, ""); // Refresh to first page
       toast({
         title: "تمت الإضافة بنجاح",
         description: `تم إضافة الدواء ${newMedData.name} بنجاح.`,
@@ -301,9 +295,8 @@ export default function InventoryPage() {
   
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
+    if (!file) return;
+
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
@@ -313,33 +306,34 @@ export default function InventoryPage() {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
         if (jsonData.length < 2) {
           toast({ variant: 'destructive', title: 'ملف فارغ', description: 'الملف لا يحتوي على بيانات.' });
           setIsImporting(false);
           return;
         }
+
         const headerRow: string[] = jsonData[0].map(h => String(h).toLowerCase().trim());
         const rows = jsonData.slice(1);
         const barcodeAliases = ['barcode', 'product_number', 'الباركود'];
         const nameAliases = ['name', 'الاسم'];
         const stockAliases = ['stock', 'الكمية', 'quantity'];
+        
         const barcodeIndex = headerRow.findIndex(h => barcodeAliases.some(alias => h.includes(alias)));
         const nameIndex = headerRow.findIndex(h => nameAliases.some(alias => h.includes(alias)));
         const stockIndex = headerRow.findIndex(h => stockAliases.some(alias => h.includes(alias)));
         
         if (barcodeIndex === -1 || nameIndex === -1) {
-          toast({
-            variant: 'destructive',
-            title: 'أعمدة ناقصة',
-            description: `الملف يجب أن يحتوي على عمود للباركود (مثل product_number أو barcode) وعمود للاسم (name).`,
-          });
+          toast({ variant: 'destructive', title: 'أعمدة ناقصة', description: `الملف يجب أن يحتوي على عمود للباركود (مثل product_number أو barcode) وعمود للاسم (name).` });
           setIsImporting(false);
           return;
         }
+
         const medicationsToProcess: Partial<Medication>[] = [];
         const futureDate = new Date();
         futureDate.setFullYear(futureDate.getFullYear() + 2);
         const formattedExpDate = futureDate.toISOString().split('T')[0];
+
         for (const row of rows) {
             const barcode = String(row[barcodeIndex] || '').trim();
             const medName = String(row[nameIndex] || 'Unnamed Product').trim();
@@ -357,18 +351,12 @@ export default function InventoryPage() {
         }
         
         await bulkAddOrUpdateInventory(medicationsToProcess);
-        toast({
-          title: "تم الاستيراد بنجاح",
-          description: `تم استيراد ${medicationsToProcess.length} دواء بنجاح.`,
-        });
+        fetchData(1, perPage, ""); // Refresh data
+        toast({ title: "تم الاستيراد بنجاح", description: `تم استيراد ${medicationsToProcess.length} دواء بنجاح.` });
 
       } catch (error) {
         console.error('Error importing from Excel:', error);
-        toast({
-          variant: 'destructive',
-          title: 'خطأ في الاستيراد',
-          description: 'حدث خطأ أثناء معالجة الملف. تأكد من أن الملف بصيغة Excel الصحيحة.',
-        });
+        toast({ variant: 'destructive', title: 'خطأ في الاستيراد', description: 'حدث خطأ أثناء معالجة الملف. تأكد من أن الملف بصيغة Excel الصحيحة.' });
       } finally {
         setIsImporting(false);
         if (fileInputRef.current) {
@@ -379,7 +367,6 @@ export default function InventoryPage() {
     reader.readAsArrayBuffer(file);
   };
 
-  // Image handlers for add form
   const handleAddImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -393,7 +380,6 @@ export default function InventoryPage() {
     setAddImagePreview('');
   };
   
-  // Image handlers for edit form
   const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -409,54 +395,6 @@ export default function InventoryPage() {
         setEditingMed({ ...editingMed, image_url: '' });
     }
   };
-
-  if (!isClient) {
-    return (
-        <Card>
-            <CardHeader>
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-5 w-72" />
-                <div className="pt-4 flex gap-2">
-                    <Skeleton className="h-10 max-w-sm flex-1" />
-                    <Skeleton className="h-10 w-28" />
-                </div>
-            </CardHeader>
-            <CardContent>
-                <div className="overflow-x-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>المعرف</TableHead>
-                                <TableHead>الباركود</TableHead>
-                                <TableHead>الاسم</TableHead>
-                                <TableHead className="text-center">المخزون</TableHead>
-                                <TableHead className="text-center">نقطة إعادة الطلب</TableHead>
-                                <TableHead>تاريخ الانتهاء</TableHead>
-                                <TableHead className="text-center">سعر البيع</TableHead>
-                                <TableHead>الحالة</TableHead>
-                                <TableHead><span className="sr-only">الإجراءات</span></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {Array.from({ length: 8 }).map((_, i) => (
-                                <TableRow key={i}>
-                                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-40" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
-                                    <TableCell><Skeleton className="h-6 w-28" /></TableCell>
-                                    <TableCell><Skeleton className="h-8 w-8" /></TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-            </CardContent>
-        </Card>
-    );
-  }
   
   return (
     <>
@@ -478,28 +416,44 @@ export default function InventoryPage() {
                 <AdCarousel page="inventory"/>
             </div>
           </div>
-          <div className="pt-4 flex gap-2">
+          <div className="pt-4 flex flex-wrap gap-2">
             <Input 
               placeholder="ابحث بالاسم، الاسم العلمي أو الباركود..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-sm"
             />
-            <Button variant="success" onClick={openAddModal}>
-              <Plus className="me-2 h-4 w-4" />
-              إضافة دواء
-            </Button>
-            <Button variant="outline" onClick={handleImportClick} disabled={isImporting}>
-              <Upload className="me-2 h-4 w-4" />
-              {isImporting ? "جاري الاستيراد..." : "استيراد Excel"}
-            </Button>
-            <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-                accept=".xlsx, .xls"
-            />
+            <div className="flex gap-2">
+              <Button variant="success" onClick={openAddModal}>
+                <Plus className="me-2 h-4 w-4" />
+                إضافة دواء
+              </Button>
+              <Button variant="outline" onClick={handleImportClick} disabled={isImporting}>
+                <Upload className="me-2 h-4 w-4" />
+                {isImporting ? "جاري الاستيراد..." : "استيراد Excel"}
+              </Button>
+              <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept=".xlsx, .xls"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="per-page" className="shrink-0">لكل صفحة:</Label>
+              <Select value={String(perPage)} onValueChange={(val) => setPerPage(Number(val))}>
+                <SelectTrigger id="per-page" className="w-20 h-9">
+                  <SelectValue placeholder={perPage} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -519,7 +473,19 @@ export default function InventoryPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredInventory.length > 0 ? filteredInventory.map((item) => (
+              {loading ? Array.from({ length: perPage }).map((_, i) => (
+                  <TableRow key={`skel-${i}`}>
+                      <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                      <TableCell><div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-sm" /><div className="space-y-2"><Skeleton className="h-4 w-40" /><Skeleton className="h-3 w-24" /></div></div></TableCell>
+                      <TableCell><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-28" /></TableCell>
+                      <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                  </TableRow>
+              )) : paginatedInventory.length > 0 ? paginatedInventory.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-mono text-xs">{item.id}</TableCell>
                   <TableCell className="font-mono text-xs">{item.barcodes?.join(', ')}</TableCell>
@@ -590,13 +556,36 @@ export default function InventoryPage() {
                 </TableRow>
               )) : (
                 <TableRow>
-                    <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">
                         لا يوجد مخزون لعرضه.
                     </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
+          </div>
+          <div className="flex items-center justify-between pt-4">
+              <span className="text-sm text-muted-foreground">
+                  الصفحة {currentPage} من {totalPages}
+              </span>
+              <div className="flex gap-2">
+                  <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1 || loading}
+                  >
+                      السابق
+                  </Button>
+                  <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages || loading}
+                  >
+                      التالي
+                  </Button>
+              </div>
           </div>
         </CardContent>
       </Card>

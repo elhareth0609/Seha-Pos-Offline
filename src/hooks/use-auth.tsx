@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem, PaginatedResponse } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 
@@ -33,6 +33,8 @@ type ActiveInvoice = {
     discountType: 'fixed' | 'percentage';
     patientId: string | null;
     paymentMethod: 'cash' | 'card';
+    saleIdToUpdate?: string | null;
+    reviewIndex?: number | null;
 };
 
 interface AuthContextType {
@@ -68,9 +70,12 @@ interface AuthContextType {
     updateMedication: (medId: string, data: Partial<Medication>) => Promise<boolean>;
     deleteMedication: (medId: string) => Promise<boolean>;
     bulkAddOrUpdateInventory: (items: Partial<Medication>[]) => Promise<boolean>;
+    getPaginatedInventory: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Medication>>;
 
     // Sales
     addSale: (saleData: any) => Promise<Sale | null>;
+    updateSale: (saleData: any) => Promise<Sale | null>;
+    deleteSale: (saleId: string) => Promise<boolean>;
     
     // Suppliers
     addSupplier: (data: Partial<Supplier>) => Promise<Supplier | null>;
@@ -130,9 +135,10 @@ const initialActiveInvoice: ActiveInvoice = {
     discountType: 'fixed',
     patientId: null,
     paymentMethod: 'cash',
+    saleIdToUpdate: null,
+    reviewIndex: null,
 };
 
-// Helper to handle API requests
 async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?: object) {
     const token = localStorage.getItem('authToken');
     const headers: HeadersInit = {
@@ -150,9 +156,7 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
             body: body ? JSON.stringify(body) : undefined,
         });
 
-        if (response.status === 204) { // No Content
-            return null;
-        }
+        if (response.status === 204) return null;
 
         const responseData = await response.json();
         
@@ -176,7 +180,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isSetup, setIsSetup] = React.useState(true);
     const router = useRouter();
 
-    // Pharmacy-scoped data states
     const [inventory, setInventory] = React.useState<Medication[]>([]);
     const [sales, setSales] = React.useState<Sale[]>([]);
     const [suppliers, setSuppliers] = React.useState<Supplier[]>([]);
@@ -189,11 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [settings, setSettings] = React.useState<AppSettings>(fallbackAppSettings);
     
     const [activeTimeLogId, setActiveTimeLogId] = React.useState<string | null>(null);
-
-    // Global data states
     const [advertisements, setAdvertisements] = React.useState<Advertisement[]>([]);
-    
-    // Active invoice state
     const [activeInvoice, setActiveInvoice] = React.useState<ActiveInvoice>(initialActiveInvoice);
 
     const resetActiveInvoice = React.useCallback(() => {
@@ -205,14 +204,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUsers(data.all_users_in_pharmacy || []);
         setAdvertisements(data.advertisements || []);
         
-        // Check if there's an active time log (without clockOut time)
-        
         const pd = data.pharmacy_data;
         if(pd) {
             const activeLog = pd.timeLogs?.find(log => log.user_id === data.user.id && !log.clock_out);
-            if (activeLog) {
-                setActiveTimeLogId(activeLog.id);
-            }
+            if (activeLog) setActiveTimeLogId(activeLog.id);
             setInventory(pd.inventory || []);
             setSales(pd.sales || []);
             setSuppliers(pd.suppliers || []);
@@ -232,20 +227,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
                 const setupStatus = await apiRequest('/setup/status');
                 setIsSetup(setupStatus.is_setup);
-
                 const token = localStorage.getItem('authToken');
                 if (token) {
                     const data: AuthResponse = await apiRequest('/user');
                     setAllData(data);
                 }
             } catch (error) {
-                console.error("Initial check failed:", error);
                 localStorage.removeItem('authToken');
             } finally {
                 setLoading(false);
             }
         };
-
         checkInitialState();
     }, []);
 
@@ -256,11 +248,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setAllData(data);
             setIsSetup(true);
             return true;
-        } catch (error: any) {
-            return false;
-        } finally {
-            setLoading(false);
-        }
+        } catch (error: any) { return false; } finally { setLoading(false); }
     };
     
     const login = async (email: string, pin: string) => {
@@ -268,48 +256,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const data: AuthResponse = await apiRequest('/login', 'POST', { email, pin });
             setAllData(data);
-            // Create a new time log when user logs in (if not SuperAdmin)
             if (data.user.role !== 'SuperAdmin' && data.user.role !== 'Admin') {
-                const newTimeLog: TimeLog = {
-                    id: `TL${Date.now()}`,
-                    user_id: data.user.id,
-                    pharmacy_id: data.user.pharmacy_id,
-                    clock_in: new Date().toISOString(),
-                };
-                
-                // Save the time log via API
-                const savedTimeLog = await apiRequest('/time-logs', 'POST', newTimeLog);
-                setTimeLogs(prev => [savedTimeLog, ...prev]);
-                setActiveTimeLogId(savedTimeLog.id);
+                const newTimeLog = await apiRequest('/time-logs', 'POST', {});
+                setActiveTimeLogId(newTimeLog.id);
             }
             return data.user;
-        } catch (error: any) {
-            return null;
-        } finally {
-            setLoading(false);
-        }
+        } catch (error: any) { return null; } finally { setLoading(false); }
     };
     
     const logout = async () => {
         try {
-            if (activeTimeLogId && currentUser?.role == 'Employee') {
-                await apiRequest(`/time-logs/${activeTimeLogId}`, 'PUT', {
-                    clockOut: new Date().toISOString()
-                });
-                
-                // Update local state
-                setTimeLogs(prev => prev.map(log => 
-                    log.id === activeTimeLogId 
-                        ? { ...log, clockOut: new Date().toISOString() }
-                        : log
-                ));
+            if (activeTimeLogId && (currentUser?.role === 'Employee' || currentUser?.role === 'Admin')) {
+                await apiRequest(`/time-logs/${activeTimeLogId}`, 'PUT');
                 setActiveTimeLogId(null);
             }
             await apiRequest('/logout', 'POST');
         } catch (error) {
             console.error("Logout failed:", error);
         } finally {
-            // End the active time log if exists
             localStorage.removeItem('authToken');
             setCurrentUser(null);
             setUsers([]);
@@ -322,9 +286,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const newUser = await apiRequest('/superadmin/pharmacies', 'POST', { name, email, pin });
             setUsers(prev => [...prev, newUser]);
             return true;
-        } catch (error: any) {
-            return false;
-        }
+        } catch (error: any) { return false; }
     };
 
     const registerUser = async (name: string, email: string, pin: string) => {
@@ -332,9 +294,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const newUser = await apiRequest('/admin/users', 'POST', { name, email, pin });
             setUsers(prev => [...prev, newUser]);
             return true;
-        } catch (error: any) {
-            return false;
-        }
+        } catch (error: any) { return false; }
     }
     
     const updateUser = async (userId: string, name: string, email: string, pin?: string) => {
@@ -343,9 +303,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
             if (currentUser?.id === userId) setCurrentUser(updatedUser);
             return true;
-        } catch (error: any) {
-            return false;
-        }
+        } catch (error: any) { return false; }
     };
     
     const deleteUser = async (userId: string, permanent: boolean = false) => {
@@ -358,9 +316,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             setUsers(prev => prev.filter(u => u.id !== userId));
             return true;
-        } catch (error: any) {
-            return false;
-        }
+        } catch (error: any) { return false; }
     };
     
     const toggleUserStatus = async (userId: string) => {
@@ -368,9 +324,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const { status } = await apiRequest(`/users/${userId}/status`, 'PUT');
             setUsers(prev => prev.map(u => u.id === userId ? { ...u, status } : u));
             return true;
-        } catch (error: any) {
-            return false;
-        }
+        } catch (error: any) { return false; }
     };
     
     const updateUserPermissions = async (userId: string, permissions: UserPermissions) => {
@@ -379,9 +333,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUsers(prev => prev.map(u => u.id === userId ? { ...u, permissions } : u));
             toast({ title: "تم تحديث الصلاحيات بنجاح" });
             return true;
-        } catch (error: any) {
-            return false;
-        }
+        } catch (error: any) { return false; }
     };
     
     const updateUserHourlyRate = async (userId: string, rate: number) => {
@@ -390,25 +342,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUsers(prev => prev.map(u => u.id === userId ? { ...u, hourly_rate: rate } : u));
             toast({ title: "تم تحديث سعر الساعة" });
             return true;
-        } catch (error: any) {
-            return false;
-        }
+        } catch (error: any) { return false; }
     };
     
     const getAllPharmacySettings = async (): Promise<Record<string, AppSettings>> => {
         try {
             return await apiRequest('/superadmin/pharmacies/settings');
-        } catch(e: any) {
-            return {};
-        }
+        } catch(e: any) { return {}; }
     };
 
     const getPharmacyData = async (pharmacyId: string) => {
          try {
             return await apiRequest(`/superadmin/pharmacies/${pharmacyId}`);
-        } catch(e: any) {
-            return { sales: [], inventory: [] };
-        }
+        } catch(e: any) { return { sales: [], inventory: [] }; }
     };
     
     const clearPharmacyData = async () => {
@@ -416,51 +362,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await apiRequest('/settings/clear-data', 'DELETE');
             toast({ title: "تم مسح البيانات بنجاح" });
             logout();
-        } catch (e: any) {
-            // Error already handled by apiRequest
-        }
+        } catch (e: any) {}
     };
-
 
     const addAdvertisement = async (title: string, image_url: string) => {
          try {
             const newAd = await apiRequest('/advertisements', 'POST', { title, image_url });
             setAdvertisements(prev => [...prev, newAd]);
-        } catch(e: any) {
-             // Error already handled by apiRequest
-        }
+        } catch(e: any) {}
     };
 
     const updateAdvertisement = async (adId: string, data: Partial<Omit<Advertisement, 'id' | 'created_at'>>) => {
         try {
             const updatedAd = await apiRequest(`/advertisements/${adId}`, 'PUT', data);
             setAdvertisements(prev => prev.map(ad => ad.id === adId ? updatedAd : ad));
-        } catch(e: any) {
-             // Error already handled by apiRequest
-        }
+        } catch(e: any) {}
     };
 
     const deleteAdvertisement = async (adId: string) => {
         try {
             await apiRequest(`/advertisements/${adId}`, 'DELETE');
             setAdvertisements(prev => prev.filter(ad => ad.id !== adId));
-        } catch(e: any) {
-            // Error already handled by apiRequest
-        }
+        } catch(e: any) {}
     };
 
-    // --- Scoped Data Functions ---
+    const getPaginatedInventory = React.useCallback(async (page: number, perPage: number, search: string) => {
+        try {
+            const params = new URLSearchParams({
+                page: String(page),
+                per_page: String(perPage),
+                search: search,
+            });
+            const data = await apiRequest(`/medications?${params.toString()}`);
+            return data;
+        } catch (e) {
+            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Medication>;
+        }
+    }, []);
+
     const addMedication = async (data: Partial<Medication>) => {
         try {
             const newMed = await apiRequest('/medications', 'POST', data);
-            setInventory(prev => [...prev, newMed]);
+            setInventory(prev => [newMed, ...prev]);
             return true;
         } catch (e) { return false; }
     }
     const updateMedication = async (medId: string, data: Partial<Medication>) => {
         try {
             const updatedMed = await apiRequest(`/medications/${medId}`, 'PUT', data);
-            setInventory(prev => prev.map(m => m.id === medId ? updatedMed : m));
+            // setInventory(prev => prev.map(m => m.id === medId ? updatedMed : m));
             toast({ title: "تم تحديث الدواء بنجاح" });
             return true;
         } catch (e) { return false; }
@@ -469,7 +419,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const deleteMedication = async (medId: string) => {
         try {
             const trashedItem = await apiRequest(`/medications/${medId}`, 'DELETE');
-            setInventory(prev => prev.filter(m => m.id !== medId));
+            // setInventory(prev => prev.filter(m => m.id !== medId));
             setTrash(prev => [...prev, trashedItem]);
             toast({ title: "تم نقل الدواء إلى سلة المحذوفات" });
             return true;
@@ -478,8 +428,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     const bulkAddOrUpdateInventory = async (items: Partial<Medication>[]) => {
         try {
-            const { updated_inventory, new_count, updated_count } = await apiRequest('/medications/bulk', 'POST', { items });
-            setInventory(updated_inventory);
+            const { new_count, updated_count } = await apiRequest('/medications/bulk', 'POST', { items });
             toast({ title: "اكتمل الاستيراد", description: `تمت إضافة ${new_count} أصناف جديدة وتحديث ${updated_count} أصناف.` });
             return true;
         } catch (e) { return false; }
@@ -487,23 +436,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const addSale = async (saleData: any) => {
         try {
-            const newSale = await apiRequest('/sales', 'POST', saleData);
+            const { sale: newSale, updated_inventory } = await apiRequest('/sales', 'POST', saleData);
             setSales(prev => [newSale, ...prev]);
-            // Update inventory state based on the sale
-            const updatedInventory = [...inventory];
-            newSale.items.forEach((item: SaleItem) => {
-                const medIndex = updatedInventory.findIndex(m => m.id === item.id);
-                // const medIndex = updatedInventory.findIndex(m => m.id === item.medication_id);
-                if (medIndex !== -1) {
-                    updatedInventory[medIndex].stock += (item.is_return ? item.quantity : -item.quantity);
-                }
-            });
-            setInventory(updatedInventory);
+            setInventory(updated_inventory);
             return newSale;
-        } catch (e) { 
-            return null; 
-        }
+        } catch (e) { return null; }
     }
+    
+    const updateSale = async (saleData: any) => {
+        try {
+            const { sale: updatedSale, updated_inventory } = await apiRequest(`/sales/${saleData.id}`, 'PUT', saleData);
+            setSales(prev => prev.map(s => s.id === updatedSale.id ? updatedSale : s));
+            setInventory(updated_inventory);
+            return updatedSale;
+        } catch (e) { return null; }
+    }
+
+    const deleteSale = async (saleId: string) => {
+        try {
+            const { updated_inventory } = await apiRequest(`/sales/${saleId}`, 'DELETE');
+            setInventory(updated_inventory);
+            return true;
+        } catch (e) { return false; }
+    }
+
 
     const addSupplier = async (data: Partial<Supplier>) => {
         try {
@@ -574,7 +530,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const { purchase_order, updated_inventory } = await apiRequest('/purchase-orders', 'POST', data);
             setPurchaseOrders(prev => [purchase_order, ...prev]);
-            setInventory(updated_inventory); // The backend returns the whole updated inventory
+            setInventory(updated_inventory);
             toast({ title: "تم تسجيل قائمة الشراء بنجاح" });
             return true;
         } catch (e) { return false; }
@@ -594,7 +550,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const { restored_item, item_type } = await apiRequest(`/trash/${itemId}`, 'PUT');
             setTrash(prev => prev.filter(t => t.id !== itemId));
-            // Add the restored item back to its respective list
             switch(item_type) {
                 case 'medication': setInventory(prev => [restored_item, ...prev]); break;
                 case 'patient': setPatients(prev => [restored_item, ...prev]); break;
@@ -630,9 +585,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
            const updatedSettings = await apiRequest('/settings', 'POST', newSettings);
            setSettings(updatedSettings);
            toast({ title: "تم حفظ الإعدادات" });
-       } catch (error: any) {
-           // Error handled by apiRequest
-       }
+       } catch (error: any) {}
     };
     
     const scopedData: ScopedDataContextType = {
@@ -657,8 +610,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData,
             getAllPharmacySettings, getPharmacyData, clearPharmacyData,
             advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement,
-            addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory,
-            addSale,
+            addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, getPaginatedInventory,
+            addSale, updateSale, deleteSale,
             addSupplier, updateSupplier, deleteSupplier,
             addPatient, updatePatient, deletePatient,
             addPayment,
@@ -679,5 +632,3 @@ export function useAuth() {
   }
   return context;
 }
-
-    

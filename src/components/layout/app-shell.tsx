@@ -34,18 +34,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { PackagePlus } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-
-
 import type { UserPermissions } from "@/lib/types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -73,9 +61,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navItems = React.useMemo(() => {
     if (!currentUser) return [];
     if (currentUser.role === 'Admin') return allNavItems;
-    // if (currentUser.role === 'Admin' || currentUser.role === 'SuperAdmin') return allNavItems;
 
-    const permissions = currentUser.permissions || {
+    const permissions: UserPermissions = currentUser.permissions || {
         manage_sales: true, 
         manage_inventory: true, 
         manage_purchases: false, 
@@ -88,6 +75,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         manage_settings: false, 
         manage_trash: false, 
         manage_salesPriceModification: false,
+        manage_users: false,
+        manage_previous_sales: false,
     };
 
     const permissionMap: { [key: string]: keyof UserPermissions } = {

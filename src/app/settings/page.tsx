@@ -104,6 +104,7 @@ const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: stri
     { key: 'manage_trash', label: 'الوصول إلى سلة المحذوفات' },
     { key: 'manage_settings', label: 'الوصول إلى الإعدادات' },
     { key: 'manage_salesPriceModification', label: 'تعديل أسعار البيع في الفاتورة' },
+    { key: 'manage_previous_sales', label: 'تعديل وحذف المبيعات السابقة' },
 ];
 
 function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
@@ -170,7 +171,7 @@ export default function SettingsPage() {
     const { toast } = useToast()
     const { currentUser, users, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate, scopedData, logout, clearPharmacyData } = useAuth();
     
-    const { settings: [settings, setSettings], sales: [sales], timeLogs: [timeLogs] } = scopedData;
+    const { settings: [settings, setSettings], timeLogs: [timeLogs] } = scopedData;
 
     const [isClient, setIsClient] = React.useState(false);
     
@@ -252,7 +253,7 @@ export default function SettingsPage() {
     
     const openPermissionsDialog = (user: User) => {
         setEditingUser(user);
-        const permissions = user.permissions || {
+        const permissions: UserPermissions = user.permissions || {
             manage_sales: true,
             manage_inventory: true,
             manage_purchases: false,
@@ -266,6 +267,7 @@ export default function SettingsPage() {
             manage_trash: false,
             manage_salesPriceModification: false,
             manage_users: false,
+            manage_previous_sales: false,
         };
         setCurrentUserPermissions(permissions);
         setIsPermissionsDialogOpen(true);
@@ -320,13 +322,13 @@ export default function SettingsPage() {
         if (dateFrom && dateTo) {
             const from = new Date(dateFrom);
             const to = new Date(dateTo);
-            to.setHours(23, 59, 59, 999);
+to.setHours(23, 59, 59, 999);
             userLogs = userLogs.filter(log => isWithinInterval(parseISO(log.clock_in), { start: from, end: to }));
         } else if (dateFrom) {
             userLogs = userLogs.filter(log => new Date(log.clock_in) >= new Date(dateFrom));
         } else if (dateTo) {
             const to = new Date(dateTo);
-            to.setHours(23, 59, 59, 999);
+to.setHours(23, 59, 59, 999);
             userLogs = userLogs.filter(log => new Date(log.clock_in) <= to);
         }
 
@@ -736,5 +738,3 @@ export default function SettingsPage() {
     </div>
   )
 }
-
-    

@@ -27,24 +27,25 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import type { Sale, AppSettings } from '@/lib/types';
+import type { Sale, SaleItem } from '@/lib/types';
 import { InvoiceTemplate } from '@/components/ui/invoice';
-import { Printer, DollarSign, TrendingUp, PieChart, ChevronDown } from 'lucide-react';
+import { Printer, DollarSign, TrendingUp, ChevronDown, Trash2, Pencil } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { format, isWithinInterval, parseISO } from "date-fns"
+import { isWithinInterval, parseISO } from "date-fns"
 import { useAuth } from '@/hooks/use-auth';
 import { Label } from '@/components/ui/label';
 import AdCarousel from '@/components/ui/ad-carousel';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { buttonVariants } from '@/components/ui/button';
 
 // Modern print function that works with React 18+
 const printElement = (element: HTMLElement, title: string = 'Print') => {
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
   
-  // Get all stylesheets from the current document
   const stylesheets = Array.from(document.styleSheets)
     .map(stylesheet => {
       try {
@@ -52,7 +53,6 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
           .map(rule => rule.cssText)
           .join('\n');
       } catch (e) {
-        // Handle cross-origin stylesheets
         if (stylesheet.href) {
           return `@import url("${stylesheet.href}");`;
         }
@@ -61,7 +61,6 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
     })
     .join('\n');
 
-  // Get inline styles
   const inlineStyles = Array.from(document.querySelectorAll('style'))
     .map(style => style.innerHTML)
     .join('\n');
@@ -90,7 +89,6 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
   
   printWindow.document.close();
   
-  // Wait for content to load then print
   printWindow.onload = () => {
     setTimeout(() => {
       printWindow.print();
@@ -100,7 +98,7 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
 };
 
 export default function ReportsPage() {
-    const { scopedData } = useAuth();
+    const { currentUser, scopedData, deleteSale, setActiveInvoice, setSales } = useAuth();
     const [sales] = scopedData.sales;
     const [settings] = scopedData.settings;
     const [searchTerm, setSearchTerm] = React.useState("");
@@ -108,6 +106,9 @@ export default function ReportsPage() {
     const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
     const [dateFrom, setDateFrom] = React.useState<string>("");
     const [dateTo, setDateTo] = React.useState<string>("");
+    const router = useRouter();
+
+    const canManagePreviousSales = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_previous_sales;
 
     React.useEffect(() => {
         setIsClient(true);
@@ -144,6 +145,30 @@ export default function ReportsPage() {
         setDateTo("");
     };
 
+    const handleDeleteSale = async (saleId: string) => {
+        const success = await deleteSale(saleId);
+        if (success) {
+            setSales(prev => prev.filter(s => s.id !== saleId));
+        }
+    }
+
+    const handleEditSale = (sale: Sale) => {
+        const saleToEdit = sales.find(s => s.id === sale.id);
+        if (saleToEdit) {
+            const saleIndex = sales.findIndex(s => s.id === sale.id);
+            setActiveInvoice({
+                cart: saleToEdit.items.map((i: SaleItem) => ({...i, id: i.medication_id})),
+                discountValue: (saleToEdit.discount || 0).toString(),
+                discountType: 'fixed', // Assuming fixed for simplicity, might need to store type in Sale object
+                patientId: saleToEdit.patient_id || null,
+                paymentMethod: 'cash', // Assuming cash, might need to store in Sale object
+                saleIdToUpdate: saleToEdit.id,
+                reviewIndex: saleIndex,
+            });
+            router.push('/sales');
+        }
+    };
+
     const filteredSales = (sales || []).filter(sale => {
         const term = searchTerm.toLowerCase().trim();
         const saleDate = parseISO(sale.date);
@@ -152,13 +177,13 @@ export default function ReportsPage() {
         if (dateFrom && dateTo) {
             const from = new Date(dateFrom);
             const to = new Date(dateTo);
-            to.setHours(23, 59, 59, 999);
+to.setHours(23, 59, 59, 999);
             dateMatch = isWithinInterval(saleDate, { start: from, end: to });
         } else if (dateFrom) {
             dateMatch = saleDate >= new Date(dateFrom);
         } else if (dateTo) {
             const to = new Date(dateTo);
-            to.setHours(23, 59, 59, 999);
+to.setHours(23, 59, 59, 999);
             dateMatch = saleDate <= to;
         }
 
@@ -181,7 +206,6 @@ export default function ReportsPage() {
         (typeof sale.discount === 'number' ? sale.discount : parseFloat(String(sale.discount || 0)));
         return acc + (isNaN(total) ? 0 : total);
     }, 0);
-    // const totalProfit = filteredSales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
 
     if (!isClient) {
         return (
@@ -313,10 +337,42 @@ export default function ReportsPage() {
                                         <TableCell className="text-left font-mono">{sale.total.toLocaleString()}</TableCell>
                                         <TableCell className="text-left font-mono text-green-600">{((sale.profit || 0) - (sale.discount || 0)).toLocaleString()}</TableCell>
                                         <TableCell>
-                                            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openPrintDialog(sale); }}>
-                                                <Printer className="me-2 h-4 w-4" />
-                                                طباعة
-                                            </Button>
+                                            <div className="flex gap-2">
+                                                <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openPrintDialog(sale); }}>
+                                                    <Printer className="me-2 h-4 w-4" />
+                                                    طباعة
+                                                </Button>
+                                                {canManagePreviousSales && (
+                                                    <>
+                                                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditSale(sale); }}>
+                                                            <Pencil className="me-2 h-4 w-4" />
+                                                            تعديل
+                                                        </Button>
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger asChild>
+                                                                <Button variant="destructive" size="sm" onClick={(e) => e.stopPropagation()}>
+                                                                    <Trash2 className="me-2 h-4 w-4" />
+                                                                    حذف
+                                                                </Button>
+                                                            </AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                                                                    <AlertDialogDescription>
+                                                                        سيتم حذف هذه الفاتورة نهائياً. هذه العملية ستعيد كميات الأصناف المباعة إلى المخزون.
+                                                                    </AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                                                    <AlertDialogAction onClick={() => handleDeleteSale(sale.id)} className={buttonVariants({ variant: "destructive" })}>
+                                                                        نعم، قم بالحذف
+                                                                    </AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </>
+                                                )}
+                                            </div>
                                         </TableCell>
                                          <TableCell>
                                             <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", expandedRows.has(sale.id) && "rotate-180")} />
