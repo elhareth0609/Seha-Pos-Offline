@@ -641,35 +641,34 @@ export default function InventoryPage() {
                               </div>
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div className="space-y-2">
-                                  <Label htmlFor="edit-dosage">الجرعة</Label>
-                                  <Input id="edit-dosage" name="dosage" defaultValue={editingMed.dosage} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="edit-dosage_form">الشكل الدوائي</Label>
-                                    <Select name="dosage_form" defaultValue={editingMed.dosage_form}>
-                                        <SelectTrigger id="edit-dosage_form"><SelectValue placeholder="اختر الشكل" /></SelectTrigger>
-                                        <SelectContent>
-                                            {dosage_forms.map(form => <SelectItem key={form} value={form}>{form}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                  <Label htmlFor="edit-stock">رصيد المخزون</Label>
-                                  <Input id="edit-stock" name="stock" type="number" defaultValue={editingMed.stock} required />
-                                </div>
-                               <div className="space-y-2">
+                              <div className="space-y-2">
+                                <Label htmlFor="edit-dosage">الجرعة</Label>
+                                <Input id="edit-dosage" name="dosage" defaultValue={editingMed.dosage} />
+                              </div>
+                              <div className="space-y-2">
+                                  <Label htmlFor="edit-dosage_form">الشكل الدوائي</Label>
+                                  <Select name="dosage_form" defaultValue={editingMed.dosage_form}>
+                                      <SelectTrigger id="edit-dosage_form"><SelectValue placeholder="اختر الشكل" /></SelectTrigger>
+                                      <SelectContent>
+                                          {dosage_forms.map(form => <SelectItem key={form} value={form}>{form}</SelectItem>)}
+                                      </SelectContent>
+                                  </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="edit-stock">رصيد المخزون</Label>
+                                <Input id="edit-stock" name="stock" type="number" defaultValue={editingMed.stock} required />
+                              </div>
+                              <div className="space-y-2">
                                   <Label htmlFor="edit-reorder_point">نقطة إعادة الطلب</Label>
                                   <Input id="edit-reorder_point" name="reorder_point" type="number" defaultValue={editingMed.reorder_point} required />
                               </div>
-                             
                           </div>
-                           <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                  <Label htmlFor="edit-purchase_price">سعر الشراء</Label>
-                                  <Input id="edit-purchase_price" name="purchase_price" type="number" step="1" defaultValue={editingMed.purchase_price} required />
-                                </div>
-                                <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="edit-purchase_price">سعر الشراء</Label>
+                                <Input id="edit-purchase_price" name="purchase_price" type="number" step="1" defaultValue={editingMed.purchase_price} required />
+                              </div>
+                              <div className="space-y-2">
                                   <Label htmlFor="edit-price">سعر البيع</Label>
                                   <Input id="edit-price" name="price" type="number" step="1" defaultValue={editingMed.price} required />
                               </div>
@@ -677,7 +676,13 @@ export default function InventoryPage() {
                           <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
                                   <Label htmlFor="edit-expiration_date">تاريخ الانتهاء</Label>
-                                  <Input id="edit-expiration_date" name="expiration_date" type="date" defaultValue={new Date(editingMed.expiration_date).toISOString().split('T')[0]} required />
+                                  <Input
+                                    id="edit-expiration_date"
+                                    name="expiration_date"
+                                    type="date"
+                                    defaultValue={editingMed.expiration_date ? new Date(editingMed.expiration_date).toISOString().split('T')[0] : ''}
+                                    required
+                                  />
                               </div>
                           </div>
                           <DialogFooter>

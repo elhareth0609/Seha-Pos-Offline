@@ -502,7 +502,7 @@ export default function SalesPage() {
         return; // Or handle empty/invalid input
     }
     if (quantity === 0) {
-        removeFromCart(id);
+        // removeFromCart(id);
     } else {
         setCart(cart => cart.map(item => (item.id === id ? { ...item, quantity } : item)));
     }
@@ -693,20 +693,20 @@ export default function SalesPage() {
   return (
     <>
     <TooltipProvider>
-      <div className="hidden">
-          <InvoiceTemplate ref={printComponentRef} sale={saleToPrint} settings={settings || null} />
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:h-[calc(100vh-6rem)]">
-          <div className="lg:col-span-2 flex flex-col gap-4">
-               <div className="flex gap-2">
+        <div className="hidden">
+            <InvoiceTemplate ref={printComponentRef} sale={saleToPrint} settings={settings || null} />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:h-[calc(100vh-6rem)]">
+            <div className="lg:col-span-2 flex flex-col gap-4">
+                <div className="flex gap-2">
                     <div className="relative flex-1">
                         <Input 
-                        placeholder="امسح الباركود أو ابحث بالاسم التجاري أو العلمي..."
-                        value={searchTerm}
-                        onChange={handleSearchChange}
-                        onKeyDown={handleSearchKeyDown}
-                        autoFocus
-                        disabled={mode !== 'new'}
+                            placeholder="امسح الباركود أو ابحث بالاسم التجاري أو العلمي..."
+                            value={searchTerm}
+                            onChange={handleSearchChange}
+                            onKeyDown={handleSearchKeyDown}
+                            autoFocus
+                            disabled={mode !== 'new'}
                         />
                         {suggestions.length > 0 && mode === 'new' && (
                             <Card className="absolute z-50 w-full mt-1 bg-background shadow-lg border">
@@ -724,11 +724,11 @@ export default function SalesPage() {
                                                         </div>
                                                     )}
                                                     <div>
-                                                      <div className="font-medium">{med.name}</div>
-                                                      <div className="text-xs text-muted-foreground">{med.scientific_names?.join(', ')}</div>
+                                                        <div className="font-medium">{med.name}</div>
+                                                        <div className="text-xs text-muted-foreground">{med.scientific_names?.join(', ')}</div>
                                                     </div>
                                                 </div>
-                                                 <span className="text-sm text-muted-foreground font-mono">{(med.price || 0).toLocaleString()}</span>
+                                                <span className="text-sm text-muted-foreground font-mono">{(med.price || 0).toLocaleString()}</span>
                                             </li>
                                         ))}
                                     </ul>
@@ -747,39 +747,39 @@ export default function SalesPage() {
                             <BarcodeScanner onScan={handleScan} onOpenChange={setIsScannerOpen}/>
                         </DialogContent>
                     </Dialog>
-              </div>
+                </div>
 
-              <Card className="flex-1 flex flex-col">
-                   <CardHeader className="py-4">
-                      <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
-                          <CardTitle className="text-xl">
-                            {mode === 'new' ? 'الفاتورة الحالية' : `عرض الفاتورة #${sortedSales[reviewIndex]?.id}`}
-                          </CardTitle>
-                          <div className="flex items-center gap-2">
-                              {mode === 'review' ? (
-                                  <>
-                                      <Button onClick={handleNewInvoiceClick} variant="secondary">
-                                          <FilePlus className="me-2"/> فاتورة جديدة
-                                      </Button>
-                                      <Button onClick={handlePreviousInvoice} variant="outline" size="icon" disabled={reviewIndex >= sortedSales.length - 1}>
-                                         <span className="sr-only">السابق</span> <ArrowRight/>
-                                      </Button>
-                                      <Button onClick={handleNextInvoice} variant="outline" size="icon" disabled={reviewIndex <= 0}>
-                                          <span className="sr-only">التالي</span> <ArrowLeft/>
-                                      </Button>
-                                  </>
-                              ) : (
-                                  <Button onClick={handlePreviousInvoice} variant="outline" disabled={sortedSales.length === 0}>
-                                      <ArrowRight className="me-2"/> مراجعة
-                                  </Button>
-                              )}
-                          </div>
-                      </div>
-                  </CardHeader>
-                  <CardContent className="p-0 flex-1 flex flex-col">
-                      
-                      <ScrollArea className="h-full">
-                      {cart.length > 0 ? (
+                <Card className="flex-1 flex flex-col">
+                    <CardHeader className="py-4">
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
+                            <CardTitle className="text-xl">
+                                {mode === 'new' ? 'الفاتورة الحالية' : `عرض الفاتورة #${sortedSales[reviewIndex]?.id}`}
+                            </CardTitle>
+                            <div className="flex items-center gap-2">
+                                {mode === 'review' ? (
+                                        <>
+                                            <Button onClick={handleNewInvoiceClick} variant="secondary">
+                                                <FilePlus className="me-2"/> فاتورة جديدة
+                                            </Button>
+                                            <Button onClick={handlePreviousInvoice} variant="outline" size="icon" disabled={reviewIndex >= sortedSales.length - 1}>
+                                                <span className="sr-only">السابق</span> <ArrowRight/>
+                                            </Button>
+                                            <Button onClick={handleNextInvoice} variant="outline" size="icon" disabled={reviewIndex <= 0}>
+                                                <span className="sr-only">التالي</span> <ArrowLeft/>
+                                            </Button>
+                                        </>
+                                ) : (
+                                    <Button onClick={handlePreviousInvoice} variant="outline" disabled={sortedSales.length === 0}>
+                                        <ArrowRight className="me-2"/> مراجعة
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                </CardHeader>
+                <CardContent className="p-0 flex-1 flex flex-col">
+                    
+                    <ScrollArea className="h-full">
+                    {cart.length > 0 ? (
                         <>
                             <div className="md:hidden divide-y divide-border">
                                 {cart.map((item) => {
@@ -821,12 +821,12 @@ export default function SalesPage() {
 
                                             <div className="grid grid-cols-2 gap-3 items-end">
                                                 <div className="space-y-1">
-                                                     <Label htmlFor={`quantity-sm-${item.id}`} className="text-xs">الكمية</Label>
-                                                     <Input id={`quantity-sm-${item.id}`} type="number" value={item.quantity || ''} onChange={(e) => updateQuantity(item.id, e.target.value)} className="h-9 text-center font-mono" disabled={mode !== 'new'} />
+                                                    <Label htmlFor={`quantity-sm-${item.id}`} className="text-xs">الكمية</Label>
+                                                    <Input id={`quantity-sm-${item.id}`} type="number" value={item.quantity || 1} min={1} onChange={(e) => updateQuantity(item.id, e.target.value)} className="h-9 text-center font-mono" disabled={mode !== 'new'} />
                                                 </div>
                                                 <div className="space-y-1">
-                                                     <Label htmlFor={`price-sm-${item.id}`} className="text-xs">السعر الإجمالي</Label>
-                                                     <div className="relative">
+                                                    <Label htmlFor={`price-sm-${item.id}`} className="text-xs">السعر الإجمالي</Label>
+                                                    <div className="relative">
                                                         <Input id={`price-sm-${item.id}`} type="number" value={((item.price || 0) * (item.quantity || 0))} onChange={(e) => updateTotalPrice(item.id, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={mode !== 'new' || !priceModificationAllowed} />
                                                         {isBelowCost && !item.is_return && (
                                                             <Tooltip>
@@ -917,8 +917,9 @@ export default function SalesPage() {
                                              <Input
                                                 id={`quantity-${item.id}`}
                                                 type="number"
-                                                value={item.quantity || ''}
+                                                value={item.quantity || 1}
                                                 onChange={(e) => updateQuantity(item.id, e.target.value)}
+                                                min={1}
                                                 className="w-20 h-9 text-center font-mono"
                                                 disabled={mode !== 'new'}
                                              />

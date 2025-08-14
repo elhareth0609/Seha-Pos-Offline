@@ -44,6 +44,7 @@ import type { PurchaseOrder, Medication, Supplier, ReturnOrder, PurchaseOrderIte
 import { PlusCircle, ChevronDown, Trash2, X, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const fileToDataUri = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -424,7 +425,7 @@ function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdi
 
     return (
         <form onSubmit={handleSubmit} className="border-t pt-6 space-y-4">
-             {isEditing && (
+              {isEditing && (
                 <Alert>
                   <Pencil className="h-4 w-4" />
                   <AlertTitle>وضع التعديل</AlertTitle>
