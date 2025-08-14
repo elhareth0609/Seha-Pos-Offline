@@ -161,9 +161,21 @@ export default function SuppliersPage() {
       const returns = supplierReturns.filter(ret => ret.supplier_id === supplier.id);
       const payments = supplierPayments.filter(p => p.supplier_id === supplier.id);
 
-      const totalPurchases = purchases.reduce((acc, po) => acc + po.total_amount, 0);
-      const totalReturns = returns.reduce((acc, ret) => acc + ret.total_amount, 0);
-      const totalPayments = payments.reduce((acc, p) => acc + p.amount, 0);
+        const totalPurchases = purchases.reduce((acc, po) => {
+            const total_amount = typeof po.total_amount === 'number' ? po.total_amount : parseFloat(String(po.total_amount || 0));
+            return acc + (isNaN(total_amount) ? 0 : total_amount);
+        }, 0);
+    //   const totalPurchases = purchases.reduce((acc, po) => acc + po.total_amount, 0);
+    //   const totalReturns = returns.reduce((acc, ret) => acc + ret.total_amount, 0);
+        const totalReturns = returns.reduce((acc, ret) => {
+            const total_amount = typeof ret.total_amount === 'number' ? ret.total_amount : parseFloat(String(ret.total_amount || 0));
+            return acc + (isNaN(total_amount) ? 0 : total_amount);
+        }, 0);
+    //   const totalPayments = payments.reduce((acc, p) => acc + p.amount, 0);
+      const totalPayments = payments.reduce((acc, p) => {
+          const amount = typeof p.amount === 'number' ? p.amount : parseFloat(String(p.amount || 0));
+          return acc + (isNaN(amount) ? 0 : amount);
+      }, 0);
 
       const netDebt = totalPurchases - totalReturns - totalPayments;
 
@@ -260,7 +272,7 @@ export default function SuppliersPage() {
                     <CardHeader>
                         <div className="flex justify-between items-start">
                            <div>
-                                <CardTitle>{account.name}</CardTitle>
+                                <CardTitle>{account.id} - {account.name}</CardTitle>
                                 <CardDescription>{account.contact_person || 'لا يوجد جهة اتصال'}</CardDescription>
                            </div>
                             <DropdownMenu>
@@ -410,7 +422,7 @@ export default function SuppliersPage() {
                     </TableHeader>
                     <TableBody>
                         {statementData.items.map((item, index) => (
-                            <TableRow key={index}>
+                            <TableRow key={index} className="text-right">
                                 <TableCell className="text-xs">{new Date(item.date).toLocaleDateString('ar-EG')}</TableCell>
                                 <TableCell>
                                     <div className="font-medium">{item.type}</div>

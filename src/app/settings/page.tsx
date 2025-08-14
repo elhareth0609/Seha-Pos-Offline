@@ -93,17 +93,17 @@ type EditUserFormValues = z.infer<typeof editUserSchema>;
 
 
 const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: string }[] = [
-    { key: 'sales', label: 'الوصول إلى قسم المبيعات' },
-    { key: 'inventory', label: 'الوصول إلى المخزون' },
-    { key: 'purchases', label: 'الوصول إلى المشتريات' },
-    { key: 'suppliers', label: 'الوصول إلى الموردين' },
-    { key: 'reports', label: 'الوصول إلى التقارير' },
-    { key: 'itemMovement', label: 'الوصول إلى حركة المادة' },
-    { key: 'patients', label: 'الوصول إلى أصدقاء الصيدلية' },
-    { key: 'expiringSoon', label: 'الوصول إلى قريب الانتهاء' },
-    { key: 'trash', label: 'الوصول إلى سلة المحذوفات' },
-    { key: 'settings', label: 'الوصول إلى الإعدادات' },
-    { key: 'salesPriceModification', label: 'تعديل أسعار البيع في الفاتورة' },
+    { key: 'manage_sales', label: 'الوصول إلى قسم المبيعات' },
+    { key: 'manage_inventory', label: 'الوصول إلى المخزون' },
+    { key: 'manage_purchases', label: 'الوصول إلى المشتريات' },
+    { key: 'manage_suppliers', label: 'الوصول إلى الموردين' },
+    { key: 'manage_reports', label: 'الوصول إلى التقارير' },
+    { key: 'manage_itemMovement', label: 'الوصول إلى حركة المادة' },
+    { key: 'manage_patients', label: 'الوصول إلى أصدقاء الصيدلية' },
+    { key: 'manage_expiringSoon', label: 'الوصول إلى قريب الانتهاء' },
+    { key: 'manage_trash', label: 'الوصول إلى سلة المحذوفات' },
+    { key: 'manage_settings', label: 'الوصول إلى الإعدادات' },
+    { key: 'manage_salesPriceModification', label: 'تعديل أسعار البيع في الفاتورة' },
 ];
 
 function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
@@ -253,7 +253,19 @@ export default function SettingsPage() {
     const openPermissionsDialog = (user: User) => {
         setEditingUser(user);
         const permissions = user.permissions || {
-            sales: true, inventory: true, purchases: false, suppliers: false, reports: false, itemMovement: true, patients: true, expiringSoon: true, guide: true, settings: false, trash: false, salesPriceModification: false,
+            manage_sales: true,
+            manage_inventory: true,
+            manage_purchases: false,
+            manage_suppliers: false,
+            manage_reports: false,
+            manage_itemMovement: true,
+            manage_patients: true,
+            manage_expiringSoon: true,
+            manage_guide: true,
+            manage_settings: false,
+            manage_trash: false,
+            manage_salesPriceModification: false,
+            manage_users: false,
         };
         setCurrentUserPermissions(permissions);
         setIsPermissionsDialogOpen(true);
@@ -303,28 +315,28 @@ export default function SettingsPage() {
     
     const filteredTimeLogs = React.useMemo(() => {
         if (!editingUser) return [];
-        let userLogs = timeLogs.filter(log => log.userId === editingUser.id);
+        let userLogs = timeLogs.filter(log => log.user_id === editingUser.id);
         
         if (dateFrom && dateTo) {
             const from = new Date(dateFrom);
             const to = new Date(dateTo);
             to.setHours(23, 59, 59, 999);
-            userLogs = userLogs.filter(log => isWithinInterval(parseISO(log.clockIn), { start: from, end: to }));
+            userLogs = userLogs.filter(log => isWithinInterval(parseISO(log.clock_in), { start: from, end: to }));
         } else if (dateFrom) {
-            userLogs = userLogs.filter(log => new Date(log.clockIn) >= new Date(dateFrom));
+            userLogs = userLogs.filter(log => new Date(log.clock_in) >= new Date(dateFrom));
         } else if (dateTo) {
             const to = new Date(dateTo);
             to.setHours(23, 59, 59, 999);
-            userLogs = userLogs.filter(log => new Date(log.clockIn) <= to);
+            userLogs = userLogs.filter(log => new Date(log.clock_in) <= to);
         }
 
-        return userLogs.sort((a,b) => new Date(b.clockIn).getTime() - new Date(a.clockIn).getTime());
+        return userLogs.sort((a,b) => new Date(b.clock_in).getTime() - new Date(a.clock_in).getTime());
     }, [editingUser, timeLogs, dateFrom, dateTo]);
 
 
     const totalMinutes = filteredTimeLogs.reduce((acc, log) => {
-        if (log.clockOut) {
-            return acc + differenceInMinutes(new Date(log.clockOut), new Date(log.clockIn));
+        if (log.clock_out) {
+            return acc + differenceInMinutes(new Date(log.clock_out), new Date(log.clock_in));
         }
         return acc;
     }, 0);
@@ -684,14 +696,14 @@ export default function SettingsPage() {
                             </TableHeader>
                             <TableBody>
                                 {filteredTimeLogs.map(log => {
-                                    const duration = log.clockOut ? formatDistanceStrict(new Date(log.clockOut), new Date(log.clockIn), { locale: ar, unit: 'minute' }) : "جارٍ العمل";
-                                    const minutes = log.clockOut ? differenceInMinutes(new Date(log.clockOut), new Date(log.clockIn)) : 0;
+                                    const duration = log.clock_out ? formatDistanceStrict(new Date(log.clock_out), new Date(log.clock_in), { locale: ar, unit: 'minute' }) : "جارٍ العمل";
+                                    const minutes = log.clock_out ? differenceInMinutes(new Date(log.clock_out), new Date(log.clock_in)) : 0;
                                     const salary = (minutes / 60) * (editingUser?.hourly_rate || 0);
 
                                     return (
                                         <TableRow key={log.id}>
-                                            <TableCell>{new Date(log.clockIn).toLocaleString('ar-EG')}</TableCell>
-                                            <TableCell>{log.clockOut ? new Date(log.clockOut).toLocaleString('ar-EG') : '-'}</TableCell>
+                                            <TableCell>{new Date(log.clock_in).toLocaleString('ar-EG')}</TableCell>
+                                            <TableCell>{log.clock_out ? new Date(log.clock_out).toLocaleString('ar-EG') : '-'}</TableCell>
                                             <TableCell className="font-mono">{duration}</TableCell>
                                             <TableCell className="font-mono">{salary.toLocaleString()}</TableCell>
                                         </TableRow>

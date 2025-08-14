@@ -67,7 +67,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
       <div className="flex justify-end">
         <div className="w-full md:w-1/3 font-mono">
           <div className="flex justify-between py-1">
-            <span className="font-semibold">المجموع الفرعي:</span>
+            <span className="font-semibold">المجموع:</span>
             <span>{subtotal.toLocaleString()}</span>
           </div>
           {sale.discount && sale.discount > 0 && (
