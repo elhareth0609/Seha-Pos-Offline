@@ -644,7 +644,7 @@ export default function SalesPage() {
   };
 
   const handleNextInvoice = () => {
-    if (reviewIndex > 0) {
+    if (reviewIndex && reviewIndex > 0) {
         loadSaleForReview(reviewIndex - 1);
     }
   };
@@ -652,7 +652,7 @@ export default function SalesPage() {
   const handlePreviousInvoice = () => {
     if (mode === 'new' && sortedSales.length > 0) {
         loadSaleForReview(0);
-    } else if (mode === 'review' && reviewIndex < sortedSales.length - 1) {
+    } else if (mode === 'review' && reviewIndex && reviewIndex < sortedSales.length - 1) {
         loadSaleForReview(reviewIndex + 1);
     }
   };
@@ -774,15 +774,20 @@ export default function SalesPage() {
                     <CardHeader className="py-4">
                         <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
                             <CardTitle className="text-xl">
-                                {mode === 'new' ? 'الفاتورة الحالية' : `تعديل الفاتورة #${sortedSales[reviewIndex]?.id}`}
+                                {mode === 'new' ? 'الفاتورة الحالية' : `تعديل الفاتورة #${reviewIndex ? sortedSales[reviewIndex]?.id : ''}`}
                             </CardTitle>
                             <div className="flex items-center gap-2">
                                 {(mode === 'review' || (mode === 'new' && sortedSales.length > 0)) && (
                                     <>
-                                        <Button onClick={handlePreviousInvoice} variant="outline" size="icon" disabled={mode === 'review' && reviewIndex >= sortedSales.length - 1}>
+                                        <Button 
+                                            onClick={handlePreviousInvoice} 
+                                            variant="outline" 
+                                            size="icon" 
+                                            disabled={mode === 'review' && reviewIndex != null && reviewIndex !== undefined && reviewIndex >= sortedSales.length - 1}
+>
                                             <span className="sr-only">السابق</span> <ArrowRight/>
                                         </Button>
-                                        <Button onClick={handleNextInvoice} variant="outline" size="icon" disabled={mode === 'review' && reviewIndex <= 0}>
+                                        <Button onClick={handleNextInvoice} variant="outline" size="icon" disabled={mode === 'review' && reviewIndex != null && reviewIndex !== undefined && reviewIndex <= 0}>
                                             <span className="sr-only">التالي</span> <ArrowLeft/>
                                         </Button>
                                     </>
