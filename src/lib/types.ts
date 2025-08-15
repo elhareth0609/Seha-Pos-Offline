@@ -153,8 +153,8 @@ export type AppSettings = {
 export type TrashItem = {
   id: string; // Unique ID for the trash entry
   deleted_at: string; // ISO date string
-  item_type: 'medication' | 'patient' | 'supplier' | 'user';
-  data: Medication | Patient | Supplier | User;
+  item_type: 'medication' | 'patient' | 'supplier' | 'user' | 'sale';
+  data: Partial<Medication & Patient & Supplier & User & Sale>;
 };
 
 export type Advertisement = {
@@ -226,3 +226,5 @@ export type PaginatedResponse<T> = {
   to: number;
   total: number;
 };
+
+    

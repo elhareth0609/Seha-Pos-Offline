@@ -23,6 +23,9 @@ import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, Lo
 import Link from 'next/link';
 import Image from 'next/image';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+
 
 const addAdminSchema = z.object({
     name: z.string().min(3, { message: "الاسم مطلوب" }),
@@ -100,9 +103,17 @@ function AdminRow({ admin, onDelete, onToggleStatus }: { admin: User, onDelete: 
 }
 
 export default function SuperAdminPage() {
-    const { currentUser, users, createPharmacyAdmin, deleteUser, toggleUserStatus, logout, advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement } = useAuth();
+    const { currentUser, users, createPharmacyAdmin, deleteUser, toggleUserStatus, logout, advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement, getPaginatedUsers } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
+    
+    const [pharmacyAdmins, setPharmacyAdmins] = React.useState<User[]>([]);
+    const [totalPages, setTotalPages] = React.useState(1);
+    const [currentPage, setCurrentPage] = React.useState(1);
+    const [perPage, setPerPage] = React.useState(10);
+    const [loading, setLoading] = React.useState(true);
+    const [searchTerm, setSearchTerm] = React.useState("");
+
     const [isAddAdminOpen, setIsAddAdminOpen] = React.useState(false);
     const [isAddAdOpen, setIsAddAdOpen] = React.useState(false);
     const [adTitle, setAdTitle] = React.useState("");
@@ -113,6 +124,30 @@ export default function SuperAdminPage() {
         resolver: zodResolver(addAdminSchema),
         defaultValues: { name: "", email: "", pin: "" },
     });
+    
+    const fetchData = React.useCallback(async (page: number, limit: number, search: string) => {
+        setLoading(true);
+        try {
+            const data = await getPaginatedUsers('Admin', page, limit, search);
+            setPharmacyAdmins(data.data);
+            setTotalPages(data.last_page);
+            setCurrentPage(data.current_page);
+        } catch (error) {
+            console.error("Failed to fetch admins", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [getPaginatedUsers]);
+
+    React.useEffect(() => {
+        if (currentUser && currentUser.role === 'SuperAdmin') {
+             const handler = setTimeout(() => {
+                fetchData(currentPage, perPage, searchTerm);
+            }, 300);
+            return () => clearTimeout(handler);
+        }
+    }, [currentUser, currentPage, perPage, searchTerm, fetchData]);
+
 
     React.useEffect(() => {
         if (currentUser && currentUser.role !== 'SuperAdmin') {
@@ -124,6 +159,7 @@ export default function SuperAdminPage() {
         const success = await createPharmacyAdmin(data.name, data.email, data.pin);
         if (success) {
             toast({ title: "تم إنشاء حساب المدير بنجاح" });
+            fetchData(1, perPage, ""); // Refresh
             setIsAddAdminOpen(false);
             addAdminForm.reset();
         } else {
@@ -133,14 +169,21 @@ export default function SuperAdminPage() {
     
     const handleDeleteAdmin = (user: User) => {
         deleteUser(user.id, true).then(success => {
-            if(success) toast({title: `تم حذف حساب ${user.name} نهائياً`});
-            else toast({variant: 'destructive', title: "خطأ", description: "لم يتمكن من حذف الحساب."})
+            if(success) {
+                toast({title: `تم حذف حساب ${user.name} نهائياً`});
+                fetchData(currentPage, perPage, searchTerm); // Refresh
+            } else {
+                toast({variant: 'destructive', title: "خطأ", description: "لم يتمكن من حذف الحساب."})
+            }
         });
     }
 
     const handleToggleStatus = (user: User) => {
         toggleUserStatus(user.id).then(success => {
-             if(success) toast({title: `تم تغيير حالة حساب ${user.name}`});
+             if(success) {
+                toast({title: `تم تغيير حالة حساب ${user.name}`});
+                fetchData(currentPage, perPage, searchTerm); // Refresh
+             }
         })
     }
     
@@ -173,11 +216,8 @@ export default function SuperAdminPage() {
         }
     }
 
-
-    const pharmacyAdmins = users.filter(u => u.role === 'Admin');
     const totalEmployees = users.filter(u => u.role === 'Employee').length;
 
-    console.log(users)
     if (!currentUser || currentUser.role !== 'SuperAdmin') {
         return null;
     }
@@ -220,42 +260,65 @@ export default function SuperAdminPage() {
 
             <div className="grid gap-6 lg:grid-cols-3">
                 <Card className="lg:col-span-2">
-                    <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div>
-                            <CardTitle>مدراء الصيدليات</CardTitle>
-                            <CardDescription>قائمة بجميع حسابات مدراء الصيدليات المسجلين.</CardDescription>
+                    <CardHeader>
+                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div>
+                                <CardTitle>مدراء الصيدليات</CardTitle>
+                                <CardDescription>قائمة بجميع حسابات مدراء الصيدليات المسجلين.</CardDescription>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Button variant="outline" asChild>
+                                    <Link href="/superadmin/reports"><FileText className="me-2"/> عرض التقارير</Link>
+                                </Button>
+                                <Dialog open={isAddAdminOpen} onOpenChange={setIsAddAdminOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button><PlusCircle className="me-2"/> إنشاء حساب مدير</Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>إنشاء حساب مدير صيدلية</DialogTitle>
+                                        </DialogHeader>
+                                        <Form {...addAdminForm}>
+                                            <form onSubmit={addAdminForm.handleSubmit(handleAddAdmin)} className="space-y-4 py-2">
+                                                <FormField control={addAdminForm.control} name="name" render={({ field }) => (
+                                                    <FormItem><FormLabel>اسم المدير</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                                )} />
+                                                <FormField control={addAdminForm.control} name="email" render={({ field }) => (
+                                                    <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                                                )} />
+                                                <FormField control={addAdminForm.control} name="pin" render={({ field }) => (
+                                                    <FormItem><FormLabel>رمز PIN</FormLabel><FormControl><Input type="password"   {...field} /></FormControl><FormMessage /></FormItem>
+                                                )} />
+                                                <DialogFooter className="pt-4">
+                                                    <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                                                    <Button type="submit" variant="success">إنشاء الحساب</Button>
+                                                </DialogFooter>
+                                            </form>
+                                        </Form>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
                         </div>
-                         <div className="flex flex-wrap items-center gap-2">
-                            <Button variant="outline" asChild>
-                                <Link href="/superadmin/reports"><FileText className="me-2"/> عرض التقارير</Link>
-                            </Button>
-                            <Dialog open={isAddAdminOpen} onOpenChange={setIsAddAdminOpen}>
-                                <DialogTrigger asChild>
-                                    <Button><PlusCircle className="me-2"/> إنشاء حساب مدير</Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>إنشاء حساب مدير صيدلية</DialogTitle>
-                                    </DialogHeader>
-                                    <Form {...addAdminForm}>
-                                        <form onSubmit={addAdminForm.handleSubmit(handleAddAdmin)} className="space-y-4 py-2">
-                                             <FormField control={addAdminForm.control} name="name" render={({ field }) => (
-                                                <FormItem><FormLabel>اسم المدير</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                            )} />
-                                             <FormField control={addAdminForm.control} name="email" render={({ field }) => (
-                                                <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
-                                            )} />
-                                            <FormField control={addAdminForm.control} name="pin" render={({ field }) => (
-                                                <FormItem><FormLabel>رمز PIN</FormLabel><FormControl><Input type="password"   {...field} /></FormControl><FormMessage /></FormItem>
-                                            )} />
-                                            <DialogFooter className="pt-4">
-                                                <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
-                                                <Button type="submit" variant="success">إنشاء الحساب</Button>
-                                            </DialogFooter>
-                                        </form>
-                                    </Form>
-                                </DialogContent>
-                            </Dialog>
+                        <div className="pt-4 flex flex-wrap gap-2">
+                            <Input 
+                                placeholder="ابحث بالاسم أو البريد..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="max-w-sm"
+                            />
+                            <div className="flex items-center gap-2">
+                                <Label htmlFor="per-page" className="shrink-0">لكل صفحة:</Label>
+                                <Select value={String(perPage)} onValueChange={(val) => setPerPage(Number(val))}>
+                                    <SelectTrigger id="per-page" className="w-20 h-9">
+                                    <SelectValue placeholder={perPage} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                    <SelectItem value="10">10</SelectItem>
+                                    <SelectItem value="20">20</SelectItem>
+                                    <SelectItem value="50">50</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                     </CardHeader>
                     <CardContent>
@@ -271,7 +334,15 @@ export default function SuperAdminPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {pharmacyAdmins.map(admin => (
+                                {loading ? Array.from({length: perPage}).map((_,i) => (
+                                    <TableRow key={i}>
+                                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                                        <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-48" /></TableCell>
+                                        <TableCell className="hidden lg:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
+                                        <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                                        <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                                    </TableRow>
+                                )) : pharmacyAdmins.map(admin => (
                                     <AdminRow 
                                         key={admin.id} 
                                         admin={admin} 
@@ -281,6 +352,29 @@ export default function SuperAdminPage() {
                                 ))}
                             </TableBody>
                         </Table>
+                        </div>
+                        <div className="flex items-center justify-between pt-4">
+                            <span className="text-sm text-muted-foreground">
+                                الصفحة {currentPage} من {totalPages}
+                            </span>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1 || loading}
+                                >
+                                    السابق
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    disabled={currentPage === totalPages || loading}
+                                >
+                                    التالي
+                                </Button>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
@@ -380,3 +474,5 @@ export default function SuperAdminPage() {
         </div>
     );
 }
+
+    

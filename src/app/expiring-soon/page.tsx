@@ -18,54 +18,57 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import type { Medication, AppSettings } from "@/lib/types"
+import type { Medication, PaginatedResponse } from "@/lib/types"
 import { differenceInDays, parseISO, startOfToday } from 'date-fns'
 import { useAuth } from "@/hooks/use-auth"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Label } from "@/components/ui/label"
 
 export default function ExpiringSoonPage() {
-  const { scopedData } = useAuth();
-  const [allInventory] = scopedData.inventory;
-  const [settings] = scopedData.settings;
+  const { getPaginatedExpiringSoon } = useAuth();
+  
   const [expiringMedications, setExpiringMedications] = React.useState<Medication[]>([]);
   const [expiredMedications, setExpiredMedications] = React.useState<Medication[]>([]);
+  
+  const [expiringTotalPages, setExpiringTotalPages] = React.useState(1);
+  const [expiringCurrentPage, setExpiringCurrentPage] = React.useState(1);
+  const [expiredTotalPages, setExpiredTotalPages] = React.useState(1);
+  const [expiredCurrentPage, setExpiredCurrentPage] = React.useState(1);
+  
+  const [perPage, setPerPage] = React.useState(10);
+  const [loading, setLoading] = React.useState(true);
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [activeTab, setActiveTab] = React.useState('expiring');
 
-  const expirationThreshold = settings.expirationThresholdDays || 90;
+
+  const fetchData = React.useCallback(async (page: number, limit: number, search: string, type: 'expiring' | 'expired') => {
+    setLoading(true);
+    try {
+        const data = await getPaginatedExpiringSoon(page, limit, search, type);
+        if (type === 'expiring') {
+            setExpiringMedications(data.data);
+            setExpiringTotalPages(data.last_page);
+            setExpiringCurrentPage(data.current_page);
+        } else {
+            setExpiredMedications(data.data);
+            setExpiredTotalPages(data.last_page);
+            setExpiredCurrentPage(data.current_page);
+        }
+    } catch (error) {
+        console.error("Failed to fetch expiring medications", error);
+    } finally {
+        setLoading(false);
+    }
+  }, [getPaginatedExpiringSoon]);
 
   React.useEffect(() => {
-    const today = startOfToday();
+    fetchData(1, perPage, searchTerm, activeTab as 'expiring' | 'expired');
+  }, [perPage, searchTerm, activeTab, fetchData]);
 
-    const filteredExpiring = (allInventory || [])
-        .filter((item) => {
-            if (!item.expiration_date) return false;
-            const expiration_date = parseISO(item.expiration_date);
-            const daysUntilExpiration = differenceInDays(expiration_date, today);
-            return daysUntilExpiration >= 0 && daysUntilExpiration <= expirationThreshold;
-        })
-        .filter(item => 
-            item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            (item.barcodes?.some(barcode => barcode.toLowerCase().includes(searchTerm.toLowerCase())) || false)
-        )
-        .sort((a, b) => differenceInDays(parseISO(a.expiration_date), today) - differenceInDays(parseISO(b.expiration_date), today));
-    
-    const filteredExpired = (allInventory || [])
-        .filter((item) => {
-            if (!item.expiration_date) return false;
-            const expiration_date = parseISO(item.expiration_date);
-            return expiration_date < today;
-        })
-        .filter(item => 
-            item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            (item.barcodes?.some(barcode => barcode.toLowerCase().includes(searchTerm.toLowerCase())) || false)
-        )
-        .sort((a, b) => differenceInDays(parseISO(b.expiration_date), today) - differenceInDays(parseISO(a.expiration_date), today));
-
-    setExpiringMedications(filteredExpiring);
-    setExpiredMedications(filteredExpired);
-
-  }, [allInventory, expirationThreshold, searchTerm]);
 
   const getExpirationBadge = (expiration_date: string) => {
     const today = startOfToday();
@@ -95,38 +98,71 @@ export default function ExpiringSoonPage() {
       return `${daysLeft} يوم`;
   }
   
-  const renderTable = (meds: Medication[]) => (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>الاسم (الباركود)</TableHead>
-          <TableHead>الكمية المتبقية</TableHead>
-          <TableHead>تاريخ الانتهاء</TableHead>
-          <TableHead>الأيام المتبقية</TableHead>
-          <TableHead>الحالة</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {meds.length > 0 ? meds.map((item) => (
-          <TableRow key={item.id}>
-            <TableCell>
-              <div className="font-medium">{item.name}</div>
-              <div className="text-xs text-muted-foreground font-mono">{item.barcodes?.join(', ')}</div>
-            </TableCell>
-            <TableCell className="font-mono">{item.stock}</TableCell>
-            <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('ar-EG')}</TableCell>
-            <TableCell className="font-mono">{formatDaysLeft(item.expiration_date)}</TableCell>
-            <TableCell>{getExpirationBadge(item.expiration_date)}</TableCell>
-          </TableRow>
-        )) : (
+  const renderTable = (meds: Medication[], currentPage: number, totalPages: number, setPage: (page: number) => void) => (
+    <div>
+        <Table>
+          <TableHeader>
             <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    لا توجد بيانات لعرضها.
-                </TableCell>
+              <TableHead>الاسم (الباركود)</TableHead>
+              <TableHead>الكمية المتبقية</TableHead>
+              <TableHead>تاريخ الانتهاء</TableHead>
+              <TableHead>الأيام المتبقية</TableHead>
+              <TableHead>الحالة</TableHead>
             </TableRow>
-        )}
-      </TableBody>
-    </Table>
+          </TableHeader>
+          <TableBody>
+            {loading ? Array.from({ length: perPage }).map((_, i) => (
+                <TableRow key={`skel-${i}`}>
+                    <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-28" /></TableCell>
+                </TableRow>
+            )) : meds.length > 0 ? meds.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell>
+                  <div className="font-medium">{item.name}</div>
+                  <div className="text-xs text-muted-foreground font-mono">{item.barcodes?.join(', ')}</div>
+                </TableCell>
+                <TableCell className="font-mono">{item.stock}</TableCell>
+                <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('ar-EG')}</TableCell>
+                <TableCell className="font-mono">{formatDaysLeft(item.expiration_date)}</TableCell>
+                <TableCell>{getExpirationBadge(item.expiration_date)}</TableCell>
+              </TableRow>
+            )) : (
+                <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        لا توجد بيانات لعرضها.
+                    </TableCell>
+                </TableRow>
+            )}
+          </TableBody>
+        </Table>
+         <div className="flex items-center justify-between pt-4">
+              <span className="text-sm text-muted-foreground">
+                  الصفحة {currentPage} من {totalPages}
+              </span>
+              <div className="flex gap-2">
+                  <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(Math.max(currentPage - 1, 1))}
+                      disabled={currentPage === 1 || loading}
+                  >
+                      السابق
+                  </Button>
+                  <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(Math.min(currentPage + 1, totalPages))}
+                      disabled={currentPage === totalPages || loading}
+                  >
+                      التالي
+                  </Button>
+              </div>
+          </div>
+    </div>
   );
 
   return (
@@ -134,31 +170,47 @@ export default function ExpiringSoonPage() {
       <CardHeader>
         <CardTitle>الأدوية المنتهية وقريبة الانتهاء</CardTitle>
         <CardDescription>
-          قائمة بالأدوية التي ستنتهي صلاحيتها خلال {expirationThreshold} يومًا القادمة أو التي انتهت بالفعل.
+          قائمة بالأدوية التي انتهت صلاحيتها أو التي على وشك الانتهاء.
         </CardDescription>
-        <div className="pt-4">
+        <div className="pt-4 flex flex-wrap gap-2">
             <Input 
               placeholder="ابحث بالاسم أو الباركود..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-sm"
             />
+             <div className="flex items-center gap-2">
+              <Label htmlFor="per-page" className="shrink-0">لكل صفحة:</Label>
+              <Select value={String(perPage)} onValueChange={(val) => setPerPage(Number(val))}>
+                <SelectTrigger id="per-page" className="w-20 h-9">
+                  <SelectValue placeholder={perPage} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="expiring">
+        <Tabs defaultValue="expiring" onValueChange={setActiveTab}>
             <TabsList>
                 <TabsTrigger value="expiring">قريب الانتهاء ({expiringMedications.length})</TabsTrigger>
                 <TabsTrigger value="expired">منتهي الصلاحية ({expiredMedications.length})</TabsTrigger>
             </TabsList>
             <TabsContent value="expiring">
-                {renderTable(expiringMedications)}
+                {renderTable(expiringMedications, expiringCurrentPage, expiringTotalPages, (p) => fetchData(p, perPage, searchTerm, 'expiring'))}
             </TabsContent>
             <TabsContent value="expired">
-                {renderTable(expiredMedications)}
+                {renderTable(expiredMedications, expiredCurrentPage, expiredTotalPages, (p) => fetchData(p, perPage, searchTerm, 'expired'))}
             </TabsContent>
         </Tabs>
       </CardContent>
     </Card>
   )
 }
+
+    

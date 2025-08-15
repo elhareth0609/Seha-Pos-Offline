@@ -1,3 +1,4 @@
+
 "use client"
 import * as React from "react"
 import {
@@ -39,28 +40,55 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/hooks/use-auth"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function PatientsPage() {
-  const { scopedData, addPatient, updatePatient, deletePatient } = useAuth();
-  const [patients] = scopedData.patients;
+  const { addPatient, updatePatient, deletePatient, getPaginatedPatients } = useAuth();
   
+  const [patients, setPatients] = React.useState<Patient[]>([]);
+  const [totalPages, setTotalPages] = React.useState(1);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [perPage, setPerPage] = React.useState(10);
+  const [loading, setLoading] = React.useState(true);
   const [searchTerm, setSearchTerm] = React.useState("");
   
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [newPatientName, setNewPatientName] = React.useState("");
   const [newPatientPhone, setNewPatientPhone] = React.useState("");
   
-  // Validation states for Add form
   const [addNameError, setAddNameError] = React.useState("");
   const [addPhoneError, setAddPhoneError] = React.useState("");
   
   const [editingPatient, setEditingPatient] = React.useState<Patient | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   
-  // Validation states for Edit form
   const [editNameError, setEditNameError] = React.useState("");
   const [editPhoneError, setEditPhoneError] = React.useState("");
   
+
+  const fetchData = React.useCallback(async (page: number, limit: number, search: string) => {
+    setLoading(true);
+    try {
+      const data = await getPaginatedPatients(page, limit, search);
+      setPatients(data.data);
+      setTotalPages(data.last_page);
+      setCurrentPage(data.current_page);
+    } catch (error) {
+      console.error("Failed to fetch patients", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [getPaginatedPatients]);
+
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+        fetchData(currentPage, perPage, searchTerm);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [currentPage, perPage, searchTerm, fetchData]);
+
+
   const resetAddDialog = () => {
     setNewPatientName("");
     setNewPatientPhone("");
@@ -71,12 +99,9 @@ export default function PatientsPage() {
   
   const validateAddForm = () => {
     let isValid = true;
-    
-    // Reset errors
     setAddNameError("");
     setAddPhoneError("");
     
-    // Validate name
     if (!newPatientName.trim()) {
       setAddNameError("الاسم مطلوب");
       isValid = false;
@@ -85,7 +110,6 @@ export default function PatientsPage() {
       isValid = false;
     }
     
-    // Validate phone (optional but if provided must be valid)
     if (newPatientPhone.trim() && !/^[0-9+\- ]+$/.test(newPatientPhone)) {
       setAddPhoneError("رقم الهاتف يجب أن يحتوي على أرقام فقط");
       isValid = false;
@@ -99,6 +123,7 @@ export default function PatientsPage() {
     
     const success = await addPatient(newPatientName, newPatientPhone);
     if (success) {
+      fetchData(1, perPage, ""); // Refresh data
       resetAddDialog();
     }
   }
@@ -112,12 +137,9 @@ export default function PatientsPage() {
   
   const validateEditForm = (name: string, phone: string) => {
     let isValid = true;
-    
-    // Reset errors
     setEditNameError("");
     setEditPhoneError("");
     
-    // Validate name
     if (!name.trim()) {
       setEditNameError("الاسم مطلوب");
       isValid = false;
@@ -126,7 +148,6 @@ export default function PatientsPage() {
       isValid = false;
     }
     
-    // Validate phone (optional but if provided must be valid)
     if (phone.trim() && !/^[0-9+\- ]+$/.test(phone)) {
       setEditPhoneError("رقم الهاتف يجب أن يحتوي على أرقام فقط");
       isValid = false;
@@ -148,19 +169,17 @@ export default function PatientsPage() {
       const success = await updatePatient(editingPatient.id, { name, phone });
       
       if(success) {
+        fetchData(currentPage, perPage, searchTerm); // Refresh current page
         setIsEditDialogOpen(false);
         setEditingPatient(null);
       }
   }
   
   const handleDeletePatient = async (patientId: string) => {
-      await deletePatient(patientId);
+      const success = await deletePatient(patientId);
+      if(success) fetchData(currentPage, perPage, searchTerm);
   }
   
-  const filteredPatients = (patients || []).filter(p => 
-    p.name.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
-    (p.phone && p.phone.includes(searchTerm))
-  );
   
   return (
     <Card>
@@ -223,16 +242,31 @@ export default function PatientsPage() {
                 </DialogContent>
             </Dialog>
         </div>
-        <div className="pt-4">
+        <div className="pt-4 flex flex-wrap gap-2">
           <Input 
             placeholder="ابحث بالاسم أو رقم الهاتف..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
           />
+           <div className="flex items-center gap-2">
+              <Label htmlFor="per-page" className="shrink-0">لكل صفحة:</Label>
+              <Select value={String(perPage)} onValueChange={(val) => setPerPage(Number(val))}>
+                <SelectTrigger id="per-page" className="w-20 h-9">
+                  <SelectValue placeholder={perPage} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
         </div>
       </CardHeader>
       <CardContent>
+        <div className="overflow-x-auto">
         <Table>
             <TableHeader>
                 <TableRow>
@@ -243,7 +277,14 @@ export default function PatientsPage() {
                 </TableRow>
             </TableHeader>
             <TableBody>
-                 {filteredPatients.length > 0 ? filteredPatients.map((patient) => (
+                 {loading ? Array.from({length: perPage}).map((_, i) => (
+                    <TableRow key={`skel-${i}`}>
+                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                    </TableRow>
+                 )) : patients.length > 0 ? patients.map((patient) => (
                      <TableRow key={patient.id}>
                         <TableCell>{patient.id}</TableCell>
                         <TableCell className="font-medium">{patient.name}</TableCell>
@@ -296,6 +337,30 @@ export default function PatientsPage() {
                  )}
             </TableBody>
         </Table>
+        </div>
+         <div className="flex items-center justify-between pt-4">
+              <span className="text-sm text-muted-foreground">
+                  الصفحة {currentPage} من {totalPages}
+              </span>
+              <div className="flex gap-2">
+                  <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1 || loading}
+                  >
+                      السابق
+                  </Button>
+                  <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages || loading}
+                  >
+                      التالي
+                  </Button>
+              </div>
+          </div>
       </CardContent>
        <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
             setIsEditDialogOpen(open);
@@ -330,7 +395,7 @@ export default function PatientsPage() {
                                 <Input 
                                     id="edit-patient-phone" 
                                     name="phone" 
-                                    defaultValue={editingPatient.phone} 
+                                    defaultValue={editingPatient.phone || ''} 
                                     className={editPhoneError ? "border-destructive" : ""} 
                                 />
                                 {editPhoneError && <p className="text-sm text-destructive mt-1">{editPhoneError}</p>}
@@ -347,3 +412,5 @@ export default function PatientsPage() {
     </Card>
   )
 }
+
+    
