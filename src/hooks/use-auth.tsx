@@ -55,7 +55,7 @@ interface AuthContextType {
     updateUserHourlyRate: (userId: string, rate: number) => Promise<boolean>;
     toggleUserStatus: (userId: string) => Promise<boolean>;
     getAllPharmacySettings: () => Promise<Record<string, AppSettings>>;
-    getPharmacyData: (pharmacyId: string) => Promise<{ sales: Sale[], inventory: Medication[] }>;
+    getPharmacyData: (pharmacyId: string) => Promise<{ users: User[], sales: Sale[], inventory: Medication[] }>;
     
     advertisements: Advertisement[];
     addAdvertisement: (title: string, image_url: string) => Promise<void>;

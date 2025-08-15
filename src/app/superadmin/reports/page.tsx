@@ -14,12 +14,12 @@ import { DollarSign, TrendingUp, PieChart, TrendingDown, ArrowLeft } from 'lucid
 import Link from 'next/link';
 
 export default function SuperAdminReportsPage() {
-    const { currentUser, users, getPharmacyData, getAllPharmacySettings } = useAuth();
+    const { currentUser, getPharmacyData, getAllPharmacySettings } = useAuth();
     const router = useRouter();
     
     const [selectedPharmacyId, setSelectedPharmacyId] = React.useState<string | null>(null);
     const [pharmacySettings, setPharmacySettings] = React.useState<Record<string, AppSettings>>({});
-    const [pharmacyData, setPharmacyData] = React.useState<{sales: Sale[], inventory: Medication[]} | null>(null);
+    const [pharmacyData, setPharmacyData] = React.useState<{users: User[], sales: Sale[], inventory: Medication[]} | null>(null);
     const [loading, setLoading] = React.useState(false);
 
     React.useEffect(() => {
@@ -59,12 +59,12 @@ export default function SuperAdminReportsPage() {
         fetchData();
     }, [selectedPharmacyId, getPharmacyData, currentUser]);
 
-    const pharmacyAdmins = users.filter(u => u.role === 'Admin');
-
+    
     const selectedPharmacyData = React.useMemo(() => {
         if (!selectedPharmacyId || !pharmacyData) return null;
-
-        const { sales, inventory } = pharmacyData;
+        
+        const { users, sales, inventory } = pharmacyData;
+        const pharmacyAdmins = users.filter(u => u.role === 'Admin');
         const pharmacyUsers: User[] = users.filter(u => String(u.pharmacy_id) === selectedPharmacyId && u.role === "Employee");
 
         const totalRevenue = sales.reduce((acc, sale) => {
@@ -107,7 +107,7 @@ export default function SuperAdminReportsPage() {
             topSoldArray,
             pharmacyUsers,
         };
-    }, [selectedPharmacyId, pharmacyData, users]);
+    }, [selectedPharmacyId, pharmacyData]);
 
     if (!currentUser || currentUser.role !== 'SuperAdmin') {
         return null;
