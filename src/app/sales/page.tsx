@@ -938,11 +938,11 @@ export default function SalesPage() {
                                             <TableCell>
                                                 <div className="relative">
                                                     <Input 
-                                                      type="text"
+                                                      type="number"
                                                       value={((item.price || 0) * (item.quantity || 0))}
                                                       onChange={(e) => updateTotalPrice(item.id, e.target.value)} 
                                                       className={cn("w-24 h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )}
-                                                      step="1" 
+                                                      step="1"
                                                       min="0" 
                                                       disabled={!priceModificationAllowed} />
                                                     {isBelowCost && !item.is_return && (
@@ -1036,7 +1036,7 @@ export default function SalesPage() {
                         <Label htmlFor="discount" className="text-md shrink-0">خصم</Label>
                         <Input 
                         id="discount" 
-                        type="text" 
+                        type="number" 
                         value={discountValue || ''} 
                         onChange={handleDiscountChange}
                         className="h-9 w-full bg-background ltr:text-left rtl:text-right font-mono" 
@@ -1085,7 +1085,13 @@ export default function SalesPage() {
                                   <div className="space-y-4">
                                       <div className="max-h-64 overflow-y-auto p-1">
                                           <Table>
-                                              <TableHeader><TableRow><TableHead>المنتج</TableHead><TableHead className="text-center">الكمية</TableHead><TableHead className="text-left">السعر</TableHead></TableRow></TableHeader>
+                                              <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>المنتج</TableHead>
+                                                    <TableHead className="text-center">الكمية</TableHead>
+                                                    <TableHead className="text-left">السعر</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
                                               <TableBody>
                                                   {cart.map(item => (
                                                       <TableRow key={item.id} className={cn(item.is_return && "text-destructive")}>

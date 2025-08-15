@@ -40,6 +40,7 @@ import { Label } from '@/components/ui/label';
 import AdCarousel from '@/components/ui/ad-carousel';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { buttonVariants } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 // Modern print function that works with React 18+
 const printElement = (element: HTMLElement, title: string = 'Print') => {
