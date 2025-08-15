@@ -719,25 +719,36 @@ export default function SalesPage() {
                                 <CardContent className="p-0">
                                     <ul className="divide-y divide-border">
                                         {suggestions.map(med => (
-                                            <li key={med.id} className="p-3 hover:bg-accent rounded-md flex justify-between items-center"
-                                                onMouseDown={(e) => { e.preventDefault(); addToCart(med); }}>
+                                            <li
+                                                key={med.id}
+                                                className="group p-3 hover:bg-accent rounded-md flex justify-between items-center cursor-pointer"
+                                                onMouseDown={(e) => { e.preventDefault(); addToCart(med); }}
+                                            >
                                                 <div className="flex items-center gap-3">
                                                     {typeof med.image_url === 'string' && med.image_url !== "" ? (
-                                                        <Image src={med.image_url} alt={med.name || ''} width={32} height={32} className="rounded-sm object-cover h-8 w-8" />
+                                                        <Image
+                                                            src={med.image_url}
+                                                            alt={med.name || ''}
+                                                            width={32}
+                                                            height={32}
+                                                            className="rounded-sm object-cover h-8 w-8"
+                                                        />
                                                     ) : (
-                                                        <div className="h-8 w-8 flex items-center justify-center rounded-sm bg-muted text-muted-foreground">
+                                                        <div className="h-8 w-8 flex items-center justify-center rounded-sm bg-muted text-muted-foreground group-hover:text-white">
                                                             <Package className="h-4 w-4" />
                                                         </div>
                                                     )}
                                                     <div>
-                                                        <div className="font-medium">{med.name}</div>
-                                                        <div className="text-xs text-muted-foreground">{med.scientific_names?.join(', ')}</div>
+                                                        <div className="font-medium group-hover:text-white">{med.name}</div>
+                                                        <div className="text-xs text-muted-foreground group-hover:text-white">
+                                                            {med.scientific_names?.join(', ')}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                  <span>{med.stock}</span>
-                                                  {getExpirationBadge(med.expiration_date, settings.expirationThresholdDays)}
-                                                  <span className="font-mono">{(med.price || 0).toLocaleString()}</span>
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground group-hover:text-white">
+                                                    <span>{med.stock}</span>
+                                                    {getExpirationBadge(med.expiration_date, settings.expirationThresholdDays)}
+                                                    <span className="font-mono">{(med.price || 0).toLocaleString()}</span>
                                                 </div>
                                             </li>
                                         ))}

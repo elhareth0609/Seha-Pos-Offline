@@ -112,7 +112,7 @@ export default function ExpiringSoonPage() {
           </TableHeader>
           <TableBody>
             {loading ? Array.from({ length: perPage }).map((_, i) => (
-                <TableRow key={`skel-${i}`}>
+                <TableRow key={`skel-${i}`} className="text-right">
                     <TableCell><Skeleton className="h-5 w-40" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
@@ -120,7 +120,7 @@ export default function ExpiringSoonPage() {
                     <TableCell><Skeleton className="h-6 w-28" /></TableCell>
                 </TableRow>
             )) : meds.length > 0 ? meds.map((item) => (
-              <TableRow key={item.id}>
+              <TableRow key={item.id} className="text-right">
                 <TableCell>
                   <div className="font-medium">{item.name}</div>
                   <div className="text-xs text-muted-foreground font-mono">{item.barcodes?.join(', ')}</div>

@@ -82,7 +82,7 @@ export default function SuppliersPage() {
   const [suppliers, setSuppliers] = React.useState<Supplier[]>([]);
   const [totalPages, setTotalPages] = React.useState(1);
   const [currentPage, setCurrentPage] = React.useState(1);
-  const [perPage, setPerPage] = React.useState(10);
+  const [perPage, setPerPage] = React.useState(9);
   const [loading, setLoading] = React.useState(true);
 
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
@@ -343,10 +343,10 @@ export default function SuppliersPage() {
                     <SelectValue placeholder={perPage} />
                     </SelectTrigger>
                     <SelectContent>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="20">20</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="9">9</SelectItem>
+                    <SelectItem value="18">18</SelectItem>
+                    <SelectItem value="45">45</SelectItem>
+                    <SelectItem value="90">90</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -533,10 +533,10 @@ export default function SuppliersPage() {
                           <React.Fragment key={item.id}>
                             <TableRow 
                                 onClick={() => item.items && item.items.length > 0 && toggleStatementRow(item.id)}
-                                className={cn(item.items && item.items.length > 0 && "cursor-pointer")}
+                                className={cn(item.items && item.items.length > 0 && "cursor-pointer text-right")}
                             >
                                 <TableCell className="text-xs">{new Date(item.date).toLocaleDateString('ar-EG')}</TableCell>
-                                <TableCell>
+                                <TableCell className="flex justify-between items-center">
                                     <div className="font-medium flex items-center gap-2">
                                         {item.items && item.items.length > 0 && (
                                             <ChevronDown className={cn("h-4 w-4 transition-transform", expandedStatementRows.has(item.id) && "rotate-180")} />
@@ -547,10 +547,10 @@ export default function SuppliersPage() {
                                 </TableCell>
                                 <TableCell className="font-mono text-red-600">{item.debit > 0 ? item.debit.toLocaleString() : '-'}</TableCell>
                                 <TableCell className="font-mono text-green-600">{item.credit > 0 ? item.credit.toLocaleString() : '-'}</TableCell>
-                                <TableCell className="font-mono font-semibold">{item.balance.toLocaleString()}</TableCell>
+                                <TableCell className="font-mono text-md">{item.balance.toLocaleString()}</TableCell>
                             </TableRow>
                             {expandedStatementRows.has(item.id) && item.items && item.items.length > 0 && (
-                                <TableRow className="bg-muted/50">
+                                <TableRow className="bg-muted/50 text-right">
                                     <TableCell colSpan={5} className="p-2">
                                         <div className="p-2">
                                             <Table>

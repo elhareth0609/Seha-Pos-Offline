@@ -462,6 +462,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const getPaginatedTrash = React.useCallback(async (page: number, perPage: number) => {
         try {
             const params = new URLSearchParams({
+                paginate: "true",
                 page: String(page),
                 per_page: String(perPage),
             });
@@ -476,6 +477,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const params = new URLSearchParams({
                 role,
+                paginate: "true",
                 page: String(page),
                 per_page: String(perPage),
                 search,
@@ -490,6 +492,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const getPaginatedSales = React.useCallback(async (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string) => {
         try {
             const params = new URLSearchParams({
+                paginate: "true",
                 page: String(page),
                 per_page: String(perPage),
                 search: search,
@@ -507,6 +510,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const getPaginatedPurchaseOrders = React.useCallback(async (page: number, perPage: number, search: string) => {
         try {
             const params = new URLSearchParams({
+                paginate: "true",
                 page: String(page),
                 per_page: String(perPage),
                 search: search,
@@ -521,6 +525,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const getPaginatedReturnOrders = React.useCallback(async (page: number, perPage: number, search: string) => {
         try {
             const params = new URLSearchParams({
+                paginate: "true",
                 page: String(page),
                 per_page: String(perPage),
                 search: search,
