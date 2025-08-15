@@ -11,7 +11,7 @@ import {
     CardFooter,
 } from "@/components/ui/card"
 import { useAuth } from "@/hooks/use-auth"
-import type { Supplier, PurchaseOrder, ReturnOrder, SupplierPayment } from "@/lib/types"
+import type { Supplier, PurchaseOrder, ReturnOrder, SupplierPayment, PaginatedResponse, PurchaseOrderItem, ReturnOrderItem } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import {
@@ -47,9 +47,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Textarea } from "@/components/ui/textarea"
-import { DollarSign, FileText, Truck, Undo2, Wallet, Scale, MoreHorizontal, Pencil, Trash2, PlusCircle } from "lucide-react"
+import { DollarSign, FileText, Truck, Undo2, Wallet, Scale, MoreHorizontal, Pencil, Trash2, PlusCircle, ChevronDown } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn } from "@/lib/utils"
 
 
 type StatementItem = {
@@ -59,16 +60,30 @@ type StatementItem = {
     debit: number;
     credit: number;
     balance: number;
+    id: string;
+    items?: (PurchaseOrderItem | ReturnOrderItem)[];
 };
 
 export default function SuppliersPage() {
-  const { scopedData, addSupplier, updateSupplier, deleteSupplier, addPayment } = useAuth();
-  const [suppliers] = scopedData.suppliers;
+  const { 
+    scopedData, 
+    addSupplier, 
+    updateSupplier, 
+    deleteSupplier, 
+    addPayment, 
+    getPaginatedSuppliers, 
+  } = useAuth();
+
   const [purchaseOrders] = scopedData.purchaseOrders;
   const [supplierReturns] = scopedData.supplierReturns;
   const [supplierPayments] = scopedData.payments;
 
-  const [isClient, setIsClient] = React.useState(false)
+  const [suppliers, setSuppliers] = React.useState<Supplier[]>([]);
+  const [totalPages, setTotalPages] = React.useState(1);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [perPage, setPerPage] = React.useState(10);
+  const [loading, setLoading] = React.useState(true);
+
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
@@ -77,11 +92,31 @@ export default function SuppliersPage() {
   const [isStatementOpen, setIsStatementOpen] = React.useState(false);
   const [statementData, setStatementData] = React.useState<{ supplier: Supplier | null; items: StatementItem[] }>({ supplier: null, items: [] });
   const [supplierSearchTerm, setSupplierSearchTerm] = React.useState("");
+  const [expandedStatementRows, setExpandedStatementRows] = React.useState<Set<string>>(new Set());
+
   const { toast } = useToast();
 
+  const fetchData = React.useCallback(async (page: number, limit: number, search: string) => {
+    setLoading(true);
+    try {
+        const data = await getPaginatedSuppliers(page, limit, search);
+        setSuppliers(data.data);
+        setTotalPages(data.last_page);
+        setCurrentPage(data.current_page);
+    } catch (error) {
+        console.error("Failed to fetch suppliers", error);
+    } finally {
+        setLoading(false);
+    }
+  }, [getPaginatedSuppliers]);
+
   React.useEffect(() => {
-    setIsClient(true)
-  }, [])
+    const handler = setTimeout(() => {
+        fetchData(currentPage, perPage, supplierSearchTerm);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [currentPage, perPage, supplierSearchTerm, fetchData]);
+  
   
   const handleAddSupplier = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -91,6 +126,7 @@ export default function SuppliersPage() {
     
     const newSupplier = await addSupplier({ name, contact_person });
     if(newSupplier) {
+        fetchData(1, perPage, "");
         setIsAddDialogOpen(false);
     }
   };
@@ -105,6 +141,7 @@ export default function SuppliersPage() {
 
     const success = await updateSupplier(editingSupplier.id, { name, contact_person });
     if(success) {
+        fetchData(currentPage, perPage, supplierSearchTerm);
         setIsEditDialogOpen(false);
         setEditingSupplier(null);
     }
@@ -112,6 +149,7 @@ export default function SuppliersPage() {
 
   const handleDeleteSupplier = async (supplier: Supplier) => {
     await deleteSupplier(supplier.id);
+    fetchData(currentPage, perPage, supplierSearchTerm);
   }
 
   const handleAddPayment = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -125,6 +163,7 @@ export default function SuppliersPage() {
     const success = await addPayment(selectedSupplier.id, amount, notes);
 
     if (success) {
+        fetchData(currentPage, perPage, supplierSearchTerm);
         setIsPaymentDialogOpen(false);
         setSelectedSupplier(null);
     }
@@ -132,13 +171,37 @@ export default function SuppliersPage() {
 
   const handleShowStatement = (supplier: Supplier) => {
     const supplierPurchases = purchaseOrders.filter(po => po.supplier_id === supplier.id)
-        .map(po => ({ date: po.date, type: 'شراء' as const, details: `فاتورة شراء #${po.id}`, debit: po.total_amount, credit: 0 }));
+        .map(po => ({ 
+            id: po.id,
+            date: po.date, 
+            type: 'شراء' as const, 
+            details: `فاتورة شراء #${po.id}`, 
+            debit: po.total_amount, 
+            credit: 0,
+            items: po.items,
+        }));
 
     const supplierReturnsData = supplierReturns.filter(ret => ret.supplier_id === supplier.id)
-        .map(ret => ({ date: ret.date, type: 'استرجاع' as const, details: `إرجاع #${ret.id}`, debit: 0, credit: ret.total_amount }));
+        .map(ret => ({ 
+            id: ret.id,
+            date: ret.date, 
+            type: 'استرجاع' as const, 
+            details: `إرجاع #${ret.id}`, 
+            debit: 0, 
+            credit: ret.total_amount,
+            items: ret.items,
+        }));
 
     const supplierPaymentsData = supplierPayments.filter(p => p.supplier_id === supplier.id)
-        .map(p => ({ date: p.date, type: 'دفعة' as const, details: `دفعة نقدية ${p.notes ? `(${p.notes})` : ''}`, debit: 0, credit: p.amount }));
+        .map(p => ({ 
+            id: p.id,
+            date: p.date, 
+            type: 'دفعة' as const, 
+            details: `دفعة نقدية ${p.notes ? `(${p.notes})` : ''}`, 
+            debit: 0, 
+            credit: p.amount,
+            items: [],
+        }));
 
     const allTransactions = [...supplierPurchases, ...supplierReturnsData, ...supplierPaymentsData]
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -150,12 +213,23 @@ export default function SuppliersPage() {
     });
     
     setStatementData({ supplier, items: statementItems.reverse() });
+    setExpandedStatementRows(new Set());
     setIsStatementOpen(true);
   };
-
+  
+  const toggleStatementRow = (id: string) => {
+    setExpandedStatementRows(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(id)) {
+            newSet.delete(id);
+        } else {
+            newSet.add(id);
+        }
+        return newSet;
+    });
+  };
 
   const supplierAccounts = React.useMemo(() => {
-    if (!isClient) return [];
     return suppliers.map(supplier => {
       const purchases = purchaseOrders.filter(po => po.supplier_id === supplier.id);
       const returns = supplierReturns.filter(ret => ret.supplier_id === supplier.id);
@@ -165,13 +239,10 @@ export default function SuppliersPage() {
             const total_amount = typeof po.total_amount === 'number' ? po.total_amount : parseFloat(String(po.total_amount || 0));
             return acc + (isNaN(total_amount) ? 0 : total_amount);
         }, 0);
-    //   const totalPurchases = purchases.reduce((acc, po) => acc + po.total_amount, 0);
-    //   const totalReturns = returns.reduce((acc, ret) => acc + ret.total_amount, 0);
         const totalReturns = returns.reduce((acc, ret) => {
             const total_amount = typeof ret.total_amount === 'number' ? ret.total_amount : parseFloat(String(ret.total_amount || 0));
             return acc + (isNaN(total_amount) ? 0 : total_amount);
         }, 0);
-    //   const totalPayments = payments.reduce((acc, p) => acc + p.amount, 0);
       const totalPayments = payments.reduce((acc, p) => {
           const amount = typeof p.amount === 'number' ? p.amount : parseFloat(String(p.amount || 0));
           return acc + (isNaN(amount) ? 0 : amount);
@@ -187,13 +258,12 @@ export default function SuppliersPage() {
         netDebt,
       };
     });
-  }, [suppliers, purchaseOrders, supplierReturns, supplierPayments, isClient]);
+  }, [suppliers, purchaseOrders, supplierReturns, supplierPayments]);
   
-  const filteredSupplierAccounts = supplierAccounts.filter(s => s.name.toLowerCase().includes(supplierSearchTerm.toLowerCase()));
+  const filteredSupplierAccounts = supplierAccounts;
 
-  
 
-  if (!isClient) {
+  if (loading && suppliers.length === 0) {
       return (
           <div className="space-y-6">
               <div className="space-y-2">
@@ -258,13 +328,27 @@ export default function SuppliersPage() {
                 </DialogContent>
             </Dialog>
         </div>
-        <div className="pb-4">
+        <div className="pb-4 flex flex-wrap gap-2">
             <Input 
                 placeholder="ابحث عن مورد..."
                 value={supplierSearchTerm}
                 onChange={(e) => setSupplierSearchTerm(e.target.value)}
                 className="max-w-sm"
             />
+            <div className="flex items-center gap-2">
+                <Label htmlFor="per-page" className="shrink-0">لكل صفحة:</Label>
+                <Select value={String(perPage)} onValueChange={(val) => setPerPage(Number(val))}>
+                    <SelectTrigger id="per-page" className="w-20 h-9">
+                    <SelectValue placeholder={perPage} />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
         </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredSupplierAccounts.map(account => (
@@ -272,7 +356,7 @@ export default function SuppliersPage() {
                     <CardHeader>
                         <div className="flex justify-between items-start">
                            <div>
-                                <CardTitle>{account.id} - {account.name}</CardTitle>
+                                <CardTitle>{account.name}</CardTitle>
                                 <CardDescription>{account.contact_person || 'لا يوجد جهة اتصال'}</CardDescription>
                            </div>
                             <DropdownMenu>
@@ -350,6 +434,29 @@ export default function SuppliersPage() {
                 </Card>
             ))}
         </div>
+         <div className="flex items-center justify-between pt-4">
+              <span className="text-sm text-muted-foreground">
+                  الصفحة {currentPage} من {totalPages}
+              </span>
+              <div className="flex gap-2">
+                  <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1 || loading}
+                  >
+                      السابق
+                  </Button>
+                  <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages || loading}
+                  >
+                      التالي
+                  </Button>
+              </div>
+          </div>
     </div>
 
     <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
@@ -422,16 +529,54 @@ export default function SuppliersPage() {
                     </TableHeader>
                     <TableBody>
                         {statementData.items.map((item, index) => (
-                            <TableRow key={index} className="text-right">
+                          <React.Fragment key={item.id}>
+                            <TableRow 
+                                onClick={() => item.items && item.items.length > 0 && toggleStatementRow(item.id)}
+                                className={cn(item.items && item.items.length > 0 && "cursor-pointer")}
+                            >
                                 <TableCell className="text-xs">{new Date(item.date).toLocaleDateString('ar-EG')}</TableCell>
                                 <TableCell>
-                                    <div className="font-medium">{item.type}</div>
-                                    <div className="text-xs text-muted-foreground">{item.details}</div>
+                                    <div className="font-medium flex items-center gap-2">
+                                        {item.items && item.items.length > 0 && (
+                                            <ChevronDown className={cn("h-4 w-4 transition-transform", expandedStatementRows.has(item.id) && "rotate-180")} />
+                                        )}
+                                        {item.type}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground ps-6">{item.details}</div>
                                 </TableCell>
                                 <TableCell className="font-mono text-red-600">{item.debit > 0 ? item.debit.toLocaleString() : '-'}</TableCell>
                                 <TableCell className="font-mono text-green-600">{item.credit > 0 ? item.credit.toLocaleString() : '-'}</TableCell>
                                 <TableCell className="font-mono font-semibold">{item.balance.toLocaleString()}</TableCell>
                             </TableRow>
+                            {expandedStatementRows.has(item.id) && item.items && item.items.length > 0 && (
+                                <TableRow className="bg-muted/50">
+                                    <TableCell colSpan={5} className="p-2">
+                                        <div className="p-2">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>الصنف</TableHead>
+                                                        <TableHead>الكمية</TableHead>
+                                                        <TableHead>السعر</TableHead>
+                                                        <TableHead>الإجمالي</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {item.items.map((subItem, subIndex) => (
+                                                        <TableRow key={subIndex}>
+                                                            <TableCell>{(subItem as any).name}</TableCell>
+                                                            <TableCell>{subItem.quantity}</TableCell>
+                                                            <TableCell className="font-mono">{subItem.purchase_price.toLocaleString()}</TableCell>
+                                                            <TableCell className="font-mono">{(subItem.quantity * subItem.purchase_price).toLocaleString()}</TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                          </React.Fragment>
                         ))}
                     </TableBody>
                 </Table>
