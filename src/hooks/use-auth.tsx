@@ -73,7 +73,14 @@ interface AuthContextType {
     getPaginatedInventory: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Medication>>;
     
     // Expiring Soon
-    getPaginatedExpiringSoon: (page: number, perPage: number, search: string, type: 'expiring' | 'expired') => Promise<PaginatedResponse<Medication>>;
+    getPaginatedExpiringSoon: (page: number, perPage: number, search: string, type: 'expiring' | 'expired') => Promise<{
+        data: Medication[];
+        expiredMedicationsLength: number;
+        expiringMedicationsLength: number;
+        current_page: number;
+        last_page: number;
+        // ... 其他 PaginatedResponse 需要的属性
+    }>;
 
     // Sales
     addSale: (saleData: any) => Promise<Sale | null>;
@@ -139,7 +146,6 @@ const fallbackAppSettings: AppSettings = {
     expirationThresholdDays: 90,
     invoiceFooterMessage: "شكرًا لزيارتكم!",
 }
-
 
 const initialActiveInvoice: ActiveInvoice = {
     cart: [],
@@ -210,6 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const resetActiveInvoice = React.useCallback(() => {
         setActiveInvoice(initialActiveInvoice);
     }, []);
+
 
     const setAllData = (data: AuthResponse) => {
         setCurrentUser(data.user);
@@ -413,21 +420,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
     
-    const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage: number, search: string, type: 'expiring' | 'expired') => {
-        try {
-            const params = new URLSearchParams({
-                paginate: "true",
-                page: String(page),
-                per_page: String(perPage),
-                search: search,
-                type: type,
-            });
-            const data = await apiRequest(`/expiring-soon?${params.toString()}`);
-            return data;
-        } catch (e) {
-            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Medication>;
-        }
-    }, []);
+const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage: number, search: string, type: 'expiring' | 'expired') => {
+    try {
+        const params = new URLSearchParams({
+            paginate: "true",
+            page: String(page),
+            per_page: String(perPage),
+            search: search,
+            type: type,
+        });
+        const response = await apiRequest(`/expiring-soon?${params.toString()}`);
+        return {
+            data: response.data.data,
+            expiredMedicationsLength: response.expiredMedicationsLength,
+            expiringMedicationsLength: response.expiringMedicationsLength,
+            current_page: response.data.current_page,
+            last_page: response.data.last_page,
+            // 添加 PaginatedResponse 接口需要的其他属性
+        };
+    } catch (e) {
+        return {
+            data: [],
+            expiredMedicationsLength: 0,
+            expiringMedicationsLength: 0,
+            current_page: 1,
+            last_page: 1,
+            // 添加 PaginatedResponse 接口需要的其他属性
+        };
+    }
+}, []);
 
     const getPaginatedPatients = React.useCallback(async (page: number, perPage: number, search: string) => {
         try {

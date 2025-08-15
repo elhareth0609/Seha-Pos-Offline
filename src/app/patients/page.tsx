@@ -111,8 +111,8 @@ export default function PatientsPage() {
     }
     
     if (newPatientPhone.trim() && !/^[0-9+\- ]+$/.test(newPatientPhone)) {
-      setAddPhoneError("رقم الهاتف يجب أن يحتوي على أرقام فقط");
-      isValid = false;
+        setAddPhoneError("رقم الهاتف يجب أن يحتوي على أرقام فقط");
+        isValid = false;
     }
     
     return isValid;
@@ -180,7 +180,11 @@ export default function PatientsPage() {
       if(success) fetchData(currentPage, perPage, searchTerm);
   }
   
-  
+    const handlePhoneInput = (value: string) => {
+        // Remove all non-digit characters except + and -
+        return value.replace(/[^\d+-]/g, '');
+    };
+
   return (
     <Card>
       <CardHeader>
@@ -395,7 +399,15 @@ export default function PatientsPage() {
                                 <Input 
                                     id="edit-patient-phone" 
                                     name="phone" 
+                                    type="tel" 
                                     defaultValue={editingPatient.phone || ''} 
+                                    onChange={(e) => {
+                                        const input = e.target as HTMLInputElement;
+                                        input.value = handlePhoneInput(input.value);
+                                        const event = new Event('input', { bubbles: true });
+                                        input.dispatchEvent(event);
+                                    }}
+
                                     className={editPhoneError ? "border-destructive" : ""} 
                                 />
                                 {editPhoneError && <p className="text-sm text-destructive mt-1">{editPhoneError}</p>}

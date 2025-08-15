@@ -33,7 +33,10 @@ export default function ExpiringSoonPage() {
   
   const [expiringMedications, setExpiringMedications] = React.useState<Medication[]>([]);
   const [expiredMedications, setExpiredMedications] = React.useState<Medication[]>([]);
-  
+
+  const [expiringMedicationsLength, setExpiringMedicationsLength] = React.useState(0);
+  const [expiredMedicationsLength, setExpiredMedicationsLength] = React.useState(0);
+
   const [expiringTotalPages, setExpiringTotalPages] = React.useState(1);
   const [expiringCurrentPage, setExpiringCurrentPage] = React.useState(1);
   const [expiredTotalPages, setExpiredTotalPages] = React.useState(1);
@@ -48,15 +51,17 @@ export default function ExpiringSoonPage() {
   const fetchData = React.useCallback(async (page: number, limit: number, search: string, type: 'expiring' | 'expired') => {
     setLoading(true);
     try {
-        const data = await getPaginatedExpiringSoon(page, limit, search, type);
+        const {data, last_page, current_page, expiringMedicationsLength, expiredMedicationsLength} = await getPaginatedExpiringSoon(page, limit, search, type);
+        setExpiringMedicationsLength(expiringMedicationsLength);
+        setExpiredMedicationsLength(expiredMedicationsLength);
         if (type === 'expiring') {
-            setExpiringMedications(data.data);
-            setExpiringTotalPages(data.last_page);
-            setExpiringCurrentPage(data.current_page);
+            setExpiringMedications(data);
+            setExpiringTotalPages(last_page);
+            setExpiringCurrentPage(current_page);
         } else {
-            setExpiredMedications(data.data);
-            setExpiredTotalPages(data.last_page);
-            setExpiredCurrentPage(data.current_page);
+            setExpiredMedications(data);
+            setExpiredTotalPages(last_page);
+            setExpiredCurrentPage(current_page);
         }
     } catch (error) {
         console.error("Failed to fetch expiring medications", error);
@@ -198,8 +203,8 @@ export default function ExpiringSoonPage() {
       <CardContent>
         <Tabs defaultValue="expiring" onValueChange={setActiveTab}>
             <TabsList>
-                <TabsTrigger value="expiring">قريب الانتهاء ({expiringMedications.length})</TabsTrigger>
-                <TabsTrigger value="expired">منتهي الصلاحية ({expiredMedications.length})</TabsTrigger>
+                <TabsTrigger value="expiring">قريب الانتهاء ({expiringMedicationsLength})</TabsTrigger>
+                <TabsTrigger value="expired">منتهي الصلاحية ({expiredMedicationsLength})</TabsTrigger>
             </TabsList>
             <TabsContent value="expiring">
                 {renderTable(expiringMedications, expiringCurrentPage, expiringTotalPages, (p) => fetchData(p, perPage, searchTerm, 'expiring'))}

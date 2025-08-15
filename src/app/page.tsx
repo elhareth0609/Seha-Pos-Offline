@@ -408,17 +408,17 @@ export default function Dashboard() {
                   <div>
                       <CardTitle>قريب الانتهاء ومنتهي الصلاحية</CardTitle>
                   </div>
-                   <Link href="/expiring-soon">
+                  <Link href="/expiring-soon">
                       <Button variant="outline">عرض الكل</Button>
                   </Link>
               </CardHeader>
               <CardContent>
                   <ScrollArea className="h-64">
-                   <Table>
+                    <Table>
                       <TableHeader>
                           <TableRow>
-                              <TableHead>الاسم</TableHead>
-                              <TableHead>الحالة</TableHead>
+                              <TableHead className="w-1/2">الاسم</TableHead>
+                              <TableHead className="w-1/2">الحالة</TableHead>
                           </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -445,7 +445,7 @@ export default function Dashboard() {
                               </TableRow>
                           ))}
                           {expiredItems.length === 0 && expiringSoonItems.length === 0 && (
-                             <TableRow>
+                              <TableRow>
                                   <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد أصناف.</TableCell>
                               </TableRow>
                           )}
