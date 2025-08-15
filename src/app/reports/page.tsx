@@ -99,8 +99,10 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
 };
 
 export default function ReportsPage() {
-    const { currentUser, scopedData, deleteSale, setActiveInvoice, setSales } = useAuth();
-    const [sales] = scopedData.sales;
+    const { currentUser, scopedData, deleteSale, setActiveInvoice } = useAuth();
+    const [sales, setSales] = scopedData.sales;
+
+    // const [sales] = scopedData.sales;
     const [settings] = scopedData.settings;
     const [searchTerm, setSearchTerm] = React.useState("");
     const [isClient, setIsClient] = React.useState(false);

@@ -71,6 +71,7 @@ interface AuthContextType {
     deleteMedication: (medId: string) => Promise<boolean>;
     bulkAddOrUpdateInventory: (items: Partial<Medication>[]) => Promise<boolean>;
     getPaginatedInventory: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Medication>>;
+    getPaginatedExpiringSoon: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Medication>>;
 
     // Sales
     addSale: (saleData: any) => Promise<Sale | null>;
@@ -81,12 +82,14 @@ interface AuthContextType {
     addSupplier: (data: Partial<Supplier>) => Promise<Supplier | null>;
     updateSupplier: (supplier_id: string, data: Partial<Supplier>) => Promise<boolean>;
     deleteSupplier: (supplier_id: string) => Promise<boolean>;
+    getPaginatedSuppliers: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Supplier>>;
 
     // Patients
     addPatient: (name: string, phone?: string) => Promise<Patient | null>;
     updatePatient: (patientId: string, data: Partial<Patient>) => Promise<boolean>;
     deletePatient: (patientId: string) => Promise<boolean>;
-    
+    getPaginatedPatients: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Patient>>;
+
     // Payments
     addPayment: (supplier_id: string, amount: number, notes?: string) => Promise<boolean>;
     
@@ -389,7 +392,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const getPaginatedInventory = React.useCallback(async (page: number, perPage: number, search: string) => {
         try {
             const params = new URLSearchParams({
-                paginate: true,
+                paginate: "true",
                 page: String(page),
                 per_page: String(perPage),
                 search: search,
@@ -398,6 +401,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return data;
         } catch (e) {
             return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Medication>;
+        }
+    }, []);
+
+    const getPaginatedPatients = React.useCallback(async (page: number, perPage: number, search: string) => {
+        try {
+            const params = new URLSearchParams({
+                paginate: "true",
+                page: String(page),
+                per_page: String(perPage),
+                search: search,
+            });
+            const data = await apiRequest(`/patients?${params.toString()}`);
+            return data;
+        } catch (e) {
+            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Patient>;
+        }
+    }, []);
+
+    const getPaginatedSuppliers = React.useCallback(async (page: number, perPage: number, search: string) => {
+        try {
+            const params = new URLSearchParams({
+                paginate: "true",
+                page: String(page),
+                per_page: String(perPage),
+                search: search,
+            });
+            const data = await apiRequest(`/suppliers?${params.toString()}`);
+            return data;
+        } catch (e) {
+            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Supplier>;
+        }
+    }, []);
+
+    const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage: number, search: string) => {
+        try {
+            const params = new URLSearchParams({
+                paginate: "true",
+                page: String(page),
+                per_page: String(perPage),
+                search: search,
+            });
+            const data = await apiRequest(`/expiring-soon?${params.toString()}`);
+            return data;
+        } catch (e) {
+            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Supplier>;
         }
     }, []);
 
@@ -611,10 +659,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData,
             getAllPharmacySettings, getPharmacyData, clearPharmacyData,
             advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement,
-            addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, getPaginatedInventory,
+            addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, getPaginatedInventory, getPaginatedExpiringSoon,
             addSale, updateSale, deleteSale,
-            addSupplier, updateSupplier, deleteSupplier,
-            addPatient, updatePatient, deletePatient,
+            addSupplier, updateSupplier, deleteSupplier, getPaginatedSuppliers,
+            addPatient, updatePatient, deletePatient, getPaginatedPatients,
             addPayment,
             addPurchaseOrder,
             addReturnOrder,

@@ -51,6 +51,7 @@ import { DollarSign, FileText, Truck, Undo2, Wallet, Scale, MoreHorizontal, Penc
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
+import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 
 type StatementItem = {
