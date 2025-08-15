@@ -40,11 +40,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import type { PurchaseOrder, Medication, Supplier, ReturnOrder, PurchaseOrderItem, ReturnOrderItem } from "@/lib/types"
+import type { PurchaseOrder, Medication, Supplier, ReturnOrder, PurchaseOrderItem, ReturnOrderItem, PaginatedResponse } from "@/lib/types"
 import { PlusCircle, ChevronDown, Trash2, X, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton"
+
 
 const fileToDataUri = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -60,13 +62,18 @@ const dosage_forms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cr
 
 export default function PurchasesPage() {
   const { toast } = useToast()
-  const { scopedData, addSupplier, addPurchaseOrder, addReturnOrder } = useAuth();
+  const { 
+      scopedData, 
+      addSupplier, 
+      addPurchaseOrder, 
+      addReturnOrder,
+      getPaginatedPurchaseOrders,
+      getPaginatedReturnOrders
+    } = useAuth();
   
   const {
       inventory: [inventory],
       suppliers: [suppliers],
-      purchaseOrders: [purchaseOrders],
-      supplierReturns: [supplierReturns],
   } = scopedData;
 
 
@@ -89,45 +96,69 @@ export default function PurchasesPage() {
   const [returnItemQuantity, setReturnItemQuantity] = React.useState("1");
   const [returnItemReason, setReturnItemReason] = React.useState("");
 
+  // Pagination and search for Purchase History
+  const [purchaseHistory, setPurchaseHistory] = React.useState<PurchaseOrder[]>([]);
+  const [purchaseTotalPages, setPurchaseTotalPages] = React.useState(1);
+  const [purchaseCurrentPage, setPurchaseCurrentPage] = React.useState(1);
+  const [purchasePerPage, setPurchasePerPage] = React.useState(10);
+  const [purchaseLoading, setPurchaseLoading] = React.useState(true);
+  const [purchaseSearchTerm, setPurchaseSearchTerm] = React.useState('');
+  
+  // Pagination and search for Return History
+  const [returnHistory, setReturnHistory] = React.useState<ReturnOrder[]>([]);
+  const [returnTotalPages, setReturnTotalPages] = React.useState(1);
+  const [returnCurrentPage, setReturnCurrentPage] = React.useState(1);
+  const [returnPerPage, setReturnPerPage] = React.useState(10);
+  const [returnLoading, setReturnLoading] = React.useState(true);
+  const [returnSearchTerm, setReturnSearchTerm] = React.useState('');
 
-  // State for advanced search
-  const [purchaseHistorySearchTerm, setPurchaseHistorySearchTerm] = React.useState('');
-  const [returnHistorySearchTerm, setReturnHistorySearchTerm] = React.useState('');
-  const [filteredPurchaseOrders, setFilteredPurchaseOrders] = React.useState<PurchaseOrder[]>([]);
-  const [filteredSupplierReturns, setFilteredSupplierReturns] = React.useState<ReturnOrder[]>([]);
 
   const [supplier_name, setSupplierName] = React.useState("");
   const [supplierContact, setSupplierContact] = React.useState("");
+  const [activeTab, setActiveTab] = React.useState("new-purchase");
+
+
+  const fetchPurchaseHistory = React.useCallback(async (page: number, limit: number, search: string) => {
+    setPurchaseLoading(true);
+    try {
+        const data = await getPaginatedPurchaseOrders(page, limit, search);
+        setPurchaseHistory(data.data);
+        setPurchaseTotalPages(data.last_page);
+        setPurchaseCurrentPage(data.current_page);
+    } catch(e) {} finally {
+        setPurchaseLoading(false);
+    }
+  }, [getPaginatedPurchaseOrders]);
+
+  const fetchReturnHistory = React.useCallback(async (page: number, limit: number, search: string) => {
+    setReturnLoading(true);
+    try {
+        const data = await getPaginatedReturnOrders(page, limit, search);
+        setReturnHistory(data.data);
+        setReturnTotalPages(data.last_page);
+        setReturnCurrentPage(data.current_page);
+    } catch(e) {} finally {
+        setReturnLoading(false);
+    }
+  }, [getPaginatedReturnOrders]);
 
   React.useEffect(() => {
-    const term = purchaseHistorySearchTerm.toLowerCase().trim();
-    if (!term) {
-      setFilteredPurchaseOrders(purchaseOrders);
-    } else {
-      const filtered = (purchaseOrders || []).filter(po => 
-        String(po.id).toLowerCase().includes(term) ||
-        po.supplier_name.toLowerCase().startsWith(term) ||
-        po.date.includes(term) ||
-        (po.items || []).some(item => (item.name || '').toLowerCase().startsWith(term))
-      );
-      setFilteredPurchaseOrders(filtered);
+    if (activeTab === 'purchase-history') {
+        const handler = setTimeout(() => {
+            fetchPurchaseHistory(purchaseCurrentPage, purchasePerPage, purchaseSearchTerm);
+        }, 300);
+        return () => clearTimeout(handler);
     }
-  }, [purchaseHistorySearchTerm, purchaseOrders]);
-
+  }, [activeTab, purchaseCurrentPage, purchasePerPage, purchaseSearchTerm, fetchPurchaseHistory]);
+  
   React.useEffect(() => {
-    const term = returnHistorySearchTerm.toLowerCase().trim();
-    if (!term) {
-      setFilteredSupplierReturns(supplierReturns);
-    } else {
-      const filtered = (supplierReturns || []).filter(ret => 
-        String(ret.id).toLowerCase().includes(term) ||
-        ret.supplier_name.toLowerCase().startsWith(term) ||
-        ret.date.includes(term) ||
-        (ret.items || []).some(item => (item.name || '').toLowerCase().startsWith(term))
-      );
-      setFilteredSupplierReturns(filtered);
+    if (activeTab === 'return-history') {
+        const handler = setTimeout(() => {
+            fetchReturnHistory(returnCurrentPage, returnPerPage, returnSearchTerm);
+        }, 300);
+        return () => clearTimeout(handler);
     }
-  }, [returnHistorySearchTerm, supplierReturns]);
+  }, [activeTab, returnCurrentPage, returnPerPage, returnSearchTerm, fetchReturnHistory]);
 
 
   const toggleRow = (id: string) => {
@@ -172,6 +203,7 @@ export default function PurchasesPage() {
         setPurchaseId('');
         setPurchaseSupplierId('');
         setPurchaseItems([]);
+        fetchPurchaseHistory(1, purchasePerPage, ''); // Refresh history
     }
   }
 
@@ -294,6 +326,7 @@ export default function PurchasesPage() {
       setReturnSupplierId("");
       setReturnCart([]);
       setIsReturnInfoLocked(false);
+      fetchReturnHistory(1, returnPerPage, ''); // Refresh history
     }
   }
 
@@ -525,7 +558,7 @@ function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdi
   };
 
   return (
-     <Tabs defaultValue="new-purchase" className="w-full">
+     <Tabs defaultValue="new-purchase" onValueChange={setActiveTab} className="w-full">
       <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto md:h-10">
         <TabsTrigger value="new-purchase">استلام بضاعة</TabsTrigger>
         <TabsTrigger value="purchase-history">سجل المشتريات</TabsTrigger>
@@ -638,8 +671,8 @@ function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdi
             <div className="pt-4">
               <Input 
                 placeholder="ابحث برقم القائمة، اسم المورد، التاريخ، أو اسم المادة..."
-                value={purchaseHistorySearchTerm}
-                onChange={(e) => setPurchaseHistorySearchTerm(e.target.value)}
+                value={purchaseSearchTerm}
+                onChange={(e) => setPurchaseSearchTerm(e.target.value)}
                 className="max-w-lg"
               />
             </div>
@@ -657,7 +690,11 @@ function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdi
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {filteredPurchaseOrders.length > 0 ? filteredPurchaseOrders.map(po => (
+                    {purchaseLoading ? Array.from({ length: 5 }).map((_, i) => (
+                        <TableRow key={`skel-purchase-${i}`}>
+                            <TableCell colSpan={6}><Skeleton className="h-5 w-full" /></TableCell>
+                        </TableRow>
+                    )) : purchaseHistory.length > 0 ? purchaseHistory.map(po => (
                         <React.Fragment key={po.id}>
                             <TableRow onClick={() => toggleRow(po.id)} className="cursor-pointer bg-muted/30 font-semibold">
                                 <TableCell className="font-mono">{po.id}</TableCell>
@@ -692,6 +729,29 @@ function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdi
                     )}
                 </TableBody>
             </Table>
+            <div className="flex items-center justify-between pt-4">
+                <span className="text-sm text-muted-foreground">
+                    صفحة {purchaseCurrentPage} من {purchaseTotalPages}
+                </span>
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPurchaseCurrentPage(p => Math.max(p - 1, 1))}
+                        disabled={purchaseCurrentPage === 1 || purchaseLoading}
+                    >
+                        السابق
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPurchaseCurrentPage(p => Math.min(p + 1, purchaseTotalPages))}
+                        disabled={purchaseCurrentPage === purchaseTotalPages || purchaseLoading}
+                    >
+                        التالي
+                    </Button>
+                </div>
+            </div>
           </CardContent>
         </Card>
       </TabsContent>
@@ -811,8 +871,8 @@ function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdi
              <div className="pt-4">
               <Input 
                 placeholder="ابحث برقم القائمة، اسم المورد، التاريخ، أو اسم المادة..."
-                value={returnHistorySearchTerm}
-                onChange={(e) => setReturnHistorySearchTerm(e.target.value)}
+                value={returnSearchTerm}
+                onChange={(e) => setReturnSearchTerm(e.target.value)}
                 className="max-w-lg"
               />
             </div>
@@ -830,7 +890,11 @@ function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdi
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {filteredSupplierReturns.length > 0 ? filteredSupplierReturns.map(ret => (
+                    {returnLoading ? Array.from({ length: 5 }).map((_, i) => (
+                        <TableRow key={`skel-return-${i}`}>
+                            <TableCell colSpan={6}><Skeleton className="h-5 w-full" /></TableCell>
+                        </TableRow>
+                    )) : returnHistory.length > 0 ? returnHistory.map(ret => (
                         <React.Fragment key={ret.id}>
                             <TableRow onClick={() => toggleRow(ret.id)} className="cursor-pointer bg-muted/30 font-semibold">
                                 <TableCell className="font-mono">{ret.id}</TableCell>
@@ -865,12 +929,37 @@ function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdi
                     )}
                 </TableBody>
             </Table>
+            <div className="flex items-center justify-between pt-4">
+                <span className="text-sm text-muted-foreground">
+                    صفحة {returnCurrentPage} من {returnTotalPages}
+                </span>
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setReturnCurrentPage(p => Math.max(p - 1, 1))}
+                        disabled={returnCurrentPage === 1 || returnLoading}
+                    >
+                        السابق
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setReturnCurrentPage(p => Math.min(p + 1, returnTotalPages))}
+                        disabled={returnCurrentPage === returnTotalPages || returnLoading}
+                    >
+                        التالي
+                    </Button>
+                </div>
+            </div>
           </CardContent>
         </Card>
       </TabsContent>
     </Tabs>
   )
 }
+
+    
 
     
 

@@ -27,7 +27,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import type { Sale, SaleItem } from '@/lib/types';
+import type { Sale, SaleItem, User, PaginatedResponse } from '@/lib/types';
 import { InvoiceTemplate } from '@/components/ui/invoice';
 import { Printer, DollarSign, TrendingUp, ChevronDown, Trash2, Pencil } from 'lucide-react';
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,8 @@ import AdCarousel from '@/components/ui/ad-carousel';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { buttonVariants } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 // Modern print function that works with React 18+
 const printElement = (element: HTMLElement, title: string = 'Print') => {
@@ -99,23 +101,48 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
 };
 
 export default function ReportsPage() {
-    const { currentUser, scopedData, deleteSale, setActiveInvoice } = useAuth();
-    const [sales, setSales] = scopedData.sales;
-
-    // const [sales] = scopedData.sales;
+    const { currentUser, users, scopedData, deleteSale, setActiveInvoice, getPaginatedSales } = useAuth();
     const [settings] = scopedData.settings;
+    
+    const [sales, setSales] = React.useState<Sale[]>([]);
+    const [totalPages, setTotalPages] = React.useState(1);
+    const [currentPage, setCurrentPage] = React.useState(1);
+    const [perPage, setPerPage] = React.useState(10);
+    const [loading, setLoading] = React.useState(true);
+    
     const [searchTerm, setSearchTerm] = React.useState("");
     const [isClient, setIsClient] = React.useState(false);
     const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
     const [dateFrom, setDateFrom] = React.useState<string>("");
     const [dateTo, setDateTo] = React.useState<string>("");
+    const [employeeId, setEmployeeId] = React.useState<string>("all");
+    
     const router = useRouter();
 
     const canManagePreviousSales = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_previous_sales;
 
+    const fetchData = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string, empId: string) => {
+        setLoading(true);
+        try {
+            const data = await getPaginatedSales(page, limit, search, from, to, empId);
+            setSales(data.data);
+            setTotalPages(data.last_page);
+            setCurrentPage(data.current_page);
+        } catch (error) {
+            console.error("Failed to fetch sales", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [getPaginatedSales]);
+
     React.useEffect(() => {
         setIsClient(true);
-    }, []);
+        const handler = setTimeout(() => {
+            fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId);
+        }, 300);
+        return () => clearTimeout(handler);
+    }, [currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, fetchData]);
+    
 
     const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
     const [selectedSale, setSelectedSale] = React.useState<Sale | null>(null);
@@ -146,12 +173,13 @@ export default function ReportsPage() {
         setSearchTerm("");
         setDateFrom("");
         setDateTo("");
+        setEmployeeId("all");
     };
 
     const handleDeleteSale = async (saleId: string) => {
         const success = await deleteSale(saleId);
         if (success) {
-            setSales(prev => prev.filter(s => s.id !== saleId));
+            fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId);
         }
     }
 
@@ -172,43 +200,20 @@ export default function ReportsPage() {
         }
     };
 
-    const filteredSales = (sales || []).filter(sale => {
-        const term = searchTerm.toLowerCase().trim();
-        const saleDate = parseISO(sale.date);
-        
-        let dateMatch = true;
-        if (dateFrom && dateTo) {
-            const from = new Date(dateFrom);
-            const to = new Date(dateTo);
-to.setHours(23, 59, 59, 999);
-            dateMatch = isWithinInterval(saleDate, { start: from, end: to });
-        } else if (dateFrom) {
-            dateMatch = saleDate >= new Date(dateFrom);
-        } else if (dateTo) {
-            const to = new Date(dateTo);
-to.setHours(23, 59, 59, 999);
-            dateMatch = saleDate <= to;
-        }
-
-        const searchMatch = !term ? true : (
-            sale.id?.toString().toLowerCase().includes(term) ||
-            (sale.patientName || '').toLowerCase().startsWith(term) ||
-            (sale.items || []).some(item => item.name.toLowerCase().startsWith(term)) ||
-            (term === 'مرتجع' && (sale.items || []).some(item => item.is_return))
-        );
-
-        return dateMatch && searchMatch;
-    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    
-    const totalSalesValue = filteredSales.reduce((acc, sale) => {
+    const totalSalesValue = sales.reduce((acc, sale) => {
         const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
         return acc + (isNaN(total) ? 0 : total);
     }, 0);
-    const totalProfit = filteredSales.reduce((acc, sale) => {
+    const totalProfit = sales.reduce((acc, sale) => {
         const  total = (typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0))) -
         (typeof sale.discount === 'number' ? sale.discount : parseFloat(String(sale.discount || 0)));
         return acc + (isNaN(total) ? 0 : total);
     }, 0);
+    
+    const pharmacyUsers = React.useMemo(() => {
+        return users.filter(u => u.pharmacy_id === currentUser?.pharmacy_id);
+    }, [users, currentUser]);
+
 
     if (!isClient) {
         return (
@@ -267,7 +272,7 @@ to.setHours(23, 59, 59, 999);
             <div className="grid gap-4 md:grid-cols-3">
                 <Card className="flex flex-col justify-center">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">إجمالي قيمة المبيعات</CardTitle>
+                        <CardTitle className="text-sm font-medium">إجمالي قيمة المبيعات (المعروضة)</CardTitle>
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -276,7 +281,7 @@ to.setHours(23, 59, 59, 999);
                 </Card>
                 <Card className="flex flex-col justify-center">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">صافي الربح</CardTitle>
+                        <CardTitle className="text-sm font-medium">صافي الربح (المعروض)</CardTitle>
                         <TrendingUp className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
@@ -293,7 +298,7 @@ to.setHours(23, 59, 59, 999);
                     <CardTitle>سجل المبيعات</CardTitle>
                     <CardDescription>عرض وطباعة جميع فواتير المبيعات السابقة. اضغط على الصف لعرض التفاصيل.</CardDescription>
                      <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
-                        <div className="space-y-2 md:col-span-2">
+                        <div className="space-y-2">
                             <Label htmlFor="search-term">بحث</Label>
                             <Input 
                                 id="search-term"
@@ -309,6 +314,20 @@ to.setHours(23, 59, 59, 999);
                         <div className="space-y-2">
                             <Label htmlFor="date-to">إلى تاريخ</Label>
                             <Input id="date-to" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="employee-filter">الموظف</Label>
+                            <Select value={employeeId} onValueChange={setEmployeeId}>
+                                <SelectTrigger id="employee-filter">
+                                    <SelectValue placeholder="اختر موظفًا"/>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">كل الموظفين</SelectItem>
+                                    {pharmacyUsers.map(user => (
+                                        <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                      <div className="pt-2">
@@ -330,7 +349,18 @@ to.setHours(23, 59, 59, 999);
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredSales.length > 0 ? filteredSales.map((sale) => (
+                            {loading ? Array.from({ length: perPage }).map((_, i) => (
+                                <TableRow key={`skel-${i}`}>
+                                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-9 w-24" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-5" /></TableCell>
+                                </TableRow>
+                            )) : sales.length > 0 ? sales.map((sale) => (
                                 <React.Fragment key={sale.id}>
                                     <TableRow onClick={() => toggleRow(sale.id)} className="cursor-pointer">
                                         <TableCell className="font-medium font-mono">{sale.id}</TableCell>
@@ -424,6 +454,29 @@ to.setHours(23, 59, 59, 999);
                             )}
                         </TableBody>
                     </Table>
+                    <div className="flex items-center justify-between pt-4">
+                        <span className="text-sm text-muted-foreground">
+                            صفحة {currentPage} من {totalPages}
+                        </span>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                                disabled={currentPage === 1 || loading}
+                            >
+                                السابق
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                                disabled={currentPage === totalPages || loading}
+                            >
+                                التالي
+                            </Button>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -455,3 +508,5 @@ to.setHours(23, 59, 59, 999);
         </div>
     )
 }
+
+    

@@ -71,12 +71,15 @@ interface AuthContextType {
     deleteMedication: (medId: string) => Promise<boolean>;
     bulkAddOrUpdateInventory: (items: Partial<Medication>[]) => Promise<boolean>;
     getPaginatedInventory: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Medication>>;
-    getPaginatedExpiringSoon: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Medication>>;
+    
+    // Expiring Soon
+    getPaginatedExpiringSoon: (page: number, perPage: number, search: string, type: 'expiring' | 'expired') => Promise<PaginatedResponse<Medication>>;
 
     // Sales
     addSale: (saleData: any) => Promise<Sale | null>;
     updateSale: (saleData: any) => Promise<Sale | null>;
     deleteSale: (saleId: string) => Promise<boolean>;
+    getPaginatedSales: (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string) => Promise<PaginatedResponse<Sale>>;
     
     // Suppliers
     addSupplier: (data: Partial<Supplier>) => Promise<Supplier | null>;
@@ -96,11 +99,17 @@ interface AuthContextType {
     // Purchases and Returns
     addPurchaseOrder: (data: any) => Promise<boolean>;
     addReturnOrder: (data: any) => Promise<boolean>;
+    getPaginatedPurchaseOrders: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<PurchaseOrder>>;
+    getPaginatedReturnOrders: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<ReturnOrder>>;
     
     // Trash
     restoreItem: (itemId: string) => Promise<boolean>;
     permDelete: (itemId: string) => Promise<boolean>;
     clearTrash: () => Promise<boolean>;
+    getPaginatedTrash: (page: number, perPage: number) => Promise<PaginatedResponse<TrashItem>>;
+    
+    // Users (for SuperAdmin)
+    getPaginatedUsers: (role: 'Admin' | 'Employee', page: number, perPage: number, search: string) => Promise<PaginatedResponse<User>>;
     
     activeInvoice: ActiveInvoice;
     setActiveInvoice: React.Dispatch<React.SetStateAction<ActiveInvoice>>;
@@ -403,6 +412,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Medication>;
         }
     }, []);
+    
+    const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage: number, search: string, type: 'expiring' | 'expired') => {
+        try {
+            const params = new URLSearchParams({
+                paginate: "true",
+                page: String(page),
+                per_page: String(perPage),
+                search: search,
+                type: type,
+            });
+            const data = await apiRequest(`/expiring-soon?${params.toString()}`);
+            return data;
+        } catch (e) {
+            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Medication>;
+        }
+    }, []);
 
     const getPaginatedPatients = React.useCallback(async (page: number, perPage: number, search: string) => {
         try {
@@ -433,21 +458,80 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Supplier>;
         }
     }, []);
-
-    const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage: number, search: string) => {
+    
+    const getPaginatedTrash = React.useCallback(async (page: number, perPage: number) => {
         try {
             const params = new URLSearchParams({
-                paginate: "true",
+                page: String(page),
+                per_page: String(perPage),
+            });
+            const data = await apiRequest(`/trash?${params.toString()}`);
+            return data;
+        } catch (e) {
+            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<TrashItem>;
+        }
+    }, []);
+    
+    const getPaginatedUsers = React.useCallback(async (role: 'Admin' | 'Employee', page: number, perPage: number, search: string) => {
+        try {
+            const params = new URLSearchParams({
+                role,
+                page: String(page),
+                per_page: String(perPage),
+                search,
+            });
+            const data = await apiRequest(`/users?${params.toString()}`);
+            return data;
+        } catch (e) {
+            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<User>;
+        }
+    }, []);
+    
+    const getPaginatedSales = React.useCallback(async (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string) => {
+        try {
+            const params = new URLSearchParams({
+                page: String(page),
+                per_page: String(perPage),
+                search: search,
+                date_from: dateFrom,
+                date_to: dateTo,
+                employee_id: employeeId,
+            });
+            const data = await apiRequest(`/sales?${params.toString()}`);
+            return data;
+        } catch (e) {
+            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Sale>;
+        }
+    }, []);
+
+    const getPaginatedPurchaseOrders = React.useCallback(async (page: number, perPage: number, search: string) => {
+        try {
+            const params = new URLSearchParams({
                 page: String(page),
                 per_page: String(perPage),
                 search: search,
             });
-            const data = await apiRequest(`/expiring-soon?${params.toString()}`);
+            const data = await apiRequest(`/purchase-orders?${params.toString()}`);
             return data;
         } catch (e) {
-            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Supplier>;
+            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<PurchaseOrder>;
         }
     }, []);
+    
+    const getPaginatedReturnOrders = React.useCallback(async (page: number, perPage: number, search: string) => {
+        try {
+            const params = new URLSearchParams({
+                page: String(page),
+                per_page: String(perPage),
+                search: search,
+            });
+            const data = await apiRequest(`/return-orders?${params.toString()}`);
+            return data;
+        } catch (e) {
+            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<ReturnOrder>;
+        }
+    }, []);
+
 
     const addMedication = async (data: Partial<Medication>) => {
         try {
@@ -659,14 +743,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData,
             getAllPharmacySettings, getPharmacyData, clearPharmacyData,
             advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement,
-            addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, getPaginatedInventory, getPaginatedExpiringSoon,
-            addSale, updateSale, deleteSale,
+            addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, getPaginatedInventory, 
+            getPaginatedExpiringSoon,
+            addSale, updateSale, deleteSale, getPaginatedSales,
             addSupplier, updateSupplier, deleteSupplier, getPaginatedSuppliers,
             addPatient, updatePatient, deletePatient, getPaginatedPatients,
             addPayment,
             addPurchaseOrder,
-            addReturnOrder,
-            restoreItem, permDelete, clearTrash,
+            addReturnOrder, getPaginatedPurchaseOrders, getPaginatedReturnOrders,
+            restoreItem, permDelete, clearTrash, getPaginatedTrash,
+            getPaginatedUsers,
             activeInvoice, setActiveInvoice, resetActiveInvoice
         }}>
             {children}
@@ -681,3 +767,5 @@ export function useAuth() {
   }
   return context;
 }
+
+    
