@@ -389,6 +389,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const getPaginatedInventory = React.useCallback(async (page: number, perPage: number, search: string) => {
         try {
             const params = new URLSearchParams({
+                paginate: true,
                 page: String(page),
                 per_page: String(perPage),
                 search: search,

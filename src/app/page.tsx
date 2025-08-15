@@ -384,12 +384,12 @@ export default function Dashboard() {
                           </TableHeader>
                           <TableBody>
                               {reorder_pointItems.length > 0 ? reorder_pointItems.map(item => (
-                                  <TableRow key={item.id}>
+                                  <TableRow key={item.id} className="text-right">
                                       <TableCell className="font-medium">{item.name}</TableCell>
                                       <TableCell>
                                         <Badge variant="destructive" className="font-mono">{item.stock}</Badge>
                                       </TableCell>
-                                      <TableCell className="text-right">
+                                      <TableCell>
                                         <div className="font-medium">{item.reorder_point}</div>
                                       </TableCell>
                                   </TableRow>
