@@ -401,7 +401,7 @@ export default function SalesPage() {
             const existingItem = prevCart.find(item => item.id === medication.id && !item.is_return)
 
             if (existingItem) {
-                 if (existingItem.quantity >= medication.stock) {
+                if (existingItem.quantity >= medication.stock) {
                     toast({ variant: 'destructive', title: 'كمية غير كافية', description: `لا يمكن إضافة المزيد من ${medication.name}. الرصيد المتوفر: ${medication.stock}` });
                     return prevCart;
                 }

@@ -17,7 +17,7 @@ import Link from 'next/link';
 const editSuperAdminSchema = z.object({
     name: z.string().min(3, { message: "الاسم مطلوب" }),
     email: z.string().email({ message: "بريد إلكتروني غير صالح" }),
-    pin: z.string().optional().refine(val => val === '', { message: "رمز PIN يجب أن يكون 6 رموز على الأقل" }),
+    pin: z.string().optional().refine(val => !val || val.length >= 6, { message: "رمز PIN يجب أن يكون 6 رموز على الأقل" }),
     confirmPin: z.string().optional(),
 }).refine(data => {
     if (data.pin) {
@@ -88,7 +88,7 @@ export default function SuperAdminAccountPage() {
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                             <FormField control={form.control} name="email" render={({ field }) => (
+                            <FormField control={form.control} name="email" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>البريد الإلكتروني</FormLabel>
                                     <FormControl><Input type="email" {...field} /></FormControl>
@@ -96,14 +96,14 @@ export default function SuperAdminAccountPage() {
                                 </FormItem>
                             )} />
                             <p className="text-sm text-muted-foreground pt-2">اترك حقول رمز PIN فارغة إذا كنت لا ترغب في تغييره.</p>
-                             <FormField control={form.control} name="pin" render={({ field }) => (
+                            <FormField control={form.control} name="pin" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>رمز PIN الجديد</FormLabel>
-                                    <FormControl><Input type="password"   {...field} /></FormControl>
+                                    <FormControl><Input type="password" {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                             <FormField control={form.control} name="confirmPin" render={({ field }) => (
+                            <FormField control={form.control} name="confirmPin" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>تأكيد رمز PIN الجديد</FormLabel>
                                     <FormControl><Input type="password"   {...field} /></FormControl>
@@ -112,7 +112,7 @@ export default function SuperAdminAccountPage() {
                             )} />
                         </CardContent>
                         <CardFooter className="gap-2">
-                             <Button type="button" variant="outline" asChild>
+                            <Button type="button" variant="outline" asChild>
                                 <Link href="/superadmin">إلغاء</Link>
                             </Button>
                             <Button type="submit" variant="success">حفظ التغييرات</Button>
