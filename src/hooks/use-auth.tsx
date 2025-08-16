@@ -276,7 +276,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const data: AuthResponse = await apiRequest('/login', 'POST', { email, pin });
             setAllData(data);
             if (data.user.role !== 'SuperAdmin' && data.user.role !== 'Admin') {
-                const newTimeLog = await apiRequest('/time-logs', 'POST', {});
+                const newTimeLog = await apiRequest('/time-logs', 'POST', {user_id: data.user.id, clock_in: new Date().toISOString()});
                 setActiveTimeLogId(newTimeLog.id);
             }
             return data.user;
