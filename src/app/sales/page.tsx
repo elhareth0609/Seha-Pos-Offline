@@ -340,11 +340,24 @@ const getExpirationBadge = (expiration_date: string | undefined, threshold: numb
 };
 
 export default function SalesPage() {
-  const { currentUser, scopedData, activeInvoice, setActiveInvoice, resetActiveInvoice, addPatient, addSale, updateSale, deleteSale } = useAuth();
-  const [allInventory] = scopedData.inventory;
-  const [sales, setSales] = scopedData.sales;
-  const [patients] = scopedData.patients;
+  const { 
+    currentUser, 
+    scopedData, 
+    activeInvoice, 
+    setActiveInvoice, 
+    resetActiveInvoice, 
+    addPatient, 
+    addSale, 
+    updateSale, 
+    deleteSale,
+    searchAllInventory,
+    searchAllSales,
+    searchAllPatients
+  } = useAuth();
+
   const [settings] = scopedData.settings;
+  const [allInventory, setAllInventory] = React.useState<Medication[]>([]);
+
   const { cart, discountType, discountValue, patientId, paymentMethod, saleIdToUpdate, reviewIndex } = activeInvoice;
   const setCart = (updater: (prev: SaleItem[]) => SaleItem[]) => {
       setActiveInvoice(prev => ({ ...prev, cart: updater(prev.cart) }));
@@ -361,8 +374,10 @@ export default function SalesPage() {
 
   const [isPatientModalOpen, setIsPatientModalOpen] = React.useState(false);
   const [patientSearchTerm, setPatientSearchTerm] = React.useState("");
+  const [patientSuggestions, setPatientSuggestions] = React.useState<Patient[]>([]);
   const [newPatientName, setNewPatientName] = React.useState("");
   const [newPatientPhone, setNewPatientPhone] = React.useState("");
+  const [sortedSales, setSortedSales] = React.useState<Sale[]>([]);
 
 
   const mode = saleIdToUpdate ? 'review' : 'new';
@@ -380,7 +395,14 @@ export default function SalesPage() {
             printElement(printComponentRef.current, `invoice-${saleToPrint?.id}`);
         }
     };
-    const sortedSales = React.useMemo(() => (sales || []).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [sales]);
+    
+    React.useEffect(() => {
+        async function fetchInitialSales() {
+            const initialSales = await searchAllSales();
+            setSortedSales(initialSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        }
+        fetchInitialSales();
+    }, [searchAllSales]);
 
     const addToCart = React.useCallback((medication: Medication) => {
         if (mode !== 'new') return;
@@ -427,11 +449,13 @@ export default function SalesPage() {
         })
         setSearchTerm("")
         setSuggestions([])
-    }, [mode, setCart, toast, allInventory])
+    }, [mode, setCart, toast])
   
-  const handleScan = React.useCallback((result: string) => {
+  const handleScan = React.useCallback(async (result: string) => {
     if (mode !== 'new') return;
-    const scannedMedication = allInventory.find(med => (med.barcodes || []).includes(result));
+    const results = await searchAllInventory(result);
+    const scannedMedication = results.find(med => (med.barcodes || []).includes(result));
+    
     if (scannedMedication) {
       addToCart(scannedMedication);
       toast({ title: 'تمت الإضافة إلى السلة', description: `تمت إضافة ${scannedMedication.name} بنجاح.` });
@@ -439,16 +463,16 @@ export default function SalesPage() {
       toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'الباركود الممسوح ضوئيًا لا يتطابق مع أي منتج.' });
     }
     setIsScannerOpen(false);
-  }, [addToCart, allInventory, mode, toast]);
+  }, [addToCart, mode, toast, searchAllInventory]);
 
 
   React.useEffect(() => {
     if (mode !== 'new') return;
 
-    const handler = setTimeout(() => {
+    const handler = setTimeout(async () => {
         if (searchTerm.length > 5 && suggestions.length === 0) {
-            const lowercasedSearchTerm = searchTerm.toLowerCase();
-            const medicationByBarcode = allInventory.find(med => med.barcodes && med.barcodes.some(bc => bc.toLowerCase() === lowercasedSearchTerm));
+            const results = await searchAllInventory(searchTerm);
+            const medicationByBarcode = results.find(med => med.barcodes && med.barcodes.some(bc => bc.toLowerCase() === searchTerm.toLowerCase()));
             if (medicationByBarcode) {
                 addToCart(medicationByBarcode);
             }
@@ -458,27 +482,24 @@ export default function SalesPage() {
     return () => {
         clearTimeout(handler);
     };
-  }, [searchTerm, suggestions, allInventory, addToCart, mode]);
+  }, [searchTerm, suggestions, addToCart, mode, searchAllInventory]);
 
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
 
     if (value.length > 0) {
-        const lowercasedFilter = value.toLowerCase().trim();
-        const filtered = (allInventory || []).filter((item) =>
-            (item.name && item.name.toLowerCase().startsWith(lowercasedFilter)) ||
-            (item.barcodes && item.barcodes.some(barcode => barcode.toLowerCase().startsWith(lowercasedFilter))) ||
-            (item.scientific_names && item.scientific_names.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
-        );
-        setSuggestions(filtered.slice(0, 5));
+        const results = await searchAllInventory(value);
+        setSuggestions(results.slice(0, 5));
+        setAllInventory(results);
     } else {
         setSuggestions([]);
+        setAllInventory([]);
     }
   }
 
-  const handleSearchKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleSearchKeyDown = React.useCallback(async (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (mode !== 'new') return;
     if (event.key === 'Enter') {
         event.preventDefault();
@@ -488,15 +509,16 @@ export default function SalesPage() {
             return;
         }
         
+        const results = await searchAllInventory(searchTerm);
         const lowercasedSearchTerm = searchTerm.toLowerCase();
         
-        const medicationByBarcode = allInventory.find(med => med.barcodes && med.barcodes.some(bc => bc.toLowerCase() === lowercasedSearchTerm));
+        const medicationByBarcode = results.find(med => med.barcodes && med.barcodes.some(bc => bc.toLowerCase() === lowercasedSearchTerm));
         if (medicationByBarcode) {
             addToCart(medicationByBarcode);
             return;
         }
         
-        const medicationByName = allInventory.find(med => med.name && med.name.toLowerCase() === lowercasedSearchTerm);
+        const medicationByName = results.find(med => med.name && med.name.toLowerCase() === lowercasedSearchTerm);
         if (medicationByName) {
             addToCart(medicationByName);
             return;
@@ -506,7 +528,7 @@ export default function SalesPage() {
             toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'يرجى التأكد من المعرف أو البحث بالاسم.' });
         }
     }
-  }, [suggestions, allInventory, searchTerm, addToCart, mode, toast]);
+  }, [suggestions, searchTerm, addToCart, mode, toast, searchAllInventory]);
 
   const updateQuantity = (id: string, newQuantityStr: string) => {
     const quantity = parseInt(newQuantityStr, 10);
@@ -568,18 +590,32 @@ export default function SalesPage() {
   const finalTotal = subtotal - discountAmount;
   const finalProfit = totalProfit - discountAmount;
 
-  const selectedPatient = React.useMemo(() => (patients || []).find(p => p.id === patientId), [patients, patientId]);
+  const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
+  React.useEffect(() => {
+      async function getPatient() {
+          if (patientId) {
+              const results = await searchAllPatients(patientId);
+              const patient = results.find(p => p.id === patientId);
+              setSelectedPatient(patient || null);
+          } else {
+              setSelectedPatient(null);
+          }
+      }
+      getPatient();
+  }, [patientId, searchAllPatients]);
 
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cart.length === 0) {
       toast({ title: "السلة فارغة", description: "أضف منتجات إلى السلة قبل إتمام العملية.", variant: "destructive" })
       return;
     }
     
+    const cartMeds = await searchAllInventory(cart.map(i => i.id).join(','));
+
     for (const itemInCart of cart) {
         if (!itemInCart.is_return) {
-            const med = allInventory.find(m => m.id === itemInCart.id);
+            const med = cartMeds.find(m => m.id === itemInCart.id);
             if (!med || med.stock < itemInCart.quantity) {
                 toast({ variant: 'destructive', title: `كمية غير كافية من ${itemInCart.name}`, description: `الكمية المطلوبة ${itemInCart.quantity}, المتوفر ${med?.stock ?? 0}` });
                 return;
@@ -613,6 +649,8 @@ export default function SalesPage() {
         setSaleToPrint(resultSale);
         setIsCheckoutOpen(false);
         setIsReceiptOpen(true);
+        const latestSales = await searchAllSales();
+        setSortedSales(latestSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     }
   }
 
@@ -620,7 +658,7 @@ export default function SalesPage() {
     if (!saleIdToUpdate) return;
     const success = await deleteSale(saleIdToUpdate);
     if(success) {
-        setSales(prev => prev.filter(s => s.id !== saleIdToUpdate));
+        setSortedSales(prev => prev.filter(s => s.id !== saleIdToUpdate));
         handleNewInvoiceClick();
         toast({ title: "تم حذف الفاتورة" });
     }
@@ -644,7 +682,7 @@ export default function SalesPage() {
   };
 
   const handleNextInvoice = () => {
-    if (reviewIndex && reviewIndex > 0) {
+    if (reviewIndex != null && reviewIndex > 0) {
         loadSaleForReview(reviewIndex - 1);
     }
   };
@@ -652,7 +690,7 @@ export default function SalesPage() {
   const handlePreviousInvoice = () => {
     if (mode === 'new' && sortedSales.length > 0) {
         loadSaleForReview(0);
-    } else if (mode === 'review' && reviewIndex && reviewIndex < sortedSales.length - 1) {
+    } else if (mode === 'review' && reviewIndex != null && reviewIndex < sortedSales.length - 1) {
         loadSaleForReview(reviewIndex + 1);
     }
   };
@@ -675,10 +713,18 @@ export default function SalesPage() {
       }
   }
 
-  const filteredPatients = (patients || []).filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()));
+  const handlePatientSearch = async (term: string) => {
+    setPatientSearchTerm(term);
+    if(term) {
+        const results = await searchAllPatients(term);
+        setPatientSuggestions(results);
+    } else {
+        setPatientSuggestions([]);
+    }
+  }
 
   const findAlternatives = (currentItem: SaleItem): Medication[] => {
-    if (!currentItem.scientific_names || currentItem.scientific_names.length === 0) {
+    if (!allInventory || !currentItem.scientific_names || currentItem.scientific_names.length === 0) {
         return [];
     }
     const currentScientificNames = currentItem.scientific_names.map(s => s.toLowerCase());
@@ -774,7 +820,7 @@ export default function SalesPage() {
                     <CardHeader className="py-4">
                         <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
                             <CardTitle className="text-xl">
-                                {mode === 'new' ? 'الفاتورة الحالية' : `تعديل الفاتورة #${reviewIndex ? sortedSales[reviewIndex]?.id : ''}`}
+                                {mode === 'new' ? 'الفاتورة الحالية' : `تعديل الفاتورة #${reviewIndex != null ? sortedSales[reviewIndex]?.id : ''}`}
                             </CardTitle>
                             <div className="flex items-center gap-2">
                                 {(mode === 'review' || (mode === 'new' && sortedSales.length > 0)) && (
@@ -783,11 +829,11 @@ export default function SalesPage() {
                                             onClick={handlePreviousInvoice} 
                                             variant="outline" 
                                             size="icon" 
-                                            disabled={mode === 'review' && reviewIndex != null && reviewIndex !== undefined && reviewIndex >= sortedSales.length - 1}
+                                            disabled={mode === 'review' && reviewIndex != null && reviewIndex >= sortedSales.length - 1}
 >
                                             <span className="sr-only">السابق</span> <ArrowRight/>
                                         </Button>
-                                        <Button onClick={handleNextInvoice} variant="outline" size="icon" disabled={mode === 'review' && reviewIndex != null && reviewIndex !== undefined && reviewIndex <= 0}>
+                                        <Button onClick={handleNextInvoice} variant="outline" size="icon" disabled={mode === 'review' && reviewIndex != null && reviewIndex <= 0}>
                                             <span className="sr-only">التالي</span> <ArrowLeft/>
                                         </Button>
                                     </>
@@ -811,7 +857,7 @@ export default function SalesPage() {
                         <>
                             <div className="md:hidden divide-y divide-border">
                                 {cart.map((item) => {
-                                    const medInInventory = allInventory.find(med => med.id === item.id);
+                                    const medInInventory = allInventory?.find(med => med.id === item.id);
                                     const stock = medInInventory?.stock ?? 0;
                                     const remainingStock = stock - (item.quantity || 0);
                                     const isBelowCost = (item.price || 0) < (item.purchase_price || 0);
@@ -889,7 +935,7 @@ export default function SalesPage() {
                               </TableHeader>
                               <TableBody>
                                   {cart.map((item) => {
-                                    const medInInventory = allInventory.find(med => med.id === item.id);
+                                    const medInInventory = allInventory?.find(med => med.id === item.id);
                                     const stock = medInInventory?.stock ?? 0;
                                     const remainingStock = stock - (item.quantity || 0);
                                     const isBelowCost = (item.price || 0) < (item.purchase_price || 0);
@@ -1013,9 +1059,9 @@ export default function SalesPage() {
                                       <DialogTitle>تحديد أو إضافة صديق للصيدلية</DialogTitle>
                                   </DialogHeader>
                                   <div className="space-y-4">
-                                      <Input placeholder="ابحث بالاسم..." value={patientSearchTerm} onChange={(e) => setPatientSearchTerm(e.target.value)} />
+                                      <Input placeholder="ابحث بالاسم..." value={patientSearchTerm} onChange={(e) => handlePatientSearch(e.target.value)} />
                                       <ScrollArea className="h-48 border rounded-md">
-                                          {(filteredPatients || []).map(p => (
+                                          {patientSuggestions.map(p => (
                                               <div key={p.id} onClick={() => { setActiveInvoice(prev => ({...prev, patientId: p.id})); setIsPatientModalOpen(false); }}
                                                   className="p-2 hover:bg-accent cursor-pointer">
                                                   {p.name}
