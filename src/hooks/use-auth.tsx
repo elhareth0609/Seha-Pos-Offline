@@ -71,6 +71,7 @@ interface AuthContextType {
     deleteMedication: (medId: string) => Promise<boolean>;
     bulkAddOrUpdateInventory: (items: Partial<Medication>[]) => Promise<boolean>;
     getPaginatedInventory: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Medication>>;
+    searchAllInventory: (search: string) => Promise<Medication[]>;
     
     // Expiring Soon
     getPaginatedExpiringSoon: (page: number, perPage: number, search: string, type: 'expiring' | 'expired') => Promise<{
@@ -87,6 +88,7 @@ interface AuthContextType {
     updateSale: (saleData: any) => Promise<Sale | null>;
     deleteSale: (saleId: string) => Promise<boolean>;
     getPaginatedSales: (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string) => Promise<PaginatedResponse<Sale>>;
+    searchAllSales: (search?: string) => Promise<Sale[]>;
     
     // Suppliers
     addSupplier: (data: Partial<Supplier>) => Promise<Supplier | null>;
@@ -99,6 +101,7 @@ interface AuthContextType {
     updatePatient: (patientId: string, data: Partial<Patient>) => Promise<boolean>;
     deletePatient: (patientId: string) => Promise<boolean>;
     getPaginatedPatients: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Patient>>;
+    searchAllPatients: (search: string) => Promise<Patient[]>;
 
     // Payments
     addPayment: (supplier_id: string, amount: number, notes?: string) => Promise<boolean>;
@@ -419,6 +422,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Medication>;
         }
     }, []);
+
+    const searchAllInventory = React.useCallback(async (search: string) => {
+        try {
+            const params = new URLSearchParams({ search });
+            return await apiRequest(`/medications?${params.toString()}`);
+        } catch (e) {
+            return [];
+        }
+    }, []);
     
 const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage: number, search: string, type: 'expiring' | 'expired') => {
     try {
@@ -436,7 +448,6 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             expiringMedicationsLength: response.expiringMedicationsLength,
             current_page: response.data.current_page,
             last_page: response.data.last_page,
-            // 添加 PaginatedResponse 接口需要的其他属性
         };
     } catch (e) {
         return {
@@ -445,7 +456,6 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             expiringMedicationsLength: 0,
             current_page: 1,
             last_page: 1,
-            // 添加 PaginatedResponse 接口需要的其他属性
         };
     }
 }, []);
@@ -462,6 +472,15 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             return data;
         } catch (e) {
             return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Patient>;
+        }
+    }, []);
+    
+    const searchAllPatients = React.useCallback(async (search: string) => {
+        try {
+            const params = new URLSearchParams({ search });
+            return await apiRequest(`/patients?${params.toString()}`);
+        } catch (e) {
+            return [];
         }
     }, []);
 
@@ -525,6 +544,15 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             return data;
         } catch (e) {
             return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Sale>;
+        }
+    }, []);
+
+    const searchAllSales = React.useCallback(async (search: string = "") => {
+        try {
+            const params = new URLSearchParams({ search });
+            return await apiRequest(`/sales?${params.toString()}`);
+        } catch (e) {
+            return [];
         }
     }, []);
 
@@ -597,7 +625,12 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         try {
             const { sale: newSale, updated_inventory } = await apiRequest('/sales', 'POST', saleData);
             setSales(prev => [newSale, ...prev]);
-            setInventory(updated_inventory);
+            if (updated_inventory && Array.isArray(updated_inventory)) {
+                setInventory(prev => {
+                    const updatedInventoryMap = new Map(updated_inventory.map((item: Medication) => [item.id, item]));
+                    return prev.map(item => updatedInventoryMap.get(item.id) || item);
+                });
+            }
             return newSale;
         } catch (e) { return null; }
     }
@@ -606,7 +639,12 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         try {
             const { sale: updatedSale, updated_inventory } = await apiRequest(`/sales/${saleData.id}`, 'PUT', saleData);
             setSales(prev => prev.map(s => s.id === updatedSale.id ? updatedSale : s));
-            setInventory(updated_inventory);
+            if (updated_inventory && Array.isArray(updated_inventory)) {
+                setInventory(prev => {
+                    const updatedInventoryMap = new Map(updated_inventory.map((item: Medication) => [item.id, item]));
+                    return prev.map(item => updatedInventoryMap.get(item.id) || item);
+                });
+            }
             return updatedSale;
         } catch (e) { return null; }
     }
@@ -614,7 +652,12 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     const deleteSale = async (saleId: string) => {
         try {
             const { updated_inventory } = await apiRequest(`/sales/${saleId}`, 'DELETE');
-            setInventory(updated_inventory);
+            if (updated_inventory && Array.isArray(updated_inventory)) {
+                setInventory(prev => {
+                    const updatedInventoryMap = new Map(updated_inventory.map((item: Medication) => [item.id, item]));
+                    return prev.map(item => updatedInventoryMap.get(item.id) || item);
+                });
+            }
             return true;
         } catch (e) { return false; }
     }
@@ -769,11 +812,11 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData,
             getAllPharmacySettings, getPharmacyData, clearPharmacyData,
             advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement,
-            addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, getPaginatedInventory, 
+            addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, getPaginatedInventory, searchAllInventory,
             getPaginatedExpiringSoon,
-            addSale, updateSale, deleteSale, getPaginatedSales,
+            addSale, updateSale, deleteSale, getPaginatedSales, searchAllSales,
             addSupplier, updateSupplier, deleteSupplier, getPaginatedSuppliers,
-            addPatient, updatePatient, deletePatient, getPaginatedPatients,
+            addPatient, updatePatient, deletePatient, getPaginatedPatients, searchAllPatients,
             addPayment,
             addPurchaseOrder,
             addReturnOrder, getPaginatedPurchaseOrders, getPaginatedReturnOrders,
@@ -793,5 +836,3 @@ export function useAuth() {
   }
   return context;
 }
-
-    
