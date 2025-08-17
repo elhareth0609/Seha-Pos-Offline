@@ -1,51 +1,121 @@
-
 "use client"
-
 import * as React from "react"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import type { Medication, Sale, PurchaseOrder, ReturnOrder } from "@/lib/types"
+import type { Medication, TransactionHistoryItem } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Repeat, PackageSearch, ArrowUp, ArrowDown, ShoppingCart, Truck, Undo2, RotateCcw } from "lucide-react"
-import { useAuth } from "@/hooks/use-auth"
-
-type TransactionHistoryItem = {
-    date: string;
-    type: 'شراء' | 'بيع' | 'مرتجع زبون' | 'مرتجع للمورد';
-    quantity: number; // positive for in, negative for out
-    price: number;
-    balance: number;
-    documentId: string;
-    actor: string;
-};
+import { API_URL, useAuth } from "@/hooks/use-auth"
+import { toast } from "@/hooks/use-toast"
+import { Button } from "@/components/ui/button"
 
 export default function ItemMovementPage() {
-    const { scopedData } = useAuth();
-    const [inventory] = scopedData.inventory;
-    const [sales] = scopedData.sales;
-    const [purchaseOrders] = scopedData.purchaseOrders;
-    const [supplierReturns] = scopedData.supplierReturns;
+    const { 
+        scopedData, 
+        getMedicationMovements,
+        getPaginatedItemMovements 
+    } = useAuth();
     
+    const [inventory] = scopedData.inventory;
+    const [currentPage, setCurrentPage] = React.useState(1);
+    const [perPage, setPerPage] = React.useState(10);
+    const [loading, setLoading] = React.useState(true);
+    const [totalPages, setTotalPages] = React.useState(1);
     const [isClient, setIsClient] = React.useState(false);
     const [searchTerm, setSearchTerm] = React.useState("");
     const [suggestions, setSuggestions] = React.useState<Medication[]>([]);
     const [selectedMed, setSelectedMed] = React.useState<Medication | null>(null);
     const [transactions, setTransactions] = React.useState<TransactionHistoryItem[]>([]);
+
+    // Function to fetch medication movements from API
+    const fetchMedicationMovements = React.useCallback(async (medicationId: string, page: number, limit: number) => {
+        setLoading(true);
+        try {
+            const response = await getPaginatedItemMovements(page, limit, medicationId);
+            setTransactions(response.data);
+            setTotalPages(response.last_page);
+            setCurrentPage(response.current_page);
+        } catch (error) {
+            console.error("Failed to fetch medication movements", error);
+            toast({ variant: "destructive", title: "فشل تحميل حركة المادة" });
+        } finally {
+            setLoading(false);
+        }
+    }, [getPaginatedItemMovements, toast]);
+
+    async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?: object) {
+        const token = localStorage.getItem('authToken');
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+    
+        try {
+            const response = await fetch(`${API_URL}${endpoint}`, {
+                method,
+                headers,
+                body: body ? JSON.stringify(body) : undefined,
+            });
+    
+            if (response.status === 204) return null;
+    
+            const responseData = await response.json();
+            
+            if (!response.ok) {
+                const errorMessage = responseData.message || 'An API error occurred';
+                throw new Error(errorMessage);
+            }
+    
+            return responseData.data ?? responseData;
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'خطأ في الشبكة', description: error.message });
+            throw error;
+        }
+    }
+    
+    // Function to fetch inventory (all medications)
+    const fetchInventory = React.useCallback(async (search: string) => {
+        setLoading(true);
+        try {
+            // Use the inventory endpoint instead of item movements
+            const params = new URLSearchParams({
+                paginate: "true",
+                page: "1",
+                per_page: "20",
+                search: search,
+            });
+            const response = await apiRequest(`/medications?${params.toString()}`);
+            
+            // Check if response contains medication data
+            if (response.data && response.data.length > 0 && response.data[0].name) {
+                // This is inventory data
+                setSuggestions(response.data.slice(0, 5));
+            }
+        } catch (error) {
+            console.error("Failed to fetch inventory", error);
+            toast({ variant: "destructive", title: "فشل تحميل المخزون" });
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     React.useEffect(() => {
         setIsClient(true);
@@ -54,75 +124,38 @@ export default function ItemMovementPage() {
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setSearchTerm(value);
+        
         if (value.length > 0) {
-            const lowercasedFilter = value.toLowerCase();
-            const filtered = inventory.filter(item => 
-                (item.name || '').toLowerCase().startsWith(lowercasedFilter) || 
-                String(item.id).toLowerCase().includes(lowercasedFilter) ||
-                (item.barcodes && item.barcodes.some(barcode => barcode.toLowerCase().includes(lowercasedFilter))) ||
-                (item.scientific_names && item.scientific_names.some(name => name.toLowerCase().startsWith(lowercasedFilter)))
-            );
-            setSuggestions(filtered.slice(0, 5));
+            fetchInventory(value);
         } else {
             setSuggestions([]);
         }
     };
 
-    const handleSelectMed = (med: Medication) => {
+    const handleSelectMed = async (med: Medication) => {
         setSelectedMed(med);
         setSearchTerm("");
         setSuggestions([]);
-
-        const purchases = purchaseOrders
-            .flatMap(po => (po.items || []).map(item => ({ ...item, date: po.date, supplier_name: po.supplier_name, documentId: po.id })))
-            .filter(item => item.medication_id === med.id)
-            .map(item => ({
-                date: item.date,
-                type: 'شراء' as const,
-                quantity: item.quantity,
-                price: item.purchase_price,
-                documentId: item.documentId,
-                actor: item.supplier_name,
-            }));
-
-        const saleEvents = sales
-            .flatMap(s => (s.items || []).map(item => ({ ...item, date: s.date, patientName: s.patientName || 'زبون', documentId: s.id })))
-            .filter(item => item.medication_id === med.id)
-            .map(item => ({
-                date: item.date,
-                type: item.is_return ? 'مرتجع زبون' as const : 'بيع' as const,
-                quantity: item.is_return ? item.quantity : -item.quantity,
-                price: item.price,
-                documentId: item.documentId,
-                actor: item.patientName,
-            }));
-
-        const returnsToSupplier = supplierReturns
-            .flatMap(r => (r.items || []).map(item => ({ ...item, date: r.date, supplier_name: r.supplier_name, documentId: r.id })))
-            .filter(item => item.medication_id === med.id)
-            .map(item => ({
-                date: item.date,
-                type: 'مرتجع للمورد' as const,
-                quantity: -item.quantity,
-                price: item.purchase_price,
-                documentId: item.documentId,
-                actor: item.supplier_name,
-            }));
         
-        const allEvents = [...purchases, ...saleEvents, ...returnsToSupplier]
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        // Reset to first page when selecting a new medication
+        setCurrentPage(1);
         
-        let runningBalance = 0;
-        const transactionsWithBalance = allEvents.map(event => {
-            runningBalance += event.quantity;
-            return {
-                ...event,
-                balance: runningBalance,
-            };
-        });
-
-        setTransactions(transactionsWithBalance.reverse());
+        // Fetch data for the selected medication using its ID
+        await fetchMedicationMovements(med.id.toString(), 1, perPage);
     };
+
+    const handleClearSelection = () => {
+        setSelectedMed(null);
+        setSearchTerm("");
+        setTransactions([]);
+    };
+
+    // Handle pagination
+    React.useEffect(() => {
+        if (selectedMed) {
+            fetchMedicationMovements(selectedMed.id.toString(), currentPage, perPage);
+        }
+    }, [currentPage, perPage, selectedMed, fetchMedicationMovements]);
 
     const getTypeBadge = (type: TransactionHistoryItem['type']) => {
         switch (type) {
@@ -169,12 +202,20 @@ export default function ItemMovementPage() {
                     </div>
                 </div>
                 <div className="pt-4 relative">
-                    <Input 
-                        placeholder="ابحث بالاسم التجاري، العلمي أو الباركود..."
-                        value={searchTerm}
-                        onChange={handleSearchChange}
-                        className="max-w-lg"
-                    />
+                    <div className="flex gap-2">
+                        <Input 
+                            placeholder="ابحث بالاسم التجاري، العلمي أو الباركود..."
+                            value={searchTerm}
+                            onChange={handleSearchChange}
+                            className="max-w-lg"
+                            disabled={!!selectedMed}
+                        />
+                        {selectedMed && (
+                            <Button variant="outline" onClick={handleClearSelection}>
+                                إلغاء الاختيار
+                            </Button>
+                        )}
+                    </div>
                     {suggestions.length > 0 && (
                         <Card className="absolute z-50 w-full mt-1 bg-background shadow-lg border max-w-lg">
                             <CardContent className="p-0">
@@ -204,52 +245,88 @@ export default function ItemMovementPage() {
                         <p>الرجاء اختيار دواء لعرض سجله.</p>
                     </div>
                 ) : (
-                    <div className="space-y-6">
-                        <Card className="bg-muted/50">
-                            <CardHeader>
-                                <CardTitle>{selectedMed.name}</CardTitle>
-                                <CardDescription>الرصيد الحالي في المخزون: <span className="font-bold text-foreground font-mono">{selectedMed.stock}</span></CardDescription>
-                            </CardHeader>
-                        </Card>
-
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>التاريخ</TableHead>
-                                    <TableHead>النوع</TableHead>
-                                    <TableHead>الكمية</TableHead>
-                                    <TableHead>رصيد المخزون</TableHead>
-                                    <TableHead>السعر</TableHead>
-                                    <TableHead>المصدر/الوجهة</TableHead>
-                                    <TableHead>رقم المستند</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {transactions.length > 0 ? transactions.map((item, index) => (
-                                    <TableRow key={index}>
-                                        <TableCell className="font-mono">{new Date(item.date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</TableCell>
-                                        <TableCell>{getTypeBadge(item.type)}</TableCell>
-                                        <TableCell className={`font-medium font-mono ${item.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                            <div className="flex items-center gap-1">
-                                                {item.quantity > 0 ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
-                                                {Math.abs(item.quantity)}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="font-mono">{item.balance}</TableCell>
-                                        <TableCell className="font-mono">{item.price.toLocaleString()}</TableCell>
-                                        <TableCell>{item.actor}</TableCell>
-                                        <TableCell className="font-mono">{item.documentId}</TableCell>
-                                    </TableRow>
-                                )) : (
+                    <>
+                        <div className="space-y-6">
+                            <Card className="bg-muted/50">
+                                <CardHeader>
+                                    <CardTitle>{selectedMed.name}</CardTitle>
+                                    <CardDescription>الرصيد الحالي في المخزون: <span className="font-bold text-foreground font-mono">{selectedMed.stock}</span></CardDescription>
+                                </CardHeader>
+                            </Card>
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                                            لا توجد حركات مسجلة لهذا الدواء.
-                                        </TableCell>
+                                        <TableHead>التاريخ</TableHead>
+                                        <TableHead>النوع</TableHead>
+                                        <TableHead>الكمية</TableHead>
+                                        <TableHead>رصيد المخزون</TableHead>
+                                        <TableHead>السعر</TableHead>
+                                        <TableHead>المصدر/الوجهة</TableHead>
+                                        <TableHead>رقم المستند</TableHead>
                                     </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                </TableHeader>
+                                <TableBody>
+                                {loading ? Array.from({ length: perPage }).map((_, i) => (
+                                    <TableRow key={`skel-${i}`}>
+                                        <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                                        <TableCell><div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-sm" /><div className="space-y-2"><Skeleton className="h-4 w-40" /><Skeleton className="h-3 w-24" /></div></div></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
+                                        <TableCell><Skeleton className="h-6 w-28" /></TableCell>
+                                        <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                                    </TableRow>
+                                )) : transactions.length > 0 ? transactions.map((item) => (
+                                        <TableRow key={item.id}>
+                                            <TableCell className="font-mono">{new Date(item.date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</TableCell>
+                                            <TableCell>{getTypeBadge(item.type)}</TableCell>
+                                            <TableCell className={`font-medium font-mono ${item.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                <div className="flex items-center gap-1">
+                                                    {item.quantity > 0 ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+                                                    {Math.abs(item.quantity)}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="font-mono">{item.balance}</TableCell>
+                                            <TableCell className="font-mono">{item.price.toLocaleString()}</TableCell>
+                                            <TableCell>{item.actor}</TableCell>
+                                            <TableCell className="font-mono">{item.documentId}</TableCell>
+                                        </TableRow>
+                                    )) : (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                                                لا توجد حركات مسجلة لهذا الدواء.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        <div className="flex items-center justify-between pt-4">
+                            <span className="text-sm text-muted-foreground">
+                                الصفحة {currentPage} من {totalPages}
+                            </span>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1 || loading}
+                                >
+                                    السابق
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    disabled={currentPage === totalPages || loading}
+                                >
+                                    التالي
+                                </Button>
+                            </div>
+                        </div>
+                    </>
                 )}
             </CardContent>
         </Card>

@@ -227,4 +227,13 @@ export type PaginatedResponse<T> = {
   total: number;
 };
 
-    
+export type TransactionHistoryItem = {
+  id: string; // Changed from number to string to match backend
+  date: string;
+  type: 'شراء' | 'بيع' | 'مرتجع زبون' | 'مرتجع للمورد';
+  quantity: number; // positive for in, negative for out
+  price: number;
+  balance: number;
+  documentId: string;
+  actor: string;
+};

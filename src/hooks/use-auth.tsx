@@ -2,11 +2,11 @@
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem, PaginatedResponse } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem, PaginatedResponse, TransactionHistoryItem } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://midgram-pos.sadeem-labs.com/api';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://midgram-pos.sadeem-labs.com/api';
 
 type AuthResponse = {
     token: string;
@@ -71,7 +71,7 @@ interface AuthContextType {
     deleteMedication: (medId: string) => Promise<boolean>;
     bulkAddOrUpdateInventory: (items: Partial<Medication>[]) => Promise<boolean>;
     getPaginatedInventory: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Medication>>;
-    
+
     // Expiring Soon
     getPaginatedExpiringSoon: (page: number, perPage: number, search: string, type: 'expiring' | 'expired') => Promise<{
         data: Medication[];
@@ -118,6 +118,9 @@ interface AuthContextType {
     // Users (for SuperAdmin)
     getPaginatedUsers: (role: 'Admin' | 'Employee', page: number, perPage: number, search: string) => Promise<PaginatedResponse<User>>;
     
+    getPaginatedItemMovements: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<TransactionHistoryItem>>;
+    getMedicationMovements: (medId: string) => Promise<TransactionHistoryItem[]>;
+
     activeInvoice: ActiveInvoice;
     setActiveInvoice: React.Dispatch<React.SetStateAction<ActiveInvoice>>;
     resetActiveInvoice: () => void;
@@ -420,35 +423,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
     
-const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage: number, search: string, type: 'expiring' | 'expired') => {
-    try {
-        const params = new URLSearchParams({
-            paginate: "true",
-            page: String(page),
-            per_page: String(perPage),
-            search: search,
-            type: type,
-        });
-        const response = await apiRequest(`/expiring-soon?${params.toString()}`);
-        return {
-            data: response.data.data,
-            expiredMedicationsLength: response.expiredMedicationsLength,
-            expiringMedicationsLength: response.expiringMedicationsLength,
-            current_page: response.data.current_page,
-            last_page: response.data.last_page,
-            // 添加 PaginatedResponse 接口需要的其他属性
-        };
-    } catch (e) {
-        return {
-            data: [],
-            expiredMedicationsLength: 0,
-            expiringMedicationsLength: 0,
-            current_page: 1,
-            last_page: 1,
-            // 添加 PaginatedResponse 接口需要的其他属性
-        };
-    }
-}, []);
+    const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage: number, search: string, type: 'expiring' | 'expired') => {
+        try {
+            const params = new URLSearchParams({
+                paginate: "true",
+                page: String(page),
+                per_page: String(perPage),
+                search: search,
+                type: type,
+            });
+            const response = await apiRequest(`/expiring-soon?${params.toString()}`);
+            return {
+                data: response.data.data,
+                expiredMedicationsLength: response.expiredMedicationsLength,
+                expiringMedicationsLength: response.expiringMedicationsLength,
+                current_page: response.data.current_page,
+                last_page: response.data.last_page,
+                // 添加 PaginatedResponse 接口需要的其他属性
+            };
+        } catch (e) {
+            return {
+                data: [],
+                expiredMedicationsLength: 0,
+                expiringMedicationsLength: 0,
+                current_page: 1,
+                last_page: 1,
+                // 添加 PaginatedResponse 接口需要的其他属性
+            };
+        }
+    }, []);
+
+
+    // Add this new function
+    const getMedicationMovements = React.useCallback(async (medicationId: string) => {
+        try {
+            const data = await apiRequest(`/medications/${medicationId}/movements`);
+            return data;
+        } catch (e) {
+            return { data: [] };
+        }
+    }, []);
+
+    // Update getPaginatedItemMovements to handle medication_id
+    const getPaginatedItemMovements = React.useCallback(async (page: number, perPage: number, search: string, medicationId?: string) => {
+        try {
+            const params = new URLSearchParams({
+                paginate: "true",
+                page: String(page),
+                per_page: String(perPage),
+                search: search,
+                ...(medicationId && { medication_id: medicationId })
+            });
+            const data = await apiRequest(`/item-movements?${params.toString()}`);
+            return data;
+        } catch (e) {
+            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<TransactionHistoryItem>;
+        }
+    }, []);
+
 
     const getPaginatedPatients = React.useCallback(async (page: number, perPage: number, search: string) => {
         try {
@@ -771,6 +803,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement,
             addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, getPaginatedInventory, 
             getPaginatedExpiringSoon,
+            getPaginatedItemMovements, getMedicationMovements,
             addSale, updateSale, deleteSale, getPaginatedSales,
             addSupplier, updateSupplier, deleteSupplier, getPaginatedSuppliers,
             addPatient, updatePatient, deletePatient, getPaginatedPatients,
