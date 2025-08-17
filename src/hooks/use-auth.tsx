@@ -6,7 +6,7 @@ import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Sup
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://midgram-pos.sadeem-labs.com/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://midgram-pos.sadeem-labs.com/api';
 
 type AuthResponse = {
     token: string;
@@ -121,7 +121,7 @@ interface AuthContextType {
     // Users (for SuperAdmin)
     getPaginatedUsers: (role: 'Admin' | 'Employee', page: number, perPage: number, search: string) => Promise<PaginatedResponse<User>>;
     
-    getPaginatedItemMovements: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<TransactionHistoryItem>>;
+    getPaginatedItemMovements: (page: number, perPage: number, search: string, medication_id: string) => Promise<PaginatedResponse<TransactionHistoryItem>>;
     getMedicationMovements: (medId: string) => Promise<TransactionHistoryItem[]>;
 
     activeInvoice: ActiveInvoice;

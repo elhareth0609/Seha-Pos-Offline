@@ -20,15 +20,15 @@ import { Input } from "@/components/ui/input"
 import type { Medication, TransactionHistoryItem } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Repeat, PackageSearch, ArrowUp, ArrowDown, ShoppingCart, Truck, Undo2, RotateCcw } from "lucide-react"
-import { API_URL, useAuth } from "@/hooks/use-auth"
 import { toast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function ItemMovementPage() {
     const { 
         scopedData, 
-        getMedicationMovements,
-        getPaginatedItemMovements 
+        getPaginatedItemMovements,
+        getMedicationMovements
     } = useAuth();
     
     const [inventory] = scopedData.inventory;
@@ -41,12 +41,12 @@ export default function ItemMovementPage() {
     const [suggestions, setSuggestions] = React.useState<Medication[]>([]);
     const [selectedMed, setSelectedMed] = React.useState<Medication | null>(null);
     const [transactions, setTransactions] = React.useState<TransactionHistoryItem[]>([]);
-
+    
     // Function to fetch medication movements from API
     const fetchMedicationMovements = React.useCallback(async (medicationId: string, page: number, limit: number) => {
         setLoading(true);
         try {
-            const response = await getPaginatedItemMovements(page, limit, medicationId);
+            const response = await getPaginatedItemMovements(page, limit, "", medicationId);
             setTransactions(response.data);
             setTotalPages(response.last_page);
             setCurrentPage(response.current_page);
@@ -57,7 +57,8 @@ export default function ItemMovementPage() {
             setLoading(false);
         }
     }, [getPaginatedItemMovements, toast]);
-
+    
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://midgram-pos.sadeem-labs.com/api';
     async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?: object) {
         const token = localStorage.getItem('authToken');
         const headers: HeadersInit = {
@@ -116,11 +117,11 @@ export default function ItemMovementPage() {
             setLoading(false);
         }
     }, []);
-
+    
     React.useEffect(() => {
         setIsClient(true);
     }, []);
-
+    
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setSearchTerm(value);
@@ -131,7 +132,7 @@ export default function ItemMovementPage() {
             setSuggestions([]);
         }
     };
-
+    
     const handleSelectMed = async (med: Medication) => {
         setSelectedMed(med);
         setSearchTerm("");
@@ -141,22 +142,25 @@ export default function ItemMovementPage() {
         setCurrentPage(1);
         
         // Fetch data for the selected medication using its ID
-        await fetchMedicationMovements(med.id.toString(), 1, perPage);
+        const response = await getPaginatedItemMovements(1, perPage, "", med.id.toString());
+        setTransactions(response.data);
+        setTotalPages(response.last_page);
+        setCurrentPage(response.current_page);
     };
-
+    
     const handleClearSelection = () => {
         setSelectedMed(null);
         setSearchTerm("");
         setTransactions([]);
     };
-
-    // Handle pagination
+    
+    // Handle pagination - only run when selectedMed, currentPage, or perPage changes
     React.useEffect(() => {
         if (selectedMed) {
             fetchMedicationMovements(selectedMed.id.toString(), currentPage, perPage);
         }
-    }, [currentPage, perPage, selectedMed, fetchMedicationMovements]);
-
+    }, [currentPage, perPage, selectedMed]); // Removed fetchMedicationMovements from dependencies to prevent infinite loop
+    
     const getTypeBadge = (type: TransactionHistoryItem['type']) => {
         switch (type) {
             case 'شراء':
@@ -171,7 +175,7 @@ export default function ItemMovementPage() {
                 return <Badge>{type}</Badge>;
         }
     };
-
+    
     if (!isClient) {
         return (
             <Card>
