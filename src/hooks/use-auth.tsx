@@ -653,7 +653,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     const addSale = async (saleData: any) => {
         try {
             const { sale: newSale, updated_inventory } = await apiRequest('/sales', 'POST', saleData);
-            setSales(prev => [newSale, ...prev]);
+            // setSales(prev => [newSale, ...prev]);
             if (updated_inventory && Array.isArray(updated_inventory)) {
                 setInventory(prev => {
                     const updatedInventoryMap = new Map(updated_inventory.map((item: Medication) => [item.id, item]));
@@ -667,7 +667,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     const updateSale = async (saleData: any) => {
         try {
             const { sale: updatedSale, updated_inventory } = await apiRequest(`/sales/${saleData.id}`, 'PUT', saleData);
-            setSales(prev => prev.map(s => s.id === updatedSale.id ? updatedSale : s));
+            // setSales(prev => prev.map(s => s.id === updatedSale.id ? updatedSale : s));
             if (updated_inventory && Array.isArray(updated_inventory)) {
                 setInventory(prev => {
                     const updatedInventoryMap = new Map(updated_inventory.map((item: Medication) => [item.id, item]));
