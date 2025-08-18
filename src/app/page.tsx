@@ -138,7 +138,7 @@ export default function Dashboard() {
           quantity: data.quantity,
       }))
       .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 5);
+      .slice(0, 10);
   }, [sales, inventory]);
 
   const salesPerformance = React.useMemo(() => {
@@ -478,7 +478,7 @@ export default function Dashboard() {
           <Card>
             <CardHeader>
                 <CardTitle>الأدوية الأكثر مبيعًا</CardTitle>
-                <CardDescription>أفضل 5 أدوية مبيعًا حسب الكمية.</CardDescription>
+                <CardDescription>أفضل 10 أدوية مبيعًا حسب الكمية.</CardDescription>
             </CardHeader>
             <CardContent>
              <ScrollArea className="h-72">
@@ -511,5 +511,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    
