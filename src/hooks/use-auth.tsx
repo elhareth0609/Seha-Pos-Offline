@@ -5,6 +5,7 @@ import * as React from 'react';
 import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
+import { PinDialog } from '@/components/auth/PinDialog';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://midgram-pos.sadeem-labs.com/api';
 
@@ -135,6 +136,9 @@ interface AuthContextType {
     activeInvoice: ActiveInvoice;
     setActiveInvoice: React.Dispatch<React.SetStateAction<ActiveInvoice>>;
     resetActiveInvoice: () => void;
+    
+    verifyPin: (pin: string) => Promise<boolean>;
+    updateUserPinRequirement: (userId: string, requirePin: boolean) => Promise<void>;
 }
 
 export interface ScopedDataContextType {
@@ -872,6 +876,24 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             return true;
         } catch(e) { return false; }
     }
+    
+    const verifyPin = async (pin: string) => {
+        try {
+            const response = await apiRequest('/verify-pin', 'POST', { pin });
+            return response.valid;
+        } catch (e) {
+            return false;
+        }
+    };
+    
+    const updateUserPinRequirement = async (userId: string, requirePin: boolean) => {
+        try {
+            await apiRequest(`/users/${userId}/require-pin`, 'PUT', { require_pin_for_delete: requirePin });
+            setUsers(prev => prev.map(u => u.id === userId ? { ...u, require_pin_for_delete: requirePin } : u));
+            toast({ title: "تم تحديث إعدادات الأمان" });
+        } catch(e) {}
+    }
+
 
     const setScopedSettings = async (value: AppSettings | ((val: AppSettings) => AppSettings)) => {
        const newSettings = typeof value === 'function' ? value(settings) : value;
@@ -917,7 +939,8 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             getPaginatedExpenses, addExpense, updateExpense, deleteExpense,
             restoreItem, permDelete, clearTrash, getPaginatedTrash,
             getPaginatedUsers,
-            activeInvoice, setActiveInvoice, resetActiveInvoice
+            activeInvoice, setActiveInvoice, resetActiveInvoice,
+            verifyPin, updateUserPinRequirement,
         }}>
             {children}
         </AuthContext.Provider>
@@ -931,5 +954,3 @@ export function useAuth() {
   }
   return context;
 }
-
-    
