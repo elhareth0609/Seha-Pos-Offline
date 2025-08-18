@@ -361,7 +361,7 @@ export default function SalesPage() {
   const [settings] = scopedData.settings;
   const [allInventory, setAllInventory] = React.useState<Medication[]>([]);
 
-  const { cart, discountType, discountValue, patientId, paymentMethod, saleIdToUpdate, reviewIndex } = activeInvoice;
+  const { cart, discountType, discountValue, patientId, paymentMethod, saleIdToUpdate } = activeInvoice;
   const setCart = (updater: (prev: SaleItem[]) => SaleItem[]) => {
       setActiveInvoice(prev => ({ ...prev, cart: updater(prev.cart) }));
   };
@@ -530,17 +530,13 @@ export default function SalesPage() {
   const updateQuantity = (id: string, isReturn: boolean | undefined, newQuantityStr: string) => {
     const quantity = parseInt(newQuantityStr, 10);
     if (isNaN(quantity) || quantity < 0) return;
-    if (quantity === 0) return;
     
     setCart(cart => cart.map(item => (item.id === id && item.is_return === isReturn ? { ...item, quantity } : item)));
   };
 
   const updateTotalPrice = (id: string, isReturn: boolean | undefined, newTotalPriceStr: string) => {
-    if (newTotalPriceStr.trim() === '') {
-        setCart(cart => cart.map(item => (item.id === id && item.is_return === isReturn ? { ...item, price: 0 } : item)));
-        return;
-    }
-
+    if (!/^\d*\.?\d*$/.test(newTotalPriceStr)) return;
+    
     const newTotalPrice = parseFloat(newTotalPriceStr);
     if (isNaN(newTotalPrice) || newTotalPrice < 0) return;
 
@@ -798,7 +794,7 @@ export default function SalesPage() {
                             <CardTitle className="text-xl">
                                 {mode === 'new' && 'الفاتورة الحالية'}
                                 {mode === 'return' && 'فاتورة استرجاع'}
-                                {saleIdToUpdate && `تعديل الفاتورة #${reviewIndex != null ? sortedSales[reviewIndex]?.id : ''}`}
+                                {saleIdToUpdate && `تعديل الفاتورة #${saleIdToUpdate}`}
                             </CardTitle>
                             <div className="flex items-center gap-2">
                                 <Button onClick={handleNewInvoiceClick} variant={mode === 'new' ? 'secondary' : 'outline'}>
@@ -859,12 +855,12 @@ export default function SalesPage() {
                                             <div className="grid grid-cols-2 gap-3 items-end">
                                                 <div className="space-y-1">
                                                     <Label htmlFor={`quantity-sm-${item.id}`} className="text-xs">الكمية</Label>
-                                                    <Input id={`quantity-sm-${item.id}`} type="number" value={item.quantity || 1} min={1} onChange={(e) => updateQuantity(item.id, item.is_return, e.target.value)} className="h-9 text-center font-mono" />
+                                                    <Input id={`quantity-sm-${item.id}`} type="number" value={item.quantity || 1} min={0} onChange={(e) => updateQuantity(item.id, item.is_return, e.target.value)} className="h-9 text-center font-mono" />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <Label htmlFor={`price-sm-${item.id}`} className="text-xs">السعر الإجمالي</Label>
                                                     <div className="relative">
-                                                        <Input id={`price-sm-${item.id}`} type="number" value={((item.price || 0) * (item.quantity || 0))} onChange={(e) => updateTotalPrice(item.id, item.is_return, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={!priceModificationAllowed} />
+                                                        <Input id={`price-sm-${item.id}`} type="number" pattern="[0-9]*" value={((item.price || 0) * (item.quantity || 0))} onChange={(e) => updateTotalPrice(item.id, item.is_return, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={!priceModificationAllowed} />
                                                         {isBelowCost && !item.is_return && (
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
@@ -956,7 +952,7 @@ export default function SalesPage() {
                                                 type="number"
                                                 value={item.quantity || 1}
                                                 onChange={(e) => updateQuantity(item.id, item.is_return, e.target.value)}
-                                                min={1}
+                                                min={0}
                                                 className="w-20 h-9 text-center font-mono"
                                              />
                                             </TableCell>
@@ -964,6 +960,7 @@ export default function SalesPage() {
                                                 <div className="relative">
                                                     <Input 
                                                       type="number"
+                                                      pattern="[0-9]*"
                                                       value={((item.price || 0) * (item.quantity || 0))}
                                                       onChange={(e) => updateTotalPrice(item.id, item.is_return, e.target.value)} 
                                                       className={cn("w-24 h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )}
@@ -1238,5 +1235,3 @@ export default function SalesPage() {
     </>
   )
 }
-
-    
