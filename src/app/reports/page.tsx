@@ -116,15 +116,16 @@ export default function ReportsPage() {
     const [dateFrom, setDateFrom] = React.useState<string>("");
     const [dateTo, setDateTo] = React.useState<string>("");
     const [employeeId, setEmployeeId] = React.useState<string>("all");
+    const [paymentMethod, setPaymentMethod] = React.useState<string>("all");
     
     const router = useRouter();
 
     const canManagePreviousSales = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_previous_sales;
 
-    const fetchData = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string, empId: string) => {
+    const fetchData = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string, empId: string, pMethod: string) => {
         setLoading(true);
         try {
-            const data = await getPaginatedSales(page, limit, search, from, to, empId);
+            const data = await getPaginatedSales(page, limit, search, from, to, empId, pMethod);
             setSales(data.data);
             setTotalPages(data.last_page);
             setCurrentPage(data.current_page);
@@ -138,10 +139,10 @@ export default function ReportsPage() {
     React.useEffect(() => {
         setIsClient(true);
         const handler = setTimeout(() => {
-            fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId);
+            fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod);
         }, 300);
         return () => clearTimeout(handler);
-    }, [currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, fetchData]);
+    }, [currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, fetchData]);
     
 
     const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
@@ -174,27 +175,26 @@ export default function ReportsPage() {
         setDateFrom("");
         setDateTo("");
         setEmployeeId("all");
+        setPaymentMethod("all");
     };
 
     const handleDeleteSale = async (saleId: string) => {
         const success = await deleteSale(saleId);
         if (success) {
-            fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId);
+            fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod);
         }
     }
 
     const handleEditSale = (sale: Sale) => {
         const saleToEdit = sales.find(s => s.id === sale.id);
         if (saleToEdit) {
-            const saleIndex = sales.findIndex(s => s.id === sale.id);
             setActiveInvoice({
                 cart: saleToEdit.items.map((i: SaleItem) => ({...i, id: i.medication_id})),
                 discountValue: (saleToEdit.discount || 0).toString(),
-                discountType: 'fixed', // Assuming fixed for simplicity, might need to store type in Sale object
+                discountType: 'fixed',
                 patientId: saleToEdit.patient_id || null,
-                paymentMethod: 'cash', // Assuming cash, might need to store in Sale object
+                paymentMethod: 'cash',
                 saleIdToUpdate: saleToEdit.id,
-                reviewIndex: saleIndex,
             });
             router.push('/sales');
         }
@@ -297,8 +297,8 @@ export default function ReportsPage() {
                 <CardHeader>
                     <CardTitle>سجل المبيعات</CardTitle>
                     <CardDescription>عرض وطباعة جميع فواتير المبيعات السابقة. اضغط على الصف لعرض التفاصيل.</CardDescription>
-                     <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
-                        <div className="space-y-2">
+                     <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
+                        <div className="space-y-2 md:col-span-2">
                             <Label htmlFor="search-term">بحث</Label>
                             <Input 
                                 id="search-term"
@@ -326,6 +326,19 @@ export default function ReportsPage() {
                                     {pharmacyUsers.map(user => (
                                         <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                                     ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="payment-method-filter">طريقة الدفع</Label>
+                            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                                <SelectTrigger id="payment-method-filter">
+                                    <SelectValue placeholder="الكل"/>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">الكل</SelectItem>
+                                    <SelectItem value="cash">نقداً</SelectItem>
+                                    <SelectItem value="card">بطاقة إلكترونية</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
