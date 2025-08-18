@@ -70,15 +70,17 @@ interface AuthContextType {
     addMedication: (data: Partial<Medication>) => Promise<boolean>;
     updateMedication: (medId: string, data: Partial<Medication>) => Promise<boolean>;
     deleteMedication: (medId: string) => Promise<boolean>;
+    markAsDamaged: (medId: string) => Promise<boolean>;
     bulkAddOrUpdateInventory: (items: Partial<Medication>[]) => Promise<boolean>;
     getPaginatedInventory: (page: number, perPage: number, search: string, filters: Record<string, any>) => Promise<PaginatedResponse<Medication>>;
     searchAllInventory: (search: string) => Promise<Medication[]>;
     
     // Expiring Soon
-    getPaginatedExpiringSoon: (page: number, perPage: number, search: string, type: 'expiring' | 'expired') => Promise<{
+    getPaginatedExpiringSoon: (page: number, perPage: number, search: string, type: 'expiring' | 'expired' | 'damaged') => Promise<{
         data: Medication[];
         expiredMedicationsLength: number;
         expiringMedicationsLength: number;
+        damagedMedicationsLength: number;
         current_page: number;
         last_page: number;
     }>;
@@ -87,7 +89,7 @@ interface AuthContextType {
     addSale: (saleData: any) => Promise<Sale | null>;
     updateSale: (saleData: any) => Promise<Sale | null>;
     deleteSale: (saleId: string) => Promise<boolean>;
-    getPaginatedSales: (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string) => Promise<PaginatedResponse<Sale>>;
+    getPaginatedSales: (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string) => Promise<PaginatedResponse<Sale>>;
     searchAllSales: (search?: string) => Promise<Sale[]>;
     
     // Suppliers
@@ -445,7 +447,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
     
-const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage: number, search: string, type: 'expiring' | 'expired') => {
+const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage: number, search: string, type: 'expiring' | 'expired' | 'damaged') => {
     try {
         const params = new URLSearchParams({
             paginate: "true",
@@ -459,6 +461,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             data: response.data.data,
             expiredMedicationsLength: response.expiredMedicationsLength,
             expiringMedicationsLength: response.expiringMedicationsLength,
+            damagedMedicationsLength: response.damagedMedicationsLength,
             current_page: response.data.current_page,
             last_page: response.data.last_page,
         };
@@ -467,6 +470,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             data: [],
             expiredMedicationsLength: 0,
             expiringMedicationsLength: 0,
+            damagedMedicationsLength: 0,
             current_page: 1,
             last_page: 1,
         };
@@ -568,7 +572,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         }
     }, []);
     
-    const getPaginatedSales = React.useCallback(async (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string) => {
+    const getPaginatedSales = React.useCallback(async (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string) => {
         try {
             const params = new URLSearchParams({
                 paginate: "true",
@@ -578,6 +582,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
                 date_from: dateFrom,
                 date_to: dateTo,
                 employee_id: employeeId,
+                payment_method: paymentMethod,
             });
             const data = await apiRequest(`/sales?${params.toString()}`);
             return data;
@@ -649,6 +654,14 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             return true;
         } catch (e) { return false; }
     }
+    
+    const markAsDamaged = async (medId: string) => {
+        try {
+            await apiRequest(`/medications/${medId}/damage`, 'POST');
+            toast({ title: "تم نقل الدواء إلى قائمة التالف" });
+            return true;
+        } catch (e) { return false; }
+    };
     
     const bulkAddOrUpdateInventory = async (items: Partial<Medication>[]) => {
         try {
@@ -892,7 +905,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData,
             getAllPharmacySettings, getPharmacyData, clearPharmacyData,
             advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement,
-            addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, getPaginatedInventory, searchAllInventory,
+            addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, getPaginatedInventory, searchAllInventory, markAsDamaged,
             getPaginatedExpiringSoon,
             getPaginatedItemMovements, getMedicationMovements,
             addSale, updateSale, deleteSale, getPaginatedSales, searchAllSales,
@@ -918,3 +931,5 @@ export function useAuth() {
   }
   return context;
 }
+
+    

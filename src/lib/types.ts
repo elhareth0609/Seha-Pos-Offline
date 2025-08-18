@@ -32,6 +32,7 @@ export type Medication = {
   expiration_date: string;
   dosage?: string;
   dosage_form?: string;
+  status?: 'active' | 'damaged';
 };
 
 export type SaleItem = {
@@ -59,6 +60,7 @@ export type Sale = {
   patientName?: string;
   employee_id: string;
   employeeName: string;
+  payment_method: 'cash' | 'card';
 };
 
 export type PurchaseOrderItem = {
@@ -247,3 +249,5 @@ export type TransactionHistoryItem = {
   documentId: string;
   actor: string;
 };
+
+    
