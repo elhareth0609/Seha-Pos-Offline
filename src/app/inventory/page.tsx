@@ -95,8 +95,6 @@ export default function InventoryPage() {
   const [filterStockStatus, setFilterStockStatus] = React.useState<string>("all");
   const [filterDosageForm, setFilterDosageForm] = React.useState<string>("all");
   const [filterExpirationStatus, setFilterExpirationStatus] = React.useState<string>("all");
-  const [filterDateFrom, setFilterDateFrom] = React.useState<string>("");
-  const [filterDateTo, setFilterDateTo] = React.useState<string>("");
   
   const [editingMed, setEditingMed] = React.useState<Medication | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
@@ -129,8 +127,6 @@ export default function InventoryPage() {
             stock_status: filterStockStatus,
             dosage_form: filterDosageForm,
             expiration_status: filterExpirationStatus,
-            expiration_from: filterDateFrom,
-            expiration_to: filterDateTo,
         };
         const data = await getPaginatedInventory(page, limit, search, filters);
         setPaginatedInventory(data.data);
@@ -142,7 +138,7 @@ export default function InventoryPage() {
     } finally {
         setLoading(false);
     }
-  }, [getPaginatedInventory, toast, filterStockStatus, filterDosageForm, filterExpirationStatus, filterDateFrom, filterDateTo]);
+  }, [getPaginatedInventory, toast, filterStockStatus, filterDosageForm, filterExpirationStatus]);
   
   React.useEffect(() => {
     fetchData(currentPage, perPage, searchTerm);
@@ -154,14 +150,12 @@ export default function InventoryPage() {
       else fetchData(1, perPage, searchTerm);
     }, 500); // Debounce search
     return () => clearTimeout(handler);
-  }, [searchTerm, perPage, fetchData, filterStockStatus, filterDosageForm, filterExpirationStatus, filterDateFrom, filterDateTo]);
+  }, [searchTerm, perPage, fetchData, filterStockStatus, filterDosageForm, filterExpirationStatus]);
 
   const clearFilters = () => {
     setFilterStockStatus("all");
     setFilterDosageForm("all");
     setFilterExpirationStatus("all");
-    setFilterDateFrom("");
-    setFilterDateTo("");
     setSearchTerm("");
     setIsFiltersOpen(false);
   };
@@ -488,7 +482,7 @@ export default function InventoryPage() {
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent asChild>
-                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 pt-4 border-t mt-4">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t mt-4">
                         <div className="space-y-1">
                             <Label htmlFor="filter-stock-status">حالة المخزون</Label>
                             <Select value={filterStockStatus} onValueChange={setFilterStockStatus}>
@@ -521,14 +515,6 @@ export default function InventoryPage() {
                                     <SelectItem value="expiring_soon">قريب الانتهاء</SelectItem>
                                 </SelectContent>
                             </Select>
-                        </div>
-                        <div className="space-y-1">
-                            <Label htmlFor="filter-date-from">انتهاء الصلاحية (من)</Label>
-                            <Input id="filter-date-from" type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
-                        </div>
-                        <div className="space-y-1">
-                            <Label htmlFor="filter-date-to">انتهاء الصلاحية (إلى)</Label>
-                            <Input id="filter-date-to" type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
                         </div>
                          <div className="col-span-full flex justify-end">
                             <Button variant="ghost" onClick={clearFilters}>مسح الفلاتر</Button>
@@ -857,5 +843,3 @@ export default function InventoryPage() {
     </>
   )
 }
-
-    
