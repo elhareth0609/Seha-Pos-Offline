@@ -126,6 +126,7 @@ export type User = {
   pharmacy_id: string;
   created_at: string; // ISO date string
   image1DataUri?: string;
+  require_pin_for_delete?: boolean;
 };
 
 export type Patient = {
@@ -249,5 +250,3 @@ export type TransactionHistoryItem = {
   documentId: string;
   actor: string;
 };
-
-    

@@ -69,6 +69,7 @@ import AdCarousel from "@/components/ui/ad-carousel"
 import { differenceInDays, parseISO, startOfToday } from "date-fns"
 import { Badge } from "@/components/ui/badge"
 import { useRouter } from "next/navigation"
+import { PinDialog } from "@/components/auth/PinDialog"
 
 const printElement = (element: HTMLElement, title: string = 'Print') => {
   const printWindow = window.open('', '_blank');
@@ -353,7 +354,8 @@ export default function SalesPage() {
     deleteSale,
     searchAllInventory,
     searchAllSales,
-    searchAllPatients
+    searchAllPatients,
+    verifyPin
   } = useAuth();
 
   const router = useRouter();
@@ -391,6 +393,8 @@ export default function SalesPage() {
   const { toast } = useToast()
   
   const printComponentRef = React.useRef(null);
+
+  const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
 
     const handlePrint = () => {
         if (printComponentRef.current && saleToPrint) {
@@ -528,10 +532,10 @@ export default function SalesPage() {
   }, [suggestions, searchTerm, addToCart, toast, searchAllInventory]);
 
   const updateQuantity = (id: string, isReturn: boolean | undefined, newQuantityStr: string) => {
-    const quantity = parseInt(newQuantityStr, 10);
-    if (isNaN(quantity) || quantity < 0) return;
+    const newQuantity = parseFloat(newQuantityStr);
+    if (isNaN(newQuantity) || newQuantity < 0) return;
     
-    setCart(cart => cart.map(item => (item.id === id && item.is_return === isReturn ? { ...item, quantity } : item)));
+    setCart(cart => cart.map(item => (item.id === id && item.is_return === isReturn ? { ...item, quantity: newQuantity } : item)));
   };
 
   const updateTotalPrice = (id: string, isReturn: boolean | undefined, newTotalPriceStr: string) => {
@@ -648,13 +652,34 @@ export default function SalesPage() {
 
   const handleDeleteCurrentSale = async () => {
     if (!saleIdToUpdate) return;
-    const success = await deleteSale(saleIdToUpdate);
-    if(success) {
-        setSortedSales(prev => prev.filter(s => s.id !== saleIdToUpdate));
-        handleNewInvoiceClick();
-        toast({ title: "تم حذف الفاتورة" });
+    if (currentUser?.require_pin_for_delete) {
+        setIsPinDialogOpen(true);
+    } else {
+        const success = await deleteSale(saleIdToUpdate);
+        if(success) {
+            setSortedSales(prev => prev.filter(s => s.id !== saleIdToUpdate));
+            handleNewInvoiceClick();
+            toast({ title: "تم حذف الفاتورة" });
+        }
     }
   }
+  
+  const handlePinConfirmDelete = async (pin: string) => {
+    if (!saleIdToUpdate) return;
+    const isValid = await verifyPin(pin);
+    if (isValid) {
+        setIsPinDialogOpen(false);
+        const success = await deleteSale(saleIdToUpdate);
+        if(success) {
+            setSortedSales(prev => prev.filter(s => s.id !== saleIdToUpdate));
+            handleNewInvoiceClick();
+            toast({ title: "تم حذف الفاتورة" });
+        }
+    } else {
+        toast({ variant: 'destructive', title: "رمز PIN غير صحيح" });
+    }
+  };
+
 
   const handleNewInvoiceClick = () => {
     resetActiveInvoice();
@@ -860,7 +885,7 @@ export default function SalesPage() {
                                                 <div className="space-y-1">
                                                     <Label htmlFor={`price-sm-${item.id}`} className="text-xs">السعر الإجمالي</Label>
                                                     <div className="relative">
-                                                        <Input id={`price-sm-${item.id}`} type="number" pattern="[0-9]*" value={((item.price || 0) * (item.quantity || 0))} onChange={(e) => updateTotalPrice(item.id, item.is_return, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={!priceModificationAllowed} />
+                                                        <Input id={`price-sm-${item.id}`} type="text" pattern="[0-9]*" value={((item.price || 0) * (item.quantity || 0))} onChange={(e) => updateTotalPrice(item.id, item.is_return, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )} disabled={!priceModificationAllowed} />
                                                         {isBelowCost && !item.is_return && (
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
@@ -959,7 +984,7 @@ export default function SalesPage() {
                                             <TableCell>
                                                 <div className="relative">
                                                     <Input 
-                                                      type="number"
+                                                      type="text"
                                                       pattern="[0-9]*"
                                                       value={((item.price || 0) * (item.quantity || 0))}
                                                       onChange={(e) => updateTotalPrice(item.id, item.is_return, e.target.value)} 
@@ -1230,6 +1255,11 @@ export default function SalesPage() {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+        <PinDialog
+            open={isPinDialogOpen}
+            onOpenChange={setIsPinDialogOpen}
+            onConfirm={handlePinConfirmDelete}
+        />
     </div>
     </TooltipProvider>
     </>

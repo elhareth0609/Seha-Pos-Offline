@@ -52,6 +52,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { PinDialog } from "@/components/auth/PinDialog"
 
 
 type StatementItem = {
@@ -72,7 +73,9 @@ export default function SuppliersPage() {
     updateSupplier, 
     deleteSupplier, 
     addPayment, 
-    getPaginatedSuppliers, 
+    getPaginatedSuppliers,
+    currentUser,
+    verifyPin,
   } = useAuth();
 
   const [purchaseOrders] = scopedData.purchaseOrders;
@@ -94,6 +97,9 @@ export default function SuppliersPage() {
   const [statementData, setStatementData] = React.useState<{ supplier: Supplier | null; items: StatementItem[] }>({ supplier: null, items: [] });
   const [supplierSearchTerm, setSupplierSearchTerm] = React.useState("");
   const [expandedStatementRows, setExpandedStatementRows] = React.useState<Set<string>>(new Set());
+  
+  const [itemToDelete, setItemToDelete] = React.useState<Supplier | null>(null);
+  const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
 
   const { toast } = useToast();
 
@@ -148,10 +154,30 @@ export default function SuppliersPage() {
     }
   }
 
-  const handleDeleteSupplier = async (supplier: Supplier) => {
-    await deleteSupplier(supplier.id);
-    fetchData(currentPage, perPage, supplierSearchTerm);
+  const handleDeleteSupplier = async () => {
+    if (!itemToDelete) return;
+    if (currentUser?.require_pin_for_delete) {
+        setIsPinDialogOpen(true);
+    } else {
+        await deleteSupplier(itemToDelete.id);
+        fetchData(currentPage, perPage, supplierSearchTerm);
+        setItemToDelete(null);
+    }
   }
+
+  const handlePinConfirmDelete = async (pin: string) => {
+    if (!itemToDelete) return;
+    const isValid = await verifyPin(pin);
+    if (isValid) {
+        setIsPinDialogOpen(false);
+        await deleteSupplier(itemToDelete.id);
+        fetchData(currentPage, perPage, supplierSearchTerm);
+        setItemToDelete(null);
+    } else {
+        toast({ variant: 'destructive', title: "رمز PIN غير صحيح." });
+    }
+  };
+
 
   const handleAddPayment = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -373,7 +399,10 @@ export default function SuppliersPage() {
                                     </DropdownMenuItem>
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                            <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive">
+                                            <button 
+                                                className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive"
+                                                onClick={() => setItemToDelete(account)}
+                                            >
                                                 <Trash2 className="me-2 h-4 w-4" />
                                                 حذف
                                             </button>
@@ -387,7 +416,7 @@ export default function SuppliersPage() {
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
                                                 <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDeleteSupplier(account)} className="bg-destructive hover:bg-destructive/90">
+                                                <AlertDialogAction onClick={handleDeleteSupplier} className="bg-destructive hover:bg-destructive/90">
                                                     نعم، قم بالحذف
                                                 </AlertDialogAction>
                                             </AlertDialogFooter>
@@ -587,6 +616,11 @@ export default function SuppliersPage() {
             </DialogFooter>
         </DialogContent>
     </Dialog>
+    <PinDialog 
+        open={isPinDialogOpen}
+        onOpenChange={setIsPinDialogOpen}
+        onConfirm={handlePinConfirmDelete}
+    />
 </>
   )
 }

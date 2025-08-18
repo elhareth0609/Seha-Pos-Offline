@@ -55,9 +55,10 @@ import { useAuth } from "@/hooks/use-auth"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
+import { PinDialog } from "@/components/auth/PinDialog"
 
 export default function ExpensesPage() {
-  const { getPaginatedExpenses, addExpense, updateExpense, deleteExpense } = useAuth();
+  const { getPaginatedExpenses, addExpense, updateExpense, deleteExpense, verifyPin, currentUser } = useAuth();
   const { toast } = useToast();
   
   const [expenses, setExpenses] = React.useState<Expense[]>([]);
@@ -74,6 +75,8 @@ export default function ExpensesPage() {
   const [editingExpense, setEditingExpense] = React.useState<Expense | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   
+  const [itemToDelete, setItemToDelete] = React.useState<Expense | null>(null);
+  const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
 
   const fetchData = React.useCallback(async (page: number, limit: number, search: string) => {
     setLoading(true);
@@ -152,10 +155,34 @@ export default function ExpensesPage() {
       }
   }
   
-  const handleDeleteExpense = async (expenseId: string) => {
-      const success = await deleteExpense(expenseId);
-      if(success) fetchData(currentPage, perPage, searchTerm);
+  const handleDeleteExpense = async () => {
+      if (!itemToDelete) return;
+      
+      if (currentUser?.require_pin_for_delete) {
+          setIsPinDialogOpen(true);
+      } else {
+          const success = await deleteExpense(itemToDelete.id);
+          if(success) {
+              fetchData(currentPage, perPage, searchTerm);
+              setItemToDelete(null);
+          }
+      }
   }
+  
+  const handlePinConfirm = async (pin: string) => {
+    if (!itemToDelete) return;
+    const isValid = await verifyPin(pin);
+    if (isValid) {
+      setIsPinDialogOpen(false);
+      const success = await deleteExpense(itemToDelete.id);
+      if(success) {
+          fetchData(currentPage, perPage, searchTerm);
+          setItemToDelete(null);
+      }
+    } else {
+      toast({ variant: "destructive", title: "رمز PIN غير صحيح." });
+    }
+  };
   
   return (
     <Card>
@@ -271,26 +298,29 @@ export default function ExpensesPage() {
                                         <Pencil className="me-2 h-4 w-4"/>
                                         تعديل
                                     </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
+                                    
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                            <button className="text-destructive relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground">
+                                            <button 
+                                                className="text-destructive relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground"
+                                                onClick={() => setItemToDelete(expense)}
+                                            >
                                                 <Trash2 className="me-2 h-4 w-4"/>
                                                 حذف
                                             </button>
                                         </AlertDialogTrigger>
-                                        <DialogContent>
-                                            <DialogHeader>
-                                                <DialogTitle>هل أنت متأكد من حذف هذا المصروف؟</DialogTitle>
-                                                <DialogDescription>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>هل أنت متأكد من حذف هذا المصروف؟</AlertDialogTitle>
+                                                <AlertDialogDescription>
                                                     سيتم حذف هذا السجل نهائياً. لا يمكن التراجع عن هذا الإجراء.
-                                                </DialogDescription>
-                                            </DialogHeader>
-                                            <DialogFooter>
-                                                <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
-                                                <Button variant="destructive" onClick={() => handleDeleteExpense(expense.id)}>نعم، قم بالحذف</Button>
-                                            </DialogFooter>
-                                        </DialogContent>
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                                <AlertDialogAction onClick={handleDeleteExpense} className='bg-destructive hover:bg-destructive/90'>نعم، قم بالحذف</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
                                     </AlertDialog>
                                 </DropdownMenuContent>
                             </DropdownMenu>
@@ -369,6 +399,11 @@ export default function ExpensesPage() {
                 )}
             </DialogContent>
         </Dialog>
+        <PinDialog
+            open={isPinDialogOpen}
+            onOpenChange={setIsPinDialogOpen}
+            onConfirm={handlePinConfirm}
+        />
     </Card>
   )
 }

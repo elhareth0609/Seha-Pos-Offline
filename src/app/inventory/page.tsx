@@ -60,6 +60,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AdCarousel from "@/components/ui/ad-carousel";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { PinDialog } from "@/components/auth/PinDialog";
 
 
 const dosage_forms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion"];
@@ -81,7 +82,9 @@ export default function InventoryPage() {
     deleteMedication, 
     bulkAddOrUpdateInventory, 
     addMedication,
-    getPaginatedInventory 
+    getPaginatedInventory,
+    currentUser,
+    verifyPin,
   } = useAuth();
   
   const [paginatedInventory, setPaginatedInventory] = React.useState<Medication[]>([]);
@@ -118,6 +121,10 @@ export default function InventoryPage() {
   const medToPrintRef = React.useRef<Medication | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = React.useState(false);
+
+  const [itemToDelete, setItemToDelete] = React.useState<Medication | null>(null);
+  const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
+
 
   // Fetch data
   const fetchData = React.useCallback(async (page: number, limit: number, search: string) => {
@@ -191,10 +198,35 @@ export default function InventoryPage() {
     return <Badge variant="secondary" className="bg-green-300 text-green-900">متوفر</Badge>
   }
   
-  const handleDelete = async (med: Medication) => {
-      const success = await deleteMedication(med.id);
-      if(success) fetchData(currentPage, perPage, searchTerm);
-  }
+  const handleDelete = async () => {
+    if (!itemToDelete) return;
+
+    if (currentUser?.require_pin_for_delete) {
+        setIsPinDialogOpen(true);
+    } else {
+        const success = await deleteMedication(itemToDelete.id);
+        if (success) {
+            fetchData(currentPage, perPage, searchTerm);
+            setItemToDelete(null);
+        }
+    }
+  };
+
+  const handlePinConfirm = async (pin: string) => {
+      if (!itemToDelete) return;
+
+      const isValid = await verifyPin(pin);
+      if (isValid) {
+          setIsPinDialogOpen(false);
+          const success = await deleteMedication(itemToDelete.id);
+          if (success) {
+              fetchData(currentPage, perPage, searchTerm);
+              setItemToDelete(null);
+          }
+      } else {
+          toast({ variant: 'destructive', title: 'رمز PIN غير صحيح' });
+      }
+  };
   
   const openEditModal = (med: Medication) => {
       setEditingMed(med);
@@ -599,7 +631,10 @@ export default function InventoryPage() {
                               <DropdownMenuSeparator />
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive">
+                                        <button 
+                                            className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive"
+                                            onClick={() => setItemToDelete(item)}
+                                        >
                                           <Trash2 className="me-2 h-4 w-4" />
                                           حذف
                                         </button>
@@ -613,7 +648,7 @@ export default function InventoryPage() {
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                             <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDelete(item)} className={buttonVariants({ variant: "destructive" })}>
+                                            <AlertDialogAction onClick={handleDelete} className={buttonVariants({ variant: "destructive" })}>
                                                 نعم، قم بالحذف
                                             </AlertDialogAction>
                                         </AlertDialogFooter>
@@ -840,6 +875,11 @@ export default function InventoryPage() {
                 </form>
             </DialogContent>
         </Dialog>
+        <PinDialog
+            open={isPinDialogOpen}
+            onOpenChange={setIsPinDialogOpen}
+            onConfirm={handlePinConfirm}
+        />
     </>
   )
 }

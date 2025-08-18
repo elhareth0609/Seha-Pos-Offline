@@ -42,6 +42,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { buttonVariants } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PinDialog } from '@/components/auth/PinDialog';
 
 
 // Modern print function that works with React 18+
@@ -101,7 +102,7 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
 };
 
 export default function ReportsPage() {
-    const { currentUser, users, scopedData, deleteSale, setActiveInvoice, getPaginatedSales } = useAuth();
+    const { currentUser, users, scopedData, deleteSale, setActiveInvoice, getPaginatedSales, verifyPin, toast } = useAuth();
     const [settings] = scopedData.settings;
     
     const [sales, setSales] = React.useState<Sale[]>([]);
@@ -118,6 +119,9 @@ export default function ReportsPage() {
     const [employeeId, setEmployeeId] = React.useState<string>("all");
     const [paymentMethod, setPaymentMethod] = React.useState<string>("all");
     
+    const [itemToDelete, setItemToDelete] = React.useState<Sale | null>(null);
+    const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
+
     const router = useRouter();
 
     const canManagePreviousSales = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_previous_sales;
@@ -178,12 +182,34 @@ export default function ReportsPage() {
         setPaymentMethod("all");
     };
 
-    const handleDeleteSale = async (saleId: string) => {
-        const success = await deleteSale(saleId);
-        if (success) {
-            fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod);
+    const handleDeleteSale = async () => {
+        if (!itemToDelete) return;
+
+        if (currentUser?.require_pin_for_delete) {
+            setIsPinDialogOpen(true);
+        } else {
+            const success = await deleteSale(itemToDelete.id);
+            if (success) {
+                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod);
+                setItemToDelete(null);
+            }
         }
     }
+    
+    const handlePinConfirmDelete = async (pin: string) => {
+        if (!itemToDelete) return;
+        const isValid = await verifyPin(pin);
+        if (isValid) {
+            setIsPinDialogOpen(false);
+            const success = await deleteSale(itemToDelete.id);
+            if (success) {
+                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod);
+                setItemToDelete(null);
+            }
+        } else {
+            toast({ variant: 'destructive', title: "رمز PIN غير صحيح" });
+        }
+    };
 
     const handleEditSale = (sale: Sale) => {
         const saleToEdit = sales.find(s => s.id === sale.id);
@@ -396,7 +422,7 @@ export default function ReportsPage() {
                                                         </Button>
                                                         <AlertDialog>
                                                             <AlertDialogTrigger asChild>
-                                                                <Button variant="destructive" size="sm" onClick={(e) => e.stopPropagation()}>
+                                                                <Button variant="destructive" size="sm" onClick={(e) => { e.stopPropagation(); setItemToDelete(sale); }}>
                                                                     <Trash2 className="me-2 h-4 w-4" />
                                                                     حذف
                                                                 </Button>
@@ -410,7 +436,7 @@ export default function ReportsPage() {
                                                                 </AlertDialogHeader>
                                                                 <AlertDialogFooter>
                                                                     <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                                                    <AlertDialogAction onClick={() => handleDeleteSale(sale.id)} className={buttonVariants({ variant: "destructive" })}>
+                                                                    <AlertDialogAction onClick={handleDeleteSale} className={buttonVariants({ variant: "destructive" })}>
                                                                         نعم، قم بالحذف
                                                                     </AlertDialogAction>
                                                                 </AlertDialogFooter>
@@ -518,8 +544,11 @@ export default function ReportsPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <PinDialog 
+                open={isPinDialogOpen}
+                onOpenChange={setIsPinDialogOpen}
+                onConfirm={handlePinConfirmDelete}
+            />
         </div>
     )
 }
-
-    
