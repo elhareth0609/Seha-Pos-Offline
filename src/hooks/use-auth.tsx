@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem, PaginatedResponse, TransactionHistoryItem } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 
@@ -22,6 +22,7 @@ type AuthResponse = {
         purchaseOrders: PurchaseOrder[];
         supplierReturns: ReturnOrder[];
         timeLogs: TimeLog[];
+        expenses: Expense[];
     };
     all_users_in_pharmacy: User[];
     advertisements: Advertisement[];
@@ -80,7 +81,6 @@ interface AuthContextType {
         expiringMedicationsLength: number;
         current_page: number;
         last_page: number;
-        // ... 其他 PaginatedResponse 需要的属性
     }>;
 
     // Sales
@@ -112,6 +112,12 @@ interface AuthContextType {
     getPaginatedPurchaseOrders: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<PurchaseOrder>>;
     getPaginatedReturnOrders: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<ReturnOrder>>;
     
+    // Expenses
+    getPaginatedExpenses: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Expense>>;
+    addExpense: (amount: number, description: string) => Promise<boolean>;
+    updateExpense: (id: string, amount: number, description: string) => Promise<boolean>;
+    deleteExpense: (id: string) => Promise<boolean>;
+
     // Trash
     restoreItem: (itemId: string) => Promise<boolean>;
     permDelete: (itemId: string) => Promise<boolean>;
@@ -140,6 +146,7 @@ export interface ScopedDataContextType {
     supplierReturns: [ReturnOrder[], React.Dispatch<React.SetStateAction<ReturnOrder[]>>];
     timeLogs: [TimeLog[], React.Dispatch<React.SetStateAction<TimeLog[]>>];
     settings: [AppSettings, (value: AppSettings | ((val: AppSettings) => AppSettings)) => void];
+    expenses: [Expense[], React.Dispatch<React.SetStateAction<Expense[]>>];
 }
 
 const AuthContext = React.createContext<AuthContextType | null>(null);
@@ -214,6 +221,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [supplierReturns, setSupplierReturns] = React.useState<ReturnOrder[]>([]);
     const [timeLogs, setTimeLogs] = React.useState<TimeLog[]>([]);
     const [settings, setSettings] = React.useState<AppSettings>(fallbackAppSettings);
+    const [expenses, setExpenses] = React.useState<Expense[]>([]);
     
     const [activeTimeLogId, setActiveTimeLogId] = React.useState<string | null>(null);
     const [advertisements, setAdvertisements] = React.useState<Advertisement[]>([]);
@@ -242,6 +250,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setPurchaseOrders(pd.purchaseOrders || []);
             setSupplierReturns(pd.supplierReturns || []);
             setTimeLogs(pd.timeLogs || []);
+            setExpenses(pd.expenses || []);
             setSettings(pd.settings || fallbackAppSettings);
         }
         localStorage.setItem('authToken', data.token);
@@ -418,11 +427,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 page: String(page),
                 per_page: String(perPage),
                 search: search,
-            });
-            Object.entries(filters).forEach(([key, value]) => {
-                if (value && value !== 'all') {
-                    params.append(key, value);
-                }
+                ...filters
             });
             const data = await apiRequest(`/medications?${params.toString()}`);
             return data;
@@ -631,7 +636,6 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     const updateMedication = async (medId: string, data: Partial<Medication>) => {
         try {
             const updatedMed = await apiRequest(`/medications/${medId}`, 'PUT', data);
-            // setInventory(prev => prev.map(m => m.id === medId ? updatedMed : m));
             toast({ title: "تم تحديث الدواء بنجاح" });
             return true;
         } catch (e) { return false; }
@@ -640,7 +644,6 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     const deleteMedication = async (medId: string) => {
         try {
             const trashedItem = await apiRequest(`/medications/${medId}`, 'DELETE');
-            // setInventory(prev => prev.filter(m => m.id !== medId));
             setTrash(prev => [...prev, trashedItem]);
             toast({ title: "تم نقل الدواء إلى سلة المحذوفات" });
             return true;
@@ -782,6 +785,48 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         } catch (e) { return false; }
     };
 
+    const getPaginatedExpenses = React.useCallback(async (page: number, perPage: number, search: string) => {
+        try {
+            const params = new URLSearchParams({
+                paginate: "true",
+                page: String(page),
+                per_page: String(perPage),
+                search: search,
+            });
+            const data = await apiRequest(`/expenses?${params.toString()}`);
+            return data;
+        } catch (e) {
+            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Expense>;
+        }
+    }, []);
+
+    const addExpense = async (amount: number, description: string) => {
+        try {
+            const newExpense = await apiRequest('/expenses', 'POST', { amount, description });
+            setExpenses(prev => [newExpense, ...prev]);
+            toast({ title: "تم إضافة المصروف بنجاح" });
+            return true;
+        } catch (e) { return false; }
+    };
+    
+    const updateExpense = async (id: string, amount: number, description: string) => {
+        try {
+            const updatedExpense = await apiRequest(`/expenses/${id}`, 'PUT', { amount, description });
+            setExpenses(prev => prev.map(ex => ex.id === id ? updatedExpense : ex));
+            toast({ title: "تم تعديل المصروف بنجاح" });
+            return true;
+        } catch (e) { return false; }
+    };
+    
+    const deleteExpense = async (id: string) => {
+        try {
+            await apiRequest(`/expenses/${id}`, 'DELETE');
+            setExpenses(prev => prev.filter(ex => ex.id !== id));
+            toast({ title: "تم حذف المصروف بنجاح" });
+            return true;
+        } catch (e) { return false; }
+    };
+
     const restoreItem = async (itemId: string) => {
         try {
             const { restored_item, item_type } = await apiRequest(`/trash/${itemId}`, 'PUT');
@@ -835,6 +880,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         supplierReturns: [supplierReturns, setSupplierReturns],
         timeLogs: [timeLogs, setTimeLogs],
         settings: [settings, setScopedSettings],
+        expenses: [expenses, setExpenses],
     };
 
     const isAuthenticated = !!currentUser;
@@ -855,6 +901,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             addPayment,
             addPurchaseOrder,
             addReturnOrder, getPaginatedPurchaseOrders, getPaginatedReturnOrders,
+            getPaginatedExpenses, addExpense, updateExpense, deleteExpense,
             restoreItem, permDelete, clearTrash, getPaginatedTrash,
             getPaginatedUsers,
             activeInvoice, setActiveInvoice, resetActiveInvoice

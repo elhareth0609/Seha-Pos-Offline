@@ -20,7 +20,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import type { Medication, Sale, AppSettings } from "@/lib/types";
-import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle } from "lucide-react";
+import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle, Coins } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, isWithinInterval, isToday, endOfMonth, endOfWeek, subMonths, startOfYear, endOfYear } from 'date-fns';
 import Link from "next/link";
@@ -36,6 +36,7 @@ export default function Dashboard() {
   const [inventory] = scopedData.inventory;
   const [sales] = scopedData.sales;
   const [settings] = scopedData.settings;
+  const [expenses] = scopedData.expenses;
   const [isClient, setIsClient] = React.useState(false);
   const [timeFilter, setTimeFilter] = React.useState<'today' | 'week' | 'month' | 'all'>('month');
   const [dateFrom, setDateFrom] = React.useState<string>(startOfMonth(new Date()).toISOString().split('T')[0]);
@@ -139,30 +140,38 @@ export default function Dashboard() {
   }, [sales]);
 
   const salesPerformance = React.useMemo(() => {
-    if (!isClient) return { totalRevenue: 0, totalProfit: 0, profitMargin: 0, invoiceCount: 0 };
+    if (!isClient) return { totalRevenue: 0, totalProfit: 0, profitMargin: 0, invoiceCount: 0, totalExpenses: 0 };
     
     let filteredSales = sales;
+    let filteredExpenses = expenses;
 
     if (dateFrom && dateTo) {
         const from = new Date(dateFrom);
         const to = new Date(dateTo);
         to.setHours(23, 59, 59, 999);
-        filteredSales = sales.filter(sale => isWithinInterval(parseISO(sale.date), { start: from, end: to }));
+        const interval = { start: from, end: to };
+        filteredSales = sales.filter(sale => isWithinInterval(parseISO(sale.date), interval));
+        filteredExpenses = expenses.filter(expense => isWithinInterval(parseISO(expense.date), interval));
     }
 
     const currentTotalRevenue = filteredSales.reduce((acc, sale) => {
         const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
         return acc + (isNaN(total) ? 0 : total);
     }, 0);
+
     const currentTotalProfit = filteredSales.reduce((acc, sale) => {
         const total = (typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0))) - (typeof sale.discount === 'number' ? sale.discount : parseFloat(String(sale.discount || 0)));
         return acc + (isNaN(total) ? 0 : total);
     }, 0);
-    const currentProfitMargin = currentTotalRevenue > 0 ? (currentTotalProfit / currentTotalRevenue) * 100 : 0;
+    
+    const totalExpenses = filteredExpenses.reduce((acc, expense) => acc + (expense.amount || 0), 0);
+
+    const netProfit = currentTotalProfit - totalExpenses;
+    const currentProfitMargin = currentTotalRevenue > 0 ? (netProfit / currentTotalRevenue) * 100 : 0;
     const invoiceCount = filteredSales.length;
 
-    return { totalRevenue: currentTotalRevenue, totalProfit: currentTotalProfit, profitMargin: currentProfitMargin, invoiceCount };
-  }, [sales, dateFrom, dateTo, isClient]);
+    return { totalRevenue: currentTotalRevenue, totalProfit: netProfit, profitMargin: currentProfitMargin, invoiceCount, totalExpenses };
+  }, [sales, expenses, dateFrom, dateTo, isClient]);
 
 
   if (!isClient) {
@@ -327,7 +336,7 @@ export default function Dashboard() {
                     </div>
                 </div>
             </CardHeader>
-            <CardContent className="grid gap-6 pt-4 sm:grid-cols-2 lg:grid-cols-3">
+            <CardContent className="grid gap-6 pt-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
                     <div className="flex items-center justify-between text-muted-foreground">
                         <span className="text-sm font-medium">إجمالي المبيعات</span>
@@ -340,13 +349,23 @@ export default function Dashboard() {
                 </div>
                 <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
                     <div className="flex items-center justify-between text-muted-foreground">
+                        <span className="text-sm font-medium">إجمالي الصرفيات</span>
+                        <Coins className="h-5 w-5 text-destructive" />
+                    </div>
+                    <div className="text-3xl font-bold text-destructive font-mono">
+                        {salesPerformance.totalExpenses.toLocaleString()}
+                    </div>
+                    <p className="text-xs text-muted-foreground">مجموع النفقات المسجلة</p>
+                </div>
+                <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
+                    <div className="flex items-center justify-between text-muted-foreground">
                         <span className="text-sm font-medium">صافي الربح</span>
                         <TrendingUp className="h-5 w-5 text-green-600" />
                     </div>
                     <div className="text-3xl font-bold text-green-600 font-mono">
                         {salesPerformance.totalProfit.toLocaleString()}
                     </div>
-                    <p className="text-xs text-muted-foreground">الربح بعد طرح تكلفة البضاعة والخصومات</p>
+                    <p className="text-xs text-muted-foreground">الربح بعد طرح الخصومات والصرفيات</p>
                 </div>
                 <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
                     <div className="flex items-center justify-between text-muted-foreground">
@@ -490,5 +509,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-

@@ -51,7 +51,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useAuth } from '@/hooks/use-auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, Clock, Wallet, MoreVertical, Pencil } from 'lucide-react'
+import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, Clock, Wallet, MoreVertical, Pencil, Coins } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import Image from 'next/image'
@@ -98,6 +98,7 @@ const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: stri
     { key: 'manage_purchases', label: 'الوصول إلى المشتريات' },
     { key: 'manage_suppliers', label: 'الوصول إلى الموردين' },
     { key: 'manage_reports', label: 'الوصول إلى التقارير' },
+    { key: 'manage_expenses', label: 'الوصول إلى الصرفيات' },
     { key: 'manage_itemMovement', label: 'الوصول إلى حركة المادة' },
     { key: 'manage_patients', label: 'الوصول إلى أصدقاء الصيدلية' },
     { key: 'manage_expiringSoon', label: 'الوصول إلى قريب الانتهاء' },
@@ -268,6 +269,7 @@ export default function SettingsPage() {
             manage_salesPriceModification: false,
             manage_users: false,
             manage_previous_sales: false,
+            manage_expenses: false,
         };
         setCurrentUserPermissions(permissions);
         setIsPermissionsDialogOpen(true);

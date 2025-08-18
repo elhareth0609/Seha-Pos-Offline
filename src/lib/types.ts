@@ -16,6 +16,7 @@ export type UserPermissions = {
     manage_trash: boolean;
     manage_salesPriceModification: boolean;
     manage_previous_sales: boolean;
+    manage_expenses: boolean; // New permission
 };
 
 export type Medication = {
@@ -168,6 +169,15 @@ export type Advertisement = {
         reports: boolean;
         inventory: boolean;
     }
+};
+
+export type Expense = {
+    id: string;
+    date: string;
+    amount: number;
+    description: string;
+    user_id: string;
+    user_name: string;
 };
 
 
