@@ -70,7 +70,7 @@ interface AuthContextType {
     updateMedication: (medId: string, data: Partial<Medication>) => Promise<boolean>;
     deleteMedication: (medId: string) => Promise<boolean>;
     bulkAddOrUpdateInventory: (items: Partial<Medication>[]) => Promise<boolean>;
-    getPaginatedInventory: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Medication>>;
+    getPaginatedInventory: (page: number, perPage: number, search: string, filters: Record<string, any>) => Promise<PaginatedResponse<Medication>>;
     searchAllInventory: (search: string) => Promise<Medication[]>;
     
     // Expiring Soon
@@ -411,13 +411,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch(e: any) {}
     };
 
-    const getPaginatedInventory = React.useCallback(async (page: number, perPage: number, search: string) => {
+    const getPaginatedInventory = React.useCallback(async (page: number, perPage: number, search: string, filters: Record<string, any> = {}) => {
         try {
             const params = new URLSearchParams({
                 paginate: "true",
                 page: String(page),
                 per_page: String(perPage),
                 search: search,
+            });
+            Object.entries(filters).forEach(([key, value]) => {
+                if (value && value !== 'all') {
+                    params.append(key, value);
+                }
             });
             const data = await apiRequest(`/medications?${params.toString()}`);
             return data;
@@ -653,7 +658,6 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     const addSale = async (saleData: any) => {
         try {
             const { sale: newSale, updated_inventory } = await apiRequest('/sales', 'POST', saleData);
-            // setSales(prev => [newSale, ...prev]);
             if (updated_inventory && Array.isArray(updated_inventory)) {
                 setInventory(prev => {
                     const updatedInventoryMap = new Map(updated_inventory.map((item: Medication) => [item.id, item]));
@@ -667,7 +671,6 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     const updateSale = async (saleData: any) => {
         try {
             const { sale: updatedSale, updated_inventory } = await apiRequest(`/sales/${saleData.id}`, 'PUT', saleData);
-            // setSales(prev => prev.map(s => s.id === updatedSale.id ? updatedSale : s));
             if (updated_inventory && Array.isArray(updated_inventory)) {
                 setInventory(prev => {
                     const updatedInventoryMap = new Map(updated_inventory.map((item: Medication) => [item.id, item]));
@@ -866,3 +869,5 @@ export function useAuth() {
   }
   return context;
 }
+
+    
