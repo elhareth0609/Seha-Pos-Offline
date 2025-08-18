@@ -121,8 +121,9 @@ export default function Dashboard() {
             if (item.is_return) return; 
 
             if (!stats[item.medication_id]) {
+                const med = inventory.find(i => i.id === item.medication_id);
                 stats[item.medication_id] = {
-                    name: item.name,
+                    name: med?.name || item.name,
                     quantity: 0,
                 };
             }
@@ -130,14 +131,15 @@ export default function Dashboard() {
         });
     });
 
-    const statsArray = Object.keys(stats).map(medId => ({
-        medication_id: medId,
-        name: stats[medId].name,
-        quantity: stats[medId].quantity
-    }));
-
-    return statsArray.sort((a, b) => b.quantity - a.quantity).slice(0, 5);
-  }, [sales]);
+    return Object.entries(stats)
+      .map(([medication_id, data]) => ({
+          medication_id,
+          name: data.name,
+          quantity: data.quantity,
+      }))
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 5);
+  }, [sales, inventory]);
 
   const salesPerformance = React.useMemo(() => {
     if (!isClient) return { totalRevenue: 0, totalProfit: 0, profitMargin: 0, invoiceCount: 0, totalExpenses: 0 };
@@ -392,7 +394,7 @@ export default function Dashboard() {
                   </Link>
               </CardHeader>
               <CardContent>
-                   <ScrollArea>
+                   <ScrollArea className="h-72">
                       <Table>
                           <TableHeader>
                               <TableRow>
@@ -432,7 +434,7 @@ export default function Dashboard() {
                   </Link>
               </CardHeader>
               <CardContent>
-                  <ScrollArea>
+                  <ScrollArea className="h-72">
                     <Table>
                       <TableHeader>
                           <TableRow>
@@ -479,7 +481,7 @@ export default function Dashboard() {
                 <CardDescription>أفضل 5 أدوية مبيعًا حسب الكمية.</CardDescription>
             </CardHeader>
             <CardContent>
-             <ScrollArea>
+             <ScrollArea className="h-72">
               <Table>
                   <TableHeader>
                       <TableRow>
@@ -509,3 +511,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
