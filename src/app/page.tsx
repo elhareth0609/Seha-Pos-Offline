@@ -392,7 +392,7 @@ export default function Dashboard() {
                   </Link>
               </CardHeader>
               <CardContent>
-                   <ScrollArea className="h-64">
+                   <ScrollArea>
                       <Table>
                           <TableHeader>
                               <TableRow>
@@ -432,7 +432,7 @@ export default function Dashboard() {
                   </Link>
               </CardHeader>
               <CardContent>
-                  <ScrollArea className="h-64">
+                  <ScrollArea>
                     <Table>
                       <TableHeader>
                           <TableRow>
@@ -479,7 +479,7 @@ export default function Dashboard() {
                 <CardDescription>أفضل 5 أدوية مبيعًا حسب الكمية.</CardDescription>
             </CardHeader>
             <CardContent>
-             <ScrollArea className="h-64">
+             <ScrollArea>
               <Table>
                   <TableHeader>
                       <TableRow>
