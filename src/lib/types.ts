@@ -20,6 +20,7 @@ export type UserPermissions = {
     manage_expenses: boolean;
     manage_tasks: boolean;
     manage_close_month: boolean;
+    manage_archives: boolean;
 };
 
 export type Medication = {
@@ -289,3 +290,5 @@ export type TransactionHistoryItem = {
   documentId: string;
   actor: string;
 };
+
+    

@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import type { MonthlyArchive, ArchivedMonthData } from '@/lib/types';
 
 
-export default function FinalAccountsPage() {
+export default function CloseMonthPage() {
     const { users, scopedData, closeMonth, toast, currentUser, getArchivedMonths, getArchivedMonthData } = useAuth();
     const router = useRouter();
     const { sales, expenses, timeLogs, suppliers, purchaseOrders, supplierReturns, payments } = scopedData;
@@ -74,7 +74,7 @@ export default function FinalAccountsPage() {
         setIsClosing(false);
     }
     
-     React.useEffect(() => {
+    React.useEffect(() => {
         if (currentUser && currentUser.role !== 'Admin' && !currentUser.permissions?.manage_close_month) {
             router.push('/');
         }
@@ -106,7 +106,7 @@ export default function FinalAccountsPage() {
     }, [selectedArchiveId, getArchivedMonthData]);
 
 
-    if (!currentUser || (currentUser.role !== 'Admin' && !currentUser.permissions?.manage_close_month)) {
+    if (currentUser && currentUser.role !== 'Admin' && !currentUser.permissions?.manage_close_month) {
         return <div className="flex items-center justify-center min-h-screen"><p>ليس لديك صلاحية الوصول لهذه الصفحة.</p></div>;
     }
 
@@ -310,3 +310,5 @@ export default function FinalAccountsPage() {
         </div>
     );
 }
+
+    
