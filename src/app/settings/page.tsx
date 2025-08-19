@@ -51,7 +51,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useAuth } from '@/hooks/use-auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, Clock, Wallet, MoreVertical, Pencil, Coins } from 'lucide-react'
+import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, Clock, Wallet, MoreVertical, Pencil, Coins, FileArchive } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import Image from 'next/image'
@@ -167,6 +167,78 @@ function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (o
     );
 }
 
+function CloseMonthDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
+    const { scopedData, closeMonth, toast } = useAuth();
+    const { sales, expenses, timeLogs, suppliers, purchaseOrders, supplierReturns, payments, users } = scopedData;
+    const [pin, setPin] = React.useState('');
+    const [isClosing, setIsClosing] = React.useState(false);
+
+    const monthlyStats = React.useMemo(() => {
+        const totalSales = sales[0].reduce((acc, sale) => acc + sale.total, 0);
+        const totalExpenses = expenses[0].reduce((acc, expense) => acc + expense.amount, 0);
+        
+        const totalSalaries = users.reduce((total, user) => {
+            if (!user.hourly_rate) return total;
+            const userLogs = timeLogs[0].filter(log => log.user_id === user.id && log.clock_out);
+            const totalMinutes = userLogs.reduce((acc, log) => acc + differenceInMinutes(new Date(log.clock_out!), new Date(log.clock_in)), 0);
+            return total + (totalMinutes / 60) * user.hourly_rate;
+        }, 0);
+
+        const totalDebts = suppliers[0].reduce((acc, supplier) => {
+            const totalPurchases = purchaseOrders[0].filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.total_amount, 0);
+            const totalReturns = supplierReturns[0].filter(r => r.supplier_id === supplier.id).reduce((sum, r) => sum + r.total_amount, 0);
+            const totalPayments = payments[0].filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.amount, 0);
+            return acc + (totalPurchases - totalReturns - totalPayments);
+        }, 0);
+        
+        return { totalSales, totalExpenses, totalSalaries, totalDebts };
+    }, [sales, expenses, timeLogs, users, suppliers, purchaseOrders, supplierReturns, payments]);
+
+    const handleConfirmClose = async () => {
+        setIsClosing(true);
+        const success = await closeMonth(pin);
+        if (success) {
+            onOpenChange(false);
+            setPin('');
+        }
+        setIsClosing(false);
+    }
+    
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>تأكيد إقفال الشهر</DialogTitle>
+                    <DialogDescription>
+                        هذا الإجراء سيقوم بأرشفة بيانات الشهر الحالي وتصفيرها. لا يمكن التراجع عن هذا الإجراء.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                    <p className="font-semibold">ملخص الحسابات الشهرية:</p>
+                    <div className="text-sm space-y-1">
+                        <div className="flex justify-between"><span>إجمالي المبيعات:</span> <span className="font-mono">{monthlyStats.totalSales.toLocaleString()}</span></div>
+                        <div className="flex justify-between"><span>إجمالي المصروفات:</span> <span className="font-mono">{monthlyStats.totalExpenses.toLocaleString()}</span></div>
+                        <div className="flex justify-between"><span>إجمالي الرواتب:</span> <span className="font-mono">{monthlyStats.totalSalaries.toLocaleString()}</span></div>
+                        <div className="flex justify-between"><span>إجمالي الديون:</span> <span className="font-mono">{monthlyStats.totalDebts.toLocaleString()}</span></div>
+                    </div>
+                    <div className="space-y-2 pt-4">
+                        <Label htmlFor="close-month-pin">رمز PIN للمدير للتأكيد</Label>
+                        <Input id="close-month-pin" type="password" value={pin} onChange={e => setPin(e.target.value)} />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline" type="button">إلغاء</Button>
+                    </DialogClose>
+                    <Button variant="destructive" onClick={handleConfirmClose} disabled={isClosing || pin.length < 6}>
+                        {isClosing ? "جاري الإقفال..." : "إقفال الشهر نهائيًا"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 
 export default function SettingsPage() {
     const { toast } = useToast()
@@ -180,6 +252,7 @@ export default function SettingsPage() {
     const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = React.useState(false);
     const [isTimeLogDialogOpen, setIsTimeLogDialogOpen] = React.useState(false);
     const [isEditUserDialogOpen, setIsEditUserDialogOpen] = React.useState(false);
+    const [isCloseMonthDialogOpen, setIsCloseMonthDialogOpen] = React.useState(false);
     const [editingUser, setEditingUser] = React.useState<User | null>(null);
     const [currentUserPermissions, setCurrentUserPermissions] = React.useState<UserPermissions | null>(null);
     const [currentUserHourlyRate, setCurrentUserHourlyRate] = React.useState<string>("");
@@ -571,7 +644,7 @@ to.setHours(23, 59, 59, 999);
                         إجراءات لا يمكن التراجع عنها. يرجى المتابعة بحذر.
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex flex-wrap gap-2">
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <Button variant="destructive">مسح جميع بيانات الصيدلية</Button>
@@ -589,11 +662,16 @@ to.setHours(23, 59, 59, 999);
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
+                    <Button variant="outline" className='border-blue-500 text-blue-600 hover:bg-blue-50 hover:text-blue-700' onClick={() => setIsCloseMonthDialogOpen(true)}>
+                        <FileArchive className="me-2 h-4 w-4"/>
+                        إقفال الشهر
+                    </Button>
                 </CardContent>
             </Card>
         )}
         
         <AddUserDialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen} />
+        <CloseMonthDialog open={isCloseMonthDialogOpen} onOpenChange={setIsCloseMonthDialogOpen} />
 
          <Dialog open={isPermissionsDialogOpen} onOpenChange={setIsPermissionsDialogOpen}>
             <DialogContent className="sm:max-w-md">

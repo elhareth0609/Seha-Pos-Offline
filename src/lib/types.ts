@@ -125,6 +125,7 @@ export type User = {
   delete_pin?: string;
   permissions?: UserPermissions;
   hourly_rate?: number;
+  salary?: number;
   pharmacy_id: string;
   created_at: string; // ISO date string
   image1DataUri?: string;
@@ -262,5 +263,3 @@ export type TransactionHistoryItem = {
   documentId: string;
   actor: string;
 };
-
-    

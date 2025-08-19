@@ -65,6 +65,7 @@ interface AuthContextType {
     updateAdvertisement: (adId: string, data: Partial<Omit<Advertisement, 'id' | 'created_at'>>) => Promise<void>;
     deleteAdvertisement: (adId: string) => Promise<void>;
     clearPharmacyData: () => Promise<void>;
+    closeMonth: (pin: string) => Promise<boolean>;
     
     scopedData: ScopedDataContextType;
 
@@ -413,6 +414,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             toast({ title: "تم مسح البيانات بنجاح" });
             logout();
         } catch (e: any) {}
+    };
+
+    const closeMonth = async (pin: string) => {
+        try {
+            await apiRequest('/settings/close-month', 'POST', { pin });
+            toast({ title: "تم إقفال الشهر بنجاح!", description: "تمت أرشفة البيانات وتصفير الحسابات." });
+            // Manually refetch user data to get the cleared state
+            const data: AuthResponse = await apiRequest('/user');
+            setAllData(data);
+            return true;
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: "فشل إقفال الشهر", description: error.message });
+            return false;
+        }
     };
 
     const addAdvertisement = async (title: string, image_url: string) => {
@@ -980,7 +995,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             currentUser, users, setUsers, isAuthenticated, loading, isSetup, 
             setupAdmin, login, logout, registerUser, deleteUser, updateUser, 
             updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData,
-            getAllPharmacySettings, getPharmacyData, clearPharmacyData,
+            getAllPharmacySettings, getPharmacyData, clearPharmacyData, closeMonth,
             advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement,
             addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, getPaginatedInventory, searchAllInventory, markAsDamaged,
             getPaginatedExpiringSoon,
@@ -1010,5 +1025,3 @@ export function useAuth() {
   }
   return context;
 }
-
-    
