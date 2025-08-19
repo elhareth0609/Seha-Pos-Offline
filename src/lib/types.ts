@@ -16,7 +16,8 @@ export type UserPermissions = {
     manage_trash: boolean;
     manage_salesPriceModification: boolean;
     manage_previous_sales: boolean;
-    manage_expenses: boolean; // New permission
+    manage_expenses: boolean;
+    manage_tasks: boolean; // New permission
 };
 
 export type Medication = {
@@ -121,6 +122,7 @@ export type User = {
   status: 'active' | 'suspended';
   email?: string;
   pin?: string;
+  delete_pin?: string;
   permissions?: UserPermissions;
   hourly_rate?: number;
   pharmacy_id: string;
@@ -157,8 +159,8 @@ export type AppSettings = {
 export type TrashItem = {
   id: string; // Unique ID for the trash entry
   deleted_at: string; // ISO date string
-  item_type: 'medication' | 'patient' | 'supplier' | 'user' | 'sale';
-  data: Partial<Medication & Patient & Supplier & User & Sale>;
+  item_type: 'medication' | 'patient' | 'supplier' | 'user' | 'sale' | 'task';
+  data: Partial<Medication & Patient & Supplier & User & Sale & Task>;
 };
 
 export type Advertisement = {
@@ -181,6 +183,16 @@ export type Expense = {
     description: string;
     user_id: string;
     user_name: string;
+};
+
+export type Task = {
+    id: string;
+    description: string;
+    user_id: string;
+    user_name: string;
+    completed: boolean;
+    created_at: string;
+    completed_at: string | null;
 };
 
 
@@ -250,3 +262,5 @@ export type TransactionHistoryItem = {
   documentId: string;
   actor: string;
 };
+
+    

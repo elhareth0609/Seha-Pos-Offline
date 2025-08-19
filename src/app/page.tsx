@@ -19,8 +19,8 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import type { Medication, Sale, AppSettings } from "@/lib/types";
-import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle, Coins } from "lucide-react";
+import type { Medication, Sale, AppSettings, Task } from "@/lib/types";
+import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle, Coins, ListChecks } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, isWithinInterval, isToday, endOfMonth, endOfWeek, subMonths, startOfYear, endOfYear } from 'date-fns';
 import Link from "next/link";
@@ -30,22 +30,42 @@ import AdCarousel from "@/components/ui/ad-carousel";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Dashboard() {
-  const { scopedData } = useAuth();
+  const { currentUser, scopedData, updateTask } = useAuth();
   const [inventory] = scopedData.inventory;
   const [sales] = scopedData.sales;
   const [settings] = scopedData.settings;
   const [expenses] = scopedData.expenses;
+  const [tasks, setTasks] = React.useState<Task[]>([]);
+
   const [isClient, setIsClient] = React.useState(false);
-  const [timeFilter, setTimeFilter] = React.useState<'today' | 'week' | 'month' | 'all'>('month');
   const [dateFrom, setDateFrom] = React.useState<string>(startOfMonth(new Date()).toISOString().split('T')[0]);
   const [dateTo, setDateTo] = React.useState<string>(endOfMonth(new Date()).toISOString().split('T')[0]);
 
 
   React.useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (scopedData.tasks) {
+      setTasks(scopedData.tasks[0]);
+    }
+  }, [scopedData.tasks]);
+  
+  const handleTaskStatusChange = async (taskId: string, completed: boolean) => {
+    const success = await updateTask(taskId, { completed });
+    if(success) {
+       setTasks(prevTasks => prevTasks.map(task => 
+           task.id === taskId ? { ...task, completed } : task
+       ));
+    }
+  };
+  
+  const userTasks = React.useMemo(() => {
+    if (!currentUser || !tasks) return [];
+    return tasks.filter(task => task.user_id === currentUser.id && !task.completed);
+  }, [currentUser, tasks]);
+
 
   const handleTimeFilterChange = (value: string) => {
     const now = new Date();
@@ -508,6 +528,47 @@ export default function Dashboard() {
             </CardContent>
           </Card>
       </div>
+      
+       <div className="grid gap-6">
+        <Card>
+            <CardHeader className="flex-row items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <ListChecks className="h-6 w-6 text-primary" />
+                    <CardTitle>مهامي</CardTitle>
+                </div>
+                 <Link href="/tasks">
+                      <Button variant="outline">عرض كل المهام</Button>
+                  </Link>
+            </CardHeader>
+            <CardContent>
+                <ScrollArea className="h-72">
+                    <div className="space-y-4">
+                        {userTasks.length > 0 ? userTasks.map(task => (
+                             <div key={task.id} className="flex items-center space-x-2 space-x-reverse">
+                                <Checkbox 
+                                    id={`task-${task.id}`} 
+                                    onCheckedChange={(checked) => handleTaskStatusChange(task.id, !!checked)}
+                                />
+                                <label
+                                    htmlFor={`task-${task.id}`}
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                    {task.description}
+                                </label>
+                            </div>
+                        )) : (
+                            <div className="text-center text-muted-foreground py-10">
+                                <p>لا توجد مهام حالية. عظيم!</p>
+                            </div>
+                        )}
+                    </div>
+                </ScrollArea>
+            </CardContent>
+        </Card>
+      </div>
+
     </div>
   );
 }
+
+    

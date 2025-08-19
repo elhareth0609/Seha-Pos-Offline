@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 import { PinDialog } from '@/components/auth/PinDialog';
@@ -24,6 +24,7 @@ type AuthResponse = {
         supplierReturns: ReturnOrder[];
         timeLogs: TimeLog[];
         expenses: Expense[];
+        tasks: Task[];
     };
     all_users_in_pharmacy: User[];
     advertisements: Advertisement[];
@@ -52,7 +53,7 @@ interface AuthContextType {
     logout: () => void;
     registerUser: (name: string, email: string, pin: string) => Promise<boolean>;
     deleteUser: (userId: string, permanent?: boolean) => Promise<boolean>;
-    updateUser: (userId: string, name: string, email: string, pin?: string) => Promise<boolean>;
+    updateUser: (userId: string, name: string, email: string, pin?: string, delete_pin?: string) => Promise<boolean>;
     updateUserPermissions: (userId: string, permissions: UserPermissions) => Promise<boolean>;
     updateUserHourlyRate: (userId: string, rate: number) => Promise<boolean>;
     toggleUserStatus: (userId: string) => Promise<boolean>;
@@ -121,6 +122,12 @@ interface AuthContextType {
     updateExpense: (id: string, amount: number, description: string) => Promise<boolean>;
     deleteExpense: (id: string) => Promise<boolean>;
 
+    // Tasks
+    getPaginatedTasks: (page: number, perPage: number, filters: { user_id?: string, completed?: boolean }) => Promise<PaginatedResponse<Task>>;
+    addTask: (description: string, user_id: string) => Promise<boolean>;
+    updateTask: (id: string, data: Partial<Task>) => Promise<boolean>;
+    deleteTask: (id: string) => Promise<boolean>;
+
     // Trash
     restoreItem: (itemId: string) => Promise<boolean>;
     permDelete: (itemId: string) => Promise<boolean>;
@@ -137,7 +144,7 @@ interface AuthContextType {
     setActiveInvoice: React.Dispatch<React.SetStateAction<ActiveInvoice>>;
     resetActiveInvoice: () => void;
     
-    verifyPin: (pin: string) => Promise<boolean>;
+    verifyPin: (pin: string, isDeletePin?: boolean) => Promise<boolean>;
     updateUserPinRequirement: (userId: string, requirePin: boolean) => Promise<void>;
 }
 
@@ -153,6 +160,7 @@ export interface ScopedDataContextType {
     timeLogs: [TimeLog[], React.Dispatch<React.SetStateAction<TimeLog[]>>];
     settings: [AppSettings, (value: AppSettings | ((val: AppSettings) => AppSettings)) => void];
     expenses: [Expense[], React.Dispatch<React.SetStateAction<Expense[]>>];
+    tasks: [Task[], React.Dispatch<React.SetStateAction<Task[]>>];
 }
 
 const AuthContext = React.createContext<AuthContextType | null>(null);
@@ -228,6 +236,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [timeLogs, setTimeLogs] = React.useState<TimeLog[]>([]);
     const [settings, setSettings] = React.useState<AppSettings>(fallbackAppSettings);
     const [expenses, setExpenses] = React.useState<Expense[]>([]);
+    const [tasks, setTasks] = React.useState<Task[]>([]);
     
     const [activeTimeLogId, setActiveTimeLogId] = React.useState<string | null>(null);
     const [advertisements, setAdvertisements] = React.useState<Advertisement[]>([]);
@@ -257,6 +266,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setSupplierReturns(pd.supplierReturns || []);
             setTimeLogs(pd.timeLogs || []);
             setExpenses(pd.expenses || []);
+            setTasks(pd.tasks || []);
             setSettings(pd.settings || fallbackAppSettings);
         }
         localStorage.setItem('authToken', data.token);
@@ -337,9 +347,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error: any) { return false; }
     }
     
-    const updateUser = async (userId: string, name: string, email: string, pin?: string) => {
+    const updateUser = async (userId: string, name: string, email: string, pin?: string, delete_pin?: string) => {
         try {
-            const updatedUser = await apiRequest(`/users/${userId}`, 'PUT', { name, email, pin });
+            const updatedUser = await apiRequest(`/users/${userId}`, 'PUT', { name, email, pin, delete_pin });
             setUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
             if (currentUser?.id === userId) setCurrentUser(updatedUser);
             return true;
@@ -843,6 +853,50 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             return true;
         } catch (e) { return false; }
     };
+    
+    const getPaginatedTasks = React.useCallback(async (page: number, perPage: number, filters: { user_id?: string, completed?: boolean }) => {
+        try {
+            const params = new URLSearchParams({
+                paginate: "true",
+                page: String(page),
+                per_page: String(perPage),
+            });
+            if(filters.user_id) params.append('user_id', filters.user_id);
+            if(filters.completed !== undefined) params.append('completed', String(filters.completed));
+            
+            const data = await apiRequest(`/tasks?${params.toString()}`);
+            return data;
+        } catch (e) {
+            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Task>;
+        }
+    }, []);
+
+    const addTask = async (description: string, user_id: string) => {
+        try {
+            const newTask = await apiRequest('/tasks', 'POST', { description, user_id });
+            setTasks(prev => [newTask, ...prev]);
+            toast({ title: "تمت إضافة المهمة بنجاح" });
+            return true;
+        } catch (e) { return false; }
+    };
+
+    const updateTask = async (id: string, data: Partial<Task>) => {
+        try {
+            const updatedTask = await apiRequest(`/tasks/${id}`, 'PUT', data);
+            toast({ title: data.completed ? "تم إنجاز المهمة!" : "تم تحديث المهمة" });
+            return true;
+        } catch (e) { return false; }
+    };
+
+    const deleteTask = async (id: string) => {
+        try {
+            await apiRequest(`/tasks/${id}`, 'DELETE');
+            setTasks(prev => prev.filter(t => t.id !== id));
+            toast({ title: "تم حذف المهمة" });
+            return true;
+        } catch (e) { return false; }
+    };
+
 
     const restoreItem = async (itemId: string) => {
         try {
@@ -877,9 +931,9 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         } catch(e) { return false; }
     }
     
-    const verifyPin = async (pin: string) => {
+    const verifyPin = async (pin: string, isDeletePin: boolean = false) => {
         try {
-            const response = await apiRequest('/verify-pin', 'POST', { pin });
+            const response = await apiRequest('/verify-pin', 'POST', { pin, is_delete_pin: isDeletePin });
             return response.valid;
         } catch (e) {
             return false;
@@ -916,6 +970,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         timeLogs: [timeLogs, setTimeLogs],
         settings: [settings, setScopedSettings],
         expenses: [expenses, setExpenses],
+        tasks: [tasks, setTasks],
     };
 
     const isAuthenticated = !!currentUser;
@@ -937,6 +992,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             addPurchaseOrder,
             addReturnOrder, getPaginatedPurchaseOrders, getPaginatedReturnOrders,
             getPaginatedExpenses, addExpense, updateExpense, deleteExpense,
+            getPaginatedTasks, addTask, updateTask, deleteTask,
             restoreItem, permDelete, clearTrash, getPaginatedTrash,
             getPaginatedUsers,
             activeInvoice, setActiveInvoice, resetActiveInvoice,
@@ -954,3 +1010,5 @@ export function useAuth() {
   }
   return context;
 }
+
+    

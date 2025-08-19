@@ -22,7 +22,8 @@ import {
   HelpCircle,
   Repeat,
   Trash2,
-  Coins, // New icon for Expenses
+  Coins,
+  ListChecks, // New icon for Tasks
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,7 +47,8 @@ const allNavItems = [
   { href: "/purchases", icon: Truck, label: "المشتريات" },
   { href: "/suppliers", icon: Landmark, label: "الموردون والحسابات" },
   { href: "/reports", icon: FileText, label: "التقارير" },
-  { href: "/expenses", icon: Coins, label: "الصرفيات" }, // New Nav Item
+  { href: "/expenses", icon: Coins, label: "الصرفيات" },
+  { href: "/tasks", icon: ListChecks, label: "المهام" }, // New Nav Item
   { href: "/item-movement", icon: Repeat, label: "حركة المادة" },
   { href: "/patients", icon: Users, label: "أصدقاء الصيدلية" },
   { href: "/expiring-soon", icon: CalendarX2, label: "قريب الانتهاء" },
@@ -80,6 +82,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         manage_users: false,
         manage_previous_sales: false,
         manage_expenses: false,
+        manage_tasks: false,
     };
 
     const permissionMap: { [key: string]: keyof UserPermissions } = {
@@ -95,6 +98,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         '/settings': 'manage_settings',
         '/trash': 'manage_trash',
         '/expenses': 'manage_expenses',
+        '/tasks': 'manage_tasks',
     };
 
     return allNavItems.filter(item => {
@@ -213,3 +217,5 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </TooltipProvider>
   );
 }
+
+    
