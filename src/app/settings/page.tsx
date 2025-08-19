@@ -168,12 +168,16 @@ function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (o
 }
 
 function CloseMonthDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
-    const { scopedData, closeMonth, toast } = useAuth();
-    const { sales, expenses, timeLogs, suppliers, purchaseOrders, supplierReturns, payments, users } = scopedData;
+    const { users, scopedData, closeMonth, toast } = useAuth();
+    const { sales, expenses, timeLogs, suppliers, purchaseOrders, supplierReturns, payments } = scopedData;
     const [pin, setPin] = React.useState('');
     const [isClosing, setIsClosing] = React.useState(false);
 
     const monthlyStats = React.useMemo(() => {
+        if (!sales || !expenses || !users || !timeLogs || !suppliers || !purchaseOrders || !supplierReturns || !payments) {
+            return { totalSales: 0, totalExpenses: 0, totalSalaries: 0, totalDebts: 0 };
+        }
+
         const totalSales = sales[0].reduce((acc, sale) => acc + sale.total, 0);
         const totalExpenses = expenses[0].reduce((acc, expense) => acc + expense.amount, 0);
         
@@ -818,3 +822,5 @@ to.setHours(23, 59, 59, 999);
     </div>
   )
 }
+
+    
