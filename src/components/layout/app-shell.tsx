@@ -227,12 +227,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           <Link href="/inventory">المخزون</Link>
                         </Button>
                       )}
-                       <SheetTrigger asChild>
-                           <Button variant="outline">
-                            <ListChecks className="me-2 h-4 w-4"/>
-                            مهامي
+                       {currentUser?.role === 'Admin' ? (
+                          <Button variant="outline" asChild>
+                              <Link href="/tasks">
+                                  <ListChecks className="me-2 h-4 w-4"/>
+                                  المهام
+                              </Link>
                           </Button>
-                       </SheetTrigger>
+                       ) : (
+                           <SheetTrigger asChild>
+                               <Button variant="outline">
+                                <ListChecks className="me-2 h-4 w-4"/>
+                                مهامي
+                              </Button>
+                           </SheetTrigger>
+                       )}
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

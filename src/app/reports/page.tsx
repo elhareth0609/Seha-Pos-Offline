@@ -29,12 +29,12 @@ import {
 import { Button } from "@/components/ui/button";
 import type { Sale, SaleItem, User, PaginatedResponse } from '@/lib/types';
 import { InvoiceTemplate } from '@/components/ui/invoice';
-import { Printer, DollarSign, TrendingUp, ChevronDown, Trash2, Pencil } from 'lucide-react';
+import { Printer, DollarSign, TrendingUp, ChevronDown, Trash2, Pencil, FileArchive } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { isWithinInterval, parseISO } from "date-fns"
+import { isWithinInterval, parseISO, differenceInMinutes } from "date-fns"
 import { useAuth } from '@/hooks/use-auth';
 import { Label } from '@/components/ui/label';
 import AdCarousel from '@/components/ui/ad-carousel';
@@ -101,6 +101,82 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
   };
 };
 
+function CloseMonthDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
+    const { users, scopedData, closeMonth, toast } = useAuth();
+    const { sales, expenses, timeLogs, suppliers, purchaseOrders, supplierReturns, payments } = scopedData;
+    const [pin, setPin] = React.useState('');
+    const [isClosing, setIsClosing] = React.useState(false);
+
+    const monthlyStats = React.useMemo(() => {
+        if (!sales || !expenses || !users || !timeLogs || !suppliers || !purchaseOrders || !supplierReturns || !payments) {
+            return { totalSales: 0, totalExpenses: 0, totalSalaries: 0, totalDebts: 0 };
+        }
+
+        const totalSales = sales[0].reduce((acc, sale) => acc + sale.total, 0);
+        const totalExpenses = expenses[0].reduce((acc, expense) => acc + expense.amount, 0);
+        
+        const totalSalaries = users.reduce((total, user) => {
+            if (!user.hourly_rate) return total;
+            const userLogs = timeLogs[0].filter(log => log.user_id === user.id && log.clock_out);
+            const totalMinutes = userLogs.reduce((acc, log) => acc + differenceInMinutes(new Date(log.clock_out!), new Date(log.clock_in)), 0);
+            return total + (totalMinutes / 60) * user.hourly_rate;
+        }, 0);
+
+        const totalDebts = suppliers[0].reduce((acc, supplier) => {
+            const totalPurchases = purchaseOrders[0].filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.total_amount, 0);
+            const totalReturns = supplierReturns[0].filter(r => r.supplier_id === supplier.id).reduce((sum, r) => sum + r.total_amount, 0);
+            const totalPayments = payments[0].filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.amount, 0);
+            return acc + (totalPurchases - totalReturns - totalPayments);
+        }, 0);
+        
+        return { totalSales, totalExpenses, totalSalaries, totalDebts };
+    }, [sales, expenses, timeLogs, users, suppliers, purchaseOrders, supplierReturns, payments]);
+
+    const handleConfirmClose = async () => {
+        setIsClosing(true);
+        const success = await closeMonth(pin);
+        if (success) {
+            onOpenChange(false);
+            setPin('');
+        }
+        setIsClosing(false);
+    }
+    
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>تأكيد إقفال الشهر</DialogTitle>
+                    <DialogDescription>
+                        هذا الإجراء سيقوم بأرشفة بيانات الشهر الحالي وتصفيرها. لا يمكن التراجع عن هذا الإجراء.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                    <p className="font-semibold">ملخص الحسابات الشهرية:</p>
+                    <div className="text-sm space-y-1">
+                        <div className="flex justify-between"><span>إجمالي المبيعات:</span> <span className="font-mono">{monthlyStats.totalSales.toLocaleString()}</span></div>
+                        <div className="flex justify-between"><span>إجمالي المصروفات:</span> <span className="font-mono">{monthlyStats.totalExpenses.toLocaleString()}</span></div>
+                        <div className="flex justify-between"><span>إجمالي الرواتب:</span> <span className="font-mono">{monthlyStats.totalSalaries.toLocaleString()}</span></div>
+                        <div className="flex justify-between"><span>إجمالي الديون:</span> <span className="font-mono">{monthlyStats.totalDebts.toLocaleString()}</span></div>
+                    </div>
+                    <div className="space-y-2 pt-4">
+                        <Label htmlFor="close-month-pin">رمز PIN للمدير للتأكيد</Label>
+                        <Input id="close-month-pin" type="password" value={pin} onChange={e => setPin(e.target.value)} />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline" type="button">إلغاء</Button>
+                    </DialogClose>
+                    <Button variant="destructive" onClick={handleConfirmClose} disabled={isClosing || pin.length < 6}>
+                        {isClosing ? "جاري الإقفال..." : "إقفال الشهر نهائيًا"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export default function ReportsPage() {
     const { currentUser, users, scopedData, deleteSale, setActiveInvoice, getPaginatedSales, verifyPin, toast } = useAuth();
     const [settings] = scopedData.settings;
@@ -121,6 +197,8 @@ export default function ReportsPage() {
     
     const [itemToDelete, setItemToDelete] = React.useState<Sale | null>(null);
     const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
+    const [isCloseMonthDialogOpen, setIsCloseMonthDialogOpen] = React.useState(false);
+
 
     const router = useRouter();
 
@@ -318,6 +396,24 @@ export default function ReportsPage() {
                     <AdCarousel page="reports" />
                 </div>
             </div>
+            
+            {currentUser?.role === 'Admin' && (
+            <Card>
+                <CardHeader>
+                    <CardTitle>العمليات الدورية</CardTitle>
+                    <CardDescription>
+                       تنفيذ عمليات نهاية الفترة المحاسبية مثل إقفال الشهر.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button variant="outline" className='border-blue-500 text-blue-600 hover:bg-blue-50 hover:text-blue-700' onClick={() => setIsCloseMonthDialogOpen(true)}>
+                        <FileArchive className="me-2 h-4 w-4"/>
+                        إقفال الشهر وأرشفة البيانات
+                    </Button>
+                </CardContent>
+            </Card>
+            )}
+
 
             <Card>
                 <CardHeader>
@@ -549,6 +645,7 @@ export default function ReportsPage() {
                 onOpenChange={setIsPinDialogOpen}
                 onConfirm={handlePinConfirmDelete}
             />
+            <CloseMonthDialog open={isCloseMonthDialogOpen} onOpenChange={setIsCloseMonthDialogOpen} />
         </div>
     )
 }
