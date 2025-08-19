@@ -528,45 +528,6 @@ export default function Dashboard() {
             </CardContent>
           </Card>
       </div>
-      
-       <div className="grid gap-6">
-        <Card>
-            <CardHeader className="flex-row items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <ListChecks className="h-6 w-6 text-primary" />
-                    <CardTitle>مهامي</CardTitle>
-                </div>
-                 <Link href="/tasks">
-                      <Button variant="outline">عرض كل المهام</Button>
-                  </Link>
-            </CardHeader>
-            <CardContent>
-                <ScrollArea className="h-72">
-                    <div className="space-y-4">
-                        {userTasks.length > 0 ? userTasks.map(task => (
-                             <div key={task.id} className="flex items-center space-x-2 space-x-reverse">
-                                <Checkbox 
-                                    id={`task-${task.id}`} 
-                                    onCheckedChange={(checked) => handleTaskStatusChange(task.id, !!checked)}
-                                />
-                                <label
-                                    htmlFor={`task-${task.id}`}
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                >
-                                    {task.description}
-                                </label>
-                            </div>
-                        )) : (
-                            <div className="text-center text-muted-foreground py-10">
-                                <p>لا توجد مهام حالية. عظيم!</p>
-                            </div>
-                        )}
-                    </div>
-                </ScrollArea>
-            </CardContent>
-        </Card>
-      </div>
-
     </div>
   );
 }
