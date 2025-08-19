@@ -17,7 +17,9 @@ export type UserPermissions = {
     manage_salesPriceModification: boolean;
     manage_previous_sales: boolean;
     manage_expenses: boolean;
-    manage_tasks: boolean; // New permission
+    manage_tasks: boolean;
+    manage_close_month: boolean;
+    manage_archives: boolean;
 };
 
 export type Medication = {
@@ -194,6 +196,30 @@ export type Task = {
     completed: boolean;
     created_at: string;
     completed_at: string | null;
+};
+
+export type MonthlyArchive = {
+  id: string;
+  pharmacy_id: string;
+  month_name: string; // e.g., "August 2024"
+  created_at: string;
+};
+
+export type ArchivedMonthData = {
+  id: string;
+  month_name: string;
+  summary: {
+    total_sales: number;
+    total_expenses: number;
+    net_profit: number;
+  };
+  sales: Sale[];
+  expenses: Expense[];
+  top_selling_medications: {
+    medication_id: string;
+    name: string;
+    total_quantity: number;
+  }[];
 };
 
 

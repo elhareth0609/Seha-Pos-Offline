@@ -25,6 +25,7 @@ import {
   Coins,
   ListChecks,
   CheckCircle,
+  FileArchive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,6 +65,8 @@ const allNavItems = [
   { href: "/patients", icon: Users, label: "أصدقاء الصيدلية" },
   { href: "/expiring-soon", icon: CalendarX2, label: "قريب الانتهاء" },
   { href: "/trash", icon: Trash2, label: "سلة المحذوفات" },
+  { href: "/archives", icon: FileArchive, label: "الأرشيف الشهري", permissionKey: 'manage_archives' },
+  { href: "/close-month", icon: FileArchive, label: "إقفال الشهر", permissionKey: 'manage_close_month' },
   { href: "/guide", icon: HelpCircle, label: "دليل الاستخدام" },
   { href: "/settings", icon: Settings, label: "الإعدادات" },
 ];
@@ -146,6 +149,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         manage_previous_sales: false,
         manage_expenses: false,
         manage_tasks: false,
+        manage_close_month: false,
+        manage_archives: false,
     };
 
     const permissionMap: { [key: string]: keyof UserPermissions } = {
@@ -162,6 +167,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         '/trash': 'manage_trash',
         '/expenses': 'manage_expenses',
         '/tasks': 'manage_tasks',
+        '/close-month': 'manage_close_month',
+        '/archives': 'manage_archives',
     };
 
     return allNavItems.filter(item => {
@@ -298,5 +305,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </TooltipProvider>
   );
 }
-
-    

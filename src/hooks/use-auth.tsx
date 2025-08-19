@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 import { PinDialog } from '@/components/auth/PinDialog';
@@ -147,6 +147,9 @@ interface AuthContextType {
     
     verifyPin: (pin: string, isDeletePin?: boolean) => Promise<boolean>;
     updateUserPinRequirement: (userId: string, requirePin: boolean) => Promise<void>;
+    
+    getArchivedMonths: () => Promise<MonthlyArchive[]>;
+    getArchivedMonthData: (archiveId: string) => Promise<ArchivedMonthData | null>;
 }
 
 export interface ScopedDataContextType {
@@ -962,6 +965,22 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             toast({ title: "تم تحديث إعدادات الأمان" });
         } catch(e) {}
     }
+    
+    const getArchivedMonths = async (): Promise<MonthlyArchive[]> => {
+        try {
+            return await apiRequest('/archives');
+        } catch(e) {
+            return [];
+        }
+    }
+    
+    const getArchivedMonthData = async (archiveId: string): Promise<ArchivedMonthData | null> => {
+        try {
+            return await apiRequest(`/archives/${archiveId}`);
+        } catch(e) {
+            return null;
+        }
+    }
 
 
     const setScopedSettings = async (value: AppSettings | ((val: AppSettings) => AppSettings)) => {
@@ -1012,6 +1031,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             getPaginatedUsers,
             activeInvoice, setActiveInvoice, resetActiveInvoice,
             verifyPin, updateUserPinRequirement,
+            getArchivedMonths, getArchivedMonthData,
         }}>
             {children}
         </AuthContext.Provider>
