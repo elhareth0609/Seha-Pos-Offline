@@ -60,13 +60,12 @@ const allNavItems = [
   { href: "/suppliers", icon: Landmark, label: "الموردون والحسابات" },
   { href: "/reports", icon: FileText, label: "التقارير" },
   { href: "/expenses", icon: Coins, label: "الصرفيات" },
-  { href: "/tasks", icon: ListChecks, label: "المهام" }, // New Nav Item
+  { href: "/tasks", icon: ListChecks, label: "المهام" },
   { href: "/item-movement", icon: Repeat, label: "حركة المادة" },
   { href: "/patients", icon: Users, label: "أصدقاء الصيدلية" },
   { href: "/expiring-soon", icon: CalendarX2, label: "قريب الانتهاء" },
   { href: "/trash", icon: Trash2, label: "سلة المحذوفات" },
-  { href: "/archives", icon: FileArchive, label: "الأرشيف الشهري", permissionKey: 'manage_archives' },
-  { href: "/close-month", icon: FileArchive, label: "إقفال الشهر", permissionKey: 'manage_close_month' },
+  { href: "/close-month", icon: FileArchive, label: "الحسابات الختامية", permissionKey: 'manage_close_month' },
   { href: "/guide", icon: HelpCircle, label: "دليل الاستخدام" },
   { href: "/settings", icon: Settings, label: "الإعدادات" },
 ];
@@ -168,7 +167,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         '/expenses': 'manage_expenses',
         '/tasks': 'manage_tasks',
         '/close-month': 'manage_close_month',
-        '/archives': 'manage_archives',
     };
 
     return allNavItems.filter(item => {

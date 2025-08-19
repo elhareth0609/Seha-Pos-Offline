@@ -320,7 +320,7 @@ export default function ReportsPage() {
                 </div>
             </div>
             
-            {currentUser?.permissions?.manage_close_month && (
+            {currentUser?.role === 'Admin' && (
             <Card>
                 <CardHeader>
                     <CardTitle>العمليات الدورية</CardTitle>
@@ -332,7 +332,7 @@ export default function ReportsPage() {
                     <Button variant="outline" className='border-blue-500 text-blue-600 hover:bg-blue-50 hover:text-blue-700' asChild>
                         <Link href="/close-month">
                             <FileArchive className="me-2 h-4 w-4"/>
-                            إقفال الشهر وأرشفة البيانات
+                            إقفال وأرشفة الشهر
                         </Link>
                     </Button>
                 </CardContent>
