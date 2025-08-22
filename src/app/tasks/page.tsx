@@ -41,6 +41,7 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
+    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useAuth } from "@/hooks/use-auth"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -49,7 +50,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 
 export default function TasksPage() {
-  const { currentUser, users, getPaginatedTasks, addTask, updateTask, deleteTask } = useAuth();
+  const { currentUser, users, getPaginatedTasks, addTask, updateTask, updateStatusTask, deleteTask } = useAuth();
   
   const [tasks, setTasks] = React.useState<Task[]>([]);
   const [totalPages, setTotalPages] = React.useState(1);
@@ -86,7 +87,7 @@ export default function TasksPage() {
   }, [currentPage, perPage, employeeFilter, statusFilter, fetchData]);
 
   const handleTaskStatusChange = async (taskId: string, completed: boolean) => {
-    await updateTask(taskId, { completed });
+    await updateStatusTask(taskId, { completed });
     const filters: { user_id?: string, completed?: boolean } = {};
     if (employeeFilter !== 'all') filters.user_id = employeeFilter;
     if (statusFilter !== 'all') filters.completed = statusFilter === 'completed';
@@ -223,7 +224,7 @@ export default function TasksPage() {
                     </TableRow>
                  )) : visibleTasks.length > 0 ? visibleTasks.map((task) => (
                      <TableRow key={task.id}>
-                        <TableCell>
+                        <TableCell className="[&:has([role=checkbox])]:pr-4">
                             <Checkbox 
                                 checked={task.completed} 
                                 onCheckedChange={(checked) => handleTaskStatusChange(task.id, !!checked)}
@@ -236,7 +237,7 @@ export default function TasksPage() {
                         {currentUser?.role === 'Admin' && (
                             <TableCell>
                                 {task.completed && (
-                                     <AlertDialog>
+                                    <AlertDialog>
                                         <AlertDialogTrigger asChild>
                                             <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
                                                 <Trash2 className="h-4 w-4"/>
@@ -249,7 +250,7 @@ export default function TasksPage() {
                                                     سيتم حذف هذه المهمة المنجزة نهائياً.
                                                 </AlertDialogDescription>
                                             </AlertDialogHeader>
-                                            <AlertDialogFooter>
+                                            <AlertDialogFooter className="sm:space-x-reverse">
                                                 <AlertDialogCancel>إلغاء</AlertDialogCancel>
                                                 <AlertDialogAction onClick={() => handleDeleteTask(task.id)} className='bg-destructive hover:bg-destructive/90'>نعم، قم بالحذف</AlertDialogAction>
                                             </AlertDialogFooter>

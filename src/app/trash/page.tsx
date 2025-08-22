@@ -66,6 +66,7 @@ export default function TrashPage() {
     supplier: 'مورد',
     user: 'موظف',
     sale: 'فاتورة بيع',
+    task: 'مهمة',
   }
   
   const fetchData = React.useCallback(async (page: number, limit: number) => {
@@ -160,7 +161,7 @@ export default function TrashPage() {
                                 هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع العناصر في السلة بشكل دائم.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
-                        <AlertDialogFooter>
+                        <AlertDialogFooter className="md:space-x-reverse">
                             <AlertDialogCancel>إلغاء</AlertDialogCancel>
                             <AlertDialogAction onClick={handleClearTrash} className={buttonVariants({ variant: "destructive" })}>
                                 نعم، قم بالحذف
@@ -228,10 +229,10 @@ export default function TrashPage() {
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>هل أنت متأكد من الحذف النهائي؟</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                       لا يمكن التراجع عن هذا الإجراء.
+                                        لا يمكن التراجع عن هذا الإجراء.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
-                                <AlertDialogFooter>
+                                <AlertDialogFooter className="md:space-x-reverse">
                                     <AlertDialogCancel>إلغاء</AlertDialogCancel>
                                     <AlertDialogAction onClick={() => handlePermanentDelete(item)} className={buttonVariants({ variant: "destructive" })}>
                                         حذف

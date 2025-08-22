@@ -72,7 +72,7 @@ const allNavItems = [
 
 
 function TasksSheet() {
-  const { currentUser, scopedData, updateTask } = useAuth();
+  const { currentUser, scopedData, updateTask, updateStatusTask } = useAuth();
   const [tasks, setTasks] = React.useState<Task[]>([]);
 
   React.useEffect(() => {
@@ -84,7 +84,7 @@ function TasksSheet() {
   }, [scopedData.tasks, currentUser]);
 
   const handleTaskStatusChange = async (taskId: string, completed: boolean) => {
-    const success = await updateTask(taskId, { completed });
+    const success = await updateStatusTask(taskId, { completed });
     if (success) {
       setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
     }

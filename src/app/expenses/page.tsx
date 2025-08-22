@@ -280,7 +280,7 @@ export default function ExpensesPage() {
                     </TableRow>
                  )) : expenses.length > 0 ? expenses.map((expense) => (
                      <TableRow key={expense.id}>
-                        <TableCell className="font-mono text-sm">{new Date(expense.date).toLocaleDateString('ar-EG')}</TableCell>
+                        <TableCell className="font-mono text-sm">{new Date(expense.created_at).toLocaleDateString('ar-EG')}</TableCell>
                         <TableCell className="font-medium">{expense.description}</TableCell>
                         <TableCell className="font-mono text-destructive">{expense.amount.toLocaleString()}</TableCell>
                         <TableCell className="text-muted-foreground">{expense.user_name}</TableCell>
@@ -316,7 +316,7 @@ export default function ExpensesPage() {
                                                     سيتم حذف هذا السجل نهائياً. لا يمكن التراجع عن هذا الإجراء.
                                                 </AlertDialogDescription>
                                             </AlertDialogHeader>
-                                            <AlertDialogFooter>
+                                            <AlertDialogFooter className="sm:space-x-reverse">
                                                 <AlertDialogCancel>إلغاء</AlertDialogCancel>
                                                 <AlertDialogAction onClick={handleDeleteExpense} className='bg-destructive hover:bg-destructive/90'>نعم، قم بالحذف</AlertDialogAction>
                                             </AlertDialogFooter>

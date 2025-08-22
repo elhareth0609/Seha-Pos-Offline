@@ -127,6 +127,7 @@ interface AuthContextType {
     getPaginatedTasks: (page: number, perPage: number, filters: { user_id?: string, completed?: boolean }) => Promise<PaginatedResponse<Task>>;
     addTask: (description: string, user_id: string) => Promise<boolean>;
     updateTask: (id: string, data: Partial<Task>) => Promise<boolean>;
+    updateStatusTask: (id: string, data: Partial<Task>) => Promise<boolean>;
     deleteTask: (id: string) => Promise<boolean>;
 
     // Trash
@@ -906,6 +907,16 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         } catch (e) { return false; }
     };
 
+    const updateStatusTask = async (id: string, data: Partial<Task>) => {
+        console.log("Calling:", `/tasks/${id}/completed`);
+
+        try {
+            const updatedTask = await apiRequest(`/tasks/${id}/completed`, 'PUT', data);
+            toast({ title: data.completed ? "تم إنجاز المهمة!" : "تم تحديث المهمة" });
+            return true;
+        } catch (e) { return false; }
+    };
+
     const deleteTask = async (id: string) => {
         try {
             await apiRequest(`/tasks/${id}`, 'DELETE');
@@ -1026,7 +1037,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             addPurchaseOrder,
             addReturnOrder, getPaginatedPurchaseOrders, getPaginatedReturnOrders,
             getPaginatedExpenses, addExpense, updateExpense, deleteExpense,
-            getPaginatedTasks, addTask, updateTask, deleteTask,
+            getPaginatedTasks, addTask, updateTask, updateStatusTask, deleteTask,
             restoreItem, permDelete, clearTrash, getPaginatedTrash,
             getPaginatedUsers,
             activeInvoice, setActiveInvoice, resetActiveInvoice,
