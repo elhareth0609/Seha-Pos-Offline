@@ -871,15 +871,25 @@ export default function SalesPage() {
                                                         {item.name} {item.dosage} {item.dosage_form}
                                                         {alternatives.length > 0 && (
                                                             <Popover>
-                                                                <PopoverTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6 text-primary/70 hover:text-primary"><Replace className="h-4 w-4" /></Button></PopoverTrigger>
+                                                                <PopoverTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6 text-primary/70 hover:text-primary">
+                                                                    <Replace className="h-4 w-4" /></Button>
+                                                                </PopoverTrigger>
                                                                 <PopoverContent className="w-80">
                                                                     <div className="space-y-2">
                                                                         <h4 className="font-medium leading-none">بدائل متاحة</h4>
                                                                         <div className="space-y-1">
                                                                             {alternatives.map(alt => (
                                                                                 <div key={alt.id} className="text-sm p-2 hover:bg-accent rounded-md flex justify-between items-center">
-                                                                                    <div><div>{alt.name}</div><div className="text-xs text-muted-foreground">المتوفر: {alt.stock}</div></div>
-                                                                                    <div className="flex items-center gap-2"><span className="font-mono">{alt.price}</span><Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => addToCart(alt)}><PlusCircle className="h-4 w-4 text-green-600" /></Button></div>
+                                                                                    <div>
+                                                                                        <div>{alt.name}</div>
+                                                                                        <div className="text-xs text-muted-foreground">المتوفر: {alt.stock}</div>
+                                                                                    </div>
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <span className="font-mono">{alt.price}</span>
+                                                                                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => addToCart(alt)}>
+                                                                                            <PlusCircle className="h-4 w-4 text-green-600" />
+                                                                                        </Button>
+                                                                                    </div>
                                                                                 </div>
                                                                             ))}
                                                                         </div>
@@ -890,7 +900,9 @@ export default function SalesPage() {
                                                     </div>
                                                     <div className="text-xs text-muted-foreground">({(item.scientific_names || []).join(', ')})</div>
                                                 </div>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeFromCart(item.id)}><X className="h-4 w-4 text-destructive" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive hover:text-white" onClick={() => removeFromCart(item.id)}>
+                                                    <X className="h-4 w-4" />
+                                                </Button>
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-3 items-end">
@@ -905,9 +917,13 @@ export default function SalesPage() {
                                                         {isBelowCost && !item.is_return && (
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
-                                                                    <div className="absolute -top-2 -left-2 text-destructive"><AlertTriangle className="h-4 w-4" /></div>
+                                                                    <div className="absolute -top-2 -left-2 text-destructive">
+                                                                        <AlertTriangle className="h-4 w-4" />
+                                                                    </div>
                                                                 </TooltipTrigger>
-                                                                <TooltipContent><p>السعر أقل من الكلفة!</p></TooltipContent>
+                                                                <TooltipContent>
+                                                                    <p>السعر أقل من الكلفة!</p>
+                                                                </TooltipContent>
                                                             </Tooltip>
                                                         )}
                                                      </div>
@@ -1014,7 +1030,9 @@ export default function SalesPage() {
                                                             <AlertTriangle className="h-4 w-4" />
                                                           </div>
                                                         </TooltipTrigger>
-                                                        <TooltipContent><p>السعر أقل من الكلفة!</p></TooltipContent>
+                                                        <TooltipContent>
+                                                            <p>السعر أقل من الكلفة!</p>
+                                                        </TooltipContent>
                                                       </Tooltip>
                                                     )}
                                                 </div>
