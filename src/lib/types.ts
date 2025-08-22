@@ -1,4 +1,5 @@
 
+
 import { z } from 'zod';
 
 export type UserPermissions = {
@@ -16,6 +17,10 @@ export type UserPermissions = {
     manage_trash: boolean;
     manage_salesPriceModification: boolean;
     manage_previous_sales: boolean;
+    manage_expenses: boolean;
+    manage_tasks: boolean;
+    manage_close_month: boolean;
+    manage_archives: boolean;
 };
 
 export type Medication = {
@@ -31,6 +36,7 @@ export type Medication = {
   expiration_date: string;
   dosage?: string;
   dosage_form?: string;
+  status?: 'active' | 'damaged';
 };
 
 export type SaleItem = {
@@ -58,6 +64,7 @@ export type Sale = {
   patientName?: string;
   employee_id: string;
   employeeName: string;
+  payment_method: 'cash' | 'card';
 };
 
 export type PurchaseOrderItem = {
@@ -118,11 +125,14 @@ export type User = {
   status: 'active' | 'suspended';
   email?: string;
   pin?: string;
+  delete_pin?: string;
   permissions?: UserPermissions;
   hourly_rate?: number;
+  salary?: number;
   pharmacy_id: string;
   created_at: string; // ISO date string
   image1DataUri?: string;
+  require_pin_for_delete?: boolean;
 };
 
 export type Patient = {
@@ -153,8 +163,8 @@ export type AppSettings = {
 export type TrashItem = {
   id: string; // Unique ID for the trash entry
   deleted_at: string; // ISO date string
-  item_type: 'medication' | 'patient' | 'supplier' | 'user' | 'sale';
-  data: Partial<Medication & Patient & Supplier & User & Sale>;
+  item_type: 'medication' | 'patient' | 'supplier' | 'user' | 'sale' | 'task';
+  data: Partial<Medication & Patient & Supplier & User & Sale & Task>;
 };
 
 export type Advertisement = {
@@ -168,6 +178,49 @@ export type Advertisement = {
         reports: boolean;
         inventory: boolean;
     }
+};
+
+export type Expense = {
+    id: string;
+    date: string;
+    amount: number;
+    description: string;
+    user_id: string;
+    user_name: string;
+};
+
+export type Task = {
+    id: string;
+    description: string;
+    user_id: string;
+    user_name: string;
+    completed: boolean;
+    created_at: string;
+    completed_at: string | null;
+};
+
+export type MonthlyArchive = {
+  id: string;
+  pharmacy_id: string;
+  month_name: string; // e.g., "August 2024"
+  created_at: string;
+};
+
+export type ArchivedMonthData = {
+  id: string;
+  month_name: string;
+  summary: {
+    total_sales: number;
+    total_expenses: number;
+    net_profit: number;
+  };
+  sales: Sale[];
+  expenses: Expense[];
+  top_selling_medications: {
+    medication_id: string;
+    name: string;
+    total_quantity: number;
+  }[];
 };
 
 
@@ -237,3 +290,5 @@ export type TransactionHistoryItem = {
   documentId: string;
   actor: string;
 };
+
+    

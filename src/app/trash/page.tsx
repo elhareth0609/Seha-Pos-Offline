@@ -20,6 +20,16 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogClose,
+} from "@/components/ui/dialog"
+import {
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -30,23 +40,25 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import type { TrashItem } from "@/lib/types"
-import { Trash2, RotateCcw } from "lucide-react"
+import type { TrashItem, User } from "@/lib/types"
+import { Trash2, RotateCcw, ShieldCheck } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { buttonVariants } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 
 
 export default function TrashPage() {
-  const { currentUser, restoreItem, permDelete, clearTrash, getPaginatedTrash } = useAuth();
+  const { currentUser, users, restoreItem, permDelete, clearTrash, getPaginatedTrash, updateUserPinRequirement } = useAuth();
   
   const [trash, setTrash] = React.useState<TrashItem[]>([]);
   const [totalPages, setTotalPages] = React.useState(1);
   const [currentPage, setCurrentPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(10);
   const [loading, setLoading] = React.useState(true);
+  const [isSecurityDialogOpen, setIsSecurityDialogOpen] = React.useState(false);
 
   const item_typeLabels = {
     medication: 'دواء',
@@ -89,6 +101,13 @@ export default function TrashPage() {
     if(success) fetchData(1, perPage);
   }
 
+  const handlePinRequirementChange = (userId: string, requirePin: boolean) => {
+    updateUserPinRequirement(userId, requirePin);
+  };
+
+  const pharmacyUsers = users.filter(u => u.pharmacy_id === currentUser?.pharmacy_id && u.role !== 'SuperAdmin');
+
+
   return (
     <Card>
       <CardHeader className="flex flex-row justify-between items-start">
@@ -98,27 +117,59 @@ export default function TrashPage() {
             العناصر المحذوفة من النظام. يمكنك استعادتها أو حذفها نهائياً.
             </CardDescription>
         </div>
-        {currentUser?.role === 'Admin' && trash.length > 0 && (
-             <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="destructive"><Trash2 className="me-2 h-4 w-4"/> تفريغ السلة</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>هل أنت متأكد من تفريغ السلة؟</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع العناصر في السلة بشكل دائم.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleClearTrash} className={buttonVariants({ variant: "destructive" })}>
-                            نعم، قم بالحذف
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        )}
+        <div className="flex gap-2">
+            {currentUser?.role === 'Admin' && (
+              <Dialog open={isSecurityDialogOpen} onOpenChange={setIsSecurityDialogOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="outline"><ShieldCheck className="me-2 h-4 w-4" /> إعدادات الحذف الآمن</Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>إعدادات الحذف الآمن</DialogTitle>
+                        <DialogDescription>
+                            قم بتفعيل خيار طلب رمز PIN قبل تنفيذ أي عملية حذف لحماية بياناتك من الحذف العرضي أو غير المصرح به.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                        {pharmacyUsers.map(user => (
+                            <div key={user.id} className="flex items-center justify-between p-2 border rounded-md">
+                                <Label htmlFor={`pin-switch-${user.id}`} className="cursor-pointer">
+                                    <div className="font-medium">{user.name}</div>
+                                    <div className="text-xs text-muted-foreground">{user.role === 'Admin' ? 'مدير' : 'موظف'}</div>
+                                </Label>
+                                <Switch
+                                    id={`pin-switch-${user.id}`}
+                                    checked={user.require_pin_for_delete}
+                                    onCheckedChange={(checked) => handlePinRequirementChange(user.id, checked)}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </DialogContent>
+              </Dialog>
+            )}
+            {currentUser?.role === 'Admin' && trash.length > 0 && (
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive"><Trash2 className="me-2 h-4 w-4"/> تفريغ السلة</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>هل أنت متأكد من تفريغ السلة؟</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع العناصر في السلة بشكل دائم.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleClearTrash} className={buttonVariants({ variant: "destructive" })}>
+                                نعم، قم بالحذف
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
+        </div>
       </CardHeader>
       <CardContent>
          <div className="pb-4 flex items-center gap-2">
@@ -229,5 +280,3 @@ export default function TrashPage() {
     </Card>
   )
 }
-
-    

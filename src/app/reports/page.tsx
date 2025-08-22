@@ -29,12 +29,11 @@ import {
 import { Button } from "@/components/ui/button";
 import type { Sale, SaleItem, User, PaginatedResponse } from '@/lib/types';
 import { InvoiceTemplate } from '@/components/ui/invoice';
-import { Printer, DollarSign, TrendingUp, ChevronDown, Trash2, Pencil } from 'lucide-react';
+import { Printer, DollarSign, TrendingUp, ChevronDown, Trash2, Pencil, FileArchive } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { isWithinInterval, parseISO } from "date-fns"
 import { useAuth } from '@/hooks/use-auth';
 import { Label } from '@/components/ui/label';
 import AdCarousel from '@/components/ui/ad-carousel';
@@ -42,6 +41,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { buttonVariants } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PinDialog } from '@/components/auth/PinDialog';
+import Link from 'next/link';
 
 
 // Modern print function that works with React 18+
@@ -101,7 +102,7 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
 };
 
 export default function ReportsPage() {
-    const { currentUser, users, scopedData, deleteSale, setActiveInvoice, getPaginatedSales } = useAuth();
+    const { currentUser, users, scopedData, deleteSale, setActiveInvoice, getPaginatedSales, verifyPin, toast } = useAuth();
     const [settings] = scopedData.settings;
     
     const [sales, setSales] = React.useState<Sale[]>([]);
@@ -116,15 +117,20 @@ export default function ReportsPage() {
     const [dateFrom, setDateFrom] = React.useState<string>("");
     const [dateTo, setDateTo] = React.useState<string>("");
     const [employeeId, setEmployeeId] = React.useState<string>("all");
+    const [paymentMethod, setPaymentMethod] = React.useState<string>("all");
     
+    const [itemToDelete, setItemToDelete] = React.useState<Sale | null>(null);
+    const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
+
+
     const router = useRouter();
 
     const canManagePreviousSales = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_previous_sales;
 
-    const fetchData = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string, empId: string) => {
+    const fetchData = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string, empId: string, pMethod: string) => {
         setLoading(true);
         try {
-            const data = await getPaginatedSales(page, limit, search, from, to, empId);
+            const data = await getPaginatedSales(page, limit, search, from, to, empId, pMethod);
             setSales(data.data);
             setTotalPages(data.last_page);
             setCurrentPage(data.current_page);
@@ -138,10 +144,10 @@ export default function ReportsPage() {
     React.useEffect(() => {
         setIsClient(true);
         const handler = setTimeout(() => {
-            fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId);
+            fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod);
         }, 300);
         return () => clearTimeout(handler);
-    }, [currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, fetchData]);
+    }, [currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, fetchData]);
     
 
     const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
@@ -174,27 +180,48 @@ export default function ReportsPage() {
         setDateFrom("");
         setDateTo("");
         setEmployeeId("all");
+        setPaymentMethod("all");
     };
 
-    const handleDeleteSale = async (saleId: string) => {
-        const success = await deleteSale(saleId);
-        if (success) {
-            fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId);
+    const handleDeleteSale = async () => {
+        if (!itemToDelete) return;
+
+        if (currentUser?.require_pin_for_delete) {
+            setIsPinDialogOpen(true);
+        } else {
+            const success = await deleteSale(itemToDelete.id);
+            if (success) {
+                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod);
+                setItemToDelete(null);
+            }
         }
     }
+    
+    const handlePinConfirmDelete = async (pin: string) => {
+        if (!itemToDelete) return;
+        const isValid = await verifyPin(pin);
+        if (isValid) {
+            setIsPinDialogOpen(false);
+            const success = await deleteSale(itemToDelete.id);
+            if (success) {
+                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod);
+                setItemToDelete(null);
+            }
+        } else {
+            toast({ variant: 'destructive', title: "رمز PIN غير صحيح" });
+        }
+    };
 
     const handleEditSale = (sale: Sale) => {
         const saleToEdit = sales.find(s => s.id === sale.id);
         if (saleToEdit) {
-            const saleIndex = sales.findIndex(s => s.id === sale.id);
             setActiveInvoice({
                 cart: saleToEdit.items.map((i: SaleItem) => ({...i, id: i.medication_id})),
                 discountValue: (saleToEdit.discount || 0).toString(),
-                discountType: 'fixed', // Assuming fixed for simplicity, might need to store type in Sale object
+                discountType: 'fixed',
                 patientId: saleToEdit.patient_id || null,
-                paymentMethod: 'cash', // Assuming cash, might need to store in Sale object
+                paymentMethod: 'cash',
                 saleIdToUpdate: saleToEdit.id,
-                reviewIndex: saleIndex,
             });
             router.push('/sales');
         }
@@ -292,13 +319,33 @@ export default function ReportsPage() {
                     <AdCarousel page="reports" />
                 </div>
             </div>
+            
+            {currentUser?.role === 'Admin' && (
+            <Card>
+                <CardHeader>
+                    <CardTitle>العمليات الدورية</CardTitle>
+                    <CardDescription>
+                       تنفيذ عمليات نهاية الفترة المحاسبية مثل إقفال الشهر.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button variant="outline" className='border-blue-500 text-blue-600 hover:bg-blue-50 hover:text-blue-700' asChild>
+                        <Link href="/close-month">
+                            <FileArchive className="me-2 h-4 w-4"/>
+                            إقفال وأرشفة الشهر
+                        </Link>
+                    </Button>
+                </CardContent>
+            </Card>
+            )}
+
 
             <Card>
                 <CardHeader>
                     <CardTitle>سجل المبيعات</CardTitle>
                     <CardDescription>عرض وطباعة جميع فواتير المبيعات السابقة. اضغط على الصف لعرض التفاصيل.</CardDescription>
-                     <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
-                        <div className="space-y-2">
+                     <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
+                        <div className="space-y-2 md:col-span-2">
                             <Label htmlFor="search-term">بحث</Label>
                             <Input 
                                 id="search-term"
@@ -326,6 +373,19 @@ export default function ReportsPage() {
                                     {pharmacyUsers.map(user => (
                                         <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                                     ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="payment-method-filter">طريقة الدفع</Label>
+                            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                                <SelectTrigger id="payment-method-filter">
+                                    <SelectValue placeholder="الكل"/>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">الكل</SelectItem>
+                                    <SelectItem value="cash">نقداً</SelectItem>
+                                    <SelectItem value="card">بطاقة إلكترونية</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -383,7 +443,7 @@ export default function ReportsPage() {
                                                         </Button>
                                                         <AlertDialog>
                                                             <AlertDialogTrigger asChild>
-                                                                <Button variant="destructive" size="sm" onClick={(e) => e.stopPropagation()}>
+                                                                <Button variant="destructive" size="sm" onClick={(e) => { e.stopPropagation(); setItemToDelete(sale); }}>
                                                                     <Trash2 className="me-2 h-4 w-4" />
                                                                     حذف
                                                                 </Button>
@@ -397,7 +457,7 @@ export default function ReportsPage() {
                                                                 </AlertDialogHeader>
                                                                 <AlertDialogFooter>
                                                                     <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                                                    <AlertDialogAction onClick={() => handleDeleteSale(sale.id)} className={buttonVariants({ variant: "destructive" })}>
+                                                                    <AlertDialogAction onClick={handleDeleteSale} className={buttonVariants({ variant: "destructive" })}>
                                                                         نعم، قم بالحذف
                                                                     </AlertDialogAction>
                                                                 </AlertDialogFooter>
@@ -505,8 +565,11 @@ export default function ReportsPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <PinDialog 
+                open={isPinDialogOpen}
+                onOpenChange={setIsPinDialogOpen}
+                onConfirm={handlePinConfirmDelete}
+            />
         </div>
     )
 }
-
-    

@@ -51,7 +51,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
 import type { Medication, AppSettings } from "@/lib/types"
-import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package, Plus, X } from "lucide-react"
+import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package, Plus, X, Filter } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import Barcode from '@/components/ui/barcode';
@@ -59,6 +59,9 @@ import { buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AdCarousel from "@/components/ui/ad-carousel";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { PinDialog } from "@/components/auth/PinDialog";
+
 
 const dosage_forms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion"];
 
@@ -79,7 +82,9 @@ export default function InventoryPage() {
     deleteMedication, 
     bulkAddOrUpdateInventory, 
     addMedication,
-    getPaginatedInventory 
+    getPaginatedInventory,
+    currentUser,
+    verifyPin,
   } = useAuth();
   
   const [paginatedInventory, setPaginatedInventory] = React.useState<Medication[]>([]);
@@ -87,8 +92,12 @@ export default function InventoryPage() {
   const [currentPage, setCurrentPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(10);
   const [loading, setLoading] = React.useState(true);
+  const [isFiltersOpen, setIsFiltersOpen] = React.useState(false);
 
   const [searchTerm, setSearchTerm] = React.useState("");
+  const [filterStockStatus, setFilterStockStatus] = React.useState<string>("all");
+  const [filterDosageForm, setFilterDosageForm] = React.useState<string>("all");
+  const [filterExpirationStatus, setFilterExpirationStatus] = React.useState<string>("all");
   
   const [editingMed, setEditingMed] = React.useState<Medication | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
@@ -113,11 +122,20 @@ export default function InventoryPage() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = React.useState(false);
 
+  const [itemToDelete, setItemToDelete] = React.useState<Medication | null>(null);
+  const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
+
+
   // Fetch data
   const fetchData = React.useCallback(async (page: number, limit: number, search: string) => {
     setLoading(true);
     try {
-        const data = await getPaginatedInventory(page, limit, search);
+        const filters = {
+            stock_status: filterStockStatus,
+            dosage_form: filterDosageForm,
+            expiration_status: filterExpirationStatus,
+        };
+        const data = await getPaginatedInventory(page, limit, search, filters);
         setPaginatedInventory(data.data);
         setTotalPages(data.last_page);
         setCurrentPage(data.current_page);
@@ -127,7 +145,7 @@ export default function InventoryPage() {
     } finally {
         setLoading(false);
     }
-  }, [getPaginatedInventory, toast]);
+  }, [getPaginatedInventory, toast, filterStockStatus, filterDosageForm, filterExpirationStatus]);
   
   React.useEffect(() => {
     fetchData(currentPage, perPage, searchTerm);
@@ -139,7 +157,15 @@ export default function InventoryPage() {
       else fetchData(1, perPage, searchTerm);
     }, 500); // Debounce search
     return () => clearTimeout(handler);
-  }, [searchTerm, perPage, fetchData]);
+  }, [searchTerm, perPage, fetchData, filterStockStatus, filterDosageForm, filterExpirationStatus]);
+
+  const clearFilters = () => {
+    setFilterStockStatus("all");
+    setFilterDosageForm("all");
+    setFilterExpirationStatus("all");
+    setSearchTerm("");
+    setIsFiltersOpen(false);
+  };
   
   const handlePrint = () => {
     if (medToPrintRef.current) {
@@ -172,10 +198,35 @@ export default function InventoryPage() {
     return <Badge variant="secondary" className="bg-green-300 text-green-900">متوفر</Badge>
   }
   
-  const handleDelete = async (med: Medication) => {
-      const success = await deleteMedication(med.id);
-      if(success) fetchData(currentPage, perPage, searchTerm);
-  }
+  const handleDelete = async () => {
+    if (!itemToDelete) return;
+
+    if (currentUser?.require_pin_for_delete) {
+        setIsPinDialogOpen(true);
+    } else {
+        const success = await deleteMedication(itemToDelete.id);
+        if (success) {
+            fetchData(currentPage, perPage, searchTerm);
+            setItemToDelete(null);
+        }
+    }
+  };
+
+  const handlePinConfirm = async (pin: string) => {
+      if (!itemToDelete) return;
+
+      const isValid = await verifyPin(pin);
+      if (isValid) {
+          setIsPinDialogOpen(false);
+          const success = await deleteMedication(itemToDelete.id);
+          if (success) {
+              fetchData(currentPage, perPage, searchTerm);
+              setItemToDelete(null);
+          }
+      } else {
+          toast({ variant: 'destructive', title: 'رمز PIN غير صحيح' });
+      }
+  };
   
   const openEditModal = (med: Medication) => {
       setEditingMed(med);
@@ -416,43 +467,93 @@ export default function InventoryPage() {
                 <AdCarousel page="inventory"/>
             </div>
           </div>
-          <div className="pt-4 flex flex-wrap gap-2">
-            <Input 
-              placeholder="ابحث بالاسم، الاسم العلمي أو الباركود..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
-            />
-            <div className="flex gap-2">
-              <Button variant="success" onClick={openAddModal}>
-                <Plus className="me-2 h-4 w-4" />
-                إضافة دواء
-              </Button>
-              <Button variant="outline" onClick={handleImportClick} disabled={isImporting}>
-                <Upload className="me-2 h-4 w-4" />
-                {isImporting ? "جاري الاستيراد..." : "استيراد Excel"}
-              </Button>
-              <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  className="hidden"
-                  accept=".xlsx, .xls"
+          <div className="pt-4 flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Input 
+                placeholder="ابحث بالاسم، الاسم العلمي أو الباركود..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-sm"
               />
-            </div>
-            <div className="flex items-center gap-2">
-              <Label htmlFor="per-page" className="shrink-0">لكل صفحة:</Label>
-              <Select value={String(perPage)} onValueChange={(val) => setPerPage(Number(val))}>
-                <SelectTrigger id="per-page" className="w-20 h-9">
-                  <SelectValue placeholder={perPage} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <SelectItem value="100">100</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Button variant="success" onClick={openAddModal}>
+                  <Plus className="me-2 h-4 w-4" />
+                  إضافة دواء
+                </Button>
+                <Button variant="outline" onClick={handleImportClick} disabled={isImporting}>
+                  <Upload className="me-2 h-4 w-4" />
+                  {isImporting ? "جاري الاستيراد..." : "استيراد Excel"}
+                </Button>
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    className="hidden"
+                    accept=".xlsx, .xls"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="per-page" className="shrink-0">لكل صفحة:</Label>
+                <Select value={String(perPage)} onValueChange={(val) => setPerPage(Number(val))}>
+                  <SelectTrigger id="per-page" className="w-20 h-9">
+                    <SelectValue placeholder={perPage} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+               <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" className="gap-1">
+                      <Filter className="h-4 w-4" />
+                      فلاتر متقدمة
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent asChild>
+                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t mt-4">
+                        <div className="space-y-1">
+                            <Label htmlFor="filter-stock-status">حالة المخزون</Label>
+                            <Select value={filterStockStatus} onValueChange={setFilterStockStatus}>
+                                <SelectTrigger id="filter-stock-status"><SelectValue placeholder="الكل" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">الكل</SelectItem>
+                                    <SelectItem value="in_stock">متوفر</SelectItem>
+                                    <SelectItem value="low_stock">مخزون منخفض</SelectItem>
+                                    <SelectItem value="out_of_stock">نفد من المخزون</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                         <div className="space-y-1">
+                            <Label htmlFor="filter-dosage-form">الشكل الدوائي</Label>
+                            <Select value={filterDosageForm} onValueChange={setFilterDosageForm}>
+                                <SelectTrigger id="filter-dosage-form"><SelectValue placeholder="الكل" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">الكل</SelectItem>
+                                    {dosage_forms.map(form => <SelectItem key={form} value={form}>{form}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1">
+                            <Label htmlFor="filter-expiration-status">حالة الصلاحية</Label>
+                            <Select value={filterExpirationStatus} onValueChange={setFilterExpirationStatus}>
+                                <SelectTrigger id="filter-expiration-status"><SelectValue placeholder="الكل" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">الكل</SelectItem>
+                                    <SelectItem value="expired">منتهي الصلاحية</SelectItem>
+                                    <SelectItem value="expiring_soon">قريب الانتهاء</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                         <div className="col-span-full flex justify-end">
+                            <Button variant="ghost" onClick={clearFilters}>مسح الفلاتر</Button>
+                        </div>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
             </div>
           </div>
         </CardHeader>
@@ -530,7 +631,10 @@ export default function InventoryPage() {
                               <DropdownMenuSeparator />
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive">
+                                        <button 
+                                            className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive"
+                                            onClick={() => setItemToDelete(item)}
+                                        >
                                           <Trash2 className="me-2 h-4 w-4" />
                                           حذف
                                         </button>
@@ -544,7 +648,7 @@ export default function InventoryPage() {
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                             <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDelete(item)} className={buttonVariants({ variant: "destructive" })}>
+                                            <AlertDialogAction onClick={handleDelete} className={buttonVariants({ variant: "destructive" })}>
                                                 نعم، قم بالحذف
                                             </AlertDialogAction>
                                         </AlertDialogFooter>
@@ -771,6 +875,11 @@ export default function InventoryPage() {
                 </form>
             </DialogContent>
         </Dialog>
+        <PinDialog
+            open={isPinDialogOpen}
+            onOpenChange={setIsPinDialogOpen}
+            onConfirm={handlePinConfirm}
+        />
     </>
   )
 }

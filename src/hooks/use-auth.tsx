@@ -2,9 +2,10 @@
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem, PaginatedResponse, TransactionHistoryItem } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
+import { PinDialog } from '@/components/auth/PinDialog';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -22,6 +23,8 @@ type AuthResponse = {
         purchaseOrders: PurchaseOrder[];
         supplierReturns: ReturnOrder[];
         timeLogs: TimeLog[];
+        expenses: Expense[];
+        tasks: Task[];
     };
     all_users_in_pharmacy: User[];
     advertisements: Advertisement[];
@@ -50,7 +53,7 @@ interface AuthContextType {
     logout: () => void;
     registerUser: (name: string, email: string, pin: string) => Promise<boolean>;
     deleteUser: (userId: string, permanent?: boolean) => Promise<boolean>;
-    updateUser: (userId: string, name: string, email: string, pin?: string) => Promise<boolean>;
+    updateUser: (userId: string, name: string, email: string, pin?: string, delete_pin?: string) => Promise<boolean>;
     updateUserPermissions: (userId: string, permissions: UserPermissions) => Promise<boolean>;
     updateUserHourlyRate: (userId: string, rate: number) => Promise<boolean>;
     toggleUserStatus: (userId: string) => Promise<boolean>;
@@ -62,6 +65,7 @@ interface AuthContextType {
     updateAdvertisement: (adId: string, data: Partial<Omit<Advertisement, 'id' | 'created_at'>>) => Promise<void>;
     deleteAdvertisement: (adId: string) => Promise<void>;
     clearPharmacyData: () => Promise<void>;
+    closeMonth: (pin: string) => Promise<boolean>;
     
     scopedData: ScopedDataContextType;
 
@@ -69,25 +73,26 @@ interface AuthContextType {
     addMedication: (data: Partial<Medication>) => Promise<boolean>;
     updateMedication: (medId: string, data: Partial<Medication>) => Promise<boolean>;
     deleteMedication: (medId: string) => Promise<boolean>;
+    markAsDamaged: (medId: string) => Promise<boolean>;
     bulkAddOrUpdateInventory: (items: Partial<Medication>[]) => Promise<boolean>;
-    getPaginatedInventory: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Medication>>;
+    getPaginatedInventory: (page: number, perPage: number, search: string, filters: Record<string, any>) => Promise<PaginatedResponse<Medication>>;
     searchAllInventory: (search: string) => Promise<Medication[]>;
     
     // Expiring Soon
-    getPaginatedExpiringSoon: (page: number, perPage: number, search: string, type: 'expiring' | 'expired') => Promise<{
+    getPaginatedExpiringSoon: (page: number, perPage: number, search: string, type: 'expiring' | 'expired' | 'damaged') => Promise<{
         data: Medication[];
         expiredMedicationsLength: number;
         expiringMedicationsLength: number;
+        damagedMedicationsLength: number;
         current_page: number;
         last_page: number;
-        // ... 其他 PaginatedResponse 需要的属性
     }>;
 
     // Sales
     addSale: (saleData: any) => Promise<Sale | null>;
     updateSale: (saleData: any) => Promise<Sale | null>;
     deleteSale: (saleId: string) => Promise<boolean>;
-    getPaginatedSales: (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string) => Promise<PaginatedResponse<Sale>>;
+    getPaginatedSales: (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string) => Promise<PaginatedResponse<Sale>>;
     searchAllSales: (search?: string) => Promise<Sale[]>;
     
     // Suppliers
@@ -112,6 +117,18 @@ interface AuthContextType {
     getPaginatedPurchaseOrders: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<PurchaseOrder>>;
     getPaginatedReturnOrders: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<ReturnOrder>>;
     
+    // Expenses
+    getPaginatedExpenses: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Expense>>;
+    addExpense: (amount: number, description: string) => Promise<boolean>;
+    updateExpense: (id: string, amount: number, description: string) => Promise<boolean>;
+    deleteExpense: (id: string) => Promise<boolean>;
+
+    // Tasks
+    getPaginatedTasks: (page: number, perPage: number, filters: { user_id?: string, completed?: boolean }) => Promise<PaginatedResponse<Task>>;
+    addTask: (description: string, user_id: string) => Promise<boolean>;
+    updateTask: (id: string, data: Partial<Task>) => Promise<boolean>;
+    deleteTask: (id: string) => Promise<boolean>;
+
     // Trash
     restoreItem: (itemId: string) => Promise<boolean>;
     permDelete: (itemId: string) => Promise<boolean>;
@@ -127,6 +144,12 @@ interface AuthContextType {
     activeInvoice: ActiveInvoice;
     setActiveInvoice: React.Dispatch<React.SetStateAction<ActiveInvoice>>;
     resetActiveInvoice: () => void;
+    
+    verifyPin: (pin: string, isDeletePin?: boolean) => Promise<boolean>;
+    updateUserPinRequirement: (userId: string, requirePin: boolean) => Promise<void>;
+    
+    getArchivedMonths: () => Promise<MonthlyArchive[]>;
+    getArchivedMonthData: (archiveId: string) => Promise<ArchivedMonthData | null>;
 }
 
 export interface ScopedDataContextType {
@@ -140,6 +163,8 @@ export interface ScopedDataContextType {
     supplierReturns: [ReturnOrder[], React.Dispatch<React.SetStateAction<ReturnOrder[]>>];
     timeLogs: [TimeLog[], React.Dispatch<React.SetStateAction<TimeLog[]>>];
     settings: [AppSettings, (value: AppSettings | ((val: AppSettings) => AppSettings)) => void];
+    expenses: [Expense[], React.Dispatch<React.SetStateAction<Expense[]>>];
+    tasks: [Task[], React.Dispatch<React.SetStateAction<Task[]>>];
 }
 
 const AuthContext = React.createContext<AuthContextType | null>(null);
@@ -214,6 +239,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [supplierReturns, setSupplierReturns] = React.useState<ReturnOrder[]>([]);
     const [timeLogs, setTimeLogs] = React.useState<TimeLog[]>([]);
     const [settings, setSettings] = React.useState<AppSettings>(fallbackAppSettings);
+    const [expenses, setExpenses] = React.useState<Expense[]>([]);
+    const [tasks, setTasks] = React.useState<Task[]>([]);
     
     const [activeTimeLogId, setActiveTimeLogId] = React.useState<string | null>(null);
     const [advertisements, setAdvertisements] = React.useState<Advertisement[]>([]);
@@ -242,6 +269,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setPurchaseOrders(pd.purchaseOrders || []);
             setSupplierReturns(pd.supplierReturns || []);
             setTimeLogs(pd.timeLogs || []);
+            setExpenses(pd.expenses || []);
+            setTasks(pd.tasks || []);
             setSettings(pd.settings || fallbackAppSettings);
         }
         localStorage.setItem('authToken', data.token);
@@ -322,9 +351,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error: any) { return false; }
     }
     
-    const updateUser = async (userId: string, name: string, email: string, pin?: string) => {
+    const updateUser = async (userId: string, name: string, email: string, pin?: string, delete_pin?: string) => {
         try {
-            const updatedUser = await apiRequest(`/users/${userId}`, 'PUT', { name, email, pin });
+            const updatedUser = await apiRequest(`/users/${userId}`, 'PUT', { name, email, pin, delete_pin });
             setUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
             if (currentUser?.id === userId) setCurrentUser(updatedUser);
             return true;
@@ -390,6 +419,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (e: any) {}
     };
 
+    const closeMonth = async (pin: string) => {
+        try {
+            await apiRequest('/settings/close-month', 'POST', { pin });
+            toast({ title: "تم إقفال الشهر بنجاح!", description: "تمت أرشفة البيانات وتصفير الحسابات." });
+            // Manually refetch user data to get the cleared state
+            const data: AuthResponse = await apiRequest('/user');
+            setAllData(data);
+            return true;
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: "فشل إقفال الشهر", description: error.message });
+            return false;
+        }
+    };
+
     const addAdvertisement = async (title: string, image_url: string) => {
          try {
             const newAd = await apiRequest('/advertisements', 'POST', { title, image_url });
@@ -411,13 +454,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch(e: any) {}
     };
 
-    const getPaginatedInventory = React.useCallback(async (page: number, perPage: number, search: string) => {
+    const getPaginatedInventory = React.useCallback(async (page: number, perPage: number, search: string, filters: Record<string, any> = {}) => {
         try {
             const params = new URLSearchParams({
                 paginate: "true",
                 page: String(page),
                 per_page: String(perPage),
                 search: search,
+                ...filters
             });
             const data = await apiRequest(`/medications?${params.toString()}`);
             return data;
@@ -435,7 +479,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
     
-const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage: number, search: string, type: 'expiring' | 'expired') => {
+const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage: number, search: string, type: 'expiring' | 'expired' | 'damaged') => {
     try {
         const params = new URLSearchParams({
             paginate: "true",
@@ -449,6 +493,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             data: response.data.data,
             expiredMedicationsLength: response.expiredMedicationsLength,
             expiringMedicationsLength: response.expiringMedicationsLength,
+            damagedMedicationsLength: response.damagedMedicationsLength,
             current_page: response.data.current_page,
             last_page: response.data.last_page,
         };
@@ -457,6 +502,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             data: [],
             expiredMedicationsLength: 0,
             expiringMedicationsLength: 0,
+            damagedMedicationsLength: 0,
             current_page: 1,
             last_page: 1,
         };
@@ -558,7 +604,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         }
     }, []);
     
-    const getPaginatedSales = React.useCallback(async (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string) => {
+    const getPaginatedSales = React.useCallback(async (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string) => {
         try {
             const params = new URLSearchParams({
                 paginate: "true",
@@ -568,6 +614,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
                 date_from: dateFrom,
                 date_to: dateTo,
                 employee_id: employeeId,
+                payment_method: paymentMethod,
             });
             const data = await apiRequest(`/sales?${params.toString()}`);
             return data;
@@ -626,7 +673,6 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     const updateMedication = async (medId: string, data: Partial<Medication>) => {
         try {
             const updatedMed = await apiRequest(`/medications/${medId}`, 'PUT', data);
-            // setInventory(prev => prev.map(m => m.id === medId ? updatedMed : m));
             toast({ title: "تم تحديث الدواء بنجاح" });
             return true;
         } catch (e) { return false; }
@@ -635,12 +681,19 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     const deleteMedication = async (medId: string) => {
         try {
             const trashedItem = await apiRequest(`/medications/${medId}`, 'DELETE');
-            // setInventory(prev => prev.filter(m => m.id !== medId));
             setTrash(prev => [...prev, trashedItem]);
             toast({ title: "تم نقل الدواء إلى سلة المحذوفات" });
             return true;
         } catch (e) { return false; }
     }
+    
+    const markAsDamaged = async (medId: string) => {
+        try {
+            await apiRequest(`/medications/${medId}/damage`, 'POST');
+            toast({ title: "تم نقل الدواء إلى قائمة التالف" });
+            return true;
+        } catch (e) { return false; }
+    };
     
     const bulkAddOrUpdateInventory = async (items: Partial<Medication>[]) => {
         try {
@@ -653,7 +706,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     const addSale = async (saleData: any) => {
         try {
             const { sale: newSale, updated_inventory } = await apiRequest('/sales', 'POST', saleData);
-            // setSales(prev => [newSale, ...prev]);
+            setSales(prev => [newSale, ...prev]);
             if (updated_inventory && Array.isArray(updated_inventory)) {
                 setInventory(prev => {
                     const updatedInventoryMap = new Map(updated_inventory.map((item: Medication) => [item.id, item]));
@@ -667,7 +720,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     const updateSale = async (saleData: any) => {
         try {
             const { sale: updatedSale, updated_inventory } = await apiRequest(`/sales/${saleData.id}`, 'PUT', saleData);
-            // setSales(prev => prev.map(s => s.id === updatedSale.id ? updatedSale : s));
+            setSales(prev => prev.map(s => s.id === updatedSale.id ? updatedSale : s));
             if (updated_inventory && Array.isArray(updated_inventory)) {
                 setInventory(prev => {
                     const updatedInventoryMap = new Map(updated_inventory.map((item: Medication) => [item.id, item]));
@@ -777,6 +830,92 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         } catch (e) { return false; }
     };
 
+    const getPaginatedExpenses = React.useCallback(async (page: number, perPage: number, search: string) => {
+        try {
+            const params = new URLSearchParams({
+                paginate: "true",
+                page: String(page),
+                per_page: String(perPage),
+                search: search,
+            });
+            const data = await apiRequest(`/expenses?${params.toString()}`);
+            return data;
+        } catch (e) {
+            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Expense>;
+        }
+    }, []);
+
+    const addExpense = async (amount: number, description: string) => {
+        try {
+            const newExpense = await apiRequest('/expenses', 'POST', { amount, description });
+            setExpenses(prev => [newExpense, ...prev]);
+            toast({ title: "تم إضافة المصروف بنجاح" });
+            return true;
+        } catch (e) { return false; }
+    };
+    
+    const updateExpense = async (id: string, amount: number, description: string) => {
+        try {
+            const updatedExpense = await apiRequest(`/expenses/${id}`, 'PUT', { amount, description });
+            setExpenses(prev => prev.map(ex => ex.id === id ? updatedExpense : ex));
+            toast({ title: "تم تعديل المصروف بنجاح" });
+            return true;
+        } catch (e) { return false; }
+    };
+    
+    const deleteExpense = async (id: string) => {
+        try {
+            await apiRequest(`/expenses/${id}`, 'DELETE');
+            setExpenses(prev => prev.filter(ex => ex.id !== id));
+            toast({ title: "تم حذف المصروف بنجاح" });
+            return true;
+        } catch (e) { return false; }
+    };
+    
+    const getPaginatedTasks = React.useCallback(async (page: number, perPage: number, filters: { user_id?: string, completed?: boolean }) => {
+        try {
+            const params = new URLSearchParams({
+                paginate: "true",
+                page: String(page),
+                per_page: String(perPage),
+            });
+            if(filters.user_id) params.append('user_id', filters.user_id);
+            if(filters.completed !== undefined) params.append('completed', String(filters.completed));
+            
+            const data = await apiRequest(`/tasks?${params.toString()}`);
+            return data;
+        } catch (e) {
+            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Task>;
+        }
+    }, []);
+
+    const addTask = async (description: string, user_id: string) => {
+        try {
+            const newTask = await apiRequest('/tasks', 'POST', { description, user_id });
+            setTasks(prev => [newTask, ...prev]);
+            toast({ title: "تمت إضافة المهمة بنجاح" });
+            return true;
+        } catch (e) { return false; }
+    };
+
+    const updateTask = async (id: string, data: Partial<Task>) => {
+        try {
+            const updatedTask = await apiRequest(`/tasks/${id}`, 'PUT', data);
+            toast({ title: data.completed ? "تم إنجاز المهمة!" : "تم تحديث المهمة" });
+            return true;
+        } catch (e) { return false; }
+    };
+
+    const deleteTask = async (id: string) => {
+        try {
+            await apiRequest(`/tasks/${id}`, 'DELETE');
+            setTasks(prev => prev.filter(t => t.id !== id));
+            toast({ title: "تم حذف المهمة" });
+            return true;
+        } catch (e) { return false; }
+    };
+
+
     const restoreItem = async (itemId: string) => {
         try {
             const { restored_item, item_type } = await apiRequest(`/trash/${itemId}`, 'PUT');
@@ -809,6 +948,40 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             return true;
         } catch(e) { return false; }
     }
+    
+    const verifyPin = async (pin: string, isDeletePin: boolean = false) => {
+        try {
+            const response = await apiRequest('/verify-pin', 'POST', { pin, is_delete_pin: isDeletePin });
+            return response.valid;
+        } catch (e) {
+            return false;
+        }
+    };
+    
+    const updateUserPinRequirement = async (userId: string, requirePin: boolean) => {
+        try {
+            await apiRequest(`/users/${userId}/require-pin`, 'PUT', { require_pin_for_delete: requirePin });
+            setUsers(prev => prev.map(u => u.id === userId ? { ...u, require_pin_for_delete: requirePin } : u));
+            toast({ title: "تم تحديث إعدادات الأمان" });
+        } catch(e) {}
+    }
+    
+    const getArchivedMonths = async (): Promise<MonthlyArchive[]> => {
+        try {
+            return await apiRequest('/archives');
+        } catch(e) {
+            return [];
+        }
+    }
+    
+    const getArchivedMonthData = async (archiveId: string): Promise<ArchivedMonthData | null> => {
+        try {
+            return await apiRequest(`/archives/${archiveId}`);
+        } catch(e) {
+            return null;
+        }
+    }
+
 
     const setScopedSettings = async (value: AppSettings | ((val: AppSettings) => AppSettings)) => {
        const newSettings = typeof value === 'function' ? value(settings) : value;
@@ -830,6 +1003,8 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         supplierReturns: [supplierReturns, setSupplierReturns],
         timeLogs: [timeLogs, setTimeLogs],
         settings: [settings, setScopedSettings],
+        expenses: [expenses, setExpenses],
+        tasks: [tasks, setTasks],
     };
 
     const isAuthenticated = !!currentUser;
@@ -839,9 +1014,9 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             currentUser, users, setUsers, isAuthenticated, loading, isSetup, 
             setupAdmin, login, logout, registerUser, deleteUser, updateUser, 
             updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData,
-            getAllPharmacySettings, getPharmacyData, clearPharmacyData,
+            getAllPharmacySettings, getPharmacyData, clearPharmacyData, closeMonth,
             advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement,
-            addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, getPaginatedInventory, searchAllInventory,
+            addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, getPaginatedInventory, searchAllInventory, markAsDamaged,
             getPaginatedExpiringSoon,
             getPaginatedItemMovements, getMedicationMovements,
             addSale, updateSale, deleteSale, getPaginatedSales, searchAllSales,
@@ -850,9 +1025,13 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             addPayment,
             addPurchaseOrder,
             addReturnOrder, getPaginatedPurchaseOrders, getPaginatedReturnOrders,
+            getPaginatedExpenses, addExpense, updateExpense, deleteExpense,
+            getPaginatedTasks, addTask, updateTask, deleteTask,
             restoreItem, permDelete, clearTrash, getPaginatedTrash,
             getPaginatedUsers,
-            activeInvoice, setActiveInvoice, resetActiveInvoice
+            activeInvoice, setActiveInvoice, resetActiveInvoice,
+            verifyPin, updateUserPinRequirement,
+            getArchivedMonths, getArchivedMonthData,
         }}>
             {children}
         </AuthContext.Provider>
