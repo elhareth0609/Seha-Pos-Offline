@@ -39,6 +39,8 @@ export type Medication = {
   status?: 'active' | 'damaged';
 };
 
+export type OrderRequestItem = Medication;
+
 export type SaleItem = {
   id: string;
   medication_id: string;
@@ -290,5 +292,3 @@ export type TransactionHistoryItem = {
   documentId: string;
   actor: string;
 };
-
-    

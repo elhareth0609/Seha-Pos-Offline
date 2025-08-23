@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -40,8 +39,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import type { PurchaseOrder, Medication, Supplier, ReturnOrder, PurchaseOrderItem, ReturnOrderItem, PaginatedResponse } from "@/lib/types"
-import { PlusCircle, ChevronDown, Trash2, X, Pencil } from "lucide-react"
+import type { PurchaseOrder, Medication, Supplier, ReturnOrder, PurchaseOrderItem, ReturnOrderItem, PaginatedResponse, OrderRequestItem } from "@/lib/types"
+import { PlusCircle, ChevronDown, Trash2, X, Pencil, ShoppingBasket } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -68,7 +67,9 @@ export default function PurchasesPage() {
       addPurchaseOrder, 
       addReturnOrder,
       getPaginatedPurchaseOrders,
-      getPaginatedReturnOrders
+      getPaginatedReturnOrders,
+      orderRequestCart,
+      removeFromOrderRequestCart,
     } = useAuth();
   
   const {
@@ -330,7 +331,7 @@ export default function PurchasesPage() {
     }
   }
 
-function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdit }: { onAddItem: (item: any) => void; onUpdateItem: (item: any) => void; editingItem: any | null; onCancelEdit: () => void; }) {
+function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdit, onFillFromRequest }: { onAddItem: (item: any) => void; onUpdateItem: (item: any) => void; editingItem: any | null; onCancelEdit: () => void; onFillFromRequest: (item: OrderRequestItem) => void; }) {
     const [barcodes, setBarcodes] = React.useState('');
     const [medicationName, setMedicationName] = React.useState('');
     const [scientific_names, setScientificNames] = React.useState('');
@@ -363,6 +364,42 @@ function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdi
         }
     }, [editingItem, isEditing]);
 
+    const prefillFormWithMedData = React.useCallback((med: Medication) => {
+        setMedicationName(med.name || '');
+        setScientificNames((med.scientific_names || []).join(', '));
+        setDosage(med.dosage || '');
+        setDosageForm(med.dosage_form || '');
+        setSellingPrice(String(med.price || ''));
+        setPurchasePrice(String(med.purchase_price || ''));
+        setReorderPoint(String(med.reorder_point || '10'));
+        setImagePreview(med.image_url || '');
+        setBarcodes((med.barcodes || []).join(', '));
+    }, []);
+
+    React.useEffect(() => {
+        if (isEditing) return; // Don't auto-fill when editing
+        const firstBarcode = barcodes.split(',')[0].trim();
+        if (firstBarcode) {
+            const existingMed = (inventory || []).find(m => (m.barcodes || []).includes(firstBarcode));
+            if (existingMed) {
+                prefillFormWithMedData(existingMed);
+            }
+        }
+    }, [barcodes, inventory, prefillFormWithMedData, isEditing]);
+    
+    React.useEffect(() => {
+        const handleFillRequest = (event: Event) => {
+            const customEvent = event as CustomEvent<OrderRequestItem>;
+            prefillFormWithMedData(customEvent.detail);
+        };
+
+        window.addEventListener('fillPurchaseForm', handleFillRequest as EventListener);
+
+        return () => {
+            window.removeEventListener('fillPurchaseForm', handleFillRequest as EventListener);
+        };
+    }, [prefillFormWithMedData]);
+
 
     const resetForm = () => {
         setBarcodes('');
@@ -379,28 +416,6 @@ function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdi
         setImagePreview('');
         onCancelEdit();
     };
-
-    const prefillFormWithMedData = React.useCallback((med: Medication) => {
-        setMedicationName(med.name || '');
-        setScientificNames((med.scientific_names || []).join(', '));
-        setDosage(med.dosage || '');
-        setDosageForm(med.dosage_form || '');
-        setSellingPrice(String(med.price || ''));
-        setPurchasePrice(String(med.purchase_price || ''));
-        setReorderPoint(String(med.reorder_point || '10'));
-        setImagePreview(med.image_url || '');
-    }, []);
-
-    React.useEffect(() => {
-        if (isEditing) return; // Don't auto-fill when editing
-        const firstBarcode = barcodes.split(',')[0].trim();
-        if (firstBarcode) {
-            const existingMed = (inventory || []).find(m => (m.barcodes || []).includes(firstBarcode));
-            if (existingMed) {
-                prefillFormWithMedData(existingMed);
-            }
-        }
-    }, [barcodes, inventory, prefillFormWithMedData, isEditing]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -556,6 +571,11 @@ function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdi
       setEditingItemIndex(null);
     }
   };
+  
+  const handleFillFromRequest = (item: OrderRequestItem) => {
+    const event = new CustomEvent('fillPurchaseForm', { detail: item });
+    window.dispatchEvent(event);
+  }
 
   return (
      <Tabs defaultValue="new-purchase" onValueChange={setActiveTab} className="w-full">
@@ -619,7 +639,40 @@ function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdi
                     onUpdateItem={handleUpdateItem}
                     editingItem={editingItemIndex !== null ? purchaseItems[editingItemIndex] : null}
                     onCancelEdit={() => setEditingItemIndex(null)}
+                    onFillFromRequest={handleFillFromRequest}
                 />
+                
+                {orderRequestCart.length > 0 && (
+                  <div className="space-y-3">
+                      <h3 className="text-lg font-semibold flex items-center gap-2"><ShoppingBasket /> قائمة الطلبات ({orderRequestCart.length})</h3>
+                      <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>الدواء</TableHead>
+                                <TableHead>الرصيد الحالي</TableHead>
+                                <TableHead className="text-left">إجراء</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {orderRequestCart.map(item => (
+                                <TableRow key={item.id}>
+                                    <TableCell>
+                                        <div className="font-medium">{item.name}</div>
+                                        <div className="text-xs text-muted-foreground">{item.scientific_names?.join(', ')}</div>
+                                    </TableCell>
+                                    <TableCell className="font-mono">{item.stock}</TableCell>
+                                    <TableCell className="text-left">
+                                      <div className="flex justify-end gap-2">
+                                        <Button size="sm" variant="outline" onClick={() => handleFillFromRequest(item)}>إضافة إلى القائمة</Button>
+                                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => removeFromOrderRequestCart(item.id)}>حذف</Button>
+                                      </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                  </div>
+                )}
                 
                 {purchaseItems.length > 0 && (
                   <div>
@@ -958,9 +1011,3 @@ function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdi
     </Tabs>
   )
 }
-
-    
-
-    
-
-    

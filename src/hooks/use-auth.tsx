@@ -1,8 +1,7 @@
-
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 import { PinDialog } from '@/components/auth/PinDialog';
@@ -150,6 +149,10 @@ interface AuthContextType {
     
     getArchivedMonths: () => Promise<MonthlyArchive[]>;
     getArchivedMonthData: (archiveId: string) => Promise<ArchivedMonthData | null>;
+
+    orderRequestCart: OrderRequestItem[];
+    addToOrderRequestCart: (item: Medication) => void;
+    removeFromOrderRequestCart: (medicationId: string) => void;
 }
 
 export interface ScopedDataContextType {
@@ -245,6 +248,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [activeTimeLogId, setActiveTimeLogId] = React.useState<string | null>(null);
     const [advertisements, setAdvertisements] = React.useState<Advertisement[]>([]);
     const [activeInvoice, setActiveInvoice] = React.useState<ActiveInvoice>(initialActiveInvoice);
+    const [orderRequestCart, setOrderRequestCart] = React.useState<OrderRequestItem[]>([]);
+
+    const addToOrderRequestCart = (item: Medication) => {
+        setOrderRequestCart(prev => {
+            if (prev.find(i => i.id === item.id)) {
+                toast({ title: 'العنصر موجود بالفعل في قائمة الطلبات' });
+                return prev;
+            }
+            toast({ title: 'تمت الإضافة إلى الطلبات', description: `تمت إضافة ${item.name} إلى قائمة الطلبات.` });
+            return [...prev, item];
+        });
+    };
+
+    const removeFromOrderRequestCart = (medicationId: string) => {
+        setOrderRequestCart(prev => prev.filter(item => item.id !== medicationId));
+    };
 
     const resetActiveInvoice = React.useCallback(() => {
         setActiveInvoice(initialActiveInvoice);
@@ -1032,6 +1051,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             activeInvoice, setActiveInvoice, resetActiveInvoice,
             verifyPin, updateUserPinRequirement,
             getArchivedMonths, getArchivedMonthData,
+            orderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart
         }}>
             {children}
         </AuthContext.Provider>

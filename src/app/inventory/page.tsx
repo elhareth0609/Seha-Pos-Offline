@@ -1,4 +1,3 @@
-
 "use client"
 import * as React from "react"
 import * as XLSX from 'xlsx';
@@ -51,7 +50,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
 import type { Medication, AppSettings } from "@/lib/types"
-import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package, Plus, X, Filter } from "lucide-react"
+import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package, Plus, X, Filter, ShoppingBasket } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import Barcode from '@/components/ui/barcode';
@@ -85,6 +84,7 @@ export default function InventoryPage() {
     getPaginatedInventory,
     currentUser,
     verifyPin,
+    addToOrderRequestCart,
   } = useAuth();
   
   const [paginatedInventory, setPaginatedInventory] = React.useState<Medication[]>([]);
@@ -620,6 +620,10 @@ export default function InventoryPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                               <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
+                              <DropdownMenuItem onSelect={() => addToOrderRequestCart(item)}>
+                                  <ShoppingBasket className="me-2 h-4 w-4" />
+                                  طلب
+                              </DropdownMenuItem>
                               <DropdownMenuItem onSelect={() => openEditModal(item)}>
                                   <Pencil className="me-2 h-4 w-4" />
                                   تعديل
