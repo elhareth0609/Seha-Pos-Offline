@@ -33,7 +33,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Dashboard() {
-  const { currentUser, scopedData, updateTask, addToOrderRequestCart } = useAuth();
+  const { currentUser, scopedData, updateTask, updateStatusTask, addToOrderRequestCart } = useAuth();
   const [inventory] = scopedData.inventory;
   const [sales] = scopedData.sales;
   const [settings] = scopedData.settings;
@@ -53,7 +53,7 @@ export default function Dashboard() {
   }, [scopedData.tasks]);
   
   const handleTaskStatusChange = async (taskId: string, completed: boolean) => {
-    const success = await updateTask(taskId, { completed });
+    const success = await updateStatusTask(taskId, { completed });
     if(success) {
        setTasks(prevTasks => prevTasks.map(task => 
            task.id === taskId ? { ...task, completed } : task
@@ -173,7 +173,7 @@ export default function Dashboard() {
         to.setHours(23, 59, 59, 999);
         const interval = { start: from, end: to };
         filteredSales = sales.filter(sale => isWithinInterval(parseISO(sale.date), interval));
-        filteredExpenses = expenses.filter(expense => isWithinInterval(parseISO(expense.date), interval));
+        filteredExpenses = expenses.filter(expense => isWithinInterval(parseISO(expense.created_at), interval));
     }
 
     const currentTotalRevenue = filteredSales.reduce((acc, sale) => {

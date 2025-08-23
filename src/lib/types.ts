@@ -184,7 +184,7 @@ export type Advertisement = {
 
 export type Expense = {
     id: string;
-    date: string;
+    created_at: string;
     amount: number;
     description: string;
     user_id: string;
