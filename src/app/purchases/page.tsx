@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -39,14 +40,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import type { PurchaseOrder, Medication, Supplier, ReturnOrder, PurchaseOrderItem, ReturnOrderItem, PaginatedResponse, OrderRequestItem } from "@/lib/types"
-import { PlusCircle, ChevronDown, Trash2, X, Pencil, ShoppingBasket, Send } from "lucide-react"
+import type { PurchaseOrder, Medication, Supplier, ReturnOrder, PurchaseOrderItem, ReturnOrderItem, PaginatedResponse } from "@/lib/types"
+import { PlusCircle, ChevronDown, Trash2, X, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-
 
 const fileToDataUri = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -59,7 +58,6 @@ const fileToDataUri = (file: File): Promise<string> => {
 
 const dosage_forms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion"];
 
-
 export default function PurchasesPage() {
   const { toast } = useToast()
   const { 
@@ -69,14 +67,11 @@ export default function PurchasesPage() {
       addReturnOrder,
       getPaginatedPurchaseOrders,
       getPaginatedReturnOrders,
-      orderRequestCart,
-      removeFromOrderRequestCart,
-      clearAllOrderRequestCart,
     } = useAuth();
   
   const {
-      inventory: [inventory],
-      suppliers: [suppliers],
+      inventory: [inventory, setInventory],
+      suppliers: [suppliers, setSuppliers],
   } = scopedData;
 
 
@@ -87,6 +82,15 @@ export default function PurchasesPage() {
   const [purchase_id, setPurchaseId] = React.useState('');
   const [purchaseSupplierId, setPurchaseSupplierId] = React.useState('');
   const [purchaseItems, setPurchaseItems] = React.useState<any[]>([]);
+  const [purchaseItemSearchTerm, setPurchaseItemSearchTerm] = React.useState('');
+  const [purchaseItemSuggestions, setPurchaseItemSuggestions] = React.useState<Medication[]>([]);
+  const [isPurchaseInfoLocked, setIsPurchaseInfoLocked] = React.useState(false);
+
+  // State for adding a new item to purchase
+  const [selectedMed, setSelectedMed] = React.useState<Medication | null>(null);
+  const [purchaseQuantity, setPurchaseQuantity] = React.useState('');
+  const [purchasePrice, setPurchasePrice] = React.useState('');
+  const [expirationDate, setExpirationDate] = React.useState('');
   
   // State for return form
   const [returnSlipId, setReturnSlipId] = React.useState('');
@@ -116,27 +120,16 @@ export default function PurchasesPage() {
   const [returnSearchTerm, setReturnSearchTerm] = React.useState('');
 
 
+  // State for modal to add a completely new medication
+  const [isAddNewMedModalOpen, setIsAddNewMedModalOpen] = React.useState(false);
+  const [newMedData, setNewMedData] = React.useState<Partial<Medication>>({});
+  const [newMedImageFile, setNewMedImageFile] = React.useState<File | null>(null);
+  const [newMedImagePreview, setNewMedImagePreview] = React.useState<string | null>(null);
+
+
   const [supplier_name, setSupplierName] = React.useState("");
   const [supplierContact, setSupplierContact] = React.useState("");
   const [activeTab, setActiveTab] = React.useState("new-purchase");
-  
-  const [editableOrderItems, setEditableOrderItems] = React.useState<Record<string, any>>({});
-  const [masterPurchaseId, setMasterPurchaseId] = React.useState('');
-  const [masterSupplierId, setMasterSupplierId] = React.useState('');
-
-  React.useEffect(() => {
-    // Sync local state with global cart from useAuth
-    const newEditableItems: Record<string, any> = {};
-    orderRequestCart.forEach(item => {
-      newEditableItems[item.id] = editableOrderItems[item.id] || {
-        quantity: 1,
-        purchase_price: item.purchase_price,
-        expiration_date: '',
-        supplier_id: '',
-      };
-    });
-    setEditableOrderItems(newEditableItems);
-  }, [orderRequestCart]);
 
 
   const fetchPurchaseHistory = React.useCallback(async (page: number, limit: number, search: string) => {
@@ -211,6 +204,105 @@ export default function PurchasesPage() {
         (e.target as HTMLFormElement).reset();
       }
   };
+
+  const handlePurchaseSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPurchaseItemSearchTerm(value);
+
+    if (value.length > 0) {
+        const lowercasedFilter = value.toLowerCase();
+        const filtered = (inventory || []).filter(med => 
+            med.name.toLowerCase().includes(lowercasedFilter) || 
+            String(med.id).includes(lowercasedFilter) ||
+            (med.barcodes || []).some(barcode => barcode.toLowerCase().includes(lowercasedFilter)) ||
+            (med.scientific_names && med.scientific_names.some(name => name.toLowerCase().includes(lowercasedFilter)))
+        );
+        setPurchaseItemSuggestions(filtered.slice(0, 5));
+    } else {
+        setPurchaseItemSuggestions([]);
+    }
+  };
+
+  const handleSelectMed = (med: Medication) => {
+    setSelectedMed(med);
+    setPurchaseItemSearchTerm(med.name);
+    setPurchasePrice(String(med.purchase_price));
+    setPurchaseItemSuggestions([]);
+  };
+
+  const handleAddItemToPurchase = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!purchase_id || !purchaseSupplierId) {
+        toast({ variant: "destructive", title: "حقول ناقصة", description: "الرجاء إدخال رقم قائمة الشراء واختيار المورد." });
+        return;
+    }
+    
+    if (!selectedMed) {
+      toast({ variant: "destructive", title: "لم يتم اختيار دواء", description: "الرجاء البحث واختيار دواء لإضافته." });
+      return;
+    }
+
+    if (!purchaseQuantity || !purchasePrice || !expirationDate) {
+      toast({ variant: "destructive", title: "حقول ناقصة", description: "الرجاء ملء الكمية وسعر الشراء وتاريخ الانتهاء." });
+      return;
+    }
+
+    const newItem = {
+      ...selectedMed,
+      quantity: parseInt(purchaseQuantity),
+      purchase_price: parseFloat(purchasePrice),
+      expiration_date: expirationDate,
+    };
+    
+    setPurchaseItems(prev => [...prev, newItem]);
+    setIsPurchaseInfoLocked(true);
+    
+    setSelectedMed(null);
+    setPurchaseItemSearchTerm("");
+    setPurchaseQuantity("");
+    setPurchasePrice("");
+    setExpirationDate("");
+    document.getElementById("purchase-item-search")?.focus();
+  };
+
+  const handleRemoveFromPurchase = (medId: string) => {
+    setPurchaseItems(prev => prev.filter(item => item.id !== medId));
+  }
+  
+  const handleFinalizePurchase = async () => {
+    if (purchaseItems.length === 0) {
+        toast({ variant: "destructive", title: "القائمة فارغة", description: "الرجاء إضافة أصناف إلى قائمة الشراء أولاً." });
+        return;
+    }
+
+    const supplier = suppliers.find(s => s.id === purchaseSupplierId);
+    if (!supplier) return;
+
+    const purchaseData = {
+        id: purchase_id,
+        supplier_id: supplier.id,
+        supplier_name: supplier.name,
+        date: new Date().toISOString().split('T')[0],
+        items: purchaseItems.map(item => ({
+            ...item,
+            medication_id: item.id
+        })),
+        status: "Received",
+        total_amount: purchaseItems.reduce((sum, item) => sum + (item.quantity * item.purchase_price), 0),
+    }
+
+    const success = await addPurchaseOrder(purchaseData);
+
+    if (success) {
+        setPurchaseId('');
+        setPurchaseSupplierId('');
+        setPurchaseItems([]);
+        setIsPurchaseInfoLocked(false);
+        fetchPurchaseHistory(1, purchasePerPage, ''); // Refresh history
+    }
+  }
+
 
   const handleReturnSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -314,101 +406,6 @@ export default function PurchasesPage() {
       fetchReturnHistory(1, returnPerPage, ''); // Refresh history
     }
   }
-  
-  const handleOrderItemChange = (itemId: string, field: string, value: string | number) => {
-    setEditableOrderItems(prev => ({
-      ...prev,
-      [itemId]: { ...prev[itemId], [field]: value }
-    }));
-  };
-  
-  const handleApplyMasterSettings = () => {
-    if (!masterSupplierId && !masterPurchaseId) {
-      toast({ variant: 'destructive', title: "لا يوجد إعدادات لتطبيقها", description: "الرجاء اختيار مورد أو إدخال رقم قائمة." });
-      return;
-    }
-
-    setEditableOrderItems(prev => {
-      const newItems = { ...prev };
-      orderRequestCart.forEach(item => {
-        if (newItems[item.id]) {
-          if (masterSupplierId) {
-            newItems[item.id].supplier_id = masterSupplierId;
-          }
-        }
-      });
-      return newItems;
-    });
-    toast({ title: "تم تطبيق الإعدادات على جميع الأصناف" });
-  };
-  
-  const handleProcessOrders = async () => {
-    // 1. Validation
-    for (const item of orderRequestCart) {
-        const editableData = editableOrderItems[item.id];
-        if (!editableData || !editableData.quantity || editableData.quantity <= 0 || !editableData.expiration_date || !editableData.supplier_id) {
-            toast({ variant: 'destructive', title: "بيانات ناقصة", description: `الرجاء تعبئة جميع الحقول للدواء: ${item.name}` });
-            return;
-        }
-    }
-
-    // 2. Group by supplier
-    const ordersBySupplier: Record<string, any[]> = {};
-    orderRequestCart.forEach(item => {
-        const editableData = editableOrderItems[item.id];
-        const supplierId = editableData.supplier_id;
-        if (!ordersBySupplier[supplierId]) {
-            ordersBySupplier[supplierId] = [];
-        }
-        ordersBySupplier[supplierId].push({
-            ...item, // Original medication data
-            ...editableData // Overridden/new data
-        });
-    });
-
-    // 3. Create and submit purchase orders
-    const purchasePromises = Object.entries(ordersBySupplier).map(([supplierId, items]) => {
-        const supplier = suppliers.find(s => s.id === supplierId);
-        if (!supplier) return Promise.reject(`Supplier with id ${supplierId} not found`);
-
-        const purchaseData = {
-            id: `${masterPurchaseId}-${supplier.name.substring(0,3).toUpperCase()}` || `${Date.now()}-${supplier.id}`,
-            supplier_id: supplier.id,
-            supplier_name: supplier.name,
-            date: new Date().toISOString().split('T')[0],
-            items: items.map(item => ({
-                barcodes: item.barcodes,
-                name: item.name,
-                quantity: item.quantity,
-                purchase_price: item.purchase_price,
-                expiration_date: item.expiration_date,
-                scientific_names: item.scientific_names,
-                image_url: item.image_url,
-                price: item.price,
-                dosage: item.dosage,
-                dosage_form: item.dosage_form,
-                reorder_point: item.reorder_point,
-            })),
-        };
-        return addPurchaseOrder(purchaseData);
-    });
-
-    try {
-        const results = await Promise.all(purchasePromises);
-        if (results.every(res => res === true)) {
-            toast({ title: "تمت معالجة الطلبات بنجاح", description: `تم إنشاء ${results.length} قائمة شراء جديدة.` });
-            clearAllOrderRequestCart();
-            setEditableOrderItems({});
-            setMasterPurchaseId('');
-            fetchPurchaseHistory(1, purchasePerPage, ''); // Refresh history
-        } else {
-            toast({ variant: "destructive", title: "خطأ", description: "فشلت معالجة بعض الطلبات. الرجاء المحاولة مرة أخرى." });
-        }
-    } catch (error) {
-        console.error("Error processing orders:", error);
-        toast({ variant: "destructive", title: "خطأ فادح", description: "حدث خطأ أثناء معالجة الطلبات." });
-    }
-  };
 
 
   return (
@@ -422,112 +419,139 @@ export default function PurchasesPage() {
       <TabsContent value="new-purchase" dir="rtl">
         <Card>
           <CardHeader>
-            <CardTitle>استلام بضاعة جديدة</CardTitle>
+            <CardTitle>إنشاء قائمة شراء جديدة</CardTitle>
             <CardDescription>
-              هنا تظهر الأدوية التي طلبتها من المخزون. قم بتعبئة بياناتها ثم اضغط على "إتمام ومعالجة الطلبات" لحفظها.
+              أضف الأدوية المستلمة من المورد لتحديث المخزون.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-                {orderRequestCart.length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="p-4 border rounded-md bg-muted/50 space-y-4">
-                        <h3 className="font-semibold">إعدادات الإدخال السريع</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                            <div className="space-y-2">
-                                <Label htmlFor="master-purchase-id">رقم قائمة موحد (اختياري)</Label>
-                                <Input id="master-purchase-id" value={masterPurchaseId} onChange={e => setMasterPurchaseId(e.target.value)} placeholder="مثال: PO-JUL24" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="master-supplier-id">تحديد مورد للكل</Label>
-                                <Select value={masterSupplierId} onValueChange={setMasterSupplierId}>
-                                    <SelectTrigger id="master-supplier-id"><SelectValue placeholder="اختر موردًا..." /></SelectTrigger>
-                                    <SelectContent>{(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
-                                </Select>
-                            </div>
-                            <Button onClick={handleApplyMasterSettings}>تطبيق على الكل</Button>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="purchase_id">رقم قائمة الشراء</Label>
+                        <Input id="purchase_id" value={purchase_id} onChange={e => setPurchaseId(e.target.value)} placeholder="مثال: PO-2024-001" required disabled={isPurchaseInfoLocked}/>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="supplier_id">المورد</Label>
+                        <div className="flex gap-2">
+                            <Select value={purchaseSupplierId} onValueChange={setPurchaseSupplierId} required disabled={isPurchaseInfoLocked}>
+                                <SelectTrigger id="supplier_id"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
+                                <SelectContent>
+                                    {(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <Dialog open={isAddSupplierOpen} onOpenChange={setIsAddSupplierOpen}>
+                                <DialogTrigger asChild>
+                                    <Button type="button" size="icon" variant="outline"><PlusCircle /></Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader><DialogTitle>إضافة مورد جديد</DialogTitle></DialogHeader>
+                                    <form onSubmit={handleAddSupplier} className="space-y-4 pt-2">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="supplier_name">اسم المورد</Label>
+                                            <Input id="supplier_name" name="supplier_name" required />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="supplierContact">الشخص المسؤول (اختياري)</Label>
+                                            <Input id="supplierContact" name="supplierContact" />
+                                        </div>
+                                        <DialogFooter className="pt-2">
+                                            <DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose>
+                                            <Button type="submit" variant="success">إضافة</Button>
+                                        </DialogFooter>
+                                    </form>
+                                </DialogContent>
+                            </Dialog>
                         </div>
                     </div>
-                     <div className="space-y-3">
-                      <h3 className="text-lg font-semibold flex items-center gap-2"><ShoppingBasket /> قائمة الطلبات ({orderRequestCart.length})</h3>
-                      <div className="border rounded-md overflow-hidden">
-                      <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[25%]">الدواء</TableHead>
-                                <TableHead>المخزون</TableHead>
-                                <TableHead>سعر الشراء</TableHead>
-                                <TableHead>الكمية المستلمة</TableHead>
-                                <TableHead>تاريخ الانتهاء</TableHead>
-                                <TableHead className="w-[20%]">المورد</TableHead>
-                                <TableHead>حذف</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {orderRequestCart.map(item => (
-                                <TableRow key={item.id}>
-                                    <TableCell>
-                                        <div className="font-medium">{item.name}</div>
-                                        <div className="text-xs text-muted-foreground">{item.scientific_names?.join(', ')}</div>
-                                        <div className="text-xs text-muted-foreground">سعر البيع: <span className="font-mono">{item.price.toLocaleString()}</span></div>
-                                    </TableCell>
-                                    <TableCell className="font-mono">{item.stock}</TableCell>
-                                    <TableCell>
-                                        <Input 
-                                          type="number"
-                                          value={editableOrderItems[item.id]?.purchase_price || ''}
-                                          onChange={e => handleOrderItemChange(item.id, 'purchase_price', parseFloat(e.target.value))}
-                                          className="w-24 h-9"
-                                          placeholder="سعر الشراء"
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Input 
-                                          type="number"
-                                          value={editableOrderItems[item.id]?.quantity || ''}
-                                          onChange={e => handleOrderItemChange(item.id, 'quantity', parseInt(e.target.value, 10))}
-                                          className="w-20 h-9"
-                                          placeholder="الكمية"
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                         <Input 
-                                          type="date"
-                                          value={editableOrderItems[item.id]?.expiration_date || ''}
-                                          onChange={e => handleOrderItemChange(item.id, 'expiration_date', e.target.value)}
-                                          className="h-9"
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Select 
-                                            value={editableOrderItems[item.id]?.supplier_id || ''}
-                                            onValueChange={value => handleOrderItemChange(item.id, 'supplier_id', value)}
-                                        >
-                                            <SelectTrigger className="h-9"><SelectValue placeholder="اختر مورد" /></SelectTrigger>
-                                            <SelectContent>{(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
-                                        </Select>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Button size="icon" variant="ghost" className="text-destructive" onClick={() => removeFromOrderRequestCart(item.id)}><Trash2 className="h-4 w-4" /></Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                      </Table>
-                      </div>
-                  </div>
-                  <Button onClick={handleProcessOrders} size="lg" className="w-full" variant="success">
-                    <Send className="me-2 h-4 w-4" />
-                    إتمام ومعالجة الطلبات
-                  </Button>
                 </div>
-                ) : (
-                    <div className="text-center py-16 text-muted-foreground">
-                        <ShoppingBasket className="h-16 w-16 mx-auto mb-4" />
-                        <p>قائمة الطلبات فارغة.</p>
-                        <p className="text-sm">اذهب إلى المخزون واضغط على زر "طلب" لإضافة الأدوية هنا.</p>
+
+                <form onSubmit={handleAddItemToPurchase} className="p-4 border rounded-md space-y-4">
+                    <div className="relative space-y-2">
+                        <Label htmlFor="purchase-item-search">ابحث عن دواء (بالاسم، العلمي أو الباركود)</Label>
+                        <Input 
+                          id="purchase-item-search"
+                          value={purchaseItemSearchTerm} 
+                          onChange={handlePurchaseSearch}
+                          placeholder="ابحث عن دواء موجود أو أضف جديدًا"
+                          autoComplete="off"
+                        />
+                        {purchaseItemSuggestions.length > 0 && (
+                             <Card className="absolute z-10 w-full mt-1 bg-background shadow-lg border">
+                                <CardContent className="p-0">
+                                    <ul className="divide-y divide-border">
+                                        {purchaseItemSuggestions.map(med => (
+                                            <li key={med.id} 
+                                                onMouseDown={() => handleSelectMed(med)}
+                                                className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
+                                            >
+                                                <div>
+                                                  <div>{med.name}</div>
+                                                  <div className="text-xs text-muted-foreground">{med.scientific_names?.join(', ')}</div>
+                                                </div>
+                                                <span className="text-sm text-muted-foreground font-mono">الرصيد: {med.stock}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="purchase-quantity">الكمية</Label>
+                            <Input id="purchase-quantity" type="number" value={purchaseQuantity} onChange={e => setPurchaseQuantity(e.target.value)} required min="1" disabled={!selectedMed}/>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="purchase-price">سعر الشراء</Label>
+                            <Input id="purchase-price" type="number" step="0.01" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} required disabled={!selectedMed}/>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="expiration-date">تاريخ الانتهاء</Label>
+                            <Input id="expiration-date" type="date" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} required disabled={!selectedMed}/>
+                        </div>
+                    </div>
+                    <Button type="submit" className="w-full" disabled={!selectedMed}>إضافة إلى القائمة</Button>
+                </form>
+
+                {purchaseItems.length > 0 && (
+                    <div>
+                        <h3 className="mb-2 text-lg font-semibold">الأصناف في القائمة الحالية:</h3>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>المنتج</TableHead>
+                                    <TableHead>الكمية</TableHead>
+                                    <TableHead>سعر الشراء</TableHead>
+                                    <TableHead>تاريخ الانتهاء</TableHead>
+                                    <TableHead>الإجمالي</TableHead>
+                                    <TableHead></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {purchaseItems.map(item => (
+                                    <TableRow key={item.id}>
+                                        <TableCell>{item.name}</TableCell>
+                                        <TableCell className="font-mono">{item.quantity}</TableCell>
+                                        <TableCell className="font-mono">{item.purchase_price.toLocaleString()}</TableCell>
+                                        <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('ar-EG')}</TableCell>
+                                        <TableCell className="font-mono">{(item.quantity * item.purchase_price).toLocaleString()}</TableCell>
+                                        <TableCell>
+                                            <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleRemoveFromPurchase(item.id)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
                     </div>
                 )}
           </CardContent>
+          <CardFooter>
+            <Button onClick={handleFinalizePurchase} variant="success" className="w-full" disabled={purchaseItems.length === 0}>
+                إتمام استلام البضاعة
+            </Button>
+          </CardFooter>
         </Card>
       </TabsContent>
        <TabsContent value="purchase-history" dir="rtl">

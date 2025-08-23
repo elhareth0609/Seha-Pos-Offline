@@ -1,5 +1,4 @@
 
-
 import { z } from 'zod';
 
 export type UserPermissions = {
@@ -21,6 +20,7 @@ export type UserPermissions = {
     manage_tasks: boolean;
     manage_close_month: boolean;
     manage_archives: boolean;
+    manage_order_requests: boolean;
 };
 
 export type Medication = {

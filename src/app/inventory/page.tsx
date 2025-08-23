@@ -1,3 +1,4 @@
+
 "use client"
 import * as React from "react"
 import * as XLSX from 'xlsx';
@@ -215,7 +216,7 @@ export default function InventoryPage() {
   const handlePinConfirm = async (pin: string) => {
       if (!itemToDelete) return;
 
-      const isValid = await verifyPin(pin);
+      const isValid = await verifyPin(pin, true);
       if (isValid) {
           setIsPinDialogOpen(false);
           const success = await deleteMedication(itemToDelete.id);
@@ -224,7 +225,7 @@ export default function InventoryPage() {
               setItemToDelete(null);
           }
       } else {
-          toast({ variant: 'destructive', title: 'رمز PIN غير صحيح' });
+          toast({ variant: 'destructive', title: 'رمز الحذف غير صحيح' });
       }
   };
   

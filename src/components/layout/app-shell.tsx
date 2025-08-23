@@ -26,6 +26,7 @@ import {
   ListChecks,
   CheckCircle,
   FileArchive,
+  ShoppingBasket,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,12 +56,13 @@ import { Label } from "../ui/label";
 const allNavItems = [
   { href: "/", icon: LayoutDashboard, label: "لوحة التحكم" },
   { href: "/sales", icon: ShoppingCart, label: "المبيعات" },
+  { href: "/order-requests", icon: ShoppingBasket, label: "الطلبات", permissionKey: 'manage_order_requests' },
   { href: "/inventory", icon: Boxes, label: "المخزون" },
   { href: "/purchases", icon: Truck, label: "المشتريات" },
   { href: "/suppliers", icon: Landmark, label: "الموردون والحسابات" },
   { href: "/reports", icon: FileText, label: "التقارير" },
   { href: "/expenses", icon: Coins, label: "الصرفيات" },
-  { href: "/tasks", icon: ListChecks, label: "المهام" },
+  { href: "/tasks", icon: ListChecks, label: "المهام", permissionKey: 'manage_tasks' },
   { href: "/item-movement", icon: Repeat, label: "حركة المادة" },
   { href: "/patients", icon: Users, label: "أصدقاء الصيدلية" },
   { href: "/expiring-soon", icon: CalendarX2, label: "قريب الانتهاء" },
@@ -150,6 +152,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         manage_tasks: false,
         manage_close_month: false,
         manage_archives: false,
+        manage_order_requests: false,
     };
 
     const permissionMap: { [key: string]: keyof UserPermissions } = {
@@ -167,6 +170,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         '/expenses': 'manage_expenses',
         '/tasks': 'manage_tasks',
         '/close-month': 'manage_close_month',
+        '/order-requests': 'manage_order_requests',
     };
 
     return allNavItems.filter(item => {
