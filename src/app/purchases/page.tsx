@@ -849,3 +849,5 @@ export default function PurchasesPage() {
     </Tabs>
   )
 }
+
+    
