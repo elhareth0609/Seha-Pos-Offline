@@ -612,6 +612,10 @@ export default function InventoryPage() {
                   <TableCell className="text-center font-mono">{item.price.toLocaleString()}</TableCell>
                   <TableCell>{getStockStatus(item.stock, item.reorder_point)}</TableCell>
                   <TableCell>
+                    <div className="flex items-center justify-end">
+                        <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item)}>
+                            <ShoppingBasket className="h-5 w-5 text-blue-600"/>
+                        </Button>
                       <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                               <Button aria-haspopup="true" size="icon" variant="ghost">
@@ -621,10 +625,6 @@ export default function InventoryPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                               <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
-                              <DropdownMenuItem onSelect={() => addToOrderRequestCart(item)}>
-                                  <ShoppingBasket className="me-2 h-4 w-4" />
-                                  طلب
-                              </DropdownMenuItem>
                               <DropdownMenuItem onSelect={() => openEditModal(item)}>
                                   <Pencil className="me-2 h-4 w-4" />
                                   تعديل
@@ -661,6 +661,7 @@ export default function InventoryPage() {
                                 </AlertDialog>
                           </DropdownMenuContent>
                       </DropdownMenu>
+                      </div>
                   </TableCell>
                 </TableRow>
               )) : (

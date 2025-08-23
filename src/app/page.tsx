@@ -20,7 +20,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import type { Medication, Sale, AppSettings, Task } from "@/lib/types";
-import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle, Coins, ListChecks } from "lucide-react";
+import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle, Coins, ListChecks, ShoppingBasket } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, isWithinInterval, isToday, endOfMonth, endOfWeek, subMonths, startOfYear, endOfYear } from 'date-fns';
 import Link from "next/link";
@@ -33,7 +33,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Dashboard() {
-  const { currentUser, scopedData, updateTask } = useAuth();
+  const { currentUser, scopedData, updateTask, addToOrderRequestCart } = useAuth();
   const [inventory] = scopedData.inventory;
   const [sales] = scopedData.sales;
   const [settings] = scopedData.settings;
@@ -421,6 +421,7 @@ export default function Dashboard() {
                                   <TableHead>الاسم</TableHead>
                                   <TableHead>المخزون</TableHead>
                                   <TableHead>نقطة الطلب</TableHead>
+                                  <TableHead className="text-left">طلب</TableHead>
                               </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -433,10 +434,15 @@ export default function Dashboard() {
                                       <TableCell>
                                         <div className="font-medium">{item.reorder_point}</div>
                                       </TableCell>
+                                      <TableCell className="text-left">
+                                        <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item)}>
+                                            <ShoppingBasket className="h-5 w-5 text-blue-600"/>
+                                        </Button>
+                                      </TableCell>
                                   </TableRow>
                               )) : (
                                   <TableRow>
-                                      <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">لا توجد أصناف.</TableCell>
+                                      <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">لا توجد أصناف.</TableCell>
                                   </TableRow>
                               )}
                           </TableBody>
@@ -531,5 +537,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    

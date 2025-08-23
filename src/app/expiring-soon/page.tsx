@@ -38,11 +38,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Label } from "@/components/ui/label"
-import { Trash2 } from "lucide-react"
+import { ShoppingBasket, Trash2 } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
 
 export default function ExpiringSoonPage() {
-  const { getPaginatedExpiringSoon, markAsDamaged } = useAuth();
+  const { getPaginatedExpiringSoon, markAsDamaged, addToOrderRequestCart } = useAuth();
   
   const [expiringMedications, setExpiringMedications] = React.useState<Medication[]>([]);
   const [expiredMedications, setExpiredMedications] = React.useState<Medication[]>([]);
@@ -185,6 +185,7 @@ export default function ExpiringSoonPage() {
                       <TableHead>تاريخ الانتهاء</TableHead>
                       <TableHead>الأيام المتبقية</TableHead>
                       <TableHead>الحالة</TableHead>
+                      <TableHead className="text-left">الإجراء</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -195,6 +196,7 @@ export default function ExpiringSoonPage() {
                             <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                             <TableCell><Skeleton className="h-6 w-28" /></TableCell>
+                            <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                         </TableRow>
                     )) : expiringMedications.length > 0 ? expiringMedications.map((item) => (
                       <TableRow key={item.id} className="text-right">
@@ -206,10 +208,15 @@ export default function ExpiringSoonPage() {
                         <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('ar-EG')}</TableCell>
                         <TableCell className="font-mono">{formatDaysLeft(item.expiration_date)}</TableCell>
                         <TableCell>{getExpirationBadge(item.expiration_date)}</TableCell>
+                        <TableCell className="text-left">
+                            <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item)}>
+                                <ShoppingBasket className="h-5 w-5 text-blue-600"/>
+                            </Button>
+                        </TableCell>
                       </TableRow>
                     )) : (
                         <TableRow>
-                            <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                            <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                                 لا توجد بيانات لعرضها.
                             </TableCell>
                         </TableRow>
@@ -270,28 +277,33 @@ export default function ExpiringSoonPage() {
                         <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('ar-EG')}</TableCell>
                         <TableCell>{getExpirationBadge(item.expiration_date)}</TableCell>
                         <TableCell className="text-left">
-                           <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="sm">
-                                        <Trash2 className="me-2 h-4 w-4"/>
-                                        نقل إلى التالف
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            سيتم نقل {item.name} (كمية: {item.stock}) إلى قائمة التالف وحذفه من المخزون. لا يمكن التراجع عن هذا الإجراء.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleMarkAsDamaged(item.id)} className={buttonVariants({ variant: "destructive" })}>
-                                            نعم، قم بالنقل
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                            <div className="flex justify-end items-center gap-2">
+                                <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item)}>
+                                    <ShoppingBasket className="h-5 w-5 text-blue-600"/>
+                                </Button>
+                               <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" size="sm">
+                                            <Trash2 className="me-2 h-4 w-4"/>
+                                            نقل إلى التالف
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                سيتم نقل {item.name} (كمية: {item.stock}) إلى قائمة التالف وحذفه من المخزون. لا يمكن التراجع عن هذا الإجراء.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleMarkAsDamaged(item.id)} className={buttonVariants({ variant: "destructive" })}>
+                                                نعم، قم بالنقل
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
                         </TableCell>
                       </TableRow>
                     )) : (
@@ -393,5 +405,3 @@ export default function ExpiringSoonPage() {
     </Card>
   )
 }
-
-    
