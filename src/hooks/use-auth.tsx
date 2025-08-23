@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -113,8 +114,8 @@ interface AuthContextType {
     // Purchases and Returns
     addPurchaseOrder: (data: any) => Promise<boolean>;
     addReturnOrder: (data: any) => Promise<boolean>;
-    getPaginatedPurchaseOrders: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<PurchaseOrder>>;
-    getPaginatedReturnOrders: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<ReturnOrder>>;
+    getPaginatedPurchaseOrders: (page: number, perPage: number, search: string, dateFrom?: string, dateTo?: string) => Promise<PaginatedResponse<PurchaseOrder>>;
+    getPaginatedReturnOrders: (page: number, perPage: number, search: string, dateFrom?: string, dateTo?: string) => Promise<PaginatedResponse<ReturnOrder>>;
     
     // Expenses
     getPaginatedExpenses: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Expense>>;
@@ -656,7 +657,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         }
     }, []);
 
-    const getPaginatedPurchaseOrders = React.useCallback(async (page: number, perPage: number, search: string) => {
+    const getPaginatedPurchaseOrders = React.useCallback(async (page: number, perPage: number, search: string, dateFrom?: string, dateTo?: string) => {
         try {
             const params = new URLSearchParams({
                 paginate: "true",
@@ -664,6 +665,9 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
                 per_page: String(perPage),
                 search: search,
             });
+            if(dateFrom) params.append('date_from', dateFrom);
+            if(dateTo) params.append('date_to', dateTo);
+
             const data = await apiRequest(`/purchase-orders?${params.toString()}`);
             return data;
         } catch (e) {
@@ -671,7 +675,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         }
     }, []);
     
-    const getPaginatedReturnOrders = React.useCallback(async (page: number, perPage: number, search: string) => {
+    const getPaginatedReturnOrders = React.useCallback(async (page: number, perPage: number, search: string, dateFrom?: string, dateTo?: string) => {
         try {
             const params = new URLSearchParams({
                 paginate: "true",
@@ -679,6 +683,8 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
                 per_page: String(perPage),
                 search: search,
             });
+             if(dateFrom) params.append('date_from', dateFrom);
+            if(dateTo) params.append('date_to', dateTo);
             const data = await apiRequest(`/return-orders?${params.toString()}`);
             return data;
         } catch (e) {

@@ -47,6 +47,7 @@ export default function OrderRequestsPage() {
   const [editableOrderItems, setEditableOrderItems] = React.useState<Record<string, any>>({});
   const [masterPurchaseId, setMasterPurchaseId] = React.useState('');
   const [masterSupplierId, setMasterSupplierId] = React.useState('');
+  const [masterDate, setMasterDate] = React.useState(new Date().toISOString().split('T')[0]);
   const [isProcessing, setIsProcessing] = React.useState(false);
 
 
@@ -61,6 +62,7 @@ export default function OrderRequestsPage() {
         expiration_date: item.expiration_date,
         supplier_id: '',
         invoice_id: '',
+        date: new Date().toISOString().split('T')[0],
       };
     });
     setEditableOrderItems(newEditableItems);
@@ -76,8 +78,8 @@ export default function OrderRequestsPage() {
   };
   
   const handleApplyMasterSettings = () => {
-    if (!masterSupplierId && !masterPurchaseId) {
-      toast({ variant: 'destructive', title: "لا يوجد إعدادات لتطبيقها", description: "الرجاء اختيار مورد أو إدخال رقم قائمة." });
+    if (!masterSupplierId && !masterPurchaseId && !masterDate) {
+      toast({ variant: 'destructive', title: "لا يوجد إعدادات لتطبيقها", description: "الرجاء اختيار مورد أو إدخال رقم قائمة أو تحديد تاريخ." });
       return;
     }
 
@@ -87,6 +89,7 @@ export default function OrderRequestsPage() {
         if (newItems[item.id]) {
           if (masterSupplierId) newItems[item.id].supplier_id = masterSupplierId;
           if (masterPurchaseId) newItems[item.id].invoice_id = masterPurchaseId;
+          if (masterDate) newItems[item.id].date = masterDate;
         }
       });
       return newItems;
@@ -99,7 +102,7 @@ export default function OrderRequestsPage() {
     // 1. Validation
     for (const item of orderRequestCart) {
         const editableData = editableOrderItems[item.id];
-        if (!editableData || !editableData.quantity || editableData.quantity <= 0 || !editableData.expiration_date || !editableData.supplier_id || !editableData.invoice_id) {
+        if (!editableData || !editableData.quantity || editableData.quantity <= 0 || !editableData.expiration_date || !editableData.supplier_id || !editableData.invoice_id || !editableData.date) {
             toast({ variant: 'destructive', title: "بيانات ناقصة", description: `الرجاء تعبئة جميع الحقول للدواء: ${item.name}` });
             setIsProcessing(false);
             return;
@@ -136,12 +139,13 @@ export default function OrderRequestsPage() {
 
         for (const invoiceId in ordersBySupplierAndInvoice[supplierId]) {
             const items = ordersBySupplierAndInvoice[supplierId][invoiceId];
+            const firstItemDate = items[0]?.date || new Date().toISOString().split('T')[0];
             
             const purchaseData = {
                 id: invoiceId,
                 supplier_id: supplier.id,
                 supplier_name: supplier.name,
-                date: new Date().toISOString().split('T')[0],
+                date: firstItemDate,
                 items: items, // Pass the whole item object
                 status: "Received",
                 total_amount: items.reduce((sum, item) => sum + (item.quantity * item.purchase_price), 0),
@@ -181,7 +185,7 @@ export default function OrderRequestsPage() {
           <div className="space-y-4">
             <div className="p-4 border rounded-md bg-muted/50 space-y-4">
                 <h3 className="font-semibold">إعدادات الإدخال السريع</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div className="space-y-2">
                         <Label htmlFor="master-purchase-id">رقم قائمة موحد</Label>
                         <Input id="master-purchase-id" value={masterPurchaseId} onChange={e => setMasterPurchaseId(e.target.value)} placeholder="مثال: PO-JUL24" />
@@ -192,6 +196,10 @@ export default function OrderRequestsPage() {
                             <SelectTrigger id="master-supplier-id"><SelectValue placeholder="اختر موردًا..." /></SelectTrigger>
                             <SelectContent>{(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                         </Select>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="master-date">تاريخ قائمة موحد</Label>
+                        <Input id="master-date" type="date" value={masterDate} onChange={e => setMasterDate(e.target.value)} />
                     </div>
                     <Button onClick={handleApplyMasterSettings}>تطبيق على الكل</Button>
                 </div>
@@ -209,6 +217,7 @@ export default function OrderRequestsPage() {
                         <TableHead>تاريخ الانتهاء</TableHead>
                         <TableHead className="min-w-[180px]">المورد</TableHead>
                         <TableHead className="min-w-[150px]">رقم القائمة</TableHead>
+                        <TableHead className="min-w-[150px]">تاريخ القائمة</TableHead>
                         <TableHead>حذف</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -270,6 +279,14 @@ export default function OrderRequestsPage() {
                                   onChange={e => handleOrderItemChange(item.id, 'invoice_id', e.target.value)}
                                   className="w-32 h-9"
                                   placeholder="رقم القائمة"
+                                />
+                            </TableCell>
+                             <TableCell>
+                                <Input 
+                                  type="date"
+                                  value={editableOrderItems[item.id]?.date || ''}
+                                  onChange={e => handleOrderItemChange(item.id, 'date', e.target.value)}
+                                  className="h-9"
                                 />
                             </TableCell>
                             <TableCell>
