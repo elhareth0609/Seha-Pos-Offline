@@ -153,6 +153,7 @@ interface AuthContextType {
     orderRequestCart: OrderRequestItem[];
     addToOrderRequestCart: (item: Medication) => void;
     removeFromOrderRequestCart: (medicationId: string) => void;
+    clearAllOrderRequestCart: () => void;
 }
 
 export interface ScopedDataContextType {
@@ -263,6 +264,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const removeFromOrderRequestCart = (medicationId: string) => {
         setOrderRequestCart(prev => prev.filter(item => item.id !== medicationId));
+    };
+
+    const clearAllOrderRequestCart = () => {
+        setOrderRequestCart([]);
     };
 
     const resetActiveInvoice = React.useCallback(() => {
@@ -1051,7 +1056,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             activeInvoice, setActiveInvoice, resetActiveInvoice,
             verifyPin, updateUserPinRequirement,
             getArchivedMonths, getArchivedMonthData,
-            orderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart
+            orderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, clearAllOrderRequestCart,
         }}>
             {children}
         </AuthContext.Provider>

@@ -40,11 +40,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import type { PurchaseOrder, Medication, Supplier, ReturnOrder, PurchaseOrderItem, ReturnOrderItem, PaginatedResponse, OrderRequestItem } from "@/lib/types"
-import { PlusCircle, ChevronDown, Trash2, X, Pencil, ShoppingBasket } from "lucide-react"
+import { PlusCircle, ChevronDown, Trash2, X, Pencil, ShoppingBasket, Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 
 const fileToDataUri = (file: File): Promise<string> => {
@@ -70,6 +71,7 @@ export default function PurchasesPage() {
       getPaginatedReturnOrders,
       orderRequestCart,
       removeFromOrderRequestCart,
+      clearAllOrderRequestCart,
     } = useAuth();
   
   const {
@@ -117,6 +119,24 @@ export default function PurchasesPage() {
   const [supplier_name, setSupplierName] = React.useState("");
   const [supplierContact, setSupplierContact] = React.useState("");
   const [activeTab, setActiveTab] = React.useState("new-purchase");
+  
+  const [editableOrderItems, setEditableOrderItems] = React.useState<Record<string, any>>({});
+  const [masterPurchaseId, setMasterPurchaseId] = React.useState('');
+  const [masterSupplierId, setMasterSupplierId] = React.useState('');
+
+  React.useEffect(() => {
+    // Sync local state with global cart from useAuth
+    const newEditableItems: Record<string, any> = {};
+    orderRequestCart.forEach(item => {
+      newEditableItems[item.id] = editableOrderItems[item.id] || {
+        quantity: 1,
+        purchase_price: item.purchase_price,
+        expiration_date: '',
+        supplier_id: '',
+      };
+    });
+    setEditableOrderItems(newEditableItems);
+  }, [orderRequestCart]);
 
 
   const fetchPurchaseHistory = React.useCallback(async (page: number, limit: number, search: string) => {
@@ -172,42 +192,6 @@ export default function PurchasesPage() {
     setExpandedRows(newExpandedRows);
   };
   
-  const handleFinalizePurchase = async () => {
-    const supplier = suppliers.find(s => s.id === purchaseSupplierId);
-    if (!purchase_id || !supplier || purchaseItems.length === 0) {
-        toast({ variant: "destructive", title: "بيانات ناقصة", description: "رقم القائمة، المورد، والأصناف مطلوبة." });
-        return;
-    }
-    
-    const purchaseData = {
-        id: purchase_id,
-        supplier_id: supplier.id,
-        supplier_name: supplier.name,
-        date: new Date().toISOString().split('T')[0],
-        items: purchaseItems.map(item => ({
-            barcodes: item.barcodes,
-            name: item.name,
-            quantity: item.quantity,
-            purchase_price: item.purchase_price,
-            expiration_date: item.expiration_date,
-            scientific_names: item.scientific_names,
-            image_url: item.image_url,
-            price: item.price,
-            dosage: item.dosage,
-            dosage_form: item.dosage_form,
-            reorder_point: item.reorder_point,
-        })),
-    }
-
-    const success = await addPurchaseOrder(purchaseData);
-    if (success) {
-        setPurchaseId('');
-        setPurchaseSupplierId('');
-        setPurchaseItems([]);
-        fetchPurchaseHistory(1, purchasePerPage, ''); // Refresh history
-    }
-  }
-
   const handleAddSupplier = async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const formData = new FormData(e.currentTarget);
@@ -330,252 +314,102 @@ export default function PurchasesPage() {
       fetchReturnHistory(1, returnPerPage, ''); // Refresh history
     }
   }
-
-function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdit, onFillFromRequest }: { onAddItem: (item: any) => void; onUpdateItem: (item: any) => void; editingItem: any | null; onCancelEdit: () => void; onFillFromRequest: (item: OrderRequestItem) => void; }) {
-    const [barcodes, setBarcodes] = React.useState('');
-    const [medicationName, setMedicationName] = React.useState('');
-    const [scientific_names, setScientificNames] = React.useState('');
-    const [dosage, setDosage] = React.useState('');
-    const [dosage_form, setDosageForm] = React.useState('');
-    const [quantity, setQuantity] = React.useState('1');
-    const [purchase_price, setPurchasePrice] = React.useState('');
-    const [sellingPrice, setSellingPrice] = React.useState('');
-    const [expiration_date, setExpirationDate] = React.useState('');
-    const [reorder_point, setReorderPoint] = React.useState('10');
-    const [imageFile, setImageFile] = React.useState<File | null>(null);
-    const [imagePreview, setImagePreview] = React.useState<string>('');
-
-    const isEditing = editingItem !== null;
-
-    React.useEffect(() => {
-        if (isEditing) {
-            setBarcodes((editingItem.barcodes || []).join(', '));
-            setMedicationName(editingItem.name || '');
-            setScientificNames((editingItem.scientific_names || []).join(', '));
-            setDosage(editingItem.dosage || '');
-            setDosageForm(editingItem.dosage_form || '');
-            setQuantity(String(editingItem.quantity || '1'));
-            setPurchasePrice(String(editingItem.purchase_price || ''));
-            setSellingPrice(String(editingItem.price || ''));
-            setExpirationDate(editingItem.expiration_date || '');
-            setReorderPoint(String(editingItem.reorder_point || '10'));
-            setImageFile(null);
-            setImagePreview(editingItem.image_url || '');
-        }
-    }, [editingItem, isEditing]);
-
-    const prefillFormWithMedData = React.useCallback((med: Medication) => {
-        setMedicationName(med.name || '');
-        setScientificNames((med.scientific_names || []).join(', '));
-        setDosage(med.dosage || '');
-        setDosageForm(med.dosage_form || '');
-        setSellingPrice(String(med.price || ''));
-        setPurchasePrice(String(med.purchase_price || ''));
-        setReorderPoint(String(med.reorder_point || '10'));
-        setImagePreview(med.image_url || '');
-        setBarcodes((med.barcodes || []).join(', '));
-    }, []);
-
-    React.useEffect(() => {
-        if (isEditing) return; // Don't auto-fill when editing
-        const firstBarcode = barcodes.split(',')[0].trim();
-        if (firstBarcode) {
-            const existingMed = (inventory || []).find(m => (m.barcodes || []).includes(firstBarcode));
-            if (existingMed) {
-                prefillFormWithMedData(existingMed);
-            }
-        }
-    }, [barcodes, inventory, prefillFormWithMedData, isEditing]);
-    
-    React.useEffect(() => {
-        const handleFillRequest = (event: Event) => {
-            const customEvent = event as CustomEvent<OrderRequestItem>;
-            prefillFormWithMedData(customEvent.detail);
-        };
-
-        window.addEventListener('fillPurchaseForm', handleFillRequest as EventListener);
-
-        return () => {
-            window.removeEventListener('fillPurchaseForm', handleFillRequest as EventListener);
-        };
-    }, [prefillFormWithMedData]);
-
-
-    const resetForm = () => {
-        setBarcodes('');
-        setMedicationName('');
-        setScientificNames('');
-        setDosage('');
-        setDosageForm('');
-        setQuantity('1');
-        setPurchasePrice('');
-        setSellingPrice('');
-        setExpirationDate('');
-        setReorderPoint('10');
-        setImageFile(null);
-        setImagePreview('');
-        onCancelEdit();
-    };
-
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            setImageFile(file);
-            setImagePreview(URL.createObjectURL(file));
-        }
-    };
-    
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        
-        let barcodeArray = barcodes.split(',').map(bc => bc.trim()).filter(Boolean);
-        if(barcodeArray.length === 0) {
-            barcodeArray = [Date.now().toString()];
-        }
-        
-        let expDate = expiration_date;
-        if (!expDate) {
-            toast({ variant: 'destructive', title: "تاريخ الصلاحية مطلوب", description: "الرجاء إدخال تاريخ صلاحية صالح." });
-            return;
-        }
-        
-        let image_url: string = imagePreview || '';
-        if (imageFile) {
-            image_url = await fileToDataUri(imageFile);
-        }
-        
-        const newItemData = {
-            barcodes: barcodeArray,
-            name: medicationName,
-            scientific_names: scientific_names.split(',').map(s => s.trim()).filter(Boolean),
-            dosage,
-            dosage_form: dosage_form,
-            quantity: parseInt(quantity, 10),
-            purchase_price: parseFloat(purchase_price),
-            price: parseFloat(sellingPrice),
-            expiration_date: expDate,
-            reorder_point: parseInt(reorder_point, 10),
-            image_url: image_url,
-        };
-
-        if (!newItemData.name || !newItemData.quantity || !newItemData.purchase_price || !newItemData.price) {
-            toast({ variant: 'destructive', title: "حقول ناقصة", description: "الاسم، الكمية، سعر الشراء، وسعر البيع مطلوبة." });
-            return;
-        }
-        
-        if (isEditing) {
-            onUpdateItem(newItemData);
-        } else {
-            onAddItem(newItemData);
-        }
-        resetForm();
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="border-t pt-6 space-y-4">
-              {isEditing && (
-                <Alert>
-                  <Pencil className="h-4 w-4" />
-                  <AlertTitle>وضع التعديل</AlertTitle>
-                  <AlertDescription>
-                    أنت الآن تقوم بتعديل عنصر موجود. اضغط على "تحديث العنصر" لحفظ التغييرات أو "إلغاء التعديل" للعودة.
-                  </AlertDescription>
-                </Alert>
-              )}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-2">
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="barcodes">الباركود (يفصل بفاصلة , للتعدد)</Label>
-                    <Input id="barcodes" value={barcodes} onChange={e => setBarcodes(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="tradeName">الاسم التجاري</Label>
-                    <Input id="tradeName" required value={medicationName} onChange={e => setMedicationName(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="scientific_names">الاسم العلمي (يفصل بفاصلة ,)</Label>
-                    <Input id="scientific_names" value={scientific_names} onChange={e => setScientificNames(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="dosage">الجرعة (مثال: 500mg)</Label>
-                    <Input id="dosage" value={dosage} onChange={e => setDosage(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="dosage_form">الشكل الدوائي</Label>
-                    <Select name="dosage_form" value={dosage_form} onValueChange={setDosageForm}>
-                        <SelectTrigger id="dosage_form"><SelectValue placeholder="اختر الشكل" /></SelectTrigger>
-                        <SelectContent>
-                            {dosage_forms.map(form => <SelectItem key={form} value={form}>{form}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-                 <div className="flex flex-col gap-2">
-                    <Label htmlFor="expiration_date">تاريخ الانتهاء</Label>
-                    <Input id="expiration_date" type="date" value={expiration_date} onChange={e => setExpirationDate(e.target.value)} required/>
-                </div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="quantity">الكمية</Label>
-                    <Input id="quantity" type="number" required value={quantity} onChange={e => setQuantity(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="purchase_pricePerPurchaseUnit">سعر الشراء</Label>
-                    <Input id="purchase_pricePerPurchaseUnit" type="number" required value={purchase_price} onChange={e => setPurchasePrice(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="sellingPricePerSaleUnit">سعر البيع</Label>
-                    <Input id="sellingPricePerSaleUnit" type="number" required value={sellingPrice} onChange={e => setSellingPrice(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="reorder_point">نقطة إعادة الطلب</Label>
-                    <Input id="reorder_point" type="number" required value={reorder_point} onChange={e => setReorderPoint(e.target.value)} />
-                </div>
-            </div>
-            <div className="flex flex-col gap-2">
-                <Label htmlFor="itemImage">صورة المنتج (اختياري)</Label>
-                <div className="flex items-center gap-4">
-                    <Input id="itemImage" type="file" accept="image/*" onChange={handleImageChange} className="pt-2 text-xs h-10 flex-1" />
-                    {imagePreview && (
-                        <div className="relative w-16 h-16 shrink-0">
-                            <Image src={imagePreview} alt="معاينة" fill className="rounded-md object-cover" />
-                            <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-5 w-5 rounded-full" onClick={() => { setImageFile(null); setImagePreview(''); }}>
-                                <X className="h-3 w-3" />
-                            </Button>
-                        </div>
-                    )}
-                </div>
-            </div>
-            <div className="flex gap-2">
-                {isEditing && (
-                    <Button type="button" variant="outline" className="w-full" onClick={resetForm}>
-                      إلغاء التعديل
-                    </Button>
-                )}
-                 <Button type="submit" className="w-full" variant={isEditing ? 'default' : 'success'}>
-                    {isEditing ? 'تحديث العنصر' : 'إضافة إلى القائمة'}
-                 </Button>
-            </div>
-        </form>
-    );
-  }
-
-  const [editingItemIndex, setEditingItemIndex] = React.useState<number | null>(null);
-
-  const handleEditItem = (index: number) => {
-    setEditingItemIndex(index);
-  };
-
-  const handleUpdateItem = (updatedItem: any) => {
-    if (editingItemIndex !== null) {
-      setPurchaseItems(prev => prev.map((item, index) => index === editingItemIndex ? updatedItem : item));
-      setEditingItemIndex(null);
-    }
+  
+  const handleOrderItemChange = (itemId: string, field: string, value: string | number) => {
+    setEditableOrderItems(prev => ({
+      ...prev,
+      [itemId]: { ...prev[itemId], [field]: value }
+    }));
   };
   
-  const handleFillFromRequest = (item: OrderRequestItem) => {
-    const event = new CustomEvent('fillPurchaseForm', { detail: item });
-    window.dispatchEvent(event);
-  }
+  const handleApplyMasterSettings = () => {
+    if (!masterSupplierId && !masterPurchaseId) {
+      toast({ variant: 'destructive', title: "لا يوجد إعدادات لتطبيقها", description: "الرجاء اختيار مورد أو إدخال رقم قائمة." });
+      return;
+    }
+
+    setEditableOrderItems(prev => {
+      const newItems = { ...prev };
+      orderRequestCart.forEach(item => {
+        if (newItems[item.id]) {
+          if (masterSupplierId) {
+            newItems[item.id].supplier_id = masterSupplierId;
+          }
+        }
+      });
+      return newItems;
+    });
+    toast({ title: "تم تطبيق الإعدادات على جميع الأصناف" });
+  };
+  
+  const handleProcessOrders = async () => {
+    // 1. Validation
+    for (const item of orderRequestCart) {
+        const editableData = editableOrderItems[item.id];
+        if (!editableData || !editableData.quantity || editableData.quantity <= 0 || !editableData.expiration_date || !editableData.supplier_id) {
+            toast({ variant: 'destructive', title: "بيانات ناقصة", description: `الرجاء تعبئة جميع الحقول للدواء: ${item.name}` });
+            return;
+        }
+    }
+
+    // 2. Group by supplier
+    const ordersBySupplier: Record<string, any[]> = {};
+    orderRequestCart.forEach(item => {
+        const editableData = editableOrderItems[item.id];
+        const supplierId = editableData.supplier_id;
+        if (!ordersBySupplier[supplierId]) {
+            ordersBySupplier[supplierId] = [];
+        }
+        ordersBySupplier[supplierId].push({
+            ...item, // Original medication data
+            ...editableData // Overridden/new data
+        });
+    });
+
+    // 3. Create and submit purchase orders
+    const purchasePromises = Object.entries(ordersBySupplier).map(([supplierId, items]) => {
+        const supplier = suppliers.find(s => s.id === supplierId);
+        if (!supplier) return Promise.reject(`Supplier with id ${supplierId} not found`);
+
+        const purchaseData = {
+            id: `${masterPurchaseId}-${supplier.name.substring(0,3).toUpperCase()}` || `${Date.now()}-${supplier.id}`,
+            supplier_id: supplier.id,
+            supplier_name: supplier.name,
+            date: new Date().toISOString().split('T')[0],
+            items: items.map(item => ({
+                barcodes: item.barcodes,
+                name: item.name,
+                quantity: item.quantity,
+                purchase_price: item.purchase_price,
+                expiration_date: item.expiration_date,
+                scientific_names: item.scientific_names,
+                image_url: item.image_url,
+                price: item.price,
+                dosage: item.dosage,
+                dosage_form: item.dosage_form,
+                reorder_point: item.reorder_point,
+            })),
+        };
+        return addPurchaseOrder(purchaseData);
+    });
+
+    try {
+        const results = await Promise.all(purchasePromises);
+        if (results.every(res => res === true)) {
+            toast({ title: "تمت معالجة الطلبات بنجاح", description: `تم إنشاء ${results.length} قائمة شراء جديدة.` });
+            clearAllOrderRequestCart();
+            setEditableOrderItems({});
+            setMasterPurchaseId('');
+            fetchPurchaseHistory(1, purchasePerPage, ''); // Refresh history
+        } else {
+            toast({ variant: "destructive", title: "خطأ", description: "فشلت معالجة بعض الطلبات. الرجاء المحاولة مرة أخرى." });
+        }
+    } catch (error) {
+        console.error("Error processing orders:", error);
+        toast({ variant: "destructive", title: "خطأ فادح", description: "حدث خطأ أثناء معالجة الطلبات." });
+    }
+  };
+
 
   return (
      <Tabs defaultValue="new-purchase" onValueChange={setActiveTab} className="w-full">
@@ -590,67 +424,42 @@ function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdi
           <CardHeader>
             <CardTitle>استلام بضاعة جديدة</CardTitle>
             <CardDescription>
-              أضف الأصناف المستلمة إلى القائمة أدناه ثم اضغط على "إتمام عملية الاستلام" لحفظها.
+              هنا تظهر الأدوية التي طلبتها من المخزون. قم بتعبئة بياناتها ثم اضغط على "إتمام ومعالجة الطلبات" لحفظها.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="purchase_id">رقم قائمة الشراء</Label>
-                        <Input id="purchase_id" required value={purchase_id} onChange={e => setPurchaseId(e.target.value)} disabled={purchaseItems.length > 0} />
-                    </div>
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                            <Label htmlFor="supplier_id">المورد</Label>
-                             <Dialog open={isAddSupplierOpen} onOpenChange={setIsAddSupplierOpen}>
-                                <DialogTrigger asChild>
-                                    <Button variant="link" size="sm" className="p-0 h-auto"><PlusCircle className="me-1 h-3 w-3"/> إضافة مورد</Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                      <DialogTitle>إضافة مورد جديد</DialogTitle>
-                                    </DialogHeader>
-                                      <form onSubmit={handleAddSupplier} className="space-y-4 pt-2">
-                                          <div className="space-y-2">
-                                              <Label htmlFor="supplier_name">اسم المورد</Label>
-                                              <Input id="supplier_name" name="supplier_name" required />
-                                          </div>
-                                          <div className="space-y-2">
-                                              <Label htmlFor="supplierContact">الشخص المسؤول (اختياري)</Label>
-                                              <Input id="supplierContact" name="supplierContact" />
-                                          </div>
-                                          <DialogFooter className="pt-2">
-                                              <DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose>
-                                              <Button type="submit" variant="success">إضافة</Button>
-                                          </DialogFooter>
-                                      </form>
-                                </DialogContent>
-                            </Dialog>
+                {orderRequestCart.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="p-4 border rounded-md bg-muted/50 space-y-4">
+                        <h3 className="font-semibold">إعدادات الإدخال السريع</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                            <div className="space-y-2">
+                                <Label htmlFor="master-purchase-id">رقم قائمة موحد (اختياري)</Label>
+                                <Input id="master-purchase-id" value={masterPurchaseId} onChange={e => setMasterPurchaseId(e.target.value)} placeholder="مثال: PO-JUL24" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="master-supplier-id">تحديد مورد للكل</Label>
+                                <Select value={masterSupplierId} onValueChange={setMasterSupplierId}>
+                                    <SelectTrigger id="master-supplier-id"><SelectValue placeholder="اختر موردًا..." /></SelectTrigger>
+                                    <SelectContent>{(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                                </Select>
+                            </div>
+                            <Button onClick={handleApplyMasterSettings}>تطبيق على الكل</Button>
                         </div>
-                        <Select name="supplier_id" required value={purchaseSupplierId} onValueChange={setPurchaseSupplierId} disabled={purchaseItems.length > 0}>
-                            <SelectTrigger id="supplier_id"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
-                            <SelectContent>{(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
-                        </Select>
                     </div>
-                </div>
-                
-                <AddPurchaseItemForm 
-                    onAddItem={(item) => setPurchaseItems(prev => [...prev, item])}
-                    onUpdateItem={handleUpdateItem}
-                    editingItem={editingItemIndex !== null ? purchaseItems[editingItemIndex] : null}
-                    onCancelEdit={() => setEditingItemIndex(null)}
-                    onFillFromRequest={handleFillFromRequest}
-                />
-                
-                {orderRequestCart.length > 0 && (
-                  <div className="space-y-3">
+                     <div className="space-y-3">
                       <h3 className="text-lg font-semibold flex items-center gap-2"><ShoppingBasket /> قائمة الطلبات ({orderRequestCart.length})</h3>
+                      <div className="border rounded-md overflow-hidden">
                       <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>الدواء</TableHead>
-                                <TableHead>الرصيد الحالي</TableHead>
-                                <TableHead className="text-left">إجراء</TableHead>
+                                <TableHead className="w-[25%]">الدواء</TableHead>
+                                <TableHead>المخزون</TableHead>
+                                <TableHead>سعر الشراء</TableHead>
+                                <TableHead>الكمية المستلمة</TableHead>
+                                <TableHead>تاريخ الانتهاء</TableHead>
+                                <TableHead className="w-[20%]">المورد</TableHead>
+                                <TableHead>حذف</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -659,61 +468,66 @@ function AddPurchaseItemForm({ onAddItem, onUpdateItem, editingItem, onCancelEdi
                                     <TableCell>
                                         <div className="font-medium">{item.name}</div>
                                         <div className="text-xs text-muted-foreground">{item.scientific_names?.join(', ')}</div>
+                                        <div className="text-xs text-muted-foreground">سعر البيع: <span className="font-mono">{item.price.toLocaleString()}</span></div>
                                     </TableCell>
                                     <TableCell className="font-mono">{item.stock}</TableCell>
-                                    <TableCell className="text-left">
-                                      <div className="flex justify-end gap-2">
-                                        <Button size="sm" variant="outline" onClick={() => handleFillFromRequest(item)}>إضافة إلى القائمة</Button>
-                                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => removeFromOrderRequestCart(item.id)}>حذف</Button>
-                                      </div>
+                                    <TableCell>
+                                        <Input 
+                                          type="number"
+                                          value={editableOrderItems[item.id]?.purchase_price || ''}
+                                          onChange={e => handleOrderItemChange(item.id, 'purchase_price', parseFloat(e.target.value))}
+                                          className="w-24 h-9"
+                                          placeholder="سعر الشراء"
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Input 
+                                          type="number"
+                                          value={editableOrderItems[item.id]?.quantity || ''}
+                                          onChange={e => handleOrderItemChange(item.id, 'quantity', parseInt(e.target.value, 10))}
+                                          className="w-20 h-9"
+                                          placeholder="الكمية"
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                         <Input 
+                                          type="date"
+                                          value={editableOrderItems[item.id]?.expiration_date || ''}
+                                          onChange={e => handleOrderItemChange(item.id, 'expiration_date', e.target.value)}
+                                          className="h-9"
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Select 
+                                            value={editableOrderItems[item.id]?.supplier_id || ''}
+                                            onValueChange={value => handleOrderItemChange(item.id, 'supplier_id', value)}
+                                        >
+                                            <SelectTrigger className="h-9"><SelectValue placeholder="اختر مورد" /></SelectTrigger>
+                                            <SelectContent>{(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Button size="icon" variant="ghost" className="text-destructive" onClick={() => removeFromOrderRequestCart(item.id)}><Trash2 className="h-4 w-4" /></Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                       </Table>
+                      </div>
                   </div>
-                )}
-                
-                {purchaseItems.length > 0 && (
-                  <div>
-                    <h3 className="mb-2 text-lg font-semibold">أصناف في القائمة الحالية:</h3>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>المنتج</TableHead>
-                          <TableHead>الكمية</TableHead>
-                          <TableHead>سعر الشراء</TableHead>
-                          <TableHead>سعر البيع</TableHead>
-                          <TableHead></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {purchaseItems.map((item, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{item.name}</TableCell>
-                            <TableCell className="font-mono">{item.quantity}</TableCell>
-                            <TableCell className="font-mono">{item.purchase_price.toLocaleString()}</TableCell>
-                            <TableCell className="font-mono">{item.price.toLocaleString()}</TableCell>
-                            <TableCell className="flex justify-end gap-2">
-                              <Button variant="ghost" size="icon" className="text-primary h-8 w-8" onClick={() => handleEditItem(index)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => setPurchaseItems(prev => prev.filter((_, i) => i !== index))}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                  <Button onClick={handleProcessOrders} size="lg" className="w-full" variant="success">
+                    <Send className="me-2 h-4 w-4" />
+                    إتمام ومعالجة الطلبات
+                  </Button>
+                </div>
+                ) : (
+                    <div className="text-center py-16 text-muted-foreground">
+                        <ShoppingBasket className="h-16 w-16 mx-auto mb-4" />
+                        <p>قائمة الطلبات فارغة.</p>
+                        <p className="text-sm">اذهب إلى المخزون واضغط على زر "طلب" لإضافة الأدوية هنا.</p>
+                    </div>
                 )}
           </CardContent>
-           <CardFooter>
-              <Button onClick={handleFinalizePurchase} variant="success" className="w-full" disabled={purchaseItems.length === 0}>
-                إتمام عملية الاستلام
-              </Button>
-            </CardFooter>
         </Card>
       </TabsContent>
        <TabsContent value="purchase-history" dir="rtl">
