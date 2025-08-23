@@ -53,27 +53,30 @@ export default function OrderRequestsPage() {
 
   React.useEffect(() => {
     // Sync local state with global cart from useAuth
-    const newEditableItems: Record<string, any> = {};
-    orderRequestCart.forEach(item => {
-      newEditableItems[item.id] = editableOrderItems[item.id] || {
-        quantity: 1,
-        purchase_price: item.purchase_price,
-        price: item.price,
-        expiration_date: item.expiration_date,
-        supplier_id: '',
-        invoice_id: '',
-        date: new Date().toISOString().split('T')[0],
-      };
+    setEditableOrderItems(prevEditable => {
+        const newEditableItems: Record<string, any> = {};
+        orderRequestCart.forEach(item => {
+            // Use orderItemId for unique key
+            const key = item.orderItemId; 
+            newEditableItems[key] = prevEditable[key] || {
+                quantity: 1,
+                purchase_price: item.purchase_price,
+                price: item.price,
+                expiration_date: item.expiration_date ? new Date(item.expiration_date).toISOString().split('T')[0] : '',
+                supplier_id: '',
+                invoice_id: '',
+                date: new Date().toISOString().split('T')[0],
+            };
+        });
+        return newEditableItems;
     });
-    setEditableOrderItems(newEditableItems);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderRequestCart]);
 
 
-  const handleOrderItemChange = (itemId: string, field: string, value: string | number) => {
+  const handleOrderItemChange = (orderItemId: string, field: string, value: string | number) => {
     setEditableOrderItems(prev => ({
       ...prev,
-      [itemId]: { ...prev[itemId], [field]: value }
+      [orderItemId]: { ...prev[orderItemId], [field]: value }
     }));
   };
   
@@ -86,10 +89,11 @@ export default function OrderRequestsPage() {
     setEditableOrderItems(prev => {
       const newItems = { ...prev };
       orderRequestCart.forEach(item => {
-        if (newItems[item.id]) {
-          if (masterSupplierId) newItems[item.id].supplier_id = masterSupplierId;
-          if (masterPurchaseId) newItems[item.id].invoice_id = masterPurchaseId;
-          if (masterDate) newItems[item.id].date = masterDate;
+        const key = item.orderItemId;
+        if (newItems[key]) {
+          if (masterSupplierId) newItems[key].supplier_id = masterSupplierId;
+          if (masterPurchaseId) newItems[key].invoice_id = masterPurchaseId;
+          if (masterDate) newItems[key].date = masterDate;
         }
       });
       return newItems;
@@ -101,7 +105,7 @@ export default function OrderRequestsPage() {
     setIsProcessing(true);
     // 1. Validation
     for (const item of orderRequestCart) {
-        const editableData = editableOrderItems[item.id];
+        const editableData = editableOrderItems[item.orderItemId];
         if (!editableData || !editableData.quantity || editableData.quantity <= 0 || !editableData.expiration_date || !editableData.supplier_id || !editableData.invoice_id || !editableData.date) {
             toast({ variant: 'destructive', title: "بيانات ناقصة", description: `الرجاء تعبئة جميع الحقول للدواء: ${item.name}` });
             setIsProcessing(false);
@@ -112,7 +116,7 @@ export default function OrderRequestsPage() {
     // 2. Group by supplier and then by invoice_id
     const ordersBySupplierAndInvoice: Record<string, Record<string, any[]>> = {};
     orderRequestCart.forEach(item => {
-        const editableData = editableOrderItems[item.id];
+        const editableData = editableOrderItems[item.orderItemId];
         const { supplier_id, invoice_id } = editableData;
 
         if (!ordersBySupplierAndInvoice[supplier_id]) {
@@ -223,7 +227,7 @@ export default function OrderRequestsPage() {
                 </TableHeader>
                 <TableBody>
                     {orderRequestCart.map(item => (
-                        <TableRow key={item.id}>
+                        <TableRow key={item.orderItemId}>
                             <TableCell>
                                 <div className="font-medium">{item.name}</div>
                                 <div className="text-xs text-muted-foreground">{item.scientific_names?.join(', ')}</div>
@@ -232,8 +236,8 @@ export default function OrderRequestsPage() {
                             <TableCell>
                                 <Input 
                                   type="number"
-                                  value={editableOrderItems[item.id]?.quantity || ''}
-                                  onChange={e => handleOrderItemChange(item.id, 'quantity', parseInt(e.target.value, 10) || 0)}
+                                  value={editableOrderItems[item.orderItemId]?.quantity || ''}
+                                  onChange={e => handleOrderItemChange(item.orderItemId, 'quantity', parseInt(e.target.value, 10) || 0)}
                                   className="w-20 h-9"
                                   placeholder="الكمية"
                                 />
@@ -241,8 +245,8 @@ export default function OrderRequestsPage() {
                             <TableCell>
                                 <Input 
                                   type="number"
-                                  value={editableOrderItems[item.id]?.purchase_price || ''}
-                                  onChange={e => handleOrderItemChange(item.id, 'purchase_price', parseFloat(e.target.value) || 0)}
+                                  value={editableOrderItems[item.orderItemId]?.purchase_price || ''}
+                                  onChange={e => handleOrderItemChange(item.orderItemId, 'purchase_price', parseFloat(e.target.value) || 0)}
                                   className="w-24 h-9"
                                   placeholder="سعر الشراء"
                                 />
@@ -250,8 +254,8 @@ export default function OrderRequestsPage() {
                              <TableCell>
                                 <Input 
                                   type="number"
-                                  value={editableOrderItems[item.id]?.price || ''}
-                                  onChange={e => handleOrderItemChange(item.id, 'price', parseFloat(e.target.value) || 0)}
+                                  value={editableOrderItems[item.orderItemId]?.price || ''}
+                                  onChange={e => handleOrderItemChange(item.orderItemId, 'price', parseFloat(e.target.value) || 0)}
                                   className="w-24 h-9"
                                   placeholder="سعر البيع"
                                 />
@@ -259,15 +263,15 @@ export default function OrderRequestsPage() {
                             <TableCell>
                                  <Input 
                                   type="date"
-                                  value={editableOrderItems[item.id]?.expiration_date || ''}
-                                  onChange={e => handleOrderItemChange(item.id, 'expiration_date', e.target.value)}
+                                  value={editableOrderItems[item.orderItemId]?.expiration_date || ''}
+                                  onChange={e => handleOrderItemChange(item.orderItemId, 'expiration_date', e.target.value)}
                                   className="h-9"
                                 />
                             </TableCell>
                             <TableCell>
                                 <Select 
-                                    value={editableOrderItems[item.id]?.supplier_id || ''}
-                                    onValueChange={value => handleOrderItemChange(item.id, 'supplier_id', value)}
+                                    value={editableOrderItems[item.orderItemId]?.supplier_id || ''}
+                                    onValueChange={value => handleOrderItemChange(item.orderItemId, 'supplier_id', value)}
                                 >
                                     <SelectTrigger className="h-9"><SelectValue placeholder="اختر مورد" /></SelectTrigger>
                                     <SelectContent>{(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
@@ -275,8 +279,8 @@ export default function OrderRequestsPage() {
                             </TableCell>
                              <TableCell>
                                 <Input 
-                                  value={editableOrderItems[item.id]?.invoice_id || ''}
-                                  onChange={e => handleOrderItemChange(item.id, 'invoice_id', e.target.value)}
+                                  value={editableOrderItems[item.orderItemId]?.invoice_id || ''}
+                                  onChange={e => handleOrderItemChange(item.orderItemId, 'invoice_id', e.target.value)}
                                   className="w-32 h-9"
                                   placeholder="رقم القائمة"
                                 />
@@ -284,13 +288,13 @@ export default function OrderRequestsPage() {
                              <TableCell>
                                 <Input 
                                   type="date"
-                                  value={editableOrderItems[item.id]?.date || ''}
-                                  onChange={e => handleOrderItemChange(item.id, 'date', e.target.value)}
+                                  value={editableOrderItems[item.orderItemId]?.date || ''}
+                                  onChange={e => handleOrderItemChange(item.orderItemId, 'date', e.target.value)}
                                   className="h-9"
                                 />
                             </TableCell>
                             <TableCell>
-                                <Button size="icon" variant="ghost" className="text-destructive" onClick={() => removeFromOrderRequestCart(item.id)}><Trash2 className="h-4 w-4" /></Button>
+                                <Button size="icon" variant="ghost" className="text-destructive" onClick={() => removeFromOrderRequestCart(item.orderItemId)}><Trash2 className="h-4 w-4" /></Button>
                             </TableCell>
                         </TableRow>
                     ))}

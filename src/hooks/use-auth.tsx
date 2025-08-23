@@ -154,7 +154,7 @@ interface AuthContextType {
 
     orderRequestCart: OrderRequestItem[];
     addToOrderRequestCart: (item: Medication) => void;
-    removeFromOrderRequestCart: (medicationId: string) => void;
+    removeFromOrderRequestCart: (orderItemId: string) => void;
     clearAllOrderRequestCart: () => void;
 }
 
@@ -255,17 +255,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const addToOrderRequestCart = (item: Medication) => {
         setOrderRequestCart(prev => {
-            if (prev.find(i => i.id === item.id)) {
-                toast({ title: 'العنصر موجود بالفعل في قائمة الطلبات' });
-                return prev;
-            }
+            const newItem: OrderRequestItem = {
+                ...item,
+                orderItemId: `${item.id}-${Date.now()}` // Create a unique ID for this specific request
+            };
             toast({ title: 'تمت الإضافة إلى الطلبات', description: `تمت إضافة ${item.name} إلى قائمة الطلبات.` });
-            return [...prev, item];
+            return [...prev, newItem];
         });
     };
 
-    const removeFromOrderRequestCart = (medicationId: string) => {
-        setOrderRequestCart(prev => prev.filter(item => item.id !== medicationId));
+    const removeFromOrderRequestCart = (orderItemId: string) => {
+        setOrderRequestCart(prev => prev.filter(item => item.orderItemId !== orderItemId));
     };
 
     const clearAllOrderRequestCart = () => {

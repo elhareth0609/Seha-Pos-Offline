@@ -39,7 +39,9 @@ export type Medication = {
   status?: 'active' | 'damaged';
 };
 
-export type OrderRequestItem = Medication;
+export type OrderRequestItem = Medication & {
+    orderItemId: string; // A unique ID for this specific line item in the cart
+};
 
 export type SaleItem = {
   id: string;
