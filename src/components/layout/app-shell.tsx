@@ -56,34 +56,43 @@ import { Label } from "../ui/label";
 const allNavItems = [
   { href: "/", icon: LayoutDashboard, label: "لوحة التحكم" },
   { href: "/sales", icon: ShoppingCart, label: "المبيعات" },
-  { href: "/order-requests", icon: ShoppingBasket, label: "الطلبات", permissionKey: 'manage_order_requests' },
+  { href: "/order-requests", icon: ShoppingBasket, label: "الطلبات" },
   { href: "/inventory", icon: Boxes, label: "المخزون" },
   { href: "/purchases", icon: Truck, label: "المشتريات" },
   { href: "/suppliers", icon: Landmark, label: "الموردون والحسابات" },
   { href: "/reports", icon: FileText, label: "التقارير" },
   { href: "/expenses", icon: Coins, label: "الصرفيات" },
-  { href: "/tasks", icon: ListChecks, label: "المهام", permissionKey: 'manage_tasks' },
+  { href: "/tasks", icon: ListChecks, label: "المهام" },
   { href: "/item-movement", icon: Repeat, label: "حركة المادة" },
   { href: "/patients", icon: Users, label: "أصدقاء الصيدلية" },
   { href: "/expiring-soon", icon: CalendarX2, label: "قريب الانتهاء" },
   { href: "/trash", icon: Trash2, label: "سلة المحذوفات" },
-  { href: "/close-month", icon: FileArchive, label: "الحسابات الختامية", permissionKey: 'manage_close_month' },
+  { href: "/close-month", icon: FileArchive, label: "الحسابات الختامية" },
   { href: "/guide", icon: HelpCircle, label: "دليل الاستخدام" },
   { href: "/settings", icon: Settings, label: "الإعدادات" },
 ];
 
-
 function TasksSheet() {
-  const { currentUser, scopedData, updateTask, updateStatusTask } = useAuth();
+  const { currentUser, updateTask, updateStatusTask, getMineTasks } = useAuth();
   const [tasks, setTasks] = React.useState<Task[]>([]);
+  const [loading, setLoading] = React.useState<boolean>(true);
 
   React.useEffect(() => {
-    if (scopedData.tasks) {
-      // Filter for current user's uncompleted tasks
-      const userTasks = scopedData.tasks[0].filter(task => task.user_id === currentUser?.id && !task.completed);
-      setTasks(userTasks);
-    }
-  }, [scopedData.tasks, currentUser]);
+      const fetchTasks = async () => {
+          setLoading(true);
+          try {
+              if (currentUser?.role === 'Employee') {
+                  const tasks = await getMineTasks(currentUser?.id);
+                  setTasks(tasks);
+              }
+          } catch (error) {
+              console.error('Error fetching tasks:', error);
+          } finally {
+              setLoading(false);
+          }
+      };
+      fetchTasks();
+  }, [currentUser, getMineTasks]);
 
   const handleTaskStatusChange = async (taskId: string, completed: boolean) => {
     const success = await updateStatusTask(taskId, { completed });
@@ -99,10 +108,15 @@ function TasksSheet() {
       </SheetHeader>
       <ScrollArea className="h-[calc(100vh-8rem)] mt-4">
         <div className="space-y-4">
-          {tasks.length > 0 ? tasks.map(task => (
-            <div key={task.id} className="flex items-center space-x-2 space-x-reverse p-2 border rounded-md">
+          {loading ? (
+            <div className="flex justify-center items-center py-10">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+            </div>
+          ) : tasks.length > 0 ? tasks.map(task => (
+            <div key={task.id} className="flex items-center space-x-2 p-2 border rounded-md">
               <Checkbox
                 id={`task-sheet-${task.id}`}
+                checked={task.completed}
                 onCheckedChange={(checked) => handleTaskStatusChange(task.id, !!checked)}
               />
               <Label
@@ -153,6 +167,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         manage_close_month: false,
         manage_archives: false,
         manage_order_requests: false,
+
     };
 
     const permissionMap: { [key: string]: keyof UserPermissions } = {
@@ -236,26 +251,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           <Link href="/inventory">المخزون</Link>
                         </Button>
                       )}
-                       {currentUser?.role === 'Admin' ? (
-                          <Button variant="outline" asChild>
-                              <Link href="/tasks">
-                                  <ListChecks className="me-2 h-4 w-4"/>
-                                  المهام
-                              </Link>
-                          </Button>
-                       ) : (
-                           <SheetTrigger asChild>
-                               <Button variant="outline">
-                                <ListChecks className="me-2 h-4 w-4"/>
-                                مهامي
-                              </Button>
-                           </SheetTrigger>
-                       )}
                   </div>
+                <div className="items-center gap-2">
+                    {currentUser?.role === 'Admin' ? (
+                        <Button variant="outline" asChild>
+                            <Link href="/tasks">
+                                <ListChecks className="me-2 h-4 w-4"/>
+                                <span className="hidden sm:inline-block">المهام</span>
+                            </Link>
+                        </Button>
+                    ) : (
+                        <SheetTrigger asChild>
+                            <Button variant="outline">
+                                <ListChecks className="sm:me-2 h-4 w-4"/>
+                                <span className="hidden sm:inline-block">مهامي</span>
+                            </Button>
+                        </SheetTrigger>
+                    )}
+                </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-                        <Menu className="me-2 h-4 w-4" />
+                        <Menu className="sm:me-2 h-4 w-4" />
                         <span className="hidden sm:inline">القائمة الرئيسية</span>
                       </Button>
                     </DropdownMenuTrigger>

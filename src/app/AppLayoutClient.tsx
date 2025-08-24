@@ -18,6 +18,7 @@ const allNavItems = [
   { href: "/suppliers", permissionKey: 'manage_suppliers' },
   { href: "/reports", permissionKey: 'manage_reports' },
   { href: "/expenses", permissionKey: 'manage_expenses' },
+  { href: "/tasks", permissionKey: 'manage_tasks' },
   { href: "/item-movement", permissionKey: 'manage_itemMovement' },
   { href: "/patients", permissionKey: 'manage_patients' },
   { href: "/expiring-soon", permissionKey: 'manage_expiringSoon' },

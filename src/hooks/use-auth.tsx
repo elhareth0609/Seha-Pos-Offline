@@ -125,6 +125,7 @@ interface AuthContextType {
 
     // Tasks
     getPaginatedTasks: (page: number, perPage: number, filters: { user_id?: string, completed?: boolean }) => Promise<PaginatedResponse<Task>>;
+    getMineTasks: (user_id: string) => Promise<Task[]>;
     addTask: (description: string, user_id: string) => Promise<boolean>;
     updateTask: (id: string, data: Partial<Task>) => Promise<boolean>;
     updateStatusTask: (id: string, data: Partial<Task>) => Promise<boolean>;
@@ -920,6 +921,15 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         }
     }, []);
 
+    const getMineTasks = React.useCallback(async (user_id: string) => {
+        try {
+            const data = await apiRequest(`/users/${user_id}/tasks`);
+            return data;
+        } catch (e) {
+            return [];
+        }
+    }, []);
+
     const addTask = async (description: string, user_id: string) => {
         try {
             const newTask = await apiRequest('/tasks', 'POST', { description, user_id });
@@ -966,6 +976,8 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
                 case 'patient': setPatients(prev => [restored_item, ...prev]); break;
                 case 'supplier': setSuppliers(prev => [restored_item, ...prev]); break;
                 case 'user': setUsers(prev => [restored_item, ...prev]); break;
+                case 'task': setTasks(prev => [restored_item, ...prev]); break;
+                case 'sale': setSales(prev => [restored_item, ...prev]); break;
             }
             toast({ title: "تم استعادة العنصر بنجاح" });
             return true;
@@ -1067,7 +1079,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             addPurchaseOrder,
             addReturnOrder, getPaginatedPurchaseOrders, getPaginatedReturnOrders,
             getPaginatedExpenses, addExpense, updateExpense, deleteExpense,
-            getPaginatedTasks, addTask, updateTask, updateStatusTask, deleteTask,
+            getPaginatedTasks, getMineTasks, addTask, updateTask, updateStatusTask, deleteTask,
             restoreItem, permDelete, clearTrash, getPaginatedTrash,
             getPaginatedUsers,
             activeInvoice, setActiveInvoice, resetActiveInvoice,
