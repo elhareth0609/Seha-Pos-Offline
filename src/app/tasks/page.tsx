@@ -236,7 +236,7 @@ export default function TasksPage() {
                         <TableCell className="font-mono text-sm">{new Date(task.created_at).toLocaleDateString('ar-EG')}</TableCell>
                         {currentUser?.role === 'Admin' && (
                             <TableCell>
-                                {task.completed && (
+                                {/* {task.completed && ( */}
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
                                             <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
@@ -256,7 +256,7 @@ export default function TasksPage() {
                                             </AlertDialogFooter>
                                         </AlertDialogContent>
                                     </AlertDialog>
-                                )}
+                                {/* )} */}
                             </TableCell>
                         )}
                      </TableRow>
