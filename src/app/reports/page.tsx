@@ -43,6 +43,7 @@ import { useRouter } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PinDialog } from '@/components/auth/PinDialog';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 
 // Modern print function that works with React 18+
@@ -102,7 +103,7 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
 };
 
 export default function ReportsPage() {
-    const { currentUser, users, scopedData, deleteSale, setActiveInvoice, getPaginatedSales, verifyPin, toast } = useAuth();
+    const { currentUser, users, scopedData, deleteSale, setActiveInvoice, getPaginatedSales, verifyPin } = useAuth();
     const [settings] = scopedData.settings;
     
     const [sales, setSales] = React.useState<Sale[]>([]);
@@ -121,7 +122,7 @@ export default function ReportsPage() {
     
     const [itemToDelete, setItemToDelete] = React.useState<Sale | null>(null);
     const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
-
+    const toast = useToast();
 
     const router = useRouter();
 
