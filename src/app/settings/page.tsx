@@ -99,6 +99,7 @@ const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: stri
     { key: 'manage_suppliers', label: 'الوصول إلى الموردين' },
     { key: 'manage_reports', label: 'الوصول إلى التقارير' },
     { key: 'manage_expenses', label: 'الوصول إلى الصرفيات' },
+    { key: 'manage_tasks', label: 'الوصول إلى المهام' },
     { key: 'manage_itemMovement', label: 'الوصول إلى حركة المادة' },
     { key: 'manage_patients', label: 'الوصول إلى أصدقاء الصيدلية' },
     { key: 'manage_expiringSoon', label: 'الوصول إلى قريب الانتهاء' },
@@ -106,6 +107,9 @@ const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: stri
     { key: 'manage_settings', label: 'الوصول إلى الإعدادات' },
     { key: 'manage_salesPriceModification', label: 'تعديل أسعار البيع في الفاتورة' },
     { key: 'manage_previous_sales', label: 'تعديل وحذف المبيعات السابقة' },
+    { key: 'manage_guide', label: 'الوصول إلى الدليل' },
+    { key: 'manage_close_month', label: 'الوصول إلى إغلاق الشهر' },
+    { key: 'manage_order_requests', label: 'الوصول إلى طلبات الطلب' },
 ];
 
 function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
@@ -270,6 +274,7 @@ export default function SettingsPage() {
             manage_users: false,
             manage_previous_sales: false,
             manage_expenses: false,
+            manage_tasks: false,
         };
         setCurrentUserPermissions(permissions);
         setIsPermissionsDialogOpen(true);

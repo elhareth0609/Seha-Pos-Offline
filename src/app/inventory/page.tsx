@@ -613,9 +613,14 @@ export default function InventoryPage() {
                   <TableCell>{getStockStatus(item.stock, item.reorder_point)}</TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end">
-                        <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item)}>
-                            <ShoppingBasket className="h-5 w-5 text-blue-600"/>
-                        </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => addToOrderRequestCart(item)} 
+                        className="hover:text-blue-600 group"
+                      >
+                        <ShoppingBasket className="h-5 w-5 text-blue-600 group-hover:text-white" />
+                      </Button>
                       <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                               <Button aria-haspopup="true" size="icon" variant="ghost">

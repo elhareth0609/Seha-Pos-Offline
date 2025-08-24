@@ -16,15 +16,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { MonthlyArchive, ArchivedMonthData } from '@/lib/types';
+import { useToast } from "@/hooks/use-toast"
 
 
 export default function CloseMonthPage() {
-    const { users, scopedData, closeMonth, toast, currentUser, getArchivedMonths, getArchivedMonthData } = useAuth();
+    const { users, scopedData, closeMonth, currentUser, getArchivedMonths, getArchivedMonthData } = useAuth();
     const router = useRouter();
     const { sales, expenses, timeLogs, suppliers, purchaseOrders, supplierReturns, payments } = scopedData;
     const [pin, setPin] = React.useState('');
     const [isClosing, setIsClosing] = React.useState(false);
     const [isLoadingData, setIsLoadingData] = React.useState(true);
+    const { toast } = useToast();
 
     // --- Archive State ---
     const [archives, setArchives] = React.useState<MonthlyArchive[]>([]);
@@ -32,7 +34,6 @@ export default function CloseMonthPage() {
     const [archiveData, setArchiveData] = React.useState<ArchivedMonthData | null>(null);
     const [loadingArchives, setLoadingArchives] = React.useState(true);
     const [loadingArchiveData, setLoadingArchiveData] = React.useState(false);
-
 
     const monthlyStats = React.useMemo(() => {
         if (!sales[0] || !expenses[0] || !users || !timeLogs[0] || !suppliers[0] || !purchaseOrders[0] || !supplierReturns[0] || !payments[0]) {
