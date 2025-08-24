@@ -122,7 +122,7 @@ export default function ReportsPage() {
     
     const [itemToDelete, setItemToDelete] = React.useState<Sale | null>(null);
     const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
-    const toast = useToast();
+    const { toast } = useToast();
 
     const router = useRouter();
 
