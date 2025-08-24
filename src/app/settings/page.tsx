@@ -275,6 +275,9 @@ export default function SettingsPage() {
             manage_previous_sales: false,
             manage_expenses: false,
             manage_tasks: false,
+            manage_close_month: false,
+            manage_archives: false,
+            manage_order_requests: false,
         };
         setCurrentUserPermissions(permissions);
         setIsPermissionsDialogOpen(true);
