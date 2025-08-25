@@ -41,23 +41,56 @@ export default function CloseMonthPage() {
              return { totalSales: 0, totalExpenses: 0, totalSalaries: 0, totalDebts: 0 };
         }
 
-        const totalSales = sales[0].reduce((acc, sale) => acc + sale.total, 0);
-        const totalExpenses = expenses[0].reduce((acc, expense) => acc + expense.amount, 0);
+        const totalSales = sales[0].reduce((acc, sale) => {
+            const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
+            return acc + (isNaN(total) ? 0 : total);
+        }, 0);
+
+        const totalExpenses = expenses[0].reduce((acc, expense) => {
+            const amount = typeof expense.amount === 'number' ? expense.amount : parseFloat(String(expense.amount || 0));
+            return acc + (isNaN(amount) ? 0 : amount);
+        }, 0);
         
         const totalSalaries = users.reduce((total, user) => {
             if (!user.hourly_rate) return total;
+            const hourlyRate = typeof user.hourly_rate === 'number' ? user.hourly_rate : parseFloat(String(user.hourly_rate || 0));
+            if (isNaN(hourlyRate)) return total;
+            
             const userLogs = timeLogs[0].filter(log => log.user_id === user.id && log.clock_out);
-            const totalMinutes = userLogs.reduce((acc, log) => acc + differenceInMinutes(new Date(log.clock_out!), new Date(log.clock_in)), 0);
-            return total + (totalMinutes / 60) * user.hourly_rate;
+            const totalMinutes = userLogs.reduce((acc, log) => {
+                const clockOut = new Date(log.clock_out!);
+                const clockIn = new Date(log.clock_in);
+                return acc + (isNaN(clockOut.getTime()) || isNaN(clockIn.getTime()) ? 0 : differenceInMinutes(clockOut, clockIn));
+            }, 0);
+            
+            return total + (totalMinutes / 60) * hourlyRate;
         }, 0);
 
         const totalDebts = suppliers[0].reduce((acc, supplier) => {
-            const totalPurchases = purchaseOrders[0].filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.total_amount, 0);
-            const totalReturns = supplierReturns[0].filter(r => r.supplier_id === supplier.id).reduce((sum, r) => sum + r.total_amount, 0);
-            const totalPayments = payments[0].filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.amount, 0);
+            const totalPurchases = purchaseOrders[0]
+                .filter(p => p.supplier_id === supplier.id)
+                .reduce((sum, p) => {
+                    const amount = typeof p.total_amount === 'number' ? p.total_amount : parseFloat(String(p.total_amount || 0));
+                    return sum + (isNaN(amount) ? 0 : amount);
+                }, 0);
+                
+            const totalReturns = supplierReturns[0]
+                .filter(r => r.supplier_id === supplier.id)
+                .reduce((sum, r) => {
+                    const amount = typeof r.total_amount === 'number' ? r.total_amount : parseFloat(String(r.total_amount || 0));
+                    return sum + (isNaN(amount) ? 0 : amount);
+                }, 0);
+                
+            const totalPayments = payments[0]
+                .filter(p => p.supplier_id === supplier.id)
+                .reduce((sum, p) => {
+                    const amount = typeof p.amount === 'number' ? p.amount : parseFloat(String(p.amount || 0));
+                    return sum + (isNaN(amount) ? 0 : amount);
+                }, 0);
+                
             return acc + (totalPurchases - totalReturns - totalPayments);
         }, 0);
-        
+
         setIsLoadingData(false);
         return { totalSales, totalExpenses, totalSalaries, totalDebts };
     }, [sales, expenses, timeLogs, users, suppliers, purchaseOrders, supplierReturns, payments]);
