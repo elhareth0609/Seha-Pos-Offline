@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 import { PinDialog } from '@/components/auth/PinDialog';
@@ -25,6 +25,7 @@ type AuthResponse = {
         timeLogs: TimeLog[];
         expenses: Expense[];
         tasks: Task[];
+        orderRequests: OrderRequestItem[];
     };
     all_users_in_pharmacy: User[];
     advertisements: Advertisement[];
@@ -38,6 +39,12 @@ type ActiveInvoice = {
     paymentMethod: 'cash' | 'card';
     saleIdToUpdate?: string | null;
     reviewIndex?: number | null;
+};
+
+type PurchaseDraft = {
+    supplierId: string;
+    invoiceId: string;
+    items: PurchaseOrderItem[];
 };
 
 interface AuthContextType {
@@ -70,7 +77,7 @@ interface AuthContextType {
     scopedData: ScopedDataContextType;
 
     // Inventory Management
-    addMedication: (data: Partial<Medication>) => Promise<boolean>;
+    addMedication: (data: Partial<Medication>) => Promise<Medication | null>;
     updateMedication: (medId: string, data: Partial<Medication>) => Promise<boolean>;
     deleteMedication: (medId: string) => Promise<boolean>;
     markAsDamaged: (medId: string) => Promise<boolean>;
@@ -155,8 +162,12 @@ interface AuthContextType {
 
     orderRequestCart: OrderRequestItem[];
     addToOrderRequestCart: (item: Medication) => void;
-    removeFromOrderRequestCart: (orderItemId: string) => void;
-    clearAllOrderRequestCart: () => void;
+    removeFromOrderRequestCart: (orderItemId: string, skipToast?: boolean) => void;
+    updateOrderRequestItem: (orderItemId: string, data: Partial<OrderRequestItem>) => Promise<void>;
+
+    purchaseDraft: PurchaseDraft | null;
+    setPurchaseDraft: (draft: PurchaseDraft | null) => void;
+    clearPurchaseDraft: () => void;
 }
 
 export interface ScopedDataContextType {
@@ -253,25 +264,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [advertisements, setAdvertisements] = React.useState<Advertisement[]>([]);
     const [activeInvoice, setActiveInvoice] = React.useState<ActiveInvoice>(initialActiveInvoice);
     const [orderRequestCart, setOrderRequestCart] = React.useState<OrderRequestItem[]>([]);
+    const [purchaseDraft, setPurchaseDraft] = React.useState<PurchaseDraft | null>(null);
 
-    const addToOrderRequestCart = (item: Medication) => {
-        setOrderRequestCart(prev => {
-            const newItem: OrderRequestItem = {
-                ...item,
-                orderItemId: `${item.id}-${Date.now()}` // Create a unique ID for this specific request
-            };
+    const clearPurchaseDraft = () => setPurchaseDraft(null);
+
+    const addToOrderRequestCart = async (item: Medication) => {
+        try {
+            const newItem = await apiRequest('/order-requests', 'POST', { medication_id: item.id });
+            setOrderRequestCart(prev => [...prev, newItem]);
             toast({ title: 'تمت الإضافة إلى الطلبات', description: `تمت إضافة ${item.name} إلى قائمة الطلبات.` });
-            return [...prev, newItem];
-        });
+        } catch(e) {}
     };
 
-    const removeFromOrderRequestCart = (orderItemId: string) => {
-        setOrderRequestCart(prev => prev.filter(item => item.orderItemId !== orderItemId));
+    const removeFromOrderRequestCart = async (orderItemId: string, skipToast = false) => {
+       try {
+            await apiRequest(`/order-requests/${orderItemId}`, 'DELETE');
+            setOrderRequestCart(prev => prev.filter(item => item.id !== orderItemId));
+            if (!skipToast) {
+                toast({ title: "تم الحذف من الطلبات" });
+            }
+        } catch(e) {}
     };
 
-    const clearAllOrderRequestCart = () => {
-        setOrderRequestCart([]);
+    const updateOrderRequestItem = async (orderItemId: string, data: Partial<OrderRequestItem>) => {
+        try {
+            const updatedItem = await apiRequest(`/order-requests/${orderItemId}`, 'PUT', data);
+            setOrderRequestCart(prev => prev.map(item => item.id === orderItemId ? updatedItem : item));
+        } catch (e) {
+            toast({ variant: 'destructive', title: "فشل التحديث", description: "لم يتم حفظ التغيير. الرجاء المحاولة مرة أخرى." });
+        }
     };
+
 
     const resetActiveInvoice = React.useCallback(() => {
         setActiveInvoice(initialActiveInvoice);
@@ -299,6 +322,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setExpenses(pd.expenses || []);
             setTasks(pd.tasks || []);
             setSettings(pd.settings || fallbackAppSettings);
+            setOrderRequestCart(pd.orderRequests || []);
         }
         localStorage.setItem('authToken', data.token);
     };
@@ -699,8 +723,8 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         try {
             const newMed = await apiRequest('/medications', 'POST', data);
             setInventory(prev => [newMed, ...prev]);
-            return true;
-        } catch (e) { return false; }
+            return newMed;
+        } catch (e) { return null; }
     }
     const updateMedication = async (medId: string, data: Partial<Medication>) => {
         try {
@@ -1085,7 +1109,8 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             activeInvoice, setActiveInvoice, resetActiveInvoice,
             verifyPin, updateUserPinRequirement,
             getArchivedMonths, getArchivedMonthData,
-            orderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, clearAllOrderRequestCart,
+            orderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, updateOrderRequestItem,
+            purchaseDraft, setPurchaseDraft, clearPurchaseDraft,
         }}>
             {children}
         </AuthContext.Provider>

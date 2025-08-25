@@ -67,10 +67,13 @@ export default function PurchasesPage() {
       addReturnOrder,
       getPaginatedPurchaseOrders,
       getPaginatedReturnOrders,
+      searchAllInventory,
+      addMedication,
+      purchaseDraft,
+      clearPurchaseDraft,
     } = useAuth();
   
   const {
-      inventory: [inventory, setInventory],
       suppliers: [suppliers, setSuppliers],
   } = scopedData;
 
@@ -81,16 +84,10 @@ export default function PurchasesPage() {
   // Purchase Form State
   const [purchase_id, setPurchaseId] = React.useState('');
   const [purchaseSupplierId, setPurchaseSupplierId] = React.useState('');
-  const [purchaseItems, setPurchaseItems] = React.useState<any[]>([]);
+  const [purchaseItems, setPurchaseItems] = React.useState<PurchaseOrderItem[]>([]);
   const [purchaseItemSearchTerm, setPurchaseItemSearchTerm] = React.useState('');
   const [purchaseItemSuggestions, setPurchaseItemSuggestions] = React.useState<Medication[]>([]);
   const [isPurchaseInfoLocked, setIsPurchaseInfoLocked] = React.useState(false);
-
-  // State for adding a new item to purchase
-  const [selectedMed, setSelectedMed] = React.useState<Medication | null>(null);
-  const [purchaseQuantity, setPurchaseQuantity] = React.useState('');
-  const [purchasePrice, setPurchasePrice] = React.useState('');
-  const [expirationDate, setExpirationDate] = React.useState('');
   
   // State for return form
   const [returnSlipId, setReturnSlipId] = React.useState('');
@@ -110,7 +107,9 @@ export default function PurchasesPage() {
   const [purchasePerPage, setPurchasePerPage] = React.useState(10);
   const [purchaseLoading, setPurchaseLoading] = React.useState(true);
   const [purchaseSearchTerm, setPurchaseSearchTerm] = React.useState('');
-  
+  const [purchaseDateFrom, setPurchaseDateFrom] = React.useState('');
+  const [purchaseDateTo, setPurchaseDateTo] = React.useState('');
+
   // Pagination and search for Return History
   const [returnHistory, setReturnHistory] = React.useState<ReturnOrder[]>([]);
   const [returnTotalPages, setReturnTotalPages] = React.useState(1);
@@ -118,24 +117,26 @@ export default function PurchasesPage() {
   const [returnPerPage, setReturnPerPage] = React.useState(10);
   const [returnLoading, setReturnLoading] = React.useState(true);
   const [returnSearchTerm, setReturnSearchTerm] = React.useState('');
+  const [returnDateFrom, setReturnDateFrom] = React.useState('');
+  const [returnDateTo, setReturnDateTo] = React.useState('');
 
+  const [activeTab, setActiveTab] = React.useState("new-purchase");
 
   // State for modal to add a completely new medication
   const [isAddNewMedModalOpen, setIsAddNewMedModalOpen] = React.useState(false);
-  const [newMedData, setNewMedData] = React.useState<Partial<Medication>>({});
+  const [newMedData, setNewMedData] = React.useState<Partial<PurchaseOrderItem>>({
+      barcodes: [], scientific_names: [], stock: 0, reorder_point: 10,
+      price: 0, purchase_price: 0, expiration_date: '',
+      dosage: '', dosage_form: '', image_url: ''
+  });
   const [newMedImageFile, setNewMedImageFile] = React.useState<File | null>(null);
   const [newMedImagePreview, setNewMedImagePreview] = React.useState<string | null>(null);
 
 
-  const [supplier_name, setSupplierName] = React.useState("");
-  const [supplierContact, setSupplierContact] = React.useState("");
-  const [activeTab, setActiveTab] = React.useState("new-purchase");
-
-
-  const fetchPurchaseHistory = React.useCallback(async (page: number, limit: number, search: string) => {
+  const fetchPurchaseHistory = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string) => {
     setPurchaseLoading(true);
     try {
-        const data = await getPaginatedPurchaseOrders(page, limit, search);
+        const data = await getPaginatedPurchaseOrders(page, limit, search, from, to);
         setPurchaseHistory(data.data);
         setPurchaseTotalPages(data.last_page);
         setPurchaseCurrentPage(data.current_page);
@@ -144,10 +145,10 @@ export default function PurchasesPage() {
     }
   }, [getPaginatedPurchaseOrders]);
 
-  const fetchReturnHistory = React.useCallback(async (page: number, limit: number, search: string) => {
+  const fetchReturnHistory = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string) => {
     setReturnLoading(true);
     try {
-        const data = await getPaginatedReturnOrders(page, limit, search);
+        const data = await getPaginatedReturnOrders(page, limit, search, from, to);
         setReturnHistory(data.data);
         setReturnTotalPages(data.last_page);
         setReturnCurrentPage(data.current_page);
@@ -159,21 +160,31 @@ export default function PurchasesPage() {
   React.useEffect(() => {
     if (activeTab === 'purchase-history') {
         const handler = setTimeout(() => {
-            fetchPurchaseHistory(purchaseCurrentPage, purchasePerPage, purchaseSearchTerm);
+            fetchPurchaseHistory(purchaseCurrentPage, purchasePerPage, purchaseSearchTerm, purchaseDateFrom, purchaseDateTo);
         }, 300);
         return () => clearTimeout(handler);
     }
-  }, [activeTab, purchaseCurrentPage, purchasePerPage, purchaseSearchTerm, fetchPurchaseHistory]);
+  }, [activeTab, purchaseCurrentPage, purchasePerPage, purchaseSearchTerm, purchaseDateFrom, purchaseDateTo, fetchPurchaseHistory]);
   
   React.useEffect(() => {
     if (activeTab === 'return-history') {
         const handler = setTimeout(() => {
-            fetchReturnHistory(returnCurrentPage, returnPerPage, returnSearchTerm);
+            fetchReturnHistory(returnCurrentPage, returnPerPage, returnSearchTerm, returnDateFrom, returnDateTo);
         }, 300);
         return () => clearTimeout(handler);
     }
-  }, [activeTab, returnCurrentPage, returnPerPage, returnSearchTerm, fetchReturnHistory]);
+  }, [activeTab, returnCurrentPage, returnPerPage, returnSearchTerm, returnDateFrom, returnDateTo, fetchReturnHistory]);
 
+  React.useEffect(() => {
+    if (purchaseDraft) {
+        setPurchaseId(purchaseDraft.invoiceId);
+        setPurchaseSupplierId(purchaseDraft.supplierId);
+        setPurchaseItems(purchaseDraft.items);
+        setIsPurchaseInfoLocked(true);
+        setActiveTab('new-purchase');
+        clearPurchaseDraft(); // Clear draft after loading
+    }
+  }, [purchaseDraft, clearPurchaseDraft]);
 
   const toggleRow = (id: string) => {
     const newExpandedRows = new Set(expandedRows);
@@ -205,30 +216,70 @@ export default function PurchasesPage() {
       }
   };
 
-  const handlePurchaseSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePurchaseSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setPurchaseItemSearchTerm(value);
 
     if (value.length > 0) {
-        const lowercasedFilter = value.toLowerCase();
-        const filtered = (inventory || []).filter(med => 
-            med.name.toLowerCase().includes(lowercasedFilter) || 
-            String(med.id).includes(lowercasedFilter) ||
-            (med.barcodes || []).some(barcode => barcode.toLowerCase().includes(lowercasedFilter)) ||
-            (med.scientific_names && med.scientific_names.some(name => name.toLowerCase().includes(lowercasedFilter)))
-        );
-        setPurchaseItemSuggestions(filtered.slice(0, 5));
+        const results = await searchAllInventory(value);
+        setPurchaseItemSuggestions(results.slice(0, 5));
     } else {
         setPurchaseItemSuggestions([]);
     }
   };
 
   const handleSelectMed = (med: Medication) => {
-    setSelectedMed(med);
+    setNewMedData({ ...med });
     setPurchaseItemSearchTerm(med.name);
-    setPurchasePrice(String(med.purchase_price));
     setPurchaseItemSuggestions([]);
   };
+
+  const openNewMedModal = () => {
+    setNewMedData({
+      barcodes: [], scientific_names: [], stock: 0, reorder_point: 10,
+      price: 0, purchase_price: 0, expiration_date: '',
+      dosage: '', dosage_form: '', image_url: ''
+    });
+    setNewMedImageFile(null);
+    setNewMedImagePreview(null);
+    setIsAddNewMedModalOpen(true);
+  }
+
+  const handleAddNewMedSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    let imageUrl = newMedData.image_url || '';
+    if (newMedImageFile) {
+        imageUrl = await fileToDataUri(newMedImageFile);
+    }
+
+    const medToAdd = {
+        ...newMedData,
+        image_url: imageUrl,
+        stock: newMedData.quantity, // New med stock is the purchase quantity
+    };
+    
+    // Add to main inventory via API
+    const newMedication = await addMedication(medToAdd);
+
+    if (newMedication) {
+        const newItemForPurchase: PurchaseOrderItem = {
+            id: newMedication.id,
+            medication_id: newMedication.id,
+            name: newMedication.name,
+            quantity: newMedData.quantity || 1,
+            purchase_price: newMedData.purchase_price || 0,
+            price: newMedData.price || 0,
+            expiration_date: newMedData.expiration_date || '',
+            scientific_names: newMedData.scientific_names,
+            dosage: newMedData.dosage,
+            dosage_form: newMedData.dosage_form,
+            barcodes: newMedData.barcodes,
+        };
+        setPurchaseItems(prev => [...prev, newItemForPurchase]);
+        setIsAddNewMedModalOpen(false);
+    }
+  }
+
 
   const handleAddItemToPurchase = (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,31 +289,22 @@ export default function PurchasesPage() {
         return;
     }
     
-    if (!selectedMed) {
-      toast({ variant: "destructive", title: "لم يتم اختيار دواء", description: "الرجاء البحث واختيار دواء لإضافته." });
-      return;
-    }
-
-    if (!purchaseQuantity || !purchasePrice || !expirationDate) {
-      toast({ variant: "destructive", title: "حقول ناقصة", description: "الرجاء ملء الكمية وسعر الشراء وتاريخ الانتهاء." });
-      return;
+    if (!newMedData.id) {
+        openNewMedModal();
+        return;
     }
 
     const newItem = {
-      ...selectedMed,
-      quantity: parseInt(purchaseQuantity),
-      purchase_price: parseFloat(purchasePrice),
-      expiration_date: expirationDate,
+      ...newMedData,
+      id: newMedData.id!,
+      medication_id: newMedData.id!,
     };
     
-    setPurchaseItems(prev => [...prev, newItem]);
+    setPurchaseItems(prev => [...prev, newItem as PurchaseOrderItem]);
     setIsPurchaseInfoLocked(true);
     
-    setSelectedMed(null);
+    setNewMedData({});
     setPurchaseItemSearchTerm("");
-    setPurchaseQuantity("");
-    setPurchasePrice("");
-    setExpirationDate("");
     document.getElementById("purchase-item-search")?.focus();
   };
 
@@ -284,12 +326,9 @@ export default function PurchasesPage() {
         supplier_id: supplier.id,
         supplier_name: supplier.name,
         date: new Date().toISOString().split('T')[0],
-        items: purchaseItems.map(item => ({
-            ...item,
-            medication_id: item.id
-        })),
+        items: purchaseItems,
         status: "Received",
-        total_amount: purchaseItems.reduce((sum, item) => sum + (item.quantity * item.purchase_price), 0),
+        total_amount: purchaseItems.reduce((sum, item) => sum + ((item.quantity || 0) * (item.purchase_price || 0)), 0),
     }
 
     const success = await addPurchaseOrder(purchaseData);
@@ -299,23 +338,29 @@ export default function PurchasesPage() {
         setPurchaseSupplierId('');
         setPurchaseItems([]);
         setIsPurchaseInfoLocked(false);
-        fetchPurchaseHistory(1, purchasePerPage, ''); // Refresh history
+        fetchPurchaseHistory(1, purchasePerPage, '', '', '');
     }
   }
 
+  const handleNewMedDataChange = (field: keyof PurchaseOrderItem, value: any) => {
+    setNewMedData(prev => ({...prev, [field]: value}));
+  }
 
-  const handleReturnSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNewMedImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setNewMedImageFile(file);
+      setNewMedImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+
+  const handleReturnSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setReturnMedSearchTerm(value);
     if (value.length > 0) {
-        const lowercasedFilter = value.toLowerCase();
-        const filtered = (inventory || []).filter(med => 
-            (med.name.toLowerCase().startsWith(lowercasedFilter) || 
-              String(med.id).includes(lowercasedFilter) ||
-              (med.barcodes || []).some(barcode => barcode.toLowerCase().includes(lowercasedFilter)) ||
-              (med.scientific_names && med.scientific_names.some(name => name.toLowerCase().startsWith(lowercasedFilter)))) && 
-              med.stock > 0
-        );
+        const results = await searchAllInventory(value);
+        const filtered = results.filter(med => med.stock > 0);
         setReturnMedSuggestions(filtered.slice(0, 5));
     } else {
         setReturnMedSuggestions([]);
@@ -386,14 +431,8 @@ export default function PurchasesPage() {
         supplier_id: supplier.id,
         supplier_name: supplier.name,
         date: new Date().toISOString().split('T')[0],
-        items: returnCart.map(item => ({
-            id: item.id,
-            medication_id: item.medication_id,
-            name: item.name,
-            quantity: item.quantity,
-            purchase_price: item.purchase_price,
-            reason: item.reason
-        }))
+        items: returnCart,
+        total_amount: returnCart.reduce((acc, item) => acc + item.quantity * item.purchase_price, 0)
     }
     
     const success = await addReturnOrder(returnData);
@@ -403,7 +442,7 @@ export default function PurchasesPage() {
       setReturnSupplierId("");
       setReturnCart([]);
       setIsReturnInfoLocked(false);
-      fetchReturnHistory(1, returnPerPage, ''); // Refresh history
+      fetchReturnHistory(1, returnPerPage, '', '', '');
     }
   }
 
@@ -419,60 +458,60 @@ export default function PurchasesPage() {
       <TabsContent value="new-purchase" dir="rtl">
         <Card>
           <CardHeader>
-            <CardTitle>إنشاء قائمة شراء جديدة</CardTitle>
+            <CardTitle>استلام بضاعة جديدة</CardTitle>
             <CardDescription>
-              أضف الأدوية المستلمة من المورد لتحديث المخزون.
+              أضف الأصناف المستلمة إلى القائمة أدناه ثم اضغط على "إتمام عملية الاستلام" لحفظها.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="purchase_id">رقم قائمة الشراء</Label>
-                        <Input id="purchase_id" value={purchase_id} onChange={e => setPurchaseId(e.target.value)} placeholder="مثال: PO-2024-001" required disabled={isPurchaseInfoLocked}/>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="supplier_id">المورد</Label>
-                        <div className="flex gap-2">
-                            <Select value={purchaseSupplierId} onValueChange={setPurchaseSupplierId} required disabled={isPurchaseInfoLocked}>
-                                <SelectTrigger id="supplier_id"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
-                                <SelectContent>
-                                    {(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            <Dialog open={isAddSupplierOpen} onOpenChange={setIsAddSupplierOpen}>
-                                <DialogTrigger asChild>
-                                    <Button type="button" size="icon" variant="outline"><PlusCircle /></Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader><DialogTitle>إضافة مورد جديد</DialogTitle></DialogHeader>
-                                    <form onSubmit={handleAddSupplier} className="space-y-4 pt-2">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="supplier_name">اسم المورد</Label>
-                                            <Input id="supplier_name" name="supplier_name" required />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="supplierContact">الشخص المسؤول (اختياري)</Label>
-                                            <Input id="supplierContact" name="supplierContact" />
-                                        </div>
-                                        <DialogFooter className="pt-2">
-                                            <DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose>
-                                            <Button type="submit" variant="success">إضافة</Button>
-                                        </DialogFooter>
-                                    </form>
-                                </DialogContent>
-                            </Dialog>
+                <form onSubmit={handleAddItemToPurchase} className="p-4 border rounded-md space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="purchase_id">رقم قائمة الشراء</Label>
+                            <Input id="purchase_id" value={purchase_id} onChange={e => setPurchaseId(e.target.value)} placeholder="مثال: PO-2024-001" required disabled={isPurchaseInfoLocked}/>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="supplier_id">المورد</Label>
+                            <div className="flex gap-2">
+                                <Select value={purchaseSupplierId} onValueChange={setPurchaseSupplierId} required disabled={isPurchaseInfoLocked}>
+                                    <SelectTrigger id="supplier_id"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
+                                    <SelectContent>
+                                        {(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <Dialog open={isAddSupplierOpen} onOpenChange={setIsAddSupplierOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button type="button" size="icon" variant="outline"><PlusCircle /></Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader><DialogTitle>إضافة مورد جديد</DialogTitle></DialogHeader>
+                                        <form onSubmit={handleAddSupplier} className="space-y-4 pt-2">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="supplier_name">اسم المورد</Label>
+                                                <Input id="supplier_name" name="supplier_name" required />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="supplierContact">الشخص المسؤول (اختياري)</Label>
+                                                <Input id="supplierContact" name="supplierContact" />
+                                            </div>
+                                            <DialogFooter className="pt-2">
+                                                <DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose>
+                                                <Button type="submit" variant="success">إضافة</Button>
+                                            </DialogFooter>
+                                        </form>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-                <form onSubmit={handleAddItemToPurchase} className="p-4 border rounded-md space-y-4">
+                     <hr className="my-4" />
                     <div className="relative space-y-2">
-                        <Label htmlFor="purchase-item-search">ابحث عن دواء (بالاسم، العلمي أو الباركود)</Label>
+                        <Label htmlFor="purchase-item-search">ابحث عن دواء أو أضف جديدًا</Label>
                         <Input 
                           id="purchase-item-search"
                           value={purchaseItemSearchTerm} 
                           onChange={handlePurchaseSearch}
-                          placeholder="ابحث عن دواء موجود أو أضف جديدًا"
+                          placeholder="ابحث بالاسم، العلمي أو الباركود..."
                           autoComplete="off"
                         />
                         {purchaseItemSuggestions.length > 0 && (
@@ -495,22 +534,27 @@ export default function PurchasesPage() {
                                 </CardContent>
                             </Card>
                         )}
+                        <Button variant="link" size="sm" className="p-0 h-auto" onClick={openNewMedModal}>أو أضف دواء جديد غير موجود...</Button>
                     </div>
-                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="purchase-quantity">الكمية</Label>
-                            <Input id="purchase-quantity" type="number" value={purchaseQuantity} onChange={e => setPurchaseQuantity(e.target.value)} required min="1" disabled={!selectedMed}/>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <Label>الكمية</Label>
+                            <Input type="number" value={newMedData.quantity || ''} onChange={e => handleNewMedDataChange('quantity', parseInt(e.target.value))} required />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="purchase-price">سعر الشراء</Label>
-                            <Input id="purchase-price" type="number" step="0.01" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} required disabled={!selectedMed}/>
+                         <div>
+                            <Label>سعر الشراء</Label>
+                            <Input type="number" value={newMedData.purchase_price || ''} onChange={e => handleNewMedDataChange('purchase_price', parseFloat(e.target.value))} required />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="expiration-date">تاريخ الانتهاء</Label>
-                            <Input id="expiration-date" type="date" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} required disabled={!selectedMed}/>
+                        <div>
+                            <Label>سعر البيع</Label>
+                            <Input type="number" value={newMedData.price || ''} onChange={e => handleNewMedDataChange('price', parseFloat(e.target.value))} required />
+                        </div>
+                        <div>
+                            <Label>تاريخ الانتهاء</Label>
+                            <Input type="date" value={newMedData.expiration_date || ''} onChange={e => handleNewMedDataChange('expiration_date', e.target.value)} required />
                         </div>
                     </div>
-                    <Button type="submit" className="w-full" disabled={!selectedMed}>إضافة إلى القائمة</Button>
+                    <Button type="submit" className="w-full">إضافة إلى القائمة</Button>
                 </form>
 
                 {purchaseItems.length > 0 && (
@@ -532,9 +576,9 @@ export default function PurchasesPage() {
                                     <TableRow key={item.id}>
                                         <TableCell>{item.name}</TableCell>
                                         <TableCell className="font-mono">{item.quantity}</TableCell>
-                                        <TableCell className="font-mono">{item.purchase_price.toLocaleString()}</TableCell>
-                                        <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('ar-EG')}</TableCell>
-                                        <TableCell className="font-mono">{(item.quantity * item.purchase_price).toLocaleString()}</TableCell>
+                                        <TableCell className="font-mono">{item.purchase_price?.toLocaleString()}</TableCell>
+                                        <TableCell className="font-mono">{item.expiration_date ? new Date(item.expiration_date).toLocaleDateString('ar-EG') : ''}</TableCell>
+                                        <TableCell className="font-mono">{(item.quantity! * item.purchase_price!).toLocaleString()}</TableCell>
                                         <TableCell>
                                             <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleRemoveFromPurchase(item.id)}>
                                                 <Trash2 className="h-4 w-4" />
@@ -549,7 +593,7 @@ export default function PurchasesPage() {
           </CardContent>
           <CardFooter>
             <Button onClick={handleFinalizePurchase} variant="success" className="w-full" disabled={purchaseItems.length === 0}>
-                إتمام استلام البضاعة
+                إتمام عملية الاستلام
             </Button>
           </CardFooter>
         </Card>
@@ -559,13 +603,15 @@ export default function PurchasesPage() {
           <CardHeader>
             <CardTitle>سجل المشتريات</CardTitle>
             <CardDescription>قائمة بجميع طلبات الشراء المستلمة. اضغط على أي صف لعرض التفاصيل.</CardDescription>
-            <div className="pt-4">
+            <div className="pt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
               <Input 
-                placeholder="ابحث برقم القائمة، اسم المورد، التاريخ، أو اسم المادة..."
+                placeholder="ابحث برقم القائمة، اسم المورد..."
                 value={purchaseSearchTerm}
                 onChange={(e) => setPurchaseSearchTerm(e.target.value)}
-                className="max-w-lg"
+                className="sm:col-span-1"
               />
+              <Input type="date" value={purchaseDateFrom} onChange={e => setPurchaseDateFrom(e.target.value)} />
+              <Input type="date" value={purchaseDateTo} onChange={e => setPurchaseDateTo(e.target.value)} />
             </div>
           </CardHeader>
           <CardContent>
@@ -759,13 +805,15 @@ export default function PurchasesPage() {
           <CardHeader>
             <CardTitle>سجل الاسترجاع</CardTitle>
             <CardDescription>قائمة بجميع عمليات الاسترجاع للموردين. اضغط على أي صف لعرض التفاصيل.</CardDescription>
-             <div className="pt-4">
+             <div className="pt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
               <Input 
-                placeholder="ابحث برقم القائمة، اسم المورد، التاريخ، أو اسم المادة..."
+                placeholder="ابحث برقم القائمة، اسم المورد..."
                 value={returnSearchTerm}
                 onChange={(e) => setReturnSearchTerm(e.target.value)}
-                className="max-w-lg"
+                className="sm:col-span-1"
               />
+              <Input type="date" value={returnDateFrom} onChange={e => setReturnDateFrom(e.target.value)} />
+              <Input type="date" value={returnDateTo} onChange={e => setReturnDateTo(e.target.value)} />
             </div>
           </CardHeader>
           <CardContent>
@@ -846,6 +894,76 @@ export default function PurchasesPage() {
           </CardContent>
         </Card>
       </TabsContent>
+      <Dialog open={isAddNewMedModalOpen} onOpenChange={setIsAddNewMedModalOpen}>
+        <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+                <DialogTitle>إضافة دواء جديد إلى المخزون</DialogTitle>
+                <DialogDescription>هذا الدواء غير موجود في النظام. الرجاء إدخال تفاصيله كاملة.</DialogDescription>
+            </DialogHeader>
+             <form onSubmit={handleAddNewMedSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>الباركود (يفصل بفاصلة ,)</Label>
+                        <Input value={newMedData.barcodes?.join(',') || ''} onChange={e => handleNewMedDataChange('barcodes', e.target.value.split(','))} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label>الاسم التجاري</Label>
+                        <Input value={newMedData.name || purchaseItemSearchTerm} onChange={e => handleNewMedDataChange('name', e.target.value)} required />
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <Label>الاسم العلمي (يفصل بفاصلة ,)</Label>
+                    <Input value={newMedData.scientific_names?.join(',') || ''} onChange={e => handleNewMedDataChange('scientific_names', e.target.value.split(','))} />
+                </div>
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                        <Label>الجرعة</Label>
+                        <Input value={newMedData.dosage || ''} onChange={e => handleNewMedDataChange('dosage', e.target.value)} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label>الشكل الدوائي</Label>
+                        <Select value={newMedData.dosage_form} onValueChange={val => handleNewMedDataChange('dosage_form', val)}>
+                            <SelectTrigger><SelectValue placeholder="اختر الشكل" /></SelectTrigger>
+                            <SelectContent>{dosage_forms.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>الكمية المستلمة</Label>
+                        <Input type="number" value={newMedData.quantity || ''} onChange={e => handleNewMedDataChange('quantity', parseInt(e.target.value))} required />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>نقطة إعادة الطلب</Label>
+                        <Input type="number" value={newMedData.reorder_point || 10} onChange={e => handleNewMedDataChange('reorder_point', parseInt(e.target.value))} required />
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>سعر الشراء</Label>
+                        <Input type="number" value={newMedData.purchase_price || ''} onChange={e => handleNewMedDataChange('purchase_price', parseFloat(e.target.value))} required />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>سعر البيع</Label>
+                        <Input type="number" value={newMedData.price || ''} onChange={e => handleNewMedDataChange('price', parseFloat(e.target.value))} required />
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>تاريخ الانتهاء</Label>
+                        <Input type="date" value={newMedData.expiration_date || ''} onChange={e => handleNewMedDataChange('expiration_date', e.target.value)} required />
+                    </div>
+                     <div className="space-y-2">
+                        <Label>صورة المنتج (اختياري)</Label>
+                        <Input type="file" accept="image/*" onChange={handleNewMedImageChange} />
+                        {newMedImagePreview && <Image src={newMedImagePreview} alt="Preview" width={100} height={100} className="rounded-md object-cover" />}
+                    </div>
+                </div>
+                 <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                    <Button type="submit" variant="success">إضافة وإدراج في القائمة</Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+      </Dialog>
     </Tabs>
   )
 }

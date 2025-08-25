@@ -39,8 +39,25 @@ export type Medication = {
   status?: 'active' | 'damaged';
 };
 
-export type OrderRequestItem = Medication & {
-    orderItemId: string; // A unique ID for this specific line item in the cart
+export type OrderRequestItem = {
+    id: string; // This is the ID of the order request item itself
+    medication_id: string; // This links to the Medication table
+    pharmacy_id: string;
+    name: string; 
+    scientific_names?: string[];
+    image_url?: string;
+    stock: number;
+    reorder_point: number;
+    price: number; 
+    purchase_price: number; 
+    expiration_date: string;
+    dosage?: string;
+    dosage_form?: string;
+    quantity: number;
+    supplier_id?: string;
+    invoice_id?: string;
+    date?: string;
+    barcodes?: string[];
 };
 
 export type SaleItem = {
@@ -77,6 +94,15 @@ export type PurchaseOrderItem = {
   name: string; // tradeName
   quantity: number;
   purchase_price: number;
+  price?: number;
+  expiration_date?: string;
+  scientific_names?: string[];
+  dosage?: string;
+  dosage_form?: string;
+  barcodes?: string[];
+  image_url?: string;
+  reorder_point?: number;
+  stock?: number;
 };
 
 export type PurchaseOrder = {
