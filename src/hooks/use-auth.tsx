@@ -41,12 +41,6 @@ type ActiveInvoice = {
     reviewIndex?: number | null;
 };
 
-type PurchaseDraft = {
-    supplierId: string;
-    invoiceId: string;
-    items: PurchaseOrderItem[];
-};
-
 interface AuthContextType {
     currentUser: User | null;
     users: User[];
@@ -164,10 +158,6 @@ interface AuthContextType {
     addToOrderRequestCart: (item: Medication) => void;
     removeFromOrderRequestCart: (orderItemId: string, skipToast?: boolean) => void;
     updateOrderRequestItem: (orderItemId: string, data: Partial<OrderRequestItem>) => Promise<void>;
-
-    purchaseDraft: PurchaseDraft | null;
-    setPurchaseDraft: (draft: PurchaseDraft | null) => void;
-    clearPurchaseDraft: () => void;
 }
 
 export interface ScopedDataContextType {
@@ -264,9 +254,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [advertisements, setAdvertisements] = React.useState<Advertisement[]>([]);
     const [activeInvoice, setActiveInvoice] = React.useState<ActiveInvoice>(initialActiveInvoice);
     const [orderRequestCart, setOrderRequestCart] = React.useState<OrderRequestItem[]>([]);
-    const [purchaseDraft, setPurchaseDraft] = React.useState<PurchaseDraft | null>(null);
-
-    const clearPurchaseDraft = () => setPurchaseDraft(null);
 
     const addToOrderRequestCart = async (item: Medication) => {
         try {
@@ -1110,7 +1097,6 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             verifyPin, updateUserPinRequirement,
             getArchivedMonths, getArchivedMonthData,
             orderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, updateOrderRequestItem,
-            purchaseDraft, setPurchaseDraft, clearPurchaseDraft,
         }}>
             {children}
         </AuthContext.Provider>

@@ -39,7 +39,7 @@ export default function OrderRequestsPage() {
     orderRequestCart,
     removeFromOrderRequestCart,
     updateOrderRequestItem,
-    setPurchaseDraft,
+    addPurchaseOrder,
   } = useAuth();
   
   const { suppliers: [suppliers] } = scopedData;
@@ -126,7 +126,7 @@ export default function OrderRequestsPage() {
   
  const handlePreparePurchaseOrder = async () => {
     setIsProcessing(true);
-    // 1. Validation
+    
     for (const item of orderRequestCart) {
         const editableData = editableOrderItems[item.id];
         if (!editableData || !editableData.quantity || editableData.quantity <= 0 || !editableData.expiration_date || !editableData.supplier_id || !editableData.invoice_id) {
@@ -136,18 +136,20 @@ export default function OrderRequestsPage() {
         }
     }
 
-    // 2. Group items by supplier and invoice_id
-    const drafts: Record<string, { supplierId: string; invoiceId: string; items: PurchaseOrderItem[] }> = {};
+    const drafts: Record<string, { supplier_id: string; supplier_name: string; id: string; date: string, items: PurchaseOrderItem[] }> = {};
 
     orderRequestCart.forEach(item => {
         const editableData = editableOrderItems[item.id];
-        const { supplier_id, invoice_id } = editableData;
+        const { supplier_id, invoice_id, date } = editableData;
         const key = `${supplier_id}-${invoice_id}`;
 
         if (!drafts[key]) {
+            const supplier = suppliers.find(s => s.id === supplier_id);
             drafts[key] = {
-                supplierId: supplier_id,
-                invoiceId: invoice_id,
+                id: invoice_id,
+                supplier_id: supplier_id,
+                supplier_name: supplier?.name || 'مورد غير معروف',
+                date: date,
                 items: [],
             };
         }
@@ -169,14 +171,27 @@ export default function OrderRequestsPage() {
         });
     });
 
-    setPurchaseDraft(Object.values(drafts)[0]); // Assuming one draft for now, can be extended for multiple
-    
-    // Clear the cart after preparing the draft
-    const deletePromises = orderRequestCart.map(item => removeFromOrderRequestCart(item.id, true));
-    await Promise.all(deletePromises);
+    const purchasePromises = Object.values(drafts).map(draft => {
+        const total_amount = draft.items.reduce((sum, item) => sum + (item.quantity * item.purchase_price), 0);
+        return addPurchaseOrder({ ...draft, total_amount, status: 'Received' });
+    });
 
-    router.push('/purchases');
-    setIsProcessing(false);
+    try {
+        const results = await Promise.all(purchasePromises);
+        if (results.every(res => res)) {
+            const deletePromises = orderRequestCart.map(item => removeFromOrderRequestCart(item.id, true));
+            await Promise.all(deletePromises);
+            
+            toast({ title: "تم إنشاء قوائم الشراء بنجاح!", description: "تم نقل الطلبات إلى سجل المشتريات."});
+            router.push('/purchases?tab=purchase-history');
+        } else {
+             toast({ variant: 'destructive', title: "خطأ", description: "فشل إنشاء بعض قوائم الشراء. الرجاء المحاولة مرة أخرى." });
+        }
+    } catch(e) {
+        toast({ variant: 'destructive', title: "خطأ فادح", description: "حدث خطأ غير متوقع أثناء إنشاء قوائم الشراء." });
+    } finally {
+        setIsProcessing(false);
+    }
 };
 
   return (
@@ -306,7 +321,7 @@ export default function OrderRequestsPage() {
           </div>
           <Button onClick={handlePreparePurchaseOrder} size="lg" className="w-full" variant="success" disabled={isProcessing}>
             <ArrowLeft className="me-2 h-4 w-4" />
-            {isProcessing ? "جاري التجهيز..." : "إعداد قائمة الشراء"}
+            {isProcessing ? "جاري التجهيز..." : "إتمام وإنشاء قوائم الشراء"}
           </Button>
         </div>
         ) : (
