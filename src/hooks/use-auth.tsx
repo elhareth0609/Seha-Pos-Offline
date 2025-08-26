@@ -66,7 +66,7 @@ interface AuthContextType {
     updateAdvertisement: (adId: string, data: Partial<Omit<Advertisement, 'id' | 'created_at'>>) => Promise<void>;
     deleteAdvertisement: (adId: string) => Promise<void>;
     clearPharmacyData: () => Promise<void>;
-    closeMonth: (pin: string) => Promise<boolean>;
+    closeMonth: (pin: string, dateFrom: string, dateTo: string) => Promise<boolean>;
     
     scopedData: ScopedDataContextType;
 
@@ -457,16 +457,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (e: any) {}
     };
 
-    const closeMonth = async (pin: string) => {
+    const closeMonth = async (pin: string, dateFrom: string, dateTo: string) => {
         try {
-            await apiRequest('/settings/close-month', 'POST', { pin });
-            toast({ title: "تم إقفال الشهر بنجاح!", description: "تمت أرشفة البيانات وتصفير الحسابات." });
+            await apiRequest('/settings/close-month', 'POST', { pin, date_from: dateFrom, date_to: dateTo });
+            toast({ title: "تم إقفال الفترة بنجاح!", description: "تمت أرشفة البيانات وتصفير الحسابات." });
             // Manually refetch user data to get the cleared state
             const data: AuthResponse = await apiRequest('/user');
             setAllData(data);
             return true;
         } catch (error: any) {
-            toast({ variant: 'destructive', title: "فشل إقفال الشهر", description: error.message });
+            toast({ variant: 'destructive', title: "فشل إقفال الفترة", description: error.message });
             return false;
         }
     };
