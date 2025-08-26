@@ -103,6 +103,7 @@ export type PurchaseOrderItem = {
   image_url?: string;
   reorder_point?: number;
   stock?: number;
+  is_new?: boolean;
 };
 
 export type PurchaseOrder = {

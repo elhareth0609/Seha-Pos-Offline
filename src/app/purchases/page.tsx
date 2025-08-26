@@ -268,17 +268,14 @@ export default function PurchasesPage() {
 
     if (newMedication) {
         const newItemForPurchase: PurchaseOrderItem = {
+            ...newMedication,
             id: newMedication.id,
             medication_id: newMedication.id,
-            name: newMedication.name,
             quantity: newMedData.quantity || 1,
             purchase_price: newMedData.purchase_price || 0,
             price: newMedData.price || 0,
             expiration_date: newMedData.expiration_date || '',
-            scientific_names: newMedData.scientific_names,
-            dosage: newMedData.dosage,
-            dosage_form: newMedData.dosage_form,
-            barcodes: newMedData.barcodes,
+            is_new: true
         };
         setPurchaseItems(prev => [...prev, newItemForPurchase]);
         setIsAddNewMedModalOpen(false);
@@ -303,6 +300,7 @@ export default function PurchasesPage() {
       ...newMedData,
       id: newMedData.id!,
       medication_id: newMedData.id!,
+      is_new: false,
     };
     
     setPurchaseItems(prev => [...prev, newItem as PurchaseOrderItem]);
@@ -452,7 +450,7 @@ export default function PurchasesPage() {
   }
 
   const openEditItemDialog = (item: PurchaseOrderItem) => {
-    setEditingPurchaseItem(item);
+    setEditingPurchaseItem({ ...item });
     setIsEditItemOpen(true);
   };
   
@@ -461,13 +459,23 @@ export default function PurchasesPage() {
     if (!editingPurchaseItem) return;
     
     const formData = new FormData(e.currentTarget as HTMLFormElement);
-    const updatedItem: PurchaseOrderItem = {
-      ...editingPurchaseItem,
-      quantity: parseInt(formData.get('quantity') as string, 10),
-      purchase_price: parseFloat(formData.get('purchase_price') as string),
-      price: parseFloat(formData.get('price') as string),
-      expiration_date: formData.get('expiration_date') as string,
-    };
+    const updatedItem: PurchaseOrderItem = { ...editingPurchaseItem };
+    
+    // Fields for both existing and new items
+    updatedItem.quantity = parseInt(formData.get('quantity') as string, 10);
+    updatedItem.purchase_price = parseFloat(formData.get('purchase_price') as string);
+    updatedItem.price = parseFloat(formData.get('price') as string);
+    updatedItem.expiration_date = formData.get('expiration_date') as string;
+    
+    // Fields only for new items
+    if (editingPurchaseItem.is_new) {
+        updatedItem.name = formData.get('name') as string;
+        updatedItem.scientific_names = (formData.get('scientific_names') as string).split(',').map(s => s.trim());
+        updatedItem.barcodes = (formData.get('barcodes') as string).split(',').map(s => s.trim());
+        updatedItem.dosage = formData.get('dosage') as string;
+        updatedItem.dosage_form = formData.get('dosage_form') as string;
+        updatedItem.reorder_point = parseInt(formData.get('reorder_point') as string, 10);
+    }
     
     setPurchaseItems(prev => prev.map(item => item.id === updatedItem.id ? updatedItem : item));
     setIsEditItemOpen(false);
@@ -995,37 +1003,80 @@ export default function PurchasesPage() {
             </form>
         </DialogContent>
       </Dialog>
-      <Dialog open={isEditItemOpen} onOpenChange={setIsEditItemOpen}>
-        <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-                <DialogTitle>تعديل الصنف: {editingPurchaseItem?.name}</DialogTitle>
-            </DialogHeader>
-            {editingPurchaseItem && (
-                <form onSubmit={handleUpdatePurchaseItem} className="space-y-4 pt-2">
-                     <div className="space-y-2">
-                        <Label htmlFor="edit-quantity">الكمية</Label>
-                        <Input id="edit-quantity" name="quantity" type="number" defaultValue={editingPurchaseItem.quantity} required />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="edit-purchase_price">سعر الشراء</Label>
-                        <Input id="edit-purchase_price" name="purchase_price" type="number" step="0.01" defaultValue={editingPurchaseItem.purchase_price} required />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="edit-price">سعر البيع</Label>
-                        <Input id="edit-price" name="price" type="number" step="0.01" defaultValue={editingPurchaseItem.price} required />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="edit-expiration_date">تاريخ الانتهاء</Label>
-                        <Input id="edit-expiration_date" name="expiration_date" type="date" defaultValue={editingPurchaseItem.expiration_date} required />
-                    </div>
-                     <DialogFooter className="pt-2">
-                        <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
-                        <Button type="submit" variant="success">حفظ التغييرات</Button>
-                    </DialogFooter>
-                </form>
-            )}
-        </DialogContent>
-      </Dialog>
+        <Dialog open={isEditItemOpen} onOpenChange={setIsEditItemOpen}>
+            <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>تعديل الصنف: {editingPurchaseItem?.name}</DialogTitle>
+                </DialogHeader>
+                {editingPurchaseItem && (
+                    <form onSubmit={handleUpdatePurchaseItem} className="space-y-4 pt-2 max-h-[70vh] overflow-y-auto p-1">
+                        {editingPurchaseItem.is_new && (
+                             <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>الباركود (يفصل بفاصلة ,)</Label>
+                                        <Input name="barcodes" defaultValue={editingPurchaseItem.barcodes?.join(',') || ''} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>الاسم التجاري</Label>
+                                        <Input name="name" defaultValue={editingPurchaseItem.name || ''} required />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>الاسم العلمي (يفصل بفاصلة ,)</Label>
+                                    <Input name="scientific_names" defaultValue={editingPurchaseItem.scientific_names?.join(',') || ''} />
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>الجرعة</Label>
+                                        <Input name="dosage" defaultValue={editingPurchaseItem.dosage || ''} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>الشكل الدوائي</Label>
+                                        <Select name="dosage_form" defaultValue={editingPurchaseItem.dosage_form}>
+                                            <SelectTrigger><SelectValue placeholder="اختر الشكل" /></SelectTrigger>
+                                            <SelectContent>{dosage_forms.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>الكمية المستلمة</Label>
+                                        <Input name="quantity" type="number" defaultValue={editingPurchaseItem.quantity} required />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>نقطة إعادة الطلب</Label>
+                                        <Input name="reorder_point" type="number" defaultValue={editingPurchaseItem.reorder_point} required />
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                        {!editingPurchaseItem.is_new && (
+                             <div className="space-y-2">
+                                <Label htmlFor="edit-quantity">الكمية</Label>
+                                <Input id="edit-quantity" name="quantity" type="number" defaultValue={editingPurchaseItem.quantity} required />
+                            </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>سعر الشراء</Label>
+                                <Input name="purchase_price" type="number" step="0.01" defaultValue={editingPurchaseItem.purchase_price} required />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>سعر البيع</Label>
+                                <Input name="price" type="number" step="0.01" defaultValue={editingPurchaseItem.price} required />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>تاريخ الانتهاء</Label>
+                            <Input name="expiration_date" type="date" defaultValue={editingPurchaseItem.expiration_date} required />
+                        </div>
+                        <DialogFooter className="pt-2">
+                            <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                            <Button type="submit" variant="success">حفظ التغييرات</Button>
+                        </DialogFooter>
+                    </form>
+                )}
+            </DialogContent>
+        </Dialog>
     </Tabs>
   )
 }
