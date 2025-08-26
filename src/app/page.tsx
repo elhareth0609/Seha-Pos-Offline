@@ -186,7 +186,10 @@ export default function Dashboard() {
         return acc + (isNaN(total) ? 0 : total);
     }, 0);
     
-    const totalExpenses = filteredExpenses.reduce((acc, expense) => acc + (expense.amount || 0), 0);
+    const totalExpenses = filteredExpenses.reduce((acc, expense) => {
+    const amount = typeof expense.amount === 'number' ? expense.amount : parseFloat(String(expense.amount || 0));
+        return acc + (isNaN(amount) ? 0 : amount);
+    }, 0);
 
     const netProfit = currentTotalProfit - totalExpenses;
     const currentProfitMargin = currentTotalRevenue > 0 ? (netProfit / currentTotalRevenue) * 100 : 0;

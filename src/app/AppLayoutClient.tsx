@@ -4,7 +4,6 @@ import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { AppShell } from '@/components/layout/app-shell';
 import { Loader2 } from 'lucide-react';
-import SetupPage from '@/components/auth/SetupPage';
 import LoginPage from '@/components/auth/LoginPage';
 import { usePathname, useRouter } from 'next/navigation';
 import type { UserPermissions } from '@/lib/types';
@@ -29,12 +28,12 @@ const allNavItems = [
 
 
 export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
-    const { loading, isSetup, isAuthenticated, currentUser } = useAuth();
+    const { loading, isAuthenticated, currentUser } = useAuth();
     const pathname = usePathname();
     const router = useRouter();
 
     React.useEffect(() => {
-        if (loading || !isAuthenticated || !currentUser) return;
+        if (!isAuthenticated || !currentUser) return;
         
         if (currentUser.role === 'SuperAdmin' && !pathname.startsWith('/superadmin')) {
             router.replace('/superadmin');
@@ -55,21 +54,15 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
             }
         }
 
-    }, [loading, isAuthenticated, currentUser, pathname, router]);
+    }, [isAuthenticated, currentUser, pathname, router]);
 
 
-    // Show loading spinner
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-muted/40">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
             </div>
         );
-    }
-
-    // Show setup page if not set up
-    if (!isSetup) {
-        return <SetupPage />;
     }
 
     // Show login page if not authenticated

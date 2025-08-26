@@ -52,9 +52,7 @@ interface AuthContextType {
     users: User[];
     setUsers: React.Dispatch<React.SetStateAction<User[]>>;
     isAuthenticated: boolean;
-    isSetup: boolean;
     loading: boolean;
-    setupAdmin: (name: string, email: string, pin: string) => Promise<boolean>;
     createPharmacyAdmin: (name: string, email: string, pin: string) => Promise<boolean>;
     login: (email: string, pin: string) => Promise<User | null>;
     logout: () => void;
@@ -244,8 +242,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [currentUser, setCurrentUser] = React.useState<User | null>(null);
     const [users, setUsers] = React.useState<User[]>([]);
     const [loading, setLoading] = React.useState(true);
-    const [isSetup, setIsSetup] = React.useState(true);
     const router = useRouter();
+
+    // Initialize auth state on component mount
+    React.useEffect(() => {
+        const initializeAuth = async () => {
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                try {
+                    const data: AuthResponse = await apiRequest('/user');
+                    setAllData(data);
+                } catch (error) {
+                    localStorage.removeItem('authToken');
+                }
+            }
+            setLoading(false);
+        };
+
+        initializeAuth();
+    }, []);
 
     const [inventory, setInventory] = React.useState<Medication[]>([]);
     const [sales, setSales] = React.useState<Sale[]>([]);
@@ -327,35 +342,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('authToken', data.token);
     };
 
-    React.useEffect(() => {
-        const checkInitialState = async () => {
-            try {
-                const setupStatus = await apiRequest('/setup/status');
-                setIsSetup(setupStatus.is_setup);
-                const token = localStorage.getItem('authToken');
-                if (token) {
-                    const data: AuthResponse = await apiRequest('/user');
-                    setAllData(data);
-                }
-            } catch (error) {
-                localStorage.removeItem('authToken');
-            } finally {
-                setLoading(false);
-            }
-        };
-        checkInitialState();
-    }, []);
-
-    const setupAdmin = async (name: string, email: string, pin: string) => {
-        setLoading(true);
-        try {
-            const data: AuthResponse = await apiRequest('/setup', 'POST', { name, email, pin });
-            setAllData(data);
-            setIsSetup(true);
-            return true;
-        } catch (error: any) { return false; } finally { setLoading(false); }
-    };
-    
     const login = async (email: string, pin: string) => {
         setLoading(true);
         try {
@@ -366,7 +352,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setActiveTimeLogId(newTimeLog.id);
             }
             return data.user;
-        } catch (error: any) { return null; } finally { setLoading(false); }
+        } catch (error: any) { 
+            return null; 
+        } finally { 
+            setLoading(false); 
+        }
     };
     
     const logout = async () => {
@@ -1088,8 +1078,8 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
 
     return (
         <AuthContext.Provider value={{ 
-            currentUser, users, setUsers, isAuthenticated, loading, isSetup, 
-            setupAdmin, login, logout, registerUser, deleteUser, updateUser, 
+            currentUser, users, setUsers, isAuthenticated, loading, 
+            login, logout, registerUser, deleteUser, updateUser, 
             updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData,
             getAllPharmacySettings, getPharmacyData, clearPharmacyData, closeMonth,
             advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement,
