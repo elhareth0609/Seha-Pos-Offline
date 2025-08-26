@@ -71,7 +71,7 @@ export default function PurchasesPage() {
       searchAllInventory,
       addMedication,
       purchaseDraft,
-      clearPurchaseDraft,
+      setPurchaseDraft,
     } = useAuth();
   
   const {
@@ -132,6 +132,10 @@ export default function PurchasesPage() {
   });
   const [newMedImageFile, setNewMedImageFile] = React.useState<File | null>(null);
   const [newMedImagePreview, setNewMedImagePreview] = React.useState<string | null>(null);
+  
+  // State for editing purchase item
+  const [editingPurchaseItem, setEditingPurchaseItem] = React.useState<PurchaseOrderItem | null>(null);
+  const [isEditItemOpen, setIsEditItemOpen] = React.useState(false);
 
 
   const fetchPurchaseHistory = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string) => {
@@ -177,15 +181,15 @@ export default function PurchasesPage() {
   }, [activeTab, returnCurrentPage, returnPerPage, returnSearchTerm, returnDateFrom, returnDateTo, fetchReturnHistory]);
 
   React.useEffect(() => {
-    if (purchaseDraft) {
+    if (purchaseDraft && purchaseDraft.items.length > 0) {
         setPurchaseId(purchaseDraft.invoiceId);
         setPurchaseSupplierId(purchaseDraft.supplierId);
         setPurchaseItems(purchaseDraft.items);
         setIsPurchaseInfoLocked(true);
         setActiveTab('new-purchase');
-        clearPurchaseDraft(); // Clear draft after loading
+        setPurchaseDraft({ invoiceId: '', supplierId: '', items: [] }); // Clear draft after loading
     }
-  }, [purchaseDraft, clearPurchaseDraft]);
+  }, [purchaseDraft, setPurchaseDraft]);
 
   const toggleRow = (id: string) => {
     const newExpandedRows = new Set(expandedRows);
@@ -447,6 +451,29 @@ export default function PurchasesPage() {
     }
   }
 
+  const openEditItemDialog = (item: PurchaseOrderItem) => {
+    setEditingPurchaseItem(item);
+    setIsEditItemOpen(true);
+  };
+  
+  const handleUpdatePurchaseItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPurchaseItem) return;
+    
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const updatedItem: PurchaseOrderItem = {
+      ...editingPurchaseItem,
+      quantity: parseInt(formData.get('quantity') as string, 10),
+      purchase_price: parseFloat(formData.get('purchase_price') as string),
+      price: parseFloat(formData.get('price') as string),
+      expiration_date: formData.get('expiration_date') as string,
+    };
+    
+    setPurchaseItems(prev => prev.map(item => item.id === updatedItem.id ? updatedItem : item));
+    setIsEditItemOpen(false);
+    setEditingPurchaseItem(null);
+  };
+
 
   return (
      <Tabs defaultValue="new-purchase" onValueChange={setActiveTab} className="w-full">
@@ -580,7 +607,10 @@ export default function PurchasesPage() {
                                         <TableCell className="font-mono">{item.purchase_price?.toLocaleString()}</TableCell>
                                         <TableCell className="font-mono">{item.expiration_date ? new Date(item.expiration_date).toLocaleDateString('ar-EG') : ''}</TableCell>
                                         <TableCell className="font-mono">{(item.quantity! * item.purchase_price!).toLocaleString()}</TableCell>
-                                        <TableCell>
+                                        <TableCell className="flex items-center gap-1">
+                                            <Button variant="ghost" size="icon" className="text-blue-600 h-8 w-8" onClick={() => openEditItemDialog(item)}>
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
                                             <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleRemoveFromPurchase(item.id)}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -963,6 +993,37 @@ export default function PurchasesPage() {
                     <Button type="submit" variant="success">إضافة وإدراج في القائمة</Button>
                 </DialogFooter>
             </form>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isEditItemOpen} onOpenChange={setIsEditItemOpen}>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+                <DialogTitle>تعديل الصنف: {editingPurchaseItem?.name}</DialogTitle>
+            </DialogHeader>
+            {editingPurchaseItem && (
+                <form onSubmit={handleUpdatePurchaseItem} className="space-y-4 pt-2">
+                     <div className="space-y-2">
+                        <Label htmlFor="edit-quantity">الكمية</Label>
+                        <Input id="edit-quantity" name="quantity" type="number" defaultValue={editingPurchaseItem.quantity} required />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-purchase_price">سعر الشراء</Label>
+                        <Input id="edit-purchase_price" name="purchase_price" type="number" step="0.01" defaultValue={editingPurchaseItem.purchase_price} required />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="edit-price">سعر البيع</Label>
+                        <Input id="edit-price" name="price" type="number" step="0.01" defaultValue={editingPurchaseItem.price} required />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-expiration_date">تاريخ الانتهاء</Label>
+                        <Input id="edit-expiration_date" name="expiration_date" type="date" defaultValue={editingPurchaseItem.expiration_date} required />
+                    </div>
+                     <DialogFooter className="pt-2">
+                        <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                        <Button type="submit" variant="success">حفظ التغييرات</Button>
+                    </DialogFooter>
+                </form>
+            )}
         </DialogContent>
       </Dialog>
     </Tabs>
