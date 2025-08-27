@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 import { PinDialog } from '@/components/auth/PinDialog';
@@ -29,6 +29,7 @@ type AuthResponse = {
     };
     all_users_in_pharmacy: User[];
     advertisements: Advertisement[];
+    offers: Offer[];
 };
 
 type ActiveInvoice = {
@@ -63,6 +64,13 @@ interface AuthContextType {
     addAdvertisement: (title: string, image_url: string) => Promise<void>;
     updateAdvertisement: (adId: string, data: Partial<Omit<Advertisement, 'id' | 'created_at'>>) => Promise<void>;
     deleteAdvertisement: (adId: string) => Promise<void>;
+    incrementAdView: (adId: string) => Promise<void>;
+    
+    offers: Offer[];
+    addOffer: (title: string, image_url: string) => Promise<void>;
+    deleteOffer: (offerId: string) => Promise<void>;
+    incrementOfferView: (offerId: string) => Promise<void>;
+    
     clearPharmacyData: () => Promise<void>;
     closeMonth: (pin: string, dateFrom: string, dateTo: string) => Promise<boolean>;
     
@@ -157,8 +165,6 @@ interface AuthContextType {
     removeFromOrderRequestCart: (orderItemId: string, skipToast?: boolean) => void;
     updateOrderRequestItem: (orderItemId: string, data: Partial<OrderRequestItem>) => Promise<void>;
     
-    // Offers
-    incrementAdView: (adId: string) => Promise<void>;
 }
 
 export interface ScopedDataContextType {
@@ -270,6 +276,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     const [activeTimeLogId, setActiveTimeLogId] = React.useState<string | null>(null);
     const [advertisements, setAdvertisements] = React.useState<Advertisement[]>([]);
+    const [offers, setOffers] = React.useState<Offer[]>([]);
     const [activeInvoice, setActiveInvoice] = React.useState<ActiveInvoice>(initialActiveInvoice);
     const [orderRequestCart, setOrderRequestCart] = React.useState<OrderRequestItem[]>([]);
     
@@ -318,6 +325,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setCurrentUser(data.user);
         setUsers(data.all_users_in_pharmacy || []);
         setAdvertisements(data.advertisements || []);
+        setOffers(data.offers || []);
         
         const pd = data.pharmacy_data;
         if(pd) {
@@ -497,6 +505,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             await apiRequest(`/advertisements/${adId}/view`, 'POST');
             setAdvertisements(prev => prev.map(ad => ad.id === adId ? { ...ad, views: (ad.views || 0) + 1 } : ad));
+        } catch(e: any) {}
+    };
+    
+    const addOffer = async (title: string, image_url: string) => {
+         try {
+            const newOffer = await apiRequest('/offers', 'POST', { title, image_url });
+            setOffers(prev => [...prev, newOffer]);
+        } catch(e: any) {}
+    };
+    
+    const deleteOffer = async (offerId: string) => {
+        try {
+            await apiRequest(`/offers/${offerId}`, 'DELETE');
+            setOffers(prev => prev.filter(offer => offer.id !== offerId));
+        } catch(e: any) {}
+    };
+
+    const incrementOfferView = async (offerId: string) => {
+        try {
+            await apiRequest(`/offers/${offerId}/view`, 'POST');
+            setOffers(prev => prev.map(offer => offer.id === offerId ? { ...offer, views: (offer.views || 0) + 1 } : offer));
         } catch(e: any) {}
     }
 
@@ -1088,6 +1117,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData,
             getAllPharmacySettings, getPharmacyData, clearPharmacyData, closeMonth,
             advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement, incrementAdView,
+            offers, addOffer, deleteOffer, incrementOfferView,
             addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, getPaginatedInventory, searchAllInventory, markAsDamaged,
             getPaginatedExpiringSoon,
             getPaginatedItemMovements, getMedicationMovements,

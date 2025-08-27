@@ -7,26 +7,22 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BadgePercent, Eye } from 'lucide-react';
-import type { Advertisement } from '@/lib/types';
+import type { Offer } from '@/lib/types';
 
 export default function OffersPage() {
-    const { advertisements, loading, incrementAdView } = useAuth();
-
-    const offers = React.useMemo(() => {
-        return (advertisements || []).filter(ad => ad.show_on?.offers);
-    }, [advertisements]);
+    const { offers, loading, incrementOfferView } = useAuth();
 
     // Use an effect to track viewed ads to avoid duplicate calls during the same session
     React.useEffect(() => {
-        const viewedAds = new Set<string>();
+        const viewedOffers = new Set<string>();
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
-                        const adId = (entry.target as HTMLElement).dataset.adId;
-                        if (adId && !viewedAds.has(adId)) {
-                            incrementAdView(adId);
-                            viewedAds.add(adId);
+                        const offerId = (entry.target as HTMLElement).dataset.offerId;
+                        if (offerId && !viewedOffers.has(offerId)) {
+                            incrementOfferView(offerId);
+                            viewedOffers.add(offerId);
                             observer.unobserve(entry.target); // Stop observing after view is counted
                         }
                     }
@@ -35,14 +31,14 @@ export default function OffersPage() {
             { threshold: 0.5 } // Trigger when 50% of the element is visible
         );
 
-        document.querySelectorAll('[data-ad-id]').forEach((el) => {
+        document.querySelectorAll('[data-offer-id]').forEach((el) => {
             observer.observe(el);
         });
 
         return () => {
             observer.disconnect();
         };
-    }, [offers, incrementAdView]);
+    }, [offers, incrementOfferView]);
 
     if (loading) {
         return (
@@ -72,13 +68,13 @@ export default function OffersPage() {
             </div>
             {offers.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {offers.map(ad => (
-                        <Card key={ad.id} data-ad-id={ad.id} className="overflow-hidden group">
+                    {offers.map(offer => (
+                        <Card key={offer.id} data-offer-id={offer.id} className="overflow-hidden group">
                             <CardContent className="p-0">
                                 <div className="aspect-[4/3] relative">
                                     <Image 
-                                        src={ad.image_url} 
-                                        alt={ad.title} 
+                                        src={offer.image_url} 
+                                        alt={offer.title} 
                                         layout="fill" 
                                         objectFit="cover" 
                                         className="transition-transform duration-300 group-hover:scale-105"
@@ -86,7 +82,7 @@ export default function OffersPage() {
                                 </div>
                             </CardContent>
                             <CardHeader>
-                                <CardTitle className="truncate">{ad.title}</CardTitle>
+                                <CardTitle className="truncate">{offer.title}</CardTitle>
                             </CardHeader>
                         </Card>
                     ))}

@@ -210,9 +210,17 @@ export type Advertisement = {
         sales: boolean;
         reports: boolean;
         inventory: boolean;
-        offers: boolean;
     }
 };
+
+export type Offer = {
+    id: string;
+    title: string;
+    image_url: string;
+    created_at: string;
+    views: number;
+};
+
 
 export type Expense = {
     id: string;

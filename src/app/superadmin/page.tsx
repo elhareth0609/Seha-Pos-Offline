@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import type { User, Advertisement } from '@/lib/types';
+import type { User, Advertisement, Offer } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -103,7 +103,12 @@ function AdminRow({ admin, onDelete, onToggleStatus }: { admin: User, onDelete: 
 }
 
 export default function SuperAdminPage() {
-    const { currentUser, users, createPharmacyAdmin, deleteUser, toggleUserStatus, logout, advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement, getPaginatedUsers } = useAuth();
+    const { 
+        currentUser, users, createPharmacyAdmin, deleteUser, toggleUserStatus, logout, 
+        advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement, 
+        offers, addOffer, deleteOffer,
+        getPaginatedUsers 
+    } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     
@@ -115,10 +120,19 @@ export default function SuperAdminPage() {
     const [searchTerm, setSearchTerm] = React.useState("");
 
     const [isAddAdminOpen, setIsAddAdminOpen] = React.useState(false);
+
+    // Ads State
     const [isAddAdOpen, setIsAddAdOpen] = React.useState(false);
     const [adTitle, setAdTitle] = React.useState("");
     const [adImageFile, setAdImageFile] = React.useState<File | null>(null);
     const [adImagePreview, setAdImagePreview] = React.useState<string | null>(null);
+    
+    // Offers State
+    const [isAddOfferOpen, setIsAddOfferOpen] = React.useState(false);
+    const [offerTitle, setOfferTitle] = React.useState("");
+    const [offerImageFile, setOfferImageFile] = React.useState<File | null>(null);
+    const [offerImagePreview, setOfferImagePreview] = React.useState<string | null>(null);
+
     
     const addAdminForm = useForm<AddAdminFormValues>({
         resolver: zodResolver(addAdminSchema),
@@ -194,6 +208,14 @@ export default function SuperAdminPage() {
             setAdImagePreview(URL.createObjectURL(file));
         }
     };
+    
+    const handleOfferImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setOfferImageFile(file);
+            setOfferImagePreview(URL.createObjectURL(file));
+        }
+    };
 
     const handleAddAdvertisement = async () => {
         if (!adTitle.trim() || !adImageFile) {
@@ -206,6 +228,19 @@ export default function SuperAdminPage() {
         setAdTitle("");
         setAdImageFile(null);
         setAdImagePreview(null);
+    };
+
+    const handleAddOffer = async () => {
+        if (!offerTitle.trim() || !offerImageFile) {
+            toast({ variant: 'destructive', title: 'بيانات ناقصة', description: 'الرجاء إدخال عنوان واختيار صورة للعرض.' });
+            return;
+        }
+        const imageDataUri = await fileToDataUri(offerImageFile);
+        await addOffer(offerTitle, imageDataUri);
+        setIsAddOfferOpen(false);
+        setOfferTitle("");
+        setOfferImageFile(null);
+        setOfferImagePreview(null);
     };
 
     const handleShowOnPageChange = (adId: string, page: keyof Advertisement['show_on'], checked: boolean) => {
@@ -227,7 +262,7 @@ export default function SuperAdminPage() {
             <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">لوحة تحكم الشركة</h1>
-                    <p className="text-muted-foreground">إدارة حسابات مديري الصيدليات والإعلانات.</p>
+                    <p className="text-muted-foreground">إدارة حسابات مديري الصيدليات والإعلانات والعروض.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                     <Button variant="outline" asChild>
@@ -243,7 +278,7 @@ export default function SuperAdminPage() {
                 </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">عدد الصيدليات</CardTitle><Building className="h-4 w-4 text-muted-foreground" /></CardHeader>
                     <CardContent><div className="text-2xl font-bold font-mono">{pharmacyAdmins.length}</div></CardContent>
@@ -256,9 +291,13 @@ export default function SuperAdminPage() {
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">عدد الإعلانات</CardTitle><ImageIcon className="h-4 w-4 text-muted-foreground" /></CardHeader>
                     <CardContent><div className="text-2xl font-bold font-mono">{advertisements.length}</div></CardContent>
                 </Card>
+                 <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">عدد العروض</CardTitle><BadgePercent className="h-4 w-4 text-muted-foreground" /></CardHeader>
+                    <CardContent><div className="text-2xl font-bold font-mono">{offers.length}</div></CardContent>
+                </Card>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-3">
+            <div className="grid gap-6 lg:grid-cols-1">
                 <Card className="lg:col-span-2">
                     <CardHeader>
                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -378,6 +417,80 @@ export default function SuperAdminPage() {
                         </div>
                     </CardContent>
                 </Card>
+            </div>
+            
+            <div className="grid gap-6 lg:grid-cols-2">
+                 <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle>إدارة العروض</CardTitle>
+                            <CardDescription>إضافة وحذف العروض الترويجية.</CardDescription>
+                        </div>
+                        <Dialog open={isAddOfferOpen} onOpenChange={setIsAddOfferOpen}>
+                            <DialogTrigger asChild>
+                                <Button size="icon"><ImagePlus /></Button>
+                            </DialogTrigger>
+                             <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>إضافة عرض جديد</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4 py-2">
+                                    <div className="space-y-2">
+                                        <Label>عنوان العرض</Label>
+                                        <Input value={offerTitle} onChange={(e) => setOfferTitle(e.target.value)} placeholder="مثال: خصم 20% على منتجات العناية بالبشرة" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>صورة العرض</Label>
+                                        <Input type="file" accept="image/*" onChange={handleOfferImageChange} />
+                                    </div>
+                                    {offerImagePreview && (
+                                        <div className="flex justify-center">
+                                            <Image src={offerImagePreview} alt="معاينة العرض" width={200} height={100} className="rounded-md object-contain" />
+                                        </div>
+                                    )}
+                                </div>
+                                <DialogFooter>
+                                    <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
+                                    <Button onClick={handleAddOffer} variant="success">إضافة</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {offers.map(offer => (
+                                <div key={offer.id} className="p-3 border rounded-md flex items-start justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <Image src={offer.image_url} alt={offer.title} width={64} height={36} className="rounded-sm object-cover" />
+                                        <div>
+                                            <p className="font-semibold">{offer.title}</p>
+                                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                <Eye className="h-3 w-3" />
+                                                <span>{offer.views || 0}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>هل أنت متأكد من حذف هذا العرض؟</AlertDialogTitle>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => deleteOffer(offer.id)} className="bg-destructive hover:bg-destructive/90">حذف</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
@@ -465,10 +578,6 @@ export default function SuperAdminPage() {
                                              <div className="flex items-center gap-2">
                                                 <Checkbox id={`inventory-${ad.id}`} checked={ad.show_on?.inventory} onCheckedChange={(c) => handleShowOnPageChange(ad.id, 'inventory', !!c)} />
                                                 <Label htmlFor={`inventory-${ad.id}`} className="flex items-center gap-1 cursor-pointer"><Boxes className="h-3 w-3"/> مخزون</Label>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Checkbox id={`offers-${ad.id}`} checked={ad.show_on?.offers} onCheckedChange={(c) => handleShowOnPageChange(ad.id, 'offers', !!c)} />
-                                                <Label htmlFor={`offers-${ad.id}`} className="flex items-center gap-1 cursor-pointer"><BadgePercent className="h-3 w-3"/> عروض</Label>
                                             </div>
                                         </div>
                                     </div>
