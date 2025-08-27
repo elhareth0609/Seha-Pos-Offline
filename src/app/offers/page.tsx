@@ -4,16 +4,22 @@
 import * as React from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BadgePercent, Eye } from 'lucide-react';
+import { BadgePercent, Eye, Phone } from 'lucide-react';
 import type { Offer } from '@/lib/types';
+import { isAfter, parseISO } from 'date-fns';
 
 export default function OffersPage() {
     const { offers, loading, incrementOfferView } = useAuth();
 
-    // Use an effect to track viewed ads to avoid duplicate calls during the same session
+    const activeOffers = React.useMemo(() => {
+        return (offers || []).filter(offer => isAfter(parseISO(offer.expiration_date), new Date()));
+    }, [offers]);
+
     React.useEffect(() => {
+        if (loading || activeOffers.length === 0) return;
+
         const viewedOffers = new Set<string>();
         const observer = new IntersectionObserver(
             (entries) => {
@@ -38,7 +44,7 @@ export default function OffersPage() {
         return () => {
             observer.disconnect();
         };
-    }, [offers, incrementOfferView]);
+    }, [activeOffers, loading, incrementOfferView]);
 
     if (loading) {
         return (
@@ -66,10 +72,10 @@ export default function OffersPage() {
                     <p className="text-muted-foreground">اكتشف أحدث العروض والمنتجات من شركائنا.</p>
                 </div>
             </div>
-            {offers.length > 0 ? (
+            {activeOffers.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {offers.map(offer => (
-                        <Card key={offer.id} data-offer-id={offer.id} className="overflow-hidden group">
+                    {activeOffers.map(offer => (
+                        <Card key={offer.id} data-offer-id={offer.id} className="overflow-hidden group flex flex-col">
                             <CardContent className="p-0">
                                 <div className="aspect-[4/3] relative">
                                     <Image 
@@ -81,9 +87,21 @@ export default function OffersPage() {
                                     />
                                 </div>
                             </CardContent>
-                            <CardHeader>
+                            <CardHeader className="flex-grow">
                                 <CardTitle className="truncate">{offer.title}</CardTitle>
                             </CardHeader>
+                            {offer.contact_number && (
+                                <CardFooter className="flex-col items-start gap-2 border-t pt-4">
+                                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Phone className="h-4 w-4" />
+                                        <span>للتواصل: <span className="font-mono">{offer.contact_number}</span></span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <Eye className="h-3 w-3" />
+                                        <span>{offer.views || 0} مشاهدة</span>
+                                    </div>
+                                </CardFooter>
+                            )}
                         </Card>
                     ))}
                 </div>

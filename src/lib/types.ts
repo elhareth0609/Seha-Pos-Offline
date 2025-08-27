@@ -1,4 +1,5 @@
 
+
 import { z } from 'zod';
 
 export type UserPermissions = {
@@ -217,6 +218,8 @@ export type Offer = {
     id: string;
     title: string;
     image_url: string;
+    contact_number?: string;
+    expiration_date: string;
     created_at: string;
     views: number;
 };

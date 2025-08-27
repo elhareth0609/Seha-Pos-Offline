@@ -67,7 +67,7 @@ interface AuthContextType {
     incrementAdView: (adId: string) => Promise<void>;
     
     offers: Offer[];
-    addOffer: (title: string, image_url: string) => Promise<void>;
+    addOffer: (title: string, image_url: string, expiration_date: string, contact_number?: string) => Promise<void>;
     deleteOffer: (offerId: string) => Promise<void>;
     incrementOfferView: (offerId: string) => Promise<void>;
     
@@ -508,9 +508,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch(e: any) {}
     };
     
-    const addOffer = async (title: string, image_url: string) => {
+    const addOffer = async (title: string, image_url: string, expiration_date: string, contact_number?: string) => {
          try {
-            const newOffer = await apiRequest('/offers', 'POST', { title, image_url });
+            const newOffer = await apiRequest('/offers', 'POST', { title, image_url, expiration_date, contact_number });
             setOffers(prev => [...prev, newOffer]);
         } catch(e: any) {}
     };

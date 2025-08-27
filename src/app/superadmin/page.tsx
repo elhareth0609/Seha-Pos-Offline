@@ -19,12 +19,14 @@ import type { User, Advertisement, Offer } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, Building, ImagePlus, Image as ImageIcon, LayoutDashboard, ShoppingCart,LockKeyhole, LockOpen, LockIcon, Boxes, BadgePercent } from 'lucide-react';
+import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, Building, ImagePlus, Image as ImageIcon, LayoutDashboard, ShoppingCart,LockKeyhole, LockOpen, LockIcon, Boxes, BadgePercent, Phone, CalendarClock } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { isAfter, parseISO } from 'date-fns';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 const addAdminSchema = z.object({
@@ -130,8 +132,11 @@ export default function SuperAdminPage() {
     // Offers State
     const [isAddOfferOpen, setIsAddOfferOpen] = React.useState(false);
     const [offerTitle, setOfferTitle] = React.useState("");
+    const [offerContact, setOfferContact] = React.useState("");
+    const [offerExpiry, setOfferExpiry] = React.useState("");
     const [offerImageFile, setOfferImageFile] = React.useState<File | null>(null);
     const [offerImagePreview, setOfferImagePreview] = React.useState<string | null>(null);
+    const [offerFilter, setOfferFilter] = React.useState<'active' | 'expired'>('active');
 
     
     const addAdminForm = useForm<AddAdminFormValues>({
@@ -231,14 +236,16 @@ export default function SuperAdminPage() {
     };
 
     const handleAddOffer = async () => {
-        if (!offerTitle.trim() || !offerImageFile) {
-            toast({ variant: 'destructive', title: 'بيانات ناقصة', description: 'الرجاء إدخال عنوان واختيار صورة للعرض.' });
+        if (!offerTitle.trim() || !offerImageFile || !offerExpiry) {
+            toast({ variant: 'destructive', title: 'بيانات ناقصة', description: 'الرجاء إدخال عنوان وتاريخ انتهاء واختيار صورة للعرض.' });
             return;
         }
         const imageDataUri = await fileToDataUri(offerImageFile);
-        await addOffer(offerTitle, imageDataUri);
+        await addOffer(offerTitle, imageDataUri, offerExpiry, offerContact);
         setIsAddOfferOpen(false);
         setOfferTitle("");
+        setOfferContact("");
+        setOfferExpiry("");
         setOfferImageFile(null);
         setOfferImagePreview(null);
     };
@@ -252,6 +259,14 @@ export default function SuperAdminPage() {
     }
 
     const totalEmployees = users.filter(u => u.role === 'Employee').length;
+
+    const filteredOffers = React.useMemo(() => {
+        const now = new Date();
+        if (offerFilter === 'active') {
+            return (offers || []).filter(offer => isAfter(parseISO(offer.expiration_date), now));
+        }
+        return (offers || []).filter(offer => !isAfter(parseISO(offer.expiration_date), now));
+    }, [offers, offerFilter]);
 
     if (!currentUser || currentUser.role !== 'SuperAdmin') {
         return null;
@@ -437,11 +452,19 @@ export default function SuperAdminPage() {
                                 <div className="space-y-4 py-2">
                                     <div className="space-y-2">
                                         <Label>عنوان العرض</Label>
-                                        <Input value={offerTitle} onChange={(e) => setOfferTitle(e.target.value)} placeholder="مثال: خصم 20% على منتجات العناية بالبشرة" />
+                                        <Input value={offerTitle} onChange={(e) => setOfferTitle(e.target.value)} placeholder="مثال: خصم 20% على منتجات العناية بالبشرة" required />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>رقم التواصل (اختياري)</Label>
+                                        <Input value={offerContact} onChange={(e) => setOfferContact(e.target.value)} placeholder="مثال: 07701234567" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>تاريخ انتهاء العرض</Label>
+                                        <Input type="date" value={offerExpiry} onChange={(e) => setOfferExpiry(e.target.value)} required />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>صورة العرض</Label>
-                                        <Input type="file" accept="image/*" onChange={handleOfferImageChange} />
+                                        <Input type="file" accept="image/*" onChange={handleOfferImageChange} required />
                                     </div>
                                     {offerImagePreview && (
                                         <div className="flex justify-center">
@@ -457,17 +480,22 @@ export default function SuperAdminPage() {
                         </Dialog>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4">
-                            {offers.map(offer => (
+                        <Tabs value={offerFilter} onValueChange={(v) => setOfferFilter(v as any)}>
+                            <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="active">العروض السارية</TabsTrigger>
+                                <TabsTrigger value="expired">العروض المنتهية</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                        <div className="space-y-4 mt-4 max-h-96 overflow-y-auto">
+                            {filteredOffers.map(offer => (
                                 <div key={offer.id} className="p-3 border rounded-md flex items-start justify-between">
                                     <div className="flex items-center gap-3">
                                         <Image src={offer.image_url} alt={offer.title} width={64} height={36} className="rounded-sm object-cover" />
-                                        <div>
+                                        <div className="text-sm">
                                             <p className="font-semibold">{offer.title}</p>
-                                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                <Eye className="h-3 w-3" />
-                                                <span>{offer.views || 0}</span>
-                                            </div>
+                                            {offer.contact_number && <div className="flex items-center gap-1 text-xs text-muted-foreground"><Phone className="h-3 w-3"/><span>{offer.contact_number}</span></div>}
+                                            <div className="flex items-center gap-1 text-xs text-muted-foreground"><CalendarClock className="h-3 w-3"/><span>ينتهي في: {new Date(offer.expiration_date).toLocaleDateString('ar-EG')}</span></div>
+                                            <div className="flex items-center gap-1 text-xs text-muted-foreground"><Eye className="h-3 w-3" /><span>{offer.views || 0} مشاهدة</span></div>
                                         </div>
                                     </div>
                                     <AlertDialog>
@@ -529,7 +557,7 @@ export default function SuperAdminPage() {
                         </Dialog>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4">
+                        <div className="space-y-4 max-h-96 overflow-y-auto">
                             {advertisements.map(ad => (
                                 <div key={ad.id} className="p-3 border rounded-md flex flex-col gap-4">
                                     <div className="flex items-start justify-between">
