@@ -27,6 +27,7 @@ import {
   CheckCircle,
   FileArchive,
   ShoppingBasket,
+  BadgePercent,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,7 +42,6 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -56,6 +56,7 @@ import { Label } from "../ui/label";
 const allNavItems = [
   { href: "/", icon: LayoutDashboard, label: "لوحة التحكم" },
   { href: "/sales", icon: ShoppingCart, label: "المبيعات" },
+  { href: "/offers", icon: BadgePercent, label: "عروض ميدجرام" },
   { href: "/order-requests", icon: ShoppingBasket, label: "الطلبات" },
   { href: "/inventory", icon: Boxes, label: "المخزون" },
   { href: "/purchases", icon: Truck, label: "المشتريات" },
@@ -167,7 +168,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         manage_close_month: false,
         manage_archives: false,
         manage_order_requests: false,
-
+        manage_offers: true,
     };
 
     const permissionMap: { [key: string]: keyof UserPermissions } = {
@@ -186,6 +187,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         '/tasks': 'manage_tasks',
         '/close-month': 'manage_close_month',
         '/order-requests': 'manage_order_requests',
+        '/offers': 'manage_offers',
     };
 
     return allNavItems.filter(item => {
@@ -244,6 +246,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       {hasPermission('/sales') && (
                         <Button variant="outline" asChild>
                           <Link href="/sales">المبيعات</Link>
+                        </Button>
+                      )}
+                      {hasPermission('/offers') && (
+                        <Button variant="outline" className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500" asChild>
+                          <Link href="/offers">عروض ميدجرام</Link>
                         </Button>
                       )}
                       {hasPermission('/inventory') && (

@@ -153,9 +153,12 @@ interface AuthContextType {
     getArchivedMonthData: (archiveId: string) => Promise<ArchivedMonthData | null>;
 
     orderRequestCart: OrderRequestItem[];
-    addToOrderRequestCart: (item: Medication) => void;
+    addToOrderRequestCart: (item: Medication) => Promise<void>;
     removeFromOrderRequestCart: (orderItemId: string, skipToast?: boolean) => void;
     updateOrderRequestItem: (orderItemId: string, data: Partial<OrderRequestItem>) => Promise<void>;
+    
+    // Offers
+    incrementAdView: (adId: string) => Promise<void>;
 }
 
 export interface ScopedDataContextType {
@@ -269,13 +272,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [advertisements, setAdvertisements] = React.useState<Advertisement[]>([]);
     const [activeInvoice, setActiveInvoice] = React.useState<ActiveInvoice>(initialActiveInvoice);
     const [orderRequestCart, setOrderRequestCart] = React.useState<OrderRequestItem[]>([]);
+    
+    const [purchaseDraft, setPurchaseDraft] = React.useState<{ invoiceId: string; supplierId: string; items: PurchaseOrderItem[] }>({ invoiceId: '', supplierId: '', items: [] });
+
 
     const addToOrderRequestCart = async (item: Medication) => {
+        const tempId = `temp-${Date.now()}`;
+        const newItem = { ...item, id: tempId, medication_id: item.id, quantity: 1 };
+        
         try {
-            const newItem = await apiRequest('/order-requests', 'POST', { medication_id: item.id });
-            setOrderRequestCart(prev => [...prev, newItem]);
+            const savedItem = await apiRequest('/order-requests', 'POST', { medication_id: item.id, quantity: 1 });
+            setOrderRequestCart(prev => prev.map(i => (i.id === tempId ? savedItem : i)));
             toast({ title: 'تمت الإضافة إلى الطلبات', description: `تمت إضافة ${item.name} إلى قائمة الطلبات.` });
-        } catch(e) {}
+        } catch(e) {
+            setOrderRequestCart(prev => prev.filter(i => i.id !== tempId));
+        }
     };
 
     const removeFromOrderRequestCart = async (orderItemId: string, skipToast = false) => {
@@ -481,6 +492,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setAdvertisements(prev => prev.filter(ad => ad.id !== adId));
         } catch(e: any) {}
     };
+
+    const incrementAdView = async (adId: string) => {
+        try {
+            await apiRequest(`/advertisements/${adId}/view`, 'POST');
+            setAdvertisements(prev => prev.map(ad => ad.id === adId ? { ...ad, views: (ad.views || 0) + 1 } : ad));
+        } catch(e: any) {}
+    }
 
     const getPaginatedInventory = React.useCallback(async (page: number, perPage: number, search: string, filters: Record<string, any> = {}) => {
         try {
@@ -1069,7 +1087,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             login, logout, registerUser, deleteUser, updateUser, 
             updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData,
             getAllPharmacySettings, getPharmacyData, clearPharmacyData, closeMonth,
-            advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement,
+            advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement, incrementAdView,
             addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, getPaginatedInventory, searchAllInventory, markAsDamaged,
             getPaginatedExpiringSoon,
             getPaginatedItemMovements, getMedicationMovements,

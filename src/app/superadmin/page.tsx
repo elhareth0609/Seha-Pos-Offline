@@ -19,7 +19,7 @@ import type { User, Advertisement } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, Building, ImagePlus, Image as ImageIcon, LayoutDashboard, ShoppingCart,LockKeyhole, LockOpen, LockIcon, Boxes } from 'lucide-react';
+import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, Building, ImagePlus, Image as ImageIcon, LayoutDashboard, ShoppingCart,LockKeyhole, LockOpen, LockIcon, Boxes, BadgePercent } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -424,7 +424,10 @@ export default function SuperAdminPage() {
                                             <Image src={ad.image_url} alt={ad.title} width={64} height={36} className="rounded-sm object-cover" />
                                             <div>
                                                 <p className="font-semibold">{ad.title}</p>
-                                                <p className="text-xs text-muted-foreground">{ad.id}</p>
+                                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                  <Eye className="h-3 w-3" />
+                                                  <span>{ad.views || 0}</span>
+                                                </div>
                                             </div>
                                         </div>
                                         <AlertDialog>
@@ -463,6 +466,10 @@ export default function SuperAdminPage() {
                                                 <Checkbox id={`inventory-${ad.id}`} checked={ad.show_on?.inventory} onCheckedChange={(c) => handleShowOnPageChange(ad.id, 'inventory', !!c)} />
                                                 <Label htmlFor={`inventory-${ad.id}`} className="flex items-center gap-1 cursor-pointer"><Boxes className="h-3 w-3"/> مخزون</Label>
                                             </div>
+                                            <div className="flex items-center gap-2">
+                                                <Checkbox id={`offers-${ad.id}`} checked={ad.show_on?.offers} onCheckedChange={(c) => handleShowOnPageChange(ad.id, 'offers', !!c)} />
+                                                <Label htmlFor={`offers-${ad.id}`} className="flex items-center gap-1 cursor-pointer"><BadgePercent className="h-3 w-3"/> عروض</Label>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -474,5 +481,3 @@ export default function SuperAdminPage() {
         </div>
     );
 }
-
-    

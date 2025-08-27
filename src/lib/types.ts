@@ -21,6 +21,7 @@ export type UserPermissions = {
     manage_close_month: boolean;
     manage_archives: boolean;
     manage_order_requests: boolean;
+    manage_offers: boolean;
 };
 
 export type Medication = {
@@ -203,11 +204,13 @@ export type Advertisement = {
     title: string;
     image_url: string;
     created_at: string;
+    views: number;
     show_on: {
         dashboard: boolean;
         sales: boolean;
         reports: boolean;
         inventory: boolean;
+        offers: boolean;
     }
 };
 
