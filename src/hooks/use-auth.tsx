@@ -1153,6 +1153,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             restoreItem, permDelete, clearTrash, getPaginatedTrash,
             getPaginatedUsers,
             activeInvoice, setActiveInvoice, resetActiveInvoice,
+            addRepresentative,
             verifyPin, updateUserPinRequirement,
             getArchivedMonths, getArchivedMonthData,
             getOrderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, updateOrderRequestItem,

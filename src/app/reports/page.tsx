@@ -321,7 +321,7 @@ export default function ReportsPage() {
                 </div>
             </div>
             
-            {currentUser?.role === 'Admin' && (
+            {/* {currentUser?.role === 'Admin' && (
             <Card>
                 <CardHeader>
                     <CardTitle>العمليات الدورية</CardTitle>
@@ -338,7 +338,7 @@ export default function ReportsPage() {
                     </Button>
                 </CardContent>
             </Card>
-            )}
+            )} */}
 
 
             <Card>
