@@ -110,6 +110,7 @@ const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: stri
     { key: 'manage_guide', label: 'الوصول إلى الدليل' },
     { key: 'manage_close_month', label: 'الوصول إلى إغلاق الشهر' },
     { key: 'manage_order_requests', label: 'الوصول إلى طلبات الطلب' },
+    { key: 'manage_offers', label: 'الوصول إلى العروض' },
 ];
 
 function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
@@ -278,6 +279,7 @@ export default function SettingsPage() {
             manage_close_month: false,
             manage_archives: false,
             manage_order_requests: false,
+            manage_offers: false,
         };
         setCurrentUserPermissions(permissions);
         setIsPermissionsDialogOpen(true);
