@@ -160,8 +160,8 @@ interface AuthContextType {
     getArchivedMonths: () => Promise<MonthlyArchive[]>;
     getArchivedMonthData: (archiveId: string) => Promise<ArchivedMonthData | null>;
 
-    orderRequestCart: OrderRequestItem[];
-    addToOrderRequestCart: (item: Medication) => Promise<void>;
+    getOrderRequestCart: () => Promise<OrderRequestItem[]>;
+    addToOrderRequestCart: (item: Medication) => void;
     removeFromOrderRequestCart: (orderItemId: string, skipToast?: boolean) => void;
     updateOrderRequestItem: (orderItemId: string, data: Partial<OrderRequestItem>) => Promise<void>;
 
@@ -283,6 +283,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [orderRequestCart, setOrderRequestCart] = React.useState<OrderRequestItem[]>([]);
     
 
+    const getOrderRequestCart = async () => {
+        try {
+            const cart = await apiRequest('/order-requests');
+            setOrderRequestCart(cart as OrderRequestItem[]);
+            return cart as OrderRequestItem[];
+        } catch (e) {
+            toast({ variant: 'destructive', title: 'فشل في تحميل الطلبات', description: 'لم يتم تحميل قائمة الطلبات. الرجاء المحاولة مرة أخرى.' });
+            return [];
+        }
+    }
     const addToOrderRequestCart = async (item: Medication) => {
         const tempId = `temp-${Date.now()}`;
         const newItem = { ...item, id: tempId, medication_id: item.id, quantity: 1 };
@@ -292,7 +302,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setOrderRequestCart(prev => prev.map(i => (i.id === tempId ? savedItem : i)));
             toast({ title: 'تمت الإضافة إلى الطلبات', description: `تمت إضافة ${item.name} إلى قائمة الطلبات.` });
         } catch(e) {
-            setOrderRequestCart(prev => prev.filter(i => i.id !== tempId));
+            toast({ variant: 'destructive', title: 'فشل الإضافة', description: 'لم يتم إضافة الطلب. الرجاء المحاولة مرة أخرى.' });
         }
     };
 
@@ -303,7 +313,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!skipToast) {
                 toast({ title: "تم الحذف من الطلبات" });
             }
-        } catch(e) {}
+        } catch(e) {
+            toast({ variant: 'destructive', title: "فشل الحذف", description: "لم يتم حذف الطلب. الرجاء المحاولة مرة أخرى." });
+        }
     };
 
     const updateOrderRequestItem = async (orderItemId: string, data: Partial<OrderRequestItem>) => {
@@ -1143,8 +1155,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             activeInvoice, setActiveInvoice, resetActiveInvoice,
             verifyPin, updateUserPinRequirement,
             getArchivedMonths, getArchivedMonthData,
-            orderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, updateOrderRequestItem,
-            addRepresentative
+            getOrderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, updateOrderRequestItem,
         }}>
             {children}
         </AuthContext.Provider>

@@ -36,7 +36,7 @@ import { useRouter } from "next/navigation"
 export default function OrderRequestsPage() {
   const { 
     scopedData, 
-    orderRequestCart,
+    getOrderRequestCart,
     removeFromOrderRequestCart,
     updateOrderRequestItem,
     addPurchaseOrder,
@@ -51,26 +51,41 @@ export default function OrderRequestsPage() {
   const [masterSupplierId, setMasterSupplierId] = React.useState('');
   const [masterDate, setMasterDate] = React.useState(new Date().toISOString().split('T')[0]);
   const [isProcessing, setIsProcessing] = React.useState(false);
+  const [orderRequestCart, setOrderRequestCart] = React.useState<OrderRequestItem[]>([]);
 
 
   React.useEffect(() => {
-    setEditableOrderItems(prevEditable => {
-        const newEditableItems: Record<string, any> = {};
-        orderRequestCart.forEach(item => {
-            const key = item.id; 
-            newEditableItems[key] = prevEditable[key] || {
-                quantity: item.quantity || 1,
-                purchase_price: item.purchase_price,
-                price: item.price,
-                expiration_date: item.expiration_date ? new Date(item.expiration_date).toISOString().split('T')[0] : '',
-                supplier_id: item.supplier_id || '',
-                invoice_id: item.invoice_id || '',
-                date: item.date ? new Date(item.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            };
-        });
-        return newEditableItems;
-    });
-  }, [orderRequestCart]);
+    const fetchCart = async () => {
+      const cart = await getOrderRequestCart();
+      if (Array.isArray(cart)) {
+        setOrderRequestCart(cart);
+      } else {
+        console.error('Invalid cart data format');
+        setOrderRequestCart([]);
+      }
+
+      setEditableOrderItems(prevEditable => {
+          const newEditableItems: Record<string, any> = {};
+
+          cart.forEach(item => {
+              const key = item.id; 
+              newEditableItems[key] = prevEditable[key] || {
+                  quantity: item.quantity || 1,
+                  purchase_price: item.purchase_price,
+                  price: item.price,
+                  expiration_date: item.expiration_date ? new Date(item.expiration_date).toISOString().split('T')[0] : '',
+                  supplier_id: item.supplier_id || '',
+                  invoice_id: item.invoice_id || '',
+                  date: item.date ? new Date(item.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+              };
+          });
+          return newEditableItems;
+      });
+    };
+
+    fetchCart();
+  }, []); // Empty dependency array to run only once on mount
+
 
 
   const handleOrderItemChange = (orderItemId: string, field: string, value: string | number) => {
@@ -89,7 +104,7 @@ export default function OrderRequestsPage() {
   
   const handleApplyMasterSettings = () => {
     if (!masterSupplierId && !masterPurchaseId && !masterDate) {
-      toast({ variant: 'destructive', title: "لا يوجد إعدادات لتطبيقها", description: "الرجاء اختيار مورد أو إدخال رقم قائمة أو تحديد تاريخ." });
+      toast({ variant: 'destructive', title: "لا يوجد إعدادات لتطبيقها", description: "الالرجاء اختيار مورد أو إدخال رقم قائمة أو تحديد تاريخ." });
       return;
     }
 
