@@ -6,9 +6,13 @@ import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Contact, Phone, Building, MapPin, Search } from 'lucide-react';
+import { Contact, Phone, Building, MapPin, Search, PlusCircle } from 'lucide-react';
 import type { MedicalRepresentative } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { useAuth } from '@/hooks/use-auth';
 
 
 // This is a placeholder URL. Replace it with the actual API endpoint from your Flutter app's backend.
@@ -21,11 +25,20 @@ const iraqProvinces = [
 ];
 
 export default function RepresentativesPage() {
+    const { addRepresentative } = useAuth();
     const [reps, setReps] = React.useState<MedicalRepresentative[]>([]);
     const [filteredReps, setFilteredReps] = React.useState<MedicalRepresentative[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [searchTerm, setSearchTerm] = React.useState('');
     const [provinceFilter, setProvinceFilter] = React.useState('all');
+    
+    // Add Rep Dialog State
+    const [isAddRepOpen, setIsAddRepOpen] = React.useState(false);
+    const [newRepName, setNewRepName] = React.useState('');
+    const [newRepCompany, setNewRepCompany] = React.useState('');
+    const [newRepPhone, setNewRepPhone] = React.useState('');
+    const [newRepProvince, setNewRepProvince] = React.useState('');
+
 
     React.useEffect(() => {
         const fetchReps = async () => {
@@ -70,19 +83,86 @@ export default function RepresentativesPage() {
         
         setFilteredReps(filteredData);
     }, [searchTerm, provinceFilter, reps]);
+    
+    const handleAddRep = () => {
+        if (!newRepName || !newRepCompany || !newRepPhone || !newRepProvince) {
+            // You can add a toast notification here for validation
+            return;
+        }
+        const newRep: MedicalRepresentative = {
+            id: `manual-${Date.now()}`, // Temporary ID for manually added reps
+            name: newRepName,
+            company: newRepCompany,
+            phone_number: newRepPhone,
+            province: newRepProvince,
+            photo_url: '', // No photo for manually added reps, will use placeholder
+        };
+        
+        // This should be replaced with a call to useAuth's addRepresentative in a real scenario
+        setReps(prev => [...prev, newRep]);
+        
+        // Reset form and close dialog
+        setIsAddRepOpen(false);
+        setNewRepName('');
+        setNewRepCompany('');
+        setNewRepPhone('');
+        setNewRepProvince('');
+    }
 
     return (
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <div className="flex items-center gap-4">
-                        <Contact className="h-10 w-10 text-primary" />
-                        <div>
-                            <CardTitle className="text-3xl">دليل المندوبين</CardTitle>
-                            <CardDescription>
-                                قائمة بأسماء ومعلومات التواصل لمندوبي الشركات الطبية.
-                            </CardDescription>
+                    <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-4">
+                            <Contact className="h-10 w-10 text-primary" />
+                            <div>
+                                <CardTitle className="text-3xl">دليل المندوبين</CardTitle>
+                                <CardDescription>
+                                    قائمة بأسماء ومعلومات التواصل لمندوبي الشركات الطبية.
+                                </CardDescription>
+                            </div>
                         </div>
+                         <Dialog open={isAddRepOpen} onOpenChange={setIsAddRepOpen}>
+                            <DialogTrigger asChild>
+                                <Button><PlusCircle className="me-2"/> إضافة مندوب</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>إضافة مندوب جديد</DialogTitle>
+                                    <DialogDescription>أدخل بيانات المندوب لحفظها في الدليل.</DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-2">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="rep-name">الاسم</Label>
+                                        <Input id="rep-name" value={newRepName} onChange={e => setNewRepName(e.target.value)} required />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="rep-company">الشركة</Label>
+                                        <Input id="rep-company" value={newRepCompany} onChange={e => setNewRepCompany(e.target.value)} required />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="rep-phone">رقم الهاتف</Label>
+                                        <Input id="rep-phone" type="tel" value={newRepPhone} onChange={e => setNewRepPhone(e.target.value)} required />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="rep-province">المحافظة</Label>
+                                        <Select onValueChange={setNewRepProvince} required>
+                                            <SelectTrigger id="rep-province"><SelectValue placeholder="اختر محافظة..." /></SelectTrigger>
+                                            <SelectContent>
+                                                {iraqProvinces.map(province => (
+                                                    <SelectItem key={province} value={province}>{province}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
+                                    <Button onClick={handleAddRep} variant="success">إضافة</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -138,7 +218,7 @@ export default function RepresentativesPage() {
                                         alt={rep.name} 
                                         layout="fill"
                                         objectFit="cover"
-                                        className="rounded-full"
+                                        className="rounded-full bg-muted"
                                     />
                                 </div>
                                 <div className="flex-1">

@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 import { PinDialog } from '@/components/auth/PinDialog';
@@ -164,6 +164,8 @@ interface AuthContextType {
     addToOrderRequestCart: (item: Medication) => Promise<void>;
     removeFromOrderRequestCart: (orderItemId: string, skipToast?: boolean) => void;
     updateOrderRequestItem: (orderItemId: string, data: Partial<OrderRequestItem>) => Promise<void>;
+
+    addRepresentative: (rep: Omit<MedicalRepresentative, 'id'>) => Promise<MedicalRepresentative | null>;
     
 }
 
@@ -280,8 +282,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [activeInvoice, setActiveInvoice] = React.useState<ActiveInvoice>(initialActiveInvoice);
     const [orderRequestCart, setOrderRequestCart] = React.useState<OrderRequestItem[]>([]);
     
-    const [purchaseDraft, setPurchaseDraft] = React.useState<{ invoiceId: string; supplierId: string; items: PurchaseOrderItem[] }>({ invoiceId: '', supplierId: '', items: [] });
-
 
     const addToOrderRequestCart = async (item: Medication) => {
         const tempId = `temp-${Date.now()}`;
@@ -1083,6 +1083,15 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         }
     }
 
+    const addRepresentative = async (rep: Omit<MedicalRepresentative, 'id'>) => {
+        // This is a placeholder. In a real scenario, this would make an API call
+        // to your backend to save the new representative.
+        const newRep = { ...rep, id: `manual-${Date.now()}` };
+        // setRepresentatives(prev => [...prev, newRep]);
+        toast({ title: "تمت إضافة المندوب بنجاح" });
+        return newRep;
+    };
+
 
     const setScopedSettings = async (value: AppSettings | ((val: AppSettings) => AppSettings)) => {
        const newSettings = typeof value === 'function' ? value(settings) : value;
@@ -1135,6 +1144,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             verifyPin, updateUserPinRequirement,
             getArchivedMonths, getArchivedMonthData,
             orderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, updateOrderRequestItem,
+            addRepresentative
         }}>
             {children}
         </AuthContext.Provider>
@@ -1148,3 +1158,4 @@ export function useAuth() {
   }
   return context;
 }
+
