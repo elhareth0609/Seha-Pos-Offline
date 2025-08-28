@@ -165,6 +165,17 @@ interface AuthContextType {
     removeFromOrderRequestCart: (orderItemId: string, skipToast?: boolean) => void;
     updateOrderRequestItem: (orderItemId: string, data: Partial<OrderRequestItem>) => Promise<void>;
 
+    purchaseDraft: {
+        invoiceId: string;
+        supplierId: string;
+        items: PurchaseOrderItem[];
+    };
+    setPurchaseDraft: React.Dispatch<React.SetStateAction<{
+        invoiceId: string;
+        supplierId: string;
+        items: PurchaseOrderItem[];
+    }>>;
+
     addRepresentative: (rep: Omit<MedicalRepresentative, 'id'>) => Promise<MedicalRepresentative | null>;
     
 }
@@ -281,6 +292,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [offers, setOffers] = React.useState<Offer[]>([]);
     const [activeInvoice, setActiveInvoice] = React.useState<ActiveInvoice>(initialActiveInvoice);
     const [orderRequestCart, setOrderRequestCart] = React.useState<OrderRequestItem[]>([]);
+    const [purchaseDraft, setPurchaseDraft] = React.useState<{
+        invoiceId: string;
+        supplierId: string;
+        items: PurchaseOrderItem[];
+    }>({ invoiceId: '', supplierId: '', items: [] });
     
 
     const getOrderRequestCart = async () => {
@@ -1157,6 +1173,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             verifyPin, updateUserPinRequirement,
             getArchivedMonths, getArchivedMonthData,
             getOrderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, updateOrderRequestItem,
+            purchaseDraft, setPurchaseDraft,
         }}>
             {children}
         </AuthContext.Provider>
