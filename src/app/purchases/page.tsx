@@ -217,7 +217,7 @@ export default function PurchasesPage() {
       if (newSupplier) {
         setPurchaseSupplierId(newSupplier.id);
         setIsAddSupplierOpen(false);
-        (e.target as HTMLFormElement).reset();
+        // (e.target as HTMLFormElement).reset();
       }
   };
 
@@ -321,8 +321,12 @@ export default function PurchasesPage() {
         return;
     }
 
-    const supplier = suppliers.find(s => s.id === purchaseSupplierId);
+    const supplier = suppliers.find(s => s.id == purchaseSupplierId);
+    console.log(purchaseSupplierId);
+    console.log(suppliers);
+    console.log(supplier);
     if (!supplier) return;
+    console.log(supplier);
 
     const purchaseData = {
         id: purchase_id,
@@ -426,7 +430,7 @@ export default function PurchasesPage() {
       return;
     }
 
-    const supplier = suppliers.find(s => s.id === returnSupplierId);
+    const supplier = suppliers.find(s => s.id == returnSupplierId);
     if (!supplier) return;
     
     const returnData = {
@@ -510,17 +514,23 @@ export default function PurchasesPage() {
                             <Label htmlFor="supplier_id">المورد</Label>
                             <div className="flex gap-2">
                                 <Select value={purchaseSupplierId} onValueChange={setPurchaseSupplierId} required disabled={isPurchaseInfoLocked}>
-                                    <SelectTrigger id="supplier_id"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
+                                    <SelectTrigger id="supplier_id">
+                                        <SelectValue placeholder="اختر موردًا" />
+                                    </SelectTrigger>
                                     <SelectContent>
                                         {(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 <Dialog open={isAddSupplierOpen} onOpenChange={setIsAddSupplierOpen}>
                                     <DialogTrigger asChild>
-                                        <Button type="button" size="icon" variant="outline"><PlusCircle /></Button>
+                                        <Button type="button" size="icon" variant="outline">
+                                            <PlusCircle />
+                                        </Button>
                                     </DialogTrigger>
                                     <DialogContent>
-                                        <DialogHeader><DialogTitle>إضافة مورد جديد</DialogTitle></DialogHeader>
+                                        <DialogHeader>
+                                            <DialogTitle>إضافة مورد جديد</DialogTitle>
+                                        </DialogHeader>
                                         <form onSubmit={handleAddSupplier} className="space-y-4 pt-2">
                                             <div className="space-y-2">
                                                 <Label htmlFor="supplier_name">اسم المورد</Label>
@@ -748,7 +758,9 @@ export default function PurchasesPage() {
                      <div className="space-y-2">
                         <Label htmlFor="return-supplier_id">المورد</Label>
                         <Select value={returnSupplierId} onValueChange={setReturnSupplierId} required disabled={is_returnInfoLocked}>
-                            <SelectTrigger id="return-supplier_id"><SelectValue placeholder="اختر موردًا" /></SelectTrigger>
+                            <SelectTrigger id="return-supplier_id">
+                                <SelectValue placeholder="اختر موردًا" />
+                            </SelectTrigger>
                             <SelectContent>
                                 {(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                             </SelectContent>
