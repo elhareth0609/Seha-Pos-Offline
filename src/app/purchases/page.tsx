@@ -322,11 +322,7 @@ export default function PurchasesPage() {
     }
 
     const supplier = suppliers.find(s => s.id == purchaseSupplierId);
-    console.log(purchaseSupplierId);
-    console.log(suppliers);
-    console.log(supplier);
     if (!supplier) return;
-    console.log(supplier);
 
     const purchaseData = {
         id: purchase_id,
@@ -518,7 +514,7 @@ export default function PurchasesPage() {
                                         <SelectValue placeholder="اختر موردًا" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                        {(suppliers || []).map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 <Dialog open={isAddSupplierOpen} onOpenChange={setIsAddSupplierOpen}>
