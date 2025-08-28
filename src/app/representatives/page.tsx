@@ -8,15 +8,24 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Contact, Phone, Building, MapPin, Search } from 'lucide-react';
 import type { MedicalRepresentative } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 // This is a placeholder URL. Replace it with the actual API endpoint from your Flutter app's backend.
 const REPS_API_URL = 'https://your-representatives-api.com/api/reps'; 
+
+const iraqProvinces = [
+    "بغداد", "البصرة", "نينوى", "أربيل", "السليمانية", "دهوك", "كركوك", 
+    "الأنبار", "صلاح الدين", "ديالى", "واسط", "بابل", "كربلاء", "النجف", 
+    "القادسية", "ميسان", "ذي قار", "المثنى"
+];
 
 export default function RepresentativesPage() {
     const [reps, setReps] = React.useState<MedicalRepresentative[]>([]);
     const [filteredReps, setFilteredReps] = React.useState<MedicalRepresentative[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [searchTerm, setSearchTerm] = React.useState('');
+    const [provinceFilter, setProvinceFilter] = React.useState('all');
 
     React.useEffect(() => {
         const fetchReps = async () => {
@@ -43,14 +52,24 @@ export default function RepresentativesPage() {
     }, []);
 
     React.useEffect(() => {
-        const lowercasedFilter = searchTerm.toLowerCase();
-        const filteredData = reps.filter(item =>
-            item.name.toLowerCase().includes(lowercasedFilter) ||
-            item.company.toLowerCase().includes(lowercasedFilter) ||
-            item.province.toLowerCase().includes(lowercasedFilter)
-        );
+        let filteredData = reps;
+
+        // Filter by search term (name and company)
+        if (searchTerm) {
+            const lowercasedFilter = searchTerm.toLowerCase();
+            filteredData = filteredData.filter(item =>
+                item.name.toLowerCase().includes(lowercasedFilter) ||
+                item.company.toLowerCase().includes(lowercasedFilter)
+            );
+        }
+
+        // Filter by province
+        if (provinceFilter !== 'all') {
+            filteredData = filteredData.filter(item => item.province === provinceFilter);
+        }
+        
         setFilteredReps(filteredData);
-    }, [searchTerm, reps]);
+    }, [searchTerm, provinceFilter, reps]);
 
     return (
         <div className="space-y-6">
@@ -67,14 +86,27 @@ export default function RepresentativesPage() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="relative">
-                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input
-                            placeholder="ابحث بالاسم، الشركة، أو المحافظة..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full max-w-lg pl-10"
-                        />
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="relative flex-1">
+                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                            <Input
+                                placeholder="ابحث بالاسم أو الشركة..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full max-w-lg pl-10"
+                            />
+                        </div>
+                        <Select value={provinceFilter} onValueChange={setProvinceFilter}>
+                            <SelectTrigger className="w-full sm:w-[200px]">
+                                <SelectValue placeholder="اختر محافظة" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">كل المحافظات</SelectItem>
+                                {iraqProvinces.map(province => (
+                                    <SelectItem key={province} value={province}>{province}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 </CardContent>
             </Card>
