@@ -28,6 +28,7 @@ import {
   FileArchive,
   ShoppingBasket,
   BadgePercent,
+  Contact,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,6 +65,7 @@ const allNavItems = [
   { href: "/reports", icon: FileText, label: "التقارير" },
   { href: "/expenses", icon: Coins, label: "الصرفيات" },
   { href: "/tasks", icon: ListChecks, label: "المهام" },
+  { href: "/representatives", icon: Contact, label: "دليل المندوبين" },
   { href: "/item-movement", icon: Repeat, label: "حركة المادة" },
   { href: "/patients", icon: Users, label: "أصدقاء الصيدلية" },
   { href: "/expiring-soon", icon: CalendarX2, label: "قريب الانتهاء" },
@@ -191,7 +193,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
 
     return allNavItems.filter(item => {
-        if (item.href === '/') return true; 
+        if (item.href === '/' || item.href === '/representatives') return true; 
         const permissionKey = permissionMap[item.href];
         if (!permissionKey) return true;
         return permissions[permissionKey];

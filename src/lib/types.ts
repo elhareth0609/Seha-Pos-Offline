@@ -25,6 +25,15 @@ export type UserPermissions = {
     manage_offers: boolean;
 };
 
+export type MedicalRepresentative = {
+    id: string;
+    name: string;
+    company: string;
+    photo_url: string;
+    province: string;
+    phone_number: string;
+};
+
 export type Medication = {
   id: string;
   barcodes: string[];
