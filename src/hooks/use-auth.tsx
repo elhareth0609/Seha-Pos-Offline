@@ -59,7 +59,7 @@ interface AuthContextType {
     updateUserHourlyRate: (userId: string, rate: number) => Promise<boolean>;
     toggleUserStatus: (userId: string) => Promise<boolean>;
     getAllPharmacySettings: () => Promise<Record<string, AppSettings>>;
-    getPharmacyData: (pharmacyId: string) => Promise<{ users: User[], sales: Sale[], inventory: Medication[] }>;
+    getPharmacyData: (pharmacyId: string) => Promise<{ users: User[], sales: Sale[], inventory: Medication[], purchaseOrders: PurchaseOrder[] }>;
     
     advertisements: Advertisement[];
     addAdvertisement: (title: string, image_url: string) => Promise<void>;
@@ -456,7 +456,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const getPharmacyData = async (pharmacyId: string) => {
          try {
             return await apiRequest(`/superadmin/pharmacies/${pharmacyId}`);
-        } catch(e: any) { return { sales: [], inventory: [], users: [] }; }
+        } catch(e: any) { return { sales: [], inventory: [], users: [], purchaseOrders: [] }; }
     };
     
     const clearPharmacyData = async () => {

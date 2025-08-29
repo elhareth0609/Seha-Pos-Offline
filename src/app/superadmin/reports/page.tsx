@@ -8,8 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { AppSettings, Sale, User } from '@/lib/types';
-import { DollarSign, TrendingUp, PieChart, ArrowLeft } from 'lucide-react';
+import type { AppSettings, Sale, User, PurchaseOrder, PurchaseOrderItem } from '@/lib/types';
+import { ArrowLeft, Building, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,6 +30,7 @@ export default function SuperAdminReportsPage() {
     
     const [allPharmacySettings, setAllPharmacySettings] = React.useState<Record<string, AppSettings>>({});
     const [allPharmacySales, setAllPharmacySales] = React.useState<Record<string, Sale[]>>({});
+    const [allPharmacyPurchases, setAllPharmacyPurchases] = React.useState<Record<string, PurchaseOrder[]>>({});
     const [loading, setLoading] = React.useState(true);
     const [dateFrom, setDateFrom] = React.useState<string>("");
     const [dateTo, setDateTo] = React.useState<string>("");
@@ -48,14 +49,23 @@ export default function SuperAdminReportsPage() {
                 const settings = await getAllPharmacySettings();
                 setAllPharmacySettings(settings);
 
-                const salesPromises = Object.keys(settings).map(id => getPharmacyData(id).then(data => ({ id, sales: data.sales })));
-                const salesResults = await Promise.all(salesPromises);
+                const dataPromises = Object.keys(settings).map(id => 
+                    getPharmacyData(id).then(data => ({ 
+                        id, 
+                        sales: data.sales, 
+                        purchaseOrders: data.purchaseOrders 
+                    }))
+                );
+                const results = await Promise.all(dataPromises);
 
                 const salesMap: Record<string, Sale[]> = {};
-                salesResults.forEach(result => {
+                const purchasesMap: Record<string, PurchaseOrder[]> = {};
+                results.forEach(result => {
                     salesMap[result.id] = result.sales;
+                    purchasesMap[result.id] = result.purchaseOrders;
                 });
                 setAllPharmacySales(salesMap);
+                setAllPharmacyPurchases(purchasesMap);
 
             } catch (error) {
                 console.error("Failed to fetch all pharmacy data", error);
@@ -107,13 +117,6 @@ export default function SuperAdminReportsPage() {
         }).sort((a,b) => b.total_sales - a.total_sales); // Sort by highest sales
     }, [allPharmacySettings, filteredSales, users]);
 
-    const globalTotals = React.useMemo(() => {
-        const total_sales = performanceData.reduce((acc, p) => acc + p.total_sales, 0);
-        const total_profit = performanceData.reduce((acc, p) => acc + p.total_profit, 0);
-        const profit_margin = total_sales > 0 ? (total_profit / total_sales) * 100 : 0;
-        return { total_sales, total_profit, profit_margin };
-    }, [performanceData]);
-
     const topSellingMedications = React.useMemo(() => {
         const medicationCounts: { [key: string]: { name: string, quantity: number } } = {};
         const salesData = Object.values(filteredSales).flat();
@@ -121,24 +124,53 @@ export default function SuperAdminReportsPage() {
         if(!salesData) return [];
 
         salesData.forEach(sale => {
-            sale.items.forEach(item => {
-                if (!item.is_return) {
-                    if (medicationCounts[item.medication_id]) {
-                        medicationCounts[item.medication_id].quantity += item.quantity;
-                    } else {
-                        medicationCounts[item.medication_id] = {
-                            name: item.name,
-                            quantity: item.quantity,
-                        };
+            if (sale.items) {
+                sale.items.forEach(item => {
+                    if (!item.is_return) {
+                        if (medicationCounts[item.medication_id]) {
+                            medicationCounts[item.medication_id].quantity += item.quantity;
+                        } else {
+                            medicationCounts[item.medication_id] = {
+                                name: item.name,
+                                quantity: item.quantity,
+                            };
+                        }
                     }
-                }
-            });
+                });
+            }
         });
 
         return Object.values(medicationCounts)
             .sort((a, b) => b.quantity - a.quantity)
             .slice(0, 30);
     }, [filteredSales]);
+    
+    const purchaseAnalytics = React.useMemo(() => {
+        const pharmacyPurchaseCounts: Record<string, number> = {};
+        const topPurchasedItems: Record<string, {name: string, quantity: number}> = {};
+
+        Object.entries(allPharmacyPurchases).forEach(([pharmacyId, purchases]) => {
+            pharmacyPurchaseCounts[pharmacyId] = (pharmacyPurchaseCounts[pharmacyId] || 0) + purchases.length;
+            purchases.forEach(po => {
+                po.items.forEach(item => {
+                    if (topPurchasedItems[item.medication_id!]) {
+                        topPurchasedItems[item.medication_id!].quantity += item.quantity;
+                    } else {
+                        topPurchasedItems[item.medication_id!] = { name: item.name, quantity: item.quantity };
+                    }
+                })
+            });
+        });
+
+        const topPharmacyId = Object.keys(pharmacyPurchaseCounts).reduce((a, b) => pharmacyPurchaseCounts[a] > pharmacyPurchaseCounts[b] ? a : b, '');
+        const topPharmacy = allPharmacySettings[topPharmacyId]?.pharmacyName || 'N/A';
+
+        const topItem = Object.values(topPurchasedItems).reduce((a, b) => a.quantity > b.quantity ? a : b, {name: 'N/A', quantity: 0});
+
+
+        return { topPharmacy, topItemName: topItem.name };
+
+    }, [allPharmacyPurchases, allPharmacySettings]);
 
 
     if (loading) {
@@ -163,32 +195,23 @@ export default function SuperAdminReportsPage() {
                         </Button>
                     </div>
                 </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-3">
+                 <CardContent className="grid gap-4 md:grid-cols-2">
                      <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">إجمالي المبيعات (كل الفروع)</CardTitle>
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-sm font-medium">الصيدلية الأكثر شراءً</CardTitle>
+                            <Building className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold font-mono">{globalTotals.total_sales.toLocaleString()}</div>
+                            <div className="text-2xl font-bold">{purchaseAnalytics.topPharmacy}</div>
                         </CardContent>
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">إجمالي صافي الربح</CardTitle>
-                            <TrendingUp className="h-4 w-4 text-green-600" />
+                            <CardTitle className="text-sm font-medium">الدواء الأكثر شراءً</CardTitle>
+                            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-green-600 font-mono">{globalTotals.total_profit.toLocaleString()}</div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">متوسط هامش الربح</CardTitle>
-                            <PieChart className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold font-mono">{globalTotals.profit_margin.toFixed(2)}%</div>
+                            <div className="text-2xl font-bold">{purchaseAnalytics.topItemName}</div>
                         </CardContent>
                     </Card>
                 </CardContent>
