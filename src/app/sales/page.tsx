@@ -592,7 +592,7 @@ export default function SalesPage() {
       async function getPatient() {
           if (patientId) {
               const results = await searchAllPatients(patientId);
-              const patient = results.find(p => p.id === patientId);
+              const patient = results.find(p => p.id == patientId);
               setSelectedPatient(patient || null);
           } else {
               setSelectedPatient(null);

@@ -73,7 +73,7 @@ export default function OffersPage() {
                 </div>
             </div>
             {activeOffers.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {activeOffers.map(offer => (
                         <Card key={offer.id} data-offer-id={offer.id} className="overflow-hidden group flex flex-col">
                             <CardContent className="p-0">
@@ -96,10 +96,10 @@ export default function OffersPage() {
                                         <Phone className="h-4 w-4" />
                                         <span>للتواصل: <span className="font-mono">{offer.contact_number}</span></span>
                                     </div>
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    {/* <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                         <Eye className="h-3 w-3" />
                                         <span>{offer.views || 0} مشاهدة</span>
-                                    </div>
+                                    </div> */}
                                 </CardFooter>
                             )}
                         </Card>
