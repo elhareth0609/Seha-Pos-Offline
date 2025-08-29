@@ -936,7 +936,10 @@ export default function SalesPage() {
                                     const medInInventory = allInventory?.find(med => med.id === item.id);
                                     const stock = medInInventory?.stock ?? 0;
                                     const remainingStock = stock - (item.quantity || 0);
+                                    console.log('price type:', typeof item.price, 'value:', item.price);
+                                    console.log('purchase_price type:', typeof item.purchase_price, 'value:', item.purchase_price);
                                     const isBelowCost = (item.price || 0) < (item.purchase_price || 0);
+                                    console.log('isBelowCost type:', typeof isBelowCost, 'value:', isBelowCost);
                                     const alternatives = findAlternatives(item);
 
                                     return (
