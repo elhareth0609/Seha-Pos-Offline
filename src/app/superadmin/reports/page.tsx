@@ -8,8 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { AppSettings, Sale, User, PurchaseOrder, PurchaseOrderItem } from '@/lib/types';
-import { ArrowLeft, Building, ShoppingCart } from 'lucide-react';
+import type { AppSettings, Sale, User, PurchaseOrder } from '@/lib/types';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -49,25 +49,30 @@ export default function SuperAdminReportsPage() {
             setLoading(true);
             try {
                 const settings = await getAllPharmacySettings();
-                setAllPharmacySettings(settings);
+                setAllPharmacySettings(settings || {});
 
-                const dataPromises = Object.keys(settings).map(id => 
-                    getPharmacyData(id).then(data => ({ 
-                        id, 
-                        sales: data.sales || [], 
-                        purchaseOrders: data.purchaseOrders || [] 
-                    }))
-                );
-                const results = await Promise.all(dataPromises);
+                if(settings && Object.keys(settings).length > 0) {
+                    const dataPromises = Object.keys(settings).map(id => 
+                        getPharmacyData(id).then(data => ({ 
+                            id, 
+                            sales: data.sales || [], 
+                            purchaseOrders: data.purchaseOrders || [] 
+                        }))
+                    );
+                    const results = await Promise.all(dataPromises);
 
-                const salesMap: Record<string, Sale[]> = {};
-                const purchasesMap: Record<string, PurchaseOrder[]> = {};
-                results.forEach(result => {
-                    salesMap[result.id] = result.sales;
-                    purchasesMap[result.id] = result.purchaseOrders;
-                });
-                setAllPharmacySales(salesMap);
-                setAllPharmacyPurchases(purchasesMap);
+                    const salesMap: Record<string, Sale[]> = {};
+                    const purchasesMap: Record<string, PurchaseOrder[]> = {};
+                    results.forEach(result => {
+                        salesMap[result.id] = result.sales;
+                        purchasesMap[result.id] = result.purchaseOrders;
+                    });
+                    setAllPharmacySales(salesMap);
+                    setAllPharmacyPurchases(purchasesMap);
+                } else {
+                    setAllPharmacySales({});
+                    setAllPharmacyPurchases({});
+                }
 
             } catch (error) {
                 console.error("Failed to fetch all pharmacy data", error);
@@ -83,8 +88,14 @@ export default function SuperAdminReportsPage() {
         const dateInterval = dateFrom && dateTo ? { start: parseISO(dateFrom), end: parseISO(dateTo) } : null;
 
         const filterByDate = <T extends { date: string }>(items: T[]): T[] => {
-            if (!dateInterval) return items;
-            return items.filter(item => isWithinInterval(parseISO(item.date), dateInterval));
+            if (!dateInterval || !items) return items || [];
+            return items.filter(item => {
+                try {
+                    return isWithinInterval(parseISO(item.date), dateInterval);
+                } catch {
+                    return false;
+                }
+            });
         };
         
         const medicationCounts: { [key: string]: { name: string, quantity: number } } = {};
@@ -102,7 +113,6 @@ export default function SuperAdminReportsPage() {
             const pharmacyUsers = users.filter(u => String(u.pharmacy_id) === pharmacyId && u.role !== 'SuperAdmin');
             const pharmacyAdmin = pharmacyUsers.find(u => u.role === 'Admin');
             
-            // For top selling medications
             sales.forEach(sale => sale.items?.forEach(item => {
                 if (!item.is_return) {
                     medicationCounts[item.medication_id] = medicationCounts[item.medication_id] || { name: item.name, quantity: 0 };
@@ -110,11 +120,12 @@ export default function SuperAdminReportsPage() {
                 }
             }));
 
-            // For top purchasing pharmacies & items
             pharmacyPurchaseCounts[pharmacyId] = purchases.length;
             purchases.forEach(po => po.items?.forEach(item => {
-                topPurchasedItemsMap[item.medication_id] = topPurchasedItemsMap[item.medication_id] || { name: item.name, quantity: 0 };
-                topPurchasedItemsMap[item.medication_id].quantity += item.quantity;
+                if(item.medication_id){
+                    topPurchasedItemsMap[item.medication_id] = topPurchasedItemsMap[item.medication_id] || { name: item.name, quantity: 0 };
+                    topPurchasedItemsMap[item.medication_id].quantity += item.quantity;
+                }
             }));
 
             return {
@@ -209,7 +220,7 @@ export default function SuperAdminReportsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {performanceData.map(p => (
+                                {performanceData.length > 0 ? performanceData.map(p => (
                                     <TableRow key={p.pharmacy_id}>
                                         <TableCell className="font-medium">{p.pharmacy_name}</TableCell>
                                         <TableCell>
@@ -219,7 +230,9 @@ export default function SuperAdminReportsPage() {
                                         <TableCell className="font-mono text-green-600">{p.total_profit.toLocaleString()}</TableCell>
                                         <TableCell className="font-mono text-center">{p.employee_count}</TableCell>
                                     </TableRow>
-                                ))}
+                                )) : (
+                                    <TableRow><TableCell colSpan={5} className="text-center h-24">لا توجد بيانات</TableCell></TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -238,12 +251,14 @@ export default function SuperAdminReportsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {topSellingMedications.map((med, index) => (
+                               {topSellingMedications.length > 0 ? topSellingMedications.map((med, index) => (
                                     <TableRow key={index}>
                                         <TableCell className="font-medium">{med.name}</TableCell>
                                         <TableCell className="text-left font-mono">{med.quantity.toLocaleString()}</TableCell>
                                     </TableRow>
-                                ))}
+                                )) : (
+                                     <TableRow><TableCell colSpan={2} className="text-center h-24">لا توجد بيانات</TableCell></TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -264,12 +279,14 @@ export default function SuperAdminReportsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {topPurchasingPharmacies.map(p => (
+                                {topPurchasingPharmacies.length > 0 ? topPurchasingPharmacies.map(p => (
                                     <TableRow key={p.pharmacy_id}>
                                         <TableCell className="font-medium">{p.name}</TableCell>
                                         <TableCell className="font-mono text-left">{p.count}</TableCell>
                                     </TableRow>
-                                ))}
+                                )) : (
+                                    <TableRow><TableCell colSpan={2} className="text-center h-24">لا توجد بيانات</TableCell></TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -288,12 +305,14 @@ export default function SuperAdminReportsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {topPurchasedItems.map((item, index) => (
+                                {topPurchasedItems.length > 0 ? topPurchasedItems.map((item, index) => (
                                     <TableRow key={index}>
                                         <TableCell className="font-medium">{item.name}</TableCell>
                                         <TableCell className="text-left font-mono">{item.quantity.toLocaleString()}</TableCell>
                                     </TableRow>
-                                ))}
+                                )) : (
+                                    <TableRow><TableCell colSpan={2} className="text-center h-24">لا توجد بيانات</TableCell></TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
