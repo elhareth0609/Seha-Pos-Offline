@@ -262,7 +262,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         )}
                     </div>
                      <div className="flex flex-1 items-center justify-end gap-2 md:flex-grow-0">
-                         <div className="items-center gap-2">
+                         <div className="items-center gap-2 flex">
                             {currentUser?.role === 'Admin' ? (
                                 <Button variant="outline" asChild>
                                     <Link href="/tasks">
