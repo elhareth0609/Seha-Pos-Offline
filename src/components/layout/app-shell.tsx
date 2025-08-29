@@ -349,14 +349,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
            <main className="flex-1">
             <div className="container py-4">
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4 pb-4 border-b">
-                     <div className="flex flex-1 items-center justify-start gap-2 md:flex-grow-0">
+                     <div className="flex flex-1 items-center justify-start gap-4 md:flex-grow-0">
                         <Link href="/" className="flex items-center gap-2 font-semibold">
                             <img src="/icon.png" alt="Site Icon" className="h-6 w-6" />
                             <span className="hidden sm:inline-block">ميدجرام</span>
                         </Link>
                          <Sheet open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
                             <SheetTrigger asChild>
-                                 <Button variant="ghost" size="icon" className="text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50 relative me-6">
+                                 <Button variant="ghost" size="icon" className="text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50 relative">
                                     <Bell className="h-5 w-5"/>
                                     {unreadCount > 0 && (
                                         <span className="absolute top-0 right-0 flex h-3 w-3">
