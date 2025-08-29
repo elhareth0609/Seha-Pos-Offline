@@ -116,8 +116,11 @@ export default function SuperAdminReportsPage() {
 
     const topSellingMedications = React.useMemo(() => {
         const medicationCounts: { [key: string]: { name: string, quantity: number } } = {};
+        const salesData = Object.values(filteredSales).flat();
 
-        Object.values(filteredSales).flat().forEach(sale => {
+        if(!salesData) return [];
+
+        salesData.forEach(sale => {
             sale.items.forEach(item => {
                 if (!item.is_return) {
                     if (medicationCounts[item.medication_id]) {
