@@ -32,17 +32,13 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetTrigger,
+  SheetClose,
+  SheetDescription,
 } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -52,28 +48,49 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ScrollArea } from "../ui/scroll-area";
 import { Checkbox } from "../ui/checkbox";
 import { Label } from "../ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 
 const allNavItems = [
-  { href: "/", icon: LayoutDashboard, label: "لوحة التحكم" },
-  { href: "/sales", icon: ShoppingCart, label: "المبيعات" },
-  { href: "/offers", icon: BadgePercent, label: "عروض ميدجرام" },
-  { href: "/order-requests", icon: ShoppingBasket, label: "الطلبات" },
-  { href: "/inventory", icon: Boxes, label: "المخزون" },
-  { href: "/purchases", icon: Truck, label: "المشتريات" },
-  { href: "/suppliers", icon: Landmark, label: "الموردون والحسابات" },
-  { href: "/reports", icon: FileText, label: "التقارير" },
-  { href: "/expenses", icon: Coins, label: "الصرفيات" },
-  { href: "/tasks", icon: ListChecks, label: "المهام" },
-  { href: "/representatives", icon: Contact, label: "دليل المندوبين" },
-  { href: "/item-movement", icon: Repeat, label: "حركة المادة" },
-  { href: "/patients", icon: Users, label: "أصدقاء الصيدلية" },
-  { href: "/expiring-soon", icon: CalendarX2, label: "قريب الانتهاء" },
-  { href: "/trash", icon: Trash2, label: "سلة المحذوفات" },
-  { href: "/close-month", icon: FileArchive, label: "الحسابات الختامية" },
-  { href: "/guide", icon: HelpCircle, label: "دليل الاستخدام" },
-  { href: "/settings", icon: Settings, label: "الإعدادات" },
+  { href: "/", icon: LayoutDashboard, label: "لوحة التحكم", group: 'main' },
+  { href: "/sales", icon: ShoppingCart, label: "المبيعات", group: 'main' },
+  { href: "/inventory", icon: Boxes, label: "المخزون", group: 'main' },
+  { href: "/purchases", icon: Truck, label: "المشتريات", group: 'main' },
+  { href: "/suppliers", icon: Landmark, label: "الموردون", group: 'main' },
+  
+  { href: "/reports", icon: FileText, label: "التقارير", group: 'analysis' },
+  { href: "/expenses", icon: Coins, label: "الصرفيات", group: 'analysis' },
+  { href: "/item-movement", icon: Repeat, label: "حركة المادة", group: 'analysis' },
+  { href: "/expiring-soon", icon: CalendarX2, label: "قريب الانتهاء", group: 'analysis' },
+  
+  { href: "/order-requests", icon: ShoppingBasket, label: "طلبات الشراء", group: 'tools' },
+  { href: "/patients", icon: Users, label: "أصدقاء الصيدلية", group: 'tools' },
+  { href: "/tasks", icon: ListChecks, label: "المهام", group: 'tools' },
+  { href: "/representatives", icon: Contact, label: "دليل المندوبين", group: 'tools' },
+  
+  { href: "/offers", icon: BadgePercent, label: "عروض ميدجرام", group: 'external' },
+
+  { href: "/trash", icon: Trash2, label: "سلة المحذوفات", group: 'admin' },
+  { href: "/close-month", icon: FileArchive, label: "الحسابات الختامية", group: 'admin' },
+  { href: "/settings", icon: Settings, label: "الإعدادات", group: 'admin' },
+  { href: "/guide", icon: HelpCircle, label: "دليل الاستخدام", group: 'admin' },
 ];
+
+const navGroups = [
+    { key: 'main', title: 'العمليات اليومية' },
+    { key: 'analysis', title: 'التحليلات والتقارير' },
+    { key: 'tools', title: 'الأدوات والميزات' },
+    { key: 'external', title: 'خدمات ميدجرام' },
+    { key: 'admin', title: 'الإدارة والنظام' }
+]
 
 function TasksSheet() {
   const { currentUser, updateTask, updateStatusTask, getMineTasks } = useAuth();
@@ -145,6 +162,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { toast } = useToast();
   const { currentUser, logout } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
   const navItems = React.useMemo(() => {
     if (!currentUser) return [];
@@ -278,35 +296,67 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         </SheetTrigger>
                     )}
                 </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-                        <Menu className="sm:me-2 h-4 w-4" />
-                        <span className="hidden sm:inline">القائمة الرئيسية</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {navItems.map((item) => (
-                        <DropdownMenuItem key={item.href} onSelect={() => router.push(item.href)}>
-                          <item.icon className="me-2 h-4 w-4" />
-                          <span>{item.label}</span>
-                        </DropdownMenuItem>
-                      ))}
-                      {currentUser?.role === 'Admin' && (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onSelect={handleImportClick}>
-                              <Upload className="me-2 h-4 w-4" />
-                              <span>استيراد بيانات</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={handleBackup}>
-                              <FileDown className="me-2 h-4 w-4" />
-                              <span>نسخ احتياطي للبيانات</span>
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+                    <SheetTrigger asChild>
+                        <Button variant="outline" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                            <Menu className="sm:me-2 h-4 w-4" />
+                            <span className="hidden sm:inline">القائمة الرئيسية</span>
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent side="bottom" className="h-full md:h-auto">
+                        <SheetHeader>
+                            <SheetTitle>القائمة الرئيسية</SheetTitle>
+                            <SheetDescription>اختر وجهتك التالية في النظام.</SheetDescription>
+                        </SheetHeader>
+                        <ScrollArea className="h-[calc(100%-6rem)]">
+                            <div className="py-4 space-y-6">
+                                {navGroups.map(group => {
+                                    const groupItems = navItems.filter(item => item.group === group.key);
+                                    if (groupItems.length === 0) return null;
+                                    return (
+                                        <div key={group.key}>
+                                            <h3 className="mb-4 text-lg font-semibold tracking-tight">{group.title}</h3>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                                {groupItems.map(item => (
+                                                    <SheetClose asChild key={item.href}>
+                                                    <Link href={item.href}>
+                                                        <Card className="h-full hover:bg-primary hover:text-primary-foreground transition-colors group">
+                                                            <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-2 aspect-square">
+                                                                <item.icon className="h-8 w-8 text-primary group-hover:text-primary-foreground" />
+                                                                <span className="text-sm font-medium">{item.label}</span>
+                                                            </CardContent>
+                                                        </Card>
+                                                    </Link>
+                                                    </SheetClose>
+                                                ))}
+                                            </div>
+                                             <Separator className="mt-6" />
+                                        </div>
+                                    )
+                                })}
+                               {currentUser?.role === 'Admin' && (
+                                <>
+                                  <h3 className="mb-4 text-lg font-semibold tracking-tight">النسخ الاحتياطي والاستيراد</h3>
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                      <Card className="hover:bg-accent hover:text-accent-foreground transition-colors group cursor-pointer" onClick={handleImportClick}>
+                                          <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-2 aspect-square">
+                                              <Upload className="h-8 w-8 text-accent-foreground" />
+                                              <span className="text-sm font-medium">استيراد بيانات</span>
+                                          </CardContent>
+                                      </Card>
+                                      <Card className="hover:bg-accent hover:text-accent-foreground transition-colors group cursor-pointer" onClick={handleBackup}>
+                                          <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-2 aspect-square">
+                                              <FileDown className="h-8 w-8 text-accent-foreground" />
+                                              <span className="text-sm font-medium">نسخ احتياطي</span>
+                                          </CardContent>
+                                      </Card>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                        </ScrollArea>
+                    </SheetContent>
+                  </Sheet>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="flex items-center gap-2 px-2">
@@ -333,3 +383,5 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </TooltipProvider>
   );
 }
+
+    
