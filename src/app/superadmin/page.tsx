@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from 'react';
@@ -19,7 +20,7 @@ import type { User, Advertisement, Offer } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, Building, ImagePlus, Image as ImageIcon, LayoutDashboard, ShoppingCart,LockKeyhole, LockOpen, LockIcon, Boxes, BadgePercent, Phone, CalendarClock } from 'lucide-react';
+import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, Building, ImagePlus, Image as ImageIcon, LayoutDashboard, ShoppingCart,LockKeyhole, LockOpen, LockIcon, Boxes, BadgePercent, Phone, CalendarClock, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -28,14 +29,31 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { isAfter, parseISO } from 'date-fns';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+const iraqProvinces = [
+    "بغداد", "البصرة", "نينوى", "أربيل", "السليمانية", "دهوك", "كركوك", 
+    "الأنبار", "صلاح الدين", "ديالى", "واسط", "بابل", "كربلاء", "النجف", 
+    "القادسية", "ميسان", "ذي قار", "المثنى"
+];
 
 const addAdminSchema = z.object({
     name: z.string().min(3, { message: "الاسم مطلوب" }),
     email: z.string().email({ message: "بريد إلكتروني غير صالح" }),
     pin: z.string().min(6, { message: "يجب أن يتكون رمز PIN من 6 أحرف على الأقل." }),
+    province: z.string({ required_error: "الرجاء اختيار محافظة" }),
 });
 
 type AddAdminFormValues = z.infer<typeof addAdminSchema>;
+
+
+const editAdminSchema = z.object({
+    name: z.string().min(3, { message: "الاسم مطلوب" }),
+    email: z.string().email({ message: "بريد إلكتروني غير صالح" }),
+    pin: z.string().optional().refine(val => !val || val.length >= 6, { message: "رمز PIN يجب أن يكون 6 رموز على الأقل" }),
+    province: z.string({ required_error: "الرجاء اختيار محافظة" }),
+});
+
+type EditAdminFormValues = z.infer<typeof editAdminSchema>;
+
 
 const fileToDataUri = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -46,21 +64,14 @@ const fileToDataUri = (file: File): Promise<string> => {
     });
 };
 
-function AdminRow({ admin, onDelete, onToggleStatus }: { admin: User, onDelete: (user: User) => void, onToggleStatus: (user: User) => void }) {
+function AdminRow({ admin, onDelete, onToggleStatus, onEdit }: { admin: User, onDelete: (user: User) => void, onToggleStatus: (user: User) => void, onEdit: (user: User) => void }) {
     const [showPin, setShowPin] = React.useState(false);
 
     return (
         <TableRow>
             <TableCell className="font-medium">{admin.name}</TableCell>
             <TableCell className="hidden sm:table-cell">{admin.email}</TableCell>
-            <TableCell className="hidden lg:table-cell">
-                <div className="flex items-center gap-2">
-                    <span className="font-mono">{showPin ? admin.pin : '••••••'}</span>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowPin(p => !p)}>
-                        {showPin ? <LockOpen className="h-4 w-4" /> : <LockIcon className="h-4 w-4" />}
-                    </Button>
-                </div>
-            </TableCell>
+            <TableCell className="hidden md:table-cell">{admin.province || 'غير محدد'}</TableCell>
             <TableCell>
                 <Badge variant={admin.status === 'active' ? 'secondary' : 'destructive'} className={admin.status === 'active' ? 'bg-green-100 text-green-800' : ''}>
                     {admin.status === 'active' ? 'فعال' : 'معلق'}
@@ -72,6 +83,10 @@ function AdminRow({ admin, onDelete, onToggleStatus }: { admin: User, onDelete: 
                         <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                         <DropdownMenuItem onSelect={() => onEdit(admin)}>
+                            <Pencil className="me-2"/>
+                            تعديل البيانات
+                        </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => onToggleStatus(admin)}>
                             {admin.status === 'active' ? <ToggleLeft className="me-2"/> : <ToggleRight className="me-2" />}
                             {admin.status === 'active' ? 'تعليق الحساب' : 'إعادة تفعيل'}
@@ -109,7 +124,8 @@ export default function SuperAdminPage() {
         currentUser, users, createPharmacyAdmin, deleteUser, toggleUserStatus, logout, 
         advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement, 
         offers, addOffer, deleteOffer,
-        getPaginatedUsers 
+        getPaginatedUsers,
+        updateUser
     } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
@@ -120,8 +136,12 @@ export default function SuperAdminPage() {
     const [perPage, setPerPage] = React.useState(10);
     const [loading, setLoading] = React.useState(true);
     const [searchTerm, setSearchTerm] = React.useState("");
+    const [statusFilter, setStatusFilter] = React.useState("all");
+    const [provinceFilter, setProvinceFilter] = React.useState("all");
 
     const [isAddAdminOpen, setIsAddAdminOpen] = React.useState(false);
+    const [isEditAdminOpen, setIsEditAdminOpen] = React.useState(false);
+    const [editingAdmin, setEditingAdmin] = React.useState<User | null>(null);
 
     // Ads State
     const [isAddAdOpen, setIsAddAdOpen] = React.useState(false);
@@ -141,13 +161,21 @@ export default function SuperAdminPage() {
     
     const addAdminForm = useForm<AddAdminFormValues>({
         resolver: zodResolver(addAdminSchema),
-        defaultValues: { name: "", email: "", pin: "" },
+        defaultValues: { name: "", email: "", pin: "", province: "" },
     });
     
+    const editAdminForm = useForm<EditAdminFormValues>({
+        resolver: zodResolver(editAdminSchema),
+    });
+
     const fetchData = React.useCallback(async (page: number, limit: number, search: string) => {
         setLoading(true);
         try {
-            const data = await getPaginatedUsers('Admin', page, limit, search);
+            const filters = {
+                ...(statusFilter !== 'all' && { status: statusFilter }),
+                ...(provinceFilter !== 'all' && { province: provinceFilter }),
+            };
+            const data = await getPaginatedUsers('Admin', page, limit, search, filters);
             setPharmacyAdmins(data.data);
             setTotalPages(data.last_page);
             setCurrentPage(data.current_page);
@@ -156,7 +184,7 @@ export default function SuperAdminPage() {
         } finally {
             setLoading(false);
         }
-    }, [getPaginatedUsers]);
+    }, [getPaginatedUsers, statusFilter, provinceFilter]);
 
     React.useEffect(() => {
         if (currentUser && currentUser.role === 'SuperAdmin') {
@@ -175,7 +203,7 @@ export default function SuperAdminPage() {
     }, [currentUser, router]);
 
     const handleAddAdmin = async (data: AddAdminFormValues) => {
-        const success = await createPharmacyAdmin(data.name, data.email, data.pin);
+        const success = await createPharmacyAdmin(data.name, data.email, data.pin, data.province);
         if (success) {
             toast({ title: "تم إنشاء حساب المدير بنجاح" });
             fetchData(1, perPage, ""); // Refresh
@@ -186,6 +214,35 @@ export default function SuperAdminPage() {
         }
     };
     
+    const handleEditAdmin = async (data: EditAdminFormValues) => {
+        if (!editingAdmin) return;
+        const success = await updateUser(editingAdmin.id, {
+            name: data.name,
+            email: data.email,
+            pin: data.pin || undefined,
+            province: data.province,
+        });
+        if (success) {
+            toast({ title: "تم تحديث حساب المدير بنجاح" });
+            fetchData(currentPage, perPage, searchTerm); // Refresh
+            setIsEditAdminOpen(false);
+            setEditingAdmin(null);
+        } else {
+            toast({ variant: 'destructive', title: "خطأ", description: "البريد الإلكتروني مستخدم بالفعل أو حدث خطأ آخر." });
+        }
+    };
+    
+    const openEditDialog = (admin: User) => {
+        setEditingAdmin(admin);
+        editAdminForm.reset({
+            name: admin.name,
+            email: admin.email,
+            province: admin.province || '',
+            pin: ''
+        });
+        setIsEditAdminOpen(true);
+    };
+
     const handleDeleteAdmin = (user: User) => {
         deleteUser(user.id, true).then(success => {
             if(success) {
@@ -343,6 +400,18 @@ export default function SuperAdminPage() {
                                                 <FormField control={addAdminForm.control} name="pin" render={({ field }) => (
                                                     <FormItem><FormLabel>رمز PIN</FormLabel><FormControl><Input type="password"   {...field} /></FormControl><FormMessage /></FormItem>
                                                 )} />
+                                                <FormField control={addAdminForm.control} name="province" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>المحافظة</FormLabel>
+                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                            <FormControl><SelectTrigger><SelectValue placeholder="اختر محافظة..." /></SelectTrigger></FormControl>
+                                                            <SelectContent>
+                                                                {iraqProvinces.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
                                                 <DialogFooter className="pt-4">
                                                     <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
                                                     <Button type="submit" variant="success">إنشاء الحساب</Button>
@@ -360,19 +429,21 @@ export default function SuperAdminPage() {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="max-w-sm"
                             />
-                            <div className="flex items-center gap-2">
-                                <Label htmlFor="per-page" className="shrink-0">لكل صفحة:</Label>
-                                <Select value={String(perPage)} onValueChange={(val) => setPerPage(Number(val))}>
-                                    <SelectTrigger id="per-page" className="w-20 h-9">
-                                    <SelectValue placeholder={perPage} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                    <SelectItem value="10">10</SelectItem>
-                                    <SelectItem value="20">20</SelectItem>
-                                    <SelectItem value="50">50</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                             <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                <SelectTrigger className="w-[180px]"><SelectValue placeholder="فلتر حسب الحالة" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">كل الحالات</SelectItem>
+                                    <SelectItem value="active">فعال</SelectItem>
+                                    <SelectItem value="suspended">معلق</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select value={provinceFilter} onValueChange={setProvinceFilter}>
+                                <SelectTrigger className="w-[180px]"><SelectValue placeholder="فلتر حسب المحافظة" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">كل المحافظات</SelectItem>
+                                    {iraqProvinces.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </CardHeader>
                     <CardContent>
@@ -382,7 +453,7 @@ export default function SuperAdminPage() {
                                 <TableRow>
                                     <TableHead>اسم المدير</TableHead>
                                     <TableHead className="hidden sm:table-cell">البريد الإلكتروني</TableHead>
-                                    <TableHead className="hidden lg:table-cell">رمز PIN</TableHead>
+                                    <TableHead className="hidden md:table-cell">المحافظة</TableHead>
                                     <TableHead>الحالة</TableHead>
                                     <TableHead className="text-left">الإجراءات</TableHead>
                                 </TableRow>
@@ -392,7 +463,7 @@ export default function SuperAdminPage() {
                                     <TableRow key={i}>
                                         <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                                         <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-48" /></TableCell>
-                                        <TableCell className="hidden lg:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
+                                        <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
                                         <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                                         <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                                     </TableRow>
@@ -402,6 +473,7 @@ export default function SuperAdminPage() {
                                         admin={admin} 
                                         onDelete={handleDeleteAdmin} 
                                         onToggleStatus={handleToggleStatus}
+                                        onEdit={openEditDialog}
                                     />
                                 ))}
                             </TableBody>
@@ -615,6 +687,43 @@ export default function SuperAdminPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            <Dialog open={isEditAdminOpen} onOpenChange={setIsEditAdminOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>تعديل حساب المدير: {editingAdmin?.name}</DialogTitle>
+                    </DialogHeader>
+                    <Form {...editAdminForm}>
+                        <form onSubmit={editAdminForm.handleSubmit(handleEditAdmin)} className="space-y-4 py-2">
+                            <FormField control={editAdminForm.control} name="name" render={({ field }) => (
+                                <FormItem><FormLabel>اسم المدير</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={editAdminForm.control} name="email" render={({ field }) => (
+                                <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={editAdminForm.control} name="pin" render={({ field }) => (
+                                <FormItem><FormLabel>رمز PIN الجديد (اختياري)</FormLabel><FormControl><Input type="password" placeholder="اتركه فارغاً لعدم التغيير" {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={editAdminForm.control} name="province" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>المحافظة</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="اختر محافظة..." /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            {iraqProvinces.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <DialogFooter className="pt-4">
+                                <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                                <Button type="submit" variant="success">حفظ التغييرات</Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

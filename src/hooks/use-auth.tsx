@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from 'react';
@@ -48,12 +49,12 @@ interface AuthContextType {
     setUsers: React.Dispatch<React.SetStateAction<User[]>>;
     isAuthenticated: boolean;
     loading: boolean;
-    createPharmacyAdmin: (name: string, email: string, pin: string) => Promise<boolean>;
+    createPharmacyAdmin: (name: string, email: string, pin: string, province: string) => Promise<boolean>;
     login: (email: string, pin: string) => Promise<User | null>;
     logout: () => void;
     registerUser: (name: string, email: string, pin: string) => Promise<boolean>;
     deleteUser: (userId: string, permanent?: boolean) => Promise<boolean>;
-    updateUser: (userId: string, name: string, email: string, pin?: string, delete_pin?: string) => Promise<boolean>;
+    updateUser: (userId: string, data: Partial<User>) => Promise<boolean>;
     updateUserPermissions: (userId: string, permissions: UserPermissions) => Promise<boolean>;
     updateUserHourlyRate: (userId: string, rate: number) => Promise<boolean>;
     toggleUserStatus: (userId: string) => Promise<boolean>;
@@ -145,7 +146,7 @@ interface AuthContextType {
     getPaginatedTrash: (page: number, perPage: number) => Promise<PaginatedResponse<TrashItem>>;
     
     // Users (for SuperAdmin)
-    getPaginatedUsers: (role: 'Admin' | 'Employee', page: number, perPage: number, search: string) => Promise<PaginatedResponse<User>>;
+    getPaginatedUsers: (role: 'Admin' | 'Employee', page: number, perPage: number, search: string, filters?: { status?: string, province?: string }) => Promise<PaginatedResponse<User>>;
     
     getPaginatedItemMovements: (page: number, perPage: number, search: string, medication_id: string) => Promise<PaginatedResponse<TransactionHistoryItem>>;
     getMedicationMovements: (medId: string) => Promise<TransactionHistoryItem[]>;
@@ -382,9 +383,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
     
-    const createPharmacyAdmin = async (name: string, email: string, pin: string) => {
+    const createPharmacyAdmin = async (name: string, email: string, pin: string, province: string) => {
         try {
-            const newUser = await apiRequest('/superadmin/pharmacies', 'POST', { name, email, pin });
+            const newUser = await apiRequest('/superadmin/pharmacies', 'POST', { name, email, pin, province });
             setUsers(prev => [...prev, newUser]);
             return true;
         } catch (error: any) { return false; }
@@ -398,9 +399,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error: any) { return false; }
     }
     
-    const updateUser = async (userId: string, name: string, email: string, pin?: string, delete_pin?: string) => {
+    const updateUser = async (userId: string, data: Partial<User>) => {
         try {
-            const updatedUser = await apiRequest(`/users/${userId}`, 'PUT', { name, email, pin, delete_pin });
+            const updatedUser = await apiRequest(`/users/${userId}`, 'PUT', data);
             setUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
             if (currentUser?.id === userId) setCurrentUser(updatedUser);
             return true;
@@ -663,7 +664,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         }
     }, []);
     
-    const getPaginatedUsers = React.useCallback(async (role: 'Admin' | 'Employee', page: number, perPage: number, search: string) => {
+    const getPaginatedUsers = React.useCallback(async (role: 'Admin' | 'Employee', page: number, perPage: number, search: string, filters: { status?: string, province?: string } = {}) => {
         try {
             const params = new URLSearchParams({
                 role,
@@ -671,6 +672,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
                 page: String(page),
                 per_page: String(perPage),
                 search,
+                ...filters
             });
             const data = await apiRequest(`/users?${params.toString()}`);
             return data;
@@ -1158,4 +1160,3 @@ export function useAuth() {
   }
   return context;
 }
-

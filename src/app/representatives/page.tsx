@@ -25,12 +25,11 @@ const iraqProvinces = [
 ];
 
 export default function RepresentativesPage() {
-    const { addRepresentative } = useAuth();
+    const { addRepresentative, currentUser } = useAuth();
     const [reps, setReps] = React.useState<MedicalRepresentative[]>([]);
     const [filteredReps, setFilteredReps] = React.useState<MedicalRepresentative[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [searchTerm, setSearchTerm] = React.useState('');
-    const [provinceFilter, setProvinceFilter] = React.useState('all');
     
     // Add Rep Dialog State
     const [isAddRepOpen, setIsAddRepOpen] = React.useState(false);
@@ -66,6 +65,11 @@ export default function RepresentativesPage() {
 
     React.useEffect(() => {
         let filteredData = reps;
+        
+        // Filter based on the current user's pharmacy province
+        if (currentUser?.province) {
+            filteredData = filteredData.filter(item => item.province === currentUser.province);
+        }
 
         // Filter by search term (name and company)
         if (searchTerm) {
@@ -75,14 +79,9 @@ export default function RepresentativesPage() {
                 item.company.toLowerCase().includes(lowercasedFilter)
             );
         }
-
-        // Filter by province
-        if (provinceFilter !== 'all') {
-            filteredData = filteredData.filter(item => item.province === provinceFilter);
-        }
         
         setFilteredReps(filteredData);
-    }, [searchTerm, provinceFilter, reps]);
+    }, [searchTerm, reps, currentUser]);
     
     const handleAddRep = () => {
         if (!newRepName || !newRepCompany || !newRepPhone || !newRepProvince) {
@@ -119,7 +118,7 @@ export default function RepresentativesPage() {
                             <div>
                                 <CardTitle className="text-3xl">دليل المندوبين</CardTitle>
                                 <CardDescription>
-                                    قائمة بأسماء ومعلومات التواصل لمندوبي الشركات الطبية.
+                                    قائمة بأسماء ومعلومات التواصل لمندوبي الشركات الطبية في محافظتك.
                                 </CardDescription>
                             </div>
                         </div>
@@ -176,17 +175,6 @@ export default function RepresentativesPage() {
                                 className="w-full max-w-lg pl-10"
                             />
                         </div>
-                        <Select value={provinceFilter} onValueChange={setProvinceFilter}>
-                            <SelectTrigger className="w-full sm:w-[200px]">
-                                <SelectValue placeholder="اختر محافظة" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">كل المحافظات</SelectItem>
-                                {iraqProvinces.map(province => (
-                                    <SelectItem key={province} value={province}>{province}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
                     </div>
                 </CardContent>
             </Card>
@@ -244,7 +232,7 @@ export default function RepresentativesPage() {
                     <Contact className="h-16 w-16 mx-auto mb-4" />
                     <p className="font-semibold">لا توجد بيانات لعرضها</p>
                     <p className="text-sm">
-                        {reps.length > 0 ? 'لا توجد نتائج مطابقة لبحثك.' : 'لم يتم جلب بيانات المندوبين بعد.'}
+                        {reps.length > 0 ? 'لا يوجد مندوبون لهذه المحافظة أو مطابقون لبحثك.' : 'لم يتم جلب بيانات المندوبين بعد.'}
                     </p>
                 </div>
             )}
