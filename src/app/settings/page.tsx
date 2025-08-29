@@ -235,7 +235,11 @@ export default function SettingsPage() {
     
     const onEditUserSubmit = async (data: EditUserFormValues) => {
         if (!editingUser) return;
-        const success = await updateUser(editingUser.id, data.name, data.email!, data.pin || undefined);
+        const success = await updateUser(editingUser.id, {
+            name: data.name,
+            email: data.email!,
+            pin: data.pin || undefined
+        });
         if (success) {
             setIsEditUserDialogOpen(false);
         }
