@@ -25,6 +25,15 @@ export type UserPermissions = {
     manage_offers: boolean;
 };
 
+export type Notification = {
+  id: string;
+  type: 'low_stock' | 'out_of_stock' | 'expiring_soon' | 'expired' | 'task_assigned' | 'sale_below_cost';
+  message: string;
+  data?: Record<string, any>;
+  read: boolean;
+  created_at: string;
+};
+
 export type MedicalRepresentative = {
     id: string;
     name: string;

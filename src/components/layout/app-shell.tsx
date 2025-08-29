@@ -29,6 +29,10 @@ import {
   ShoppingBasket,
   BadgePercent,
   Contact,
+  Bell,
+  Package,
+  AlertTriangle,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,7 +47,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { PackagePlus } from 'lucide-react';
-import type { UserPermissions, Task } from "@/lib/types";
+import type { UserPermissions, Task, Notification } from "@/lib/types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "../ui/scroll-area";
 import { Checkbox } from "../ui/checkbox";
@@ -57,7 +61,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
+import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from 'date-fns';
+import { ar } from 'date-fns/locale';
 
 const allNavItems = [
   { href: "/", icon: LayoutDashboard, label: "لوحة التحكم", group: 'main' },
@@ -158,11 +164,102 @@ function TasksSheet() {
   )
 }
 
+const getNotificationIcon = (type: Notification['type']) => {
+    switch (type) {
+        case 'out_of_stock':
+            return <Package className="h-4 w-4 text-destructive" />;
+        case 'low_stock':
+            return <Package className="h-4 w-4 text-yellow-500" />;
+        case 'expired':
+            return <AlertTriangle className="h-4 w-4 text-destructive" />;
+        case 'expiring_soon':
+            return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+        default:
+            return <Bell className="h-4 w-4 text-muted-foreground" />;
+    }
+}
+
+function NotificationsSheet({ notifications }: { notifications: Notification[] }) {
+  const router = useRouter();
+
+  const handleNotificationClick = (notification: Notification) => {
+    // Example: navigate to a specific page based on notification type
+    // This needs to be expanded with actual routes
+    switch (notification.type) {
+      case 'low_stock':
+      case 'out_of_stock':
+        router.push('/inventory');
+        break;
+      case 'expired':
+      case 'expiring_soon':
+        router.push('/expiring-soon');
+        break;
+      default:
+        break;
+    }
+  }
+
+  return (
+    <SheetContent>
+      <SheetHeader>
+        <SheetTitle>الإشعارات</SheetTitle>
+      </SheetHeader>
+      <ScrollArea className="h-[calc(100vh-8rem)] mt-4">
+        <div className="space-y-3">
+          {notifications.length > 0 ? notifications.map(notif => (
+            <div
+              key={notif.id}
+              className="p-3 border rounded-md flex items-start gap-3 cursor-pointer hover:bg-muted"
+              onClick={() => handleNotificationClick(notif)}
+            >
+              <div className="pt-1">
+                {getNotificationIcon(notif.type)}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">{notif.message}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true, locale: ar })}
+                </p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </div>
+          )) : (
+            <div className="text-center text-muted-foreground py-10 flex flex-col items-center">
+                <Bell className="h-12 w-12 text-gray-300 mb-4"/>
+                <p>لا توجد إشعارات جديدة.</p>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+    </SheetContent>
+  );
+}
+
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { toast } = useToast();
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, getNotifications } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [notifications, setNotifications] = React.useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = React.useState(0);
+  const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
+
+
+  React.useEffect(() => {
+    const fetchNotifications = async () => {
+      const notifs = await getNotifications();
+      setNotifications(notifs);
+      setUnreadCount(notifs.filter(n => !n.read).length);
+    };
+
+    if (currentUser) {
+      fetchNotifications();
+      // Optionally, set up an interval to fetch notifications periodically
+      const intervalId = setInterval(fetchNotifications, 5 * 60 * 1000); // every 5 minutes
+      return () => clearInterval(intervalId);
+    }
+  }, [currentUser, getNotifications]);
 
   const navItems = React.useMemo(() => {
     if (!currentUser) return [];
@@ -238,11 +335,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
            <main className="flex-1">
             <div className="container py-4">
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4 pb-4 border-b">
-                     <div className="flex-1 md:flex-grow-0">
+                     <div className="flex flex-1 items-center justify-start gap-2 md:flex-grow-0">
                         <Link href="/" className="flex items-center gap-2 font-semibold">
                             <img src="/icon.png" alt="Site Icon" className="h-6 w-6" />
                             <span className="hidden sm:inline-block">ميدجرام</span>
                         </Link>
+                         <Sheet open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+                            <SheetTrigger asChild>
+                                 <Button variant="ghost" size="icon" className="text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50 relative">
+                                    <Bell className="h-5 w-5"/>
+                                    {unreadCount > 0 && (
+                                        <span className="absolute top-0 right-0 flex h-3 w-3">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                        </span>
+                                    )}
+                                </Button>
+                            </SheetTrigger>
+                            <NotificationsSheet notifications={notifications} />
+                        </Sheet>
                     </div>
 
                     <div className="flex flex-1 items-center justify-center gap-2">

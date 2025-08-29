@@ -3,10 +3,12 @@
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative, Notification } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 import { PinDialog } from '@/components/auth/PinDialog';
+import { differenceInDays, parseISO, startOfToday } from 'date-fns';
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -178,6 +180,9 @@ interface AuthContextType {
     }>>;
 
     addRepresentative: (rep: Omit<MedicalRepresentative, 'id'>) => Promise<MedicalRepresentative | null>;
+
+    // Notifications
+    getNotifications: () => Promise<Notification[]>;
     
 }
 
@@ -1130,6 +1135,69 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         return newRep;
     };
 
+    const getNotifications = React.useCallback(async (): Promise<Notification[]> => {
+        const generatedNotifications: Notification[] = [];
+        const today = startOfToday();
+    
+        inventory.forEach(med => {
+            // Low stock
+            if (med.stock > 0 && med.stock < med.reorder_point) {
+                generatedNotifications.push({
+                    id: `low_stock_${med.id}`,
+                    type: 'low_stock',
+                    message: `مخزون منخفض: ${med.name}. الكمية المتبقية: ${med.stock}`,
+                    data: { medicationId: med.id },
+                    read: false,
+                    created_at: new Date().toISOString(),
+                });
+            }
+    
+            // Out of stock
+            if (med.stock <= 0) {
+                generatedNotifications.push({
+                    id: `out_of_stock_${med.id}`,
+                    type: 'out_of_stock',
+                    message: `نفد من المخزون: ${med.name}.`,
+                    data: { medicationId: med.id },
+                    read: false,
+                    created_at: new Date().toISOString(),
+                });
+            }
+    
+            // Expiration
+            if (med.expiration_date) {
+                const expDate = parseISO(med.expiration_date);
+                if (expDate < today) {
+                    generatedNotifications.push({
+                        id: `expired_${med.id}`,
+                        type: 'expired',
+                        message: `منتهي الصلاحية: ${med.name}.`,
+                        data: { medicationId: med.id },
+                        read: false,
+                        created_at: new Date().toISOString(),
+                    });
+                } else {
+                    const daysLeft = differenceInDays(expDate, today);
+                    if (daysLeft <= settings.expirationThresholdDays) {
+                         generatedNotifications.push({
+                            id: `expiring_soon_${med.id}`,
+                            type: 'expiring_soon',
+                            message: `قريب الانتهاء: ${med.name} خلال ${daysLeft} يوم.`,
+                            data: { medicationId: med.id },
+                            read: false,
+                            created_at: new Date().toISOString(),
+                        });
+                    }
+                }
+            }
+        });
+    
+        // In a real app, this would be an API call.
+        // For now, we return the generated notifications.
+        // Also, we'd persist the 'read' state.
+        return Promise.resolve(generatedNotifications.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+    }, [inventory, settings.expirationThresholdDays]);
+
 
     const setScopedSettings = async (value: AppSettings | ((val: AppSettings) => AppSettings)) => {
        const newSettings = typeof value === 'function' ? value(settings) : value;
@@ -1184,6 +1252,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             getArchivedMonths, getArchivedMonthData,
             getOrderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, updateOrderRequestItem,
             purchaseDraft, setPurchaseDraft,
+            getNotifications,
         }}>
             {children}
         </AuthContext.Provider>
