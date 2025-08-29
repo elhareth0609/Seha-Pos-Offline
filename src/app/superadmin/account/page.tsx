@@ -58,7 +58,11 @@ export default function SuperAdminAccountPage() {
     const onSubmit = async (data: EditSuperAdminFormValues) => {
         if (!currentUser) return;
         
-        const success = await updateUser(currentUser.id, data.name, data.email!, data.pin || undefined);
+        const success = await updateUser(currentUser.id, {
+            name: data.name, 
+            email: data.email, 
+            pin: data.pin || undefined
+        });
         if (success) {
             toast({ title: "تم تحديث الحساب بنجاح" });
             router.push('/superadmin');

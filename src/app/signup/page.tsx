@@ -51,8 +51,8 @@ export default function SignUpPage() {
         <div className="flex items-center justify-center min-h-screen bg-muted/40 p-4">
             <Card className="w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95">
                 <CardHeader className="text-center">
-                     <div className="mx-auto mb-4 bg-primary/10 p-4 rounded-full">
-                        <PackagePlus className="h-12 w-12 text-primary" />
+                    <div className="mx-auto mb-4 bg-primary/10 p-4 rounded-full">
+                        <img src="/icon.png" alt="Site Icon" className="h-12 w-12" />
                     </div>
                     <CardTitle className="text-2xl">إنشاء حساب جديد</CardTitle>
                     <CardDescription>

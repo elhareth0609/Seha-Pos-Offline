@@ -240,8 +240,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4 pb-4 border-b">
                      <div className="flex-1 md:flex-grow-0">
                         <Link href="/" className="flex items-center gap-2 font-semibold">
-                            <PackagePlus className="h-6 w-6 text-primary" />
-                            <span className="hidden sm:inline-block">Midgram</span>
+                            <img src="/icon.png" alt="Site Icon" className="h-6 w-6" />
+                            <span className="hidden sm:inline-block">ميدجرام</span>
                         </Link>
                     </div>
 

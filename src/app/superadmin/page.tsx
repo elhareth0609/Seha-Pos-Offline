@@ -70,6 +70,14 @@ function AdminRow({ admin, onDelete, onToggleStatus, onEdit }: { admin: User, on
         <TableRow>
             <TableCell className="font-medium">{admin.name}</TableCell>
             <TableCell className="hidden sm:table-cell">{admin.email}</TableCell>
+            <TableCell className="hidden lg:table-cell">
+                <div className="flex items-center gap-2">
+                    <span className="font-mono">{showPin ? admin.pin : '••••••'}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowPin(p => !p)}>
+                        {showPin ? <LockOpen className="h-4 w-4" /> : <LockIcon className="h-4 w-4" />}
+                    </Button>
+                </div>
+            </TableCell>
             <TableCell className="hidden md:table-cell">{admin.province || 'غير محدد'}</TableCell>
             <TableCell>
                 <Badge variant={admin.status === 'active' ? 'secondary' : 'destructive'} className={admin.status === 'active' ? 'bg-green-100 text-green-800' : ''}>
@@ -354,20 +362,40 @@ export default function SuperAdminPage() {
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">عدد الصيدليات</CardTitle><Building className="h-4 w-4 text-muted-foreground" /></CardHeader>
-                    <CardContent><div className="text-2xl font-bold font-mono">{pharmacyAdmins.length}</div></CardContent>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">عدد الصيدليات</CardTitle>
+                        <Building className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold font-mono">{pharmacyAdmins.length}</div>
+                    </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">إجمالي الموظفين</CardTitle><Users className="h-4 w-4 text-muted-foreground" /></CardHeader>
-                    <CardContent><div className="text-2xl font-bold font-mono">{totalEmployees}</div></CardContent>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">إجمالي الموظفين</CardTitle>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold font-mono">{totalEmployees}</div>
+                    </CardContent>
                 </Card>
                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">عدد الإعلانات</CardTitle><ImageIcon className="h-4 w-4 text-muted-foreground" /></CardHeader>
-                    <CardContent><div className="text-2xl font-bold font-mono">{advertisements.length}</div></CardContent>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">عدد الإعلانات</CardTitle>
+                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold font-mono">{advertisements.length}</div>
+                    </CardContent>
                 </Card>
                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">عدد العروض</CardTitle><BadgePercent className="h-4 w-4 text-muted-foreground" /></CardHeader>
-                    <CardContent><div className="text-2xl font-bold font-mono">{offers.length}</div></CardContent>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">عدد العروض</CardTitle>
+                        <BadgePercent className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold font-mono">{offers.length}</div>
+                    </CardContent>
                 </Card>
             </div>
 
@@ -402,7 +430,11 @@ export default function SuperAdminPage() {
                                                 <FormItem>
                                                     <FormLabel>المحافظة</FormLabel>
                                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                        <FormControl><SelectTrigger><SelectValue placeholder="اختر محافظة..." /></SelectTrigger></FormControl>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="اختر محافظة..." />
+                                                            </SelectTrigger>
+                                                        </FormControl>
                                                         <SelectContent>
                                                             {iraqProvinces.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                                                         </SelectContent>
@@ -426,7 +458,7 @@ export default function SuperAdminPage() {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="max-w-sm"
                             />
-                             <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <Select value={statusFilter} onValueChange={setStatusFilter}>
                                 <SelectTrigger className="w-[180px]"><SelectValue placeholder="فلتر حسب الحالة" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">كل الحالات</SelectItem>
@@ -450,6 +482,7 @@ export default function SuperAdminPage() {
                                 <TableRow>
                                     <TableHead>اسم المدير</TableHead>
                                     <TableHead className="hidden sm:table-cell">البريد الإلكتروني</TableHead>
+                                    <TableHead className="hidden lg:table-cell">رمز PIN</TableHead>
                                     <TableHead className="hidden md:table-cell">المحافظة</TableHead>
                                     <TableHead>الحالة</TableHead>
                                     <TableHead className="text-left">الإجراءات</TableHead>
@@ -460,6 +493,7 @@ export default function SuperAdminPage() {
                                     <TableRow key={i}>
                                         <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                                         <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-48" /></TableCell>
+                                        <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
                                         <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
                                         <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                                         <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>

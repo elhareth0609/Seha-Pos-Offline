@@ -90,8 +90,8 @@ export default function LoginPage() {
             <div className="container grid lg:grid-cols-2 gap-16 items-center">
                 <div className="hidden lg:flex flex-col items-start text-right">
                      <div className="flex items-center gap-3 mb-4">
-                        <PackagePlus className="h-14 w-14 text-primary" />
-                        <h1 className="text-5xl font-bold">Midgram</h1>
+                        <img src="/icon.png" alt="Site Icon" className="h-14 w-14" />
+                        <h1 className="text-5xl font-bold">ميدجرام</h1>
                     </div>
                     <p className="text-xl text-muted-foreground mt-2">
                         نظام إدارة صيدليات متكامل، مصمم لتبسيط عملياتك اليومية من المبيعات والمخزون إلى المشتريات والتقارير المالية.
