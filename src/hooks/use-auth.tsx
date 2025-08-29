@@ -1139,64 +1139,51 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         const generatedNotifications: Notification[] = [];
         const today = startOfToday();
     
+        // Inventory Notifications
         inventory.forEach(med => {
-            // Low stock
-            if (med.stock > 0 && med.stock < med.reorder_point) {
-                generatedNotifications.push({
-                    id: `low_stock_${med.id}`,
-                    type: 'low_stock',
-                    message: `مخزون منخفض: ${med.name}. الكمية المتبقية: ${med.stock}`,
-                    data: { medicationId: med.id },
-                    read: false,
-                    created_at: new Date().toISOString(),
-                });
-            }
-    
-            // Out of stock
             if (med.stock <= 0) {
-                generatedNotifications.push({
-                    id: `out_of_stock_${med.id}`,
-                    type: 'out_of_stock',
-                    message: `نفد من المخزون: ${med.name}.`,
-                    data: { medicationId: med.id },
-                    read: false,
-                    created_at: new Date().toISOString(),
-                });
+                generatedNotifications.push({ id: `out_of_stock_${med.id}`, type: 'out_of_stock', message: `نفد من المخزون: ${med.name}.`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
+            } else if (med.stock < med.reorder_point) {
+                generatedNotifications.push({ id: `low_stock_${med.id}`, type: 'low_stock', message: `مخزون منخفض: ${med.name}. الكمية المتبقية: ${med.stock}`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
             }
     
-            // Expiration
             if (med.expiration_date) {
                 const expDate = parseISO(med.expiration_date);
                 if (expDate < today) {
-                    generatedNotifications.push({
-                        id: `expired_${med.id}`,
-                        type: 'expired',
-                        message: `منتهي الصلاحية: ${med.name}.`,
-                        data: { medicationId: med.id },
-                        read: false,
-                        created_at: new Date().toISOString(),
-                    });
+                    generatedNotifications.push({ id: `expired_${med.id}`, type: 'expired', message: `منتهي الصلاحية: ${med.name}.`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
                 } else {
                     const daysLeft = differenceInDays(expDate, today);
                     if (daysLeft <= settings.expirationThresholdDays) {
-                         generatedNotifications.push({
-                            id: `expiring_soon_${med.id}`,
-                            type: 'expiring_soon',
-                            message: `قريب الانتهاء: ${med.name} خلال ${daysLeft} يوم.`,
-                            data: { medicationId: med.id },
-                            read: false,
-                            created_at: new Date().toISOString(),
-                        });
+                         generatedNotifications.push({ id: `expiring_soon_${med.id}`, type: 'expiring_soon', message: `قريب الانتهاء: ${med.name} خلال ${daysLeft} يوم.`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
                     }
                 }
             }
         });
+
+        // Sales Notifications
+        sales.forEach(sale => {
+            if (sale.discount && sale.discount > 20000) { // Example threshold
+                 generatedNotifications.push({ id: `large_discount_${sale.id}`, type: 'large_discount', message: `خصم كبير بقيمة ${sale.discount.toLocaleString()} في الفاتورة #${sale.id}.`, data: { saleId: sale.id }, read: false, created_at: sale.date });
+            }
+            sale.items.forEach(item => {
+                if (!item.is_return && item.price < item.purchase_price) {
+                     generatedNotifications.push({ id: `below_cost_${sale.id}_${item.medication_id}`, type: 'sale_below_cost', message: `تم بيع ${item.name} بأقل من الكلفة في الفاتورة #${sale.id}.`, data: { saleId: sale.id, medicationId: item.medication_id }, read: false, created_at: sale.date });
+                }
+            })
+        });
+
+        // Task Notifications
+        tasks.forEach(task => {
+            if (!task.completed) { // Simple check for now
+                // This would be better if we check if it's newly assigned
+                // For simplicity, we'll assume all open tasks are "new" for notification purposes for now
+                generatedNotifications.push({ id: `task_assigned_${task.id}`, type: 'task_assigned', message: `مهمة جديدة: ${task.description}`, data: { taskId: task.id, userId: task.user_id }, read: false, created_at: task.created_at });
+            }
+        });
     
-        // In a real app, this would be an API call.
-        // For now, we return the generated notifications.
-        // Also, we'd persist the 'read' state.
+        // In a real app, this would be an API call and would handle read state.
         return Promise.resolve(generatedNotifications.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
-    }, [inventory, settings.expirationThresholdDays]);
+    }, [inventory, sales, tasks, settings.expirationThresholdDays]);
 
 
     const setScopedSettings = async (value: AppSettings | ((val: AppSettings) => AppSettings)) => {

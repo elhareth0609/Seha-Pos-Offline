@@ -33,6 +33,7 @@ import {
   Package,
   AlertTriangle,
   ArrowRight,
+  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -167,13 +168,16 @@ function TasksSheet() {
 const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
         case 'out_of_stock':
-            return <Package className="h-4 w-4 text-destructive" />;
         case 'low_stock':
             return <Package className="h-4 w-4 text-yellow-500" />;
         case 'expired':
-            return <AlertTriangle className="h-4 w-4 text-destructive" />;
         case 'expiring_soon':
-            return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+            return <AlertTriangle className="h-4 w-4 text-destructive" />;
+        case 'task_assigned':
+            return <ListChecks className="h-4 w-4 text-blue-500" />;
+        case 'sale_below_cost':
+        case 'large_discount':
+            return <DollarSign className="h-4 w-4 text-orange-500" />;
         default:
             return <Bell className="h-4 w-4 text-muted-foreground" />;
     }
@@ -193,6 +197,16 @@ function NotificationsSheet({ notifications }: { notifications: Notification[] }
       case 'expired':
       case 'expiring_soon':
         router.push('/expiring-soon');
+        break;
+      case 'task_assigned':
+        router.push('/tasks');
+        break;
+      case 'sale_below_cost':
+      case 'large_discount':
+        if(notification.data?.saleId) {
+            // In a real app, you might want to highlight the specific sale
+            router.push('/reports');
+        }
         break;
       default:
         break;
