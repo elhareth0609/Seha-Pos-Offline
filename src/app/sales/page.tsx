@@ -428,7 +428,7 @@ export default function SalesPage() {
             const existingItem = prevCart.find(item => item.id === medication.id && item.is_return === (mode === 'return'))
 
             if (existingItem) {
-                if (existingItem.quantity >= medication.stock && mode !== 'return') {
+                if (Number(existingItem.quantity) >= Number(medication.stock) && mode !== 'return') {
                     toast({ variant: 'destructive', title: 'كمية غير كافية', description: `لا يمكن إضافة المزيد من ${medication.name}. الرصيد المتوفر: ${medication.stock}` });
                     return prevCart;
                 }
@@ -611,7 +611,7 @@ export default function SalesPage() {
     for (const itemInCart of cart) {
         if (!itemInCart.is_return) {
             const med = allInventory?.find(m => m.id === itemInCart.id);
-            if (!med || med.stock < itemInCart.quantity) {
+            if (!med || Number(med.stock) < Number(itemInCart.quantity)) {
                 toast({ variant: 'destructive', title: `كمية غير كافية من ${itemInCart.name}`, description: `الكمية المطلوبة ${itemInCart.quantity}, المتوفر ${med?.stock ?? 0}` });
                 return;
             }

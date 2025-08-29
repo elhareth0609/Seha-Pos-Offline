@@ -66,7 +66,7 @@ const allNavItems = [
   { href: "/purchases", icon: Truck, label: "المشتريات", group: 'main' },
   { href: "/suppliers", icon: Landmark, label: "الموردون", group: 'main' },
   
-  { href: "/reports", icon: FileText, label: "التقارير", group: 'analysis' },
+  { href: "/reports", icon: FileText, label: "الفواتير", group: 'analysis' },
   { href: "/expenses", icon: Coins, label: "الصرفيات", group: 'analysis' },
   { href: "/item-movement", icon: Repeat, label: "حركة المادة", group: 'analysis' },
   { href: "/expiring-soon", icon: CalendarX2, label: "قريب الانتهاء", group: 'analysis' },
@@ -86,7 +86,7 @@ const allNavItems = [
 
 const navGroups = [
     { key: 'main', title: 'العمليات اليومية' },
-    { key: 'analysis', title: 'التحليلات والتقارير' },
+    { key: 'analysis', title: 'التحليلات والفواتير' },
     { key: 'tools', title: 'الأدوات والميزات' },
     { key: 'external', title: 'خدمات ميدجرام' },
     { key: 'admin', title: 'الإدارة والنظام' }

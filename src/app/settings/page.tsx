@@ -97,7 +97,7 @@ const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: stri
     { key: 'manage_inventory', label: 'الوصول إلى المخزون' },
     { key: 'manage_purchases', label: 'الوصول إلى المشتريات' },
     { key: 'manage_suppliers', label: 'الوصول إلى الموردين' },
-    { key: 'manage_reports', label: 'الوصول إلى التقارير' },
+    { key: 'manage_reports', label: 'الوصول إلى الفواتير' },
     { key: 'manage_expenses', label: 'الوصول إلى الصرفيات' },
     { key: 'manage_tasks', label: 'الوصول إلى المهام' },
     { key: 'manage_itemMovement', label: 'الوصول إلى حركة المادة' },
@@ -395,7 +395,7 @@ to.setHours(23, 59, 59, 999);
                   <CardHeader>
                     <CardTitle>الإعدادات العامة</CardTitle>
                     <CardDescription>
-                      إدارة الإعدادات العامة للصيدلية. تؤثر هذه الإعدادات على الفواتير والتقارير والتنبيهات.
+                      إدارة الإعدادات العامة للصيدلية. تؤثر هذه الإعدادات على الفواتير والفواتير والتنبيهات.
                     </CardDescription>
                   </CardHeader>
                     <CardContent className="space-y-4">
