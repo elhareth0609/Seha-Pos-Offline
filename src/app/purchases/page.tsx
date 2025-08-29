@@ -970,8 +970,10 @@ export default function PurchasesPage() {
                      <div className="space-y-2">
                         <Label>الشكل الدوائي</Label>
                         <Select value={newMedData.dosage_form} onValueChange={val => handleNewMedDataChange('dosage_form', val)}>
-                            <SelectTrigger><SelectValue placeholder="اختر الشكل" /></SelectTrigger>
-                            <SelectContent>{dosage_forms.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
+                            <SelectTrigger>
+                                <SelectValue placeholder="اختر الشكل" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-64">{dosage_forms.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
                     <div className="space-y-2">
@@ -1042,8 +1044,10 @@ export default function PurchasesPage() {
                                     <div className="space-y-2">
                                         <Label>الشكل الدوائي</Label>
                                         <Select name="dosage_form" defaultValue={editingPurchaseItem.dosage_form}>
-                                            <SelectTrigger><SelectValue placeholder="اختر الشكل" /></SelectTrigger>
-                                            <SelectContent>{dosage_forms.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="اختر الشكل" />
+                                            </SelectTrigger>
+                                            <SelectContent className="max-h-64">{dosage_forms.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-2">

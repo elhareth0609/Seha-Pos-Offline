@@ -528,11 +528,13 @@ export default function InventoryPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                         <div className="space-y-1">
+                        <div className="space-y-1">
                             <Label htmlFor="filter-dosage-form">الشكل الدوائي</Label>
                             <Select value={filterDosageForm} onValueChange={setFilterDosageForm}>
-                                <SelectTrigger id="filter-dosage-form"><SelectValue placeholder="الكل" /></SelectTrigger>
-                                <SelectContent>
+                                <SelectTrigger id="filter-dosage-form">
+                                  <SelectValue placeholder="الكل" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-64">
                                     <SelectItem value="all">الكل</SelectItem>
                                     {dosage_forms.map(form => <SelectItem key={form} value={form}>{form}</SelectItem>)}
                                 </SelectContent>
@@ -754,8 +756,10 @@ export default function InventoryPage() {
                               <div className="space-y-2">
                                   <Label htmlFor="edit-dosage_form">الشكل الدوائي</Label>
                                   <Select name="dosage_form" defaultValue={editingMed.dosage_form}>
-                                      <SelectTrigger id="edit-dosage_form"><SelectValue placeholder="اختر الشكل" /></SelectTrigger>
-                                      <SelectContent>
+                                      <SelectTrigger id="edit-dosage_form">
+                                        <SelectValue placeholder="اختر الشكل" />
+                                      </SelectTrigger>
+                                      <SelectContent className="max-h-64">
                                           {dosage_forms.map(form => <SelectItem key={form} value={form}>{form}</SelectItem>)}
                                       </SelectContent>
                                   </Select>
@@ -848,8 +852,10 @@ export default function InventoryPage() {
                         <div className="space-y-2">
                             <Label htmlFor="add-dosage_form">الشكل الدوائي</Label>
                             <Select name="dosage_form" defaultValue={newMed.dosage_form}>
-                                <SelectTrigger id="add-dosage_form"><SelectValue placeholder="اختر الشكل" /></SelectTrigger>
-                                <SelectContent>
+                                <SelectTrigger id="add-dosage_form">
+                                  <SelectValue placeholder="اختر الشكل" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-64">
                                     {dosage_forms.map(form => <SelectItem key={form} value={form}>{form}</SelectItem>)}
                                 </SelectContent>
                             </Select>
