@@ -52,8 +52,8 @@ export default function SuperAdminReportsPage() {
                 const dataPromises = Object.keys(settings).map(id => 
                     getPharmacyData(id).then(data => ({ 
                         id, 
-                        sales: data.sales, 
-                        purchaseOrders: data.purchaseOrders 
+                        sales: data.sales || [], 
+                        purchaseOrders: data.purchaseOrders || [] 
                     }))
                 );
                 const results = await Promise.all(dataPromises);
@@ -146,26 +146,41 @@ export default function SuperAdminReportsPage() {
     }, [filteredSales]);
     
     const purchaseAnalytics = React.useMemo(() => {
+        if (!allPharmacyPurchases || Object.keys(allPharmacyPurchases).length === 0) {
+            return { topPharmacy: 'N/A', topItemName: 'N/A' };
+        }
+
         const pharmacyPurchaseCounts: Record<string, number> = {};
         const topPurchasedItems: Record<string, {name: string, quantity: number}> = {};
 
         Object.entries(allPharmacyPurchases).forEach(([pharmacyId, purchases]) => {
-            pharmacyPurchaseCounts[pharmacyId] = (pharmacyPurchaseCounts[pharmacyId] || 0) + purchases.length;
-            purchases.forEach(po => {
-                po.items.forEach(item => {
-                    if (topPurchasedItems[item.medication_id!]) {
-                        topPurchasedItems[item.medication_id!].quantity += item.quantity;
-                    } else {
-                        topPurchasedItems[item.medication_id!] = { name: item.name, quantity: item.quantity };
+            pharmacyPurchaseCounts[pharmacyId] = (pharmacyPurchaseCounts[pharmacyId] || 0) + (purchases?.length || 0);
+            if (purchases) {
+                purchases.forEach(po => {
+                    if (po.items) {
+                        po.items.forEach(item => {
+                            if (item.medication_id) {
+                                if (topPurchasedItems[item.medication_id]) {
+                                    topPurchasedItems[item.medication_id].quantity += item.quantity;
+                                } else {
+                                    topPurchasedItems[item.medication_id] = { name: item.name, quantity: item.quantity };
+                                }
+                            }
+                        });
                     }
-                })
-            });
+                });
+            }
         });
 
-        const topPharmacyId = Object.keys(pharmacyPurchaseCounts).reduce((a, b) => pharmacyPurchaseCounts[a] > pharmacyPurchaseCounts[b] ? a : b, '');
+        const topPharmacyId = Object.keys(pharmacyPurchaseCounts).length > 0 
+            ? Object.keys(pharmacyPurchaseCounts).reduce((a, b) => pharmacyPurchaseCounts[a] > pharmacyPurchaseCounts[b] ? a : b)
+            : '';
+            
         const topPharmacy = allPharmacySettings[topPharmacyId]?.pharmacyName || 'N/A';
 
-        const topItem = Object.values(topPurchasedItems).reduce((a, b) => a.quantity > b.quantity ? a : b, {name: 'N/A', quantity: 0});
+        const topItem = Object.keys(topPurchasedItems).length > 0
+            ? Object.values(topPurchasedItems).reduce((a, b) => a.quantity > b.quantity ? a : b)
+            : {name: 'N/A', quantity: 0};
 
 
         return { topPharmacy, topItemName: topItem.name };

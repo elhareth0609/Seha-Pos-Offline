@@ -455,8 +455,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const getPharmacyData = async (pharmacyId: string) => {
          try {
-            return await apiRequest(`/superadmin/pharmacies/${pharmacyId}`);
-        } catch(e: any) { return { sales: [], inventory: [], users: [], purchaseOrders: [] }; }
+            const data = await apiRequest(`/superadmin/pharmacies/${pharmacyId}`);
+            return {
+                sales: data.sales || [],
+                inventory: data.inventory || [],
+                users: data.users || [],
+                purchaseOrders: data.purchaseOrders || [],
+            };
+        } catch(e: any) { 
+            return { sales: [], inventory: [], users: [], purchaseOrders: [] }; 
+        }
     };
     
     const clearPharmacyData = async () => {
