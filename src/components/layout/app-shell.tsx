@@ -267,14 +267,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                                 <Button variant="outline" asChild>
                                     <Link href="/tasks">
                                         <ListChecks className="me-2 h-4 w-4"/>
-                                        <span className="hidden sm:inline-block">المهام</span>
+                                        <span className="hidden md:inline-block">المهام</span>
                                     </Link>
                                 </Button>
                             ) : (
                                 <SheetTrigger asChild>
                                     <Button variant="outline">
-                                        <ListChecks className="sm:me-2 h-4 w-4"/>
-                                        <span className="hidden sm:inline-block">مهامي</span>
+                                        <ListChecks className="md:me-2 h-4 w-4"/>
+                                        <span className="hidden md:inline-block">مهامي</span>
                                     </Button>
                                 </SheetTrigger>
                             )}
@@ -282,7 +282,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                               <Button variant="outline" asChild>
                                   <Link href="/sales">
                                       <ShoppingCart className="me-2 h-4 w-4"/>
-                                      <span className="hidden sm:inline-block">المبيعات</span>
+                                      <span className="hidden md:inline-block">المبيعات</span>
                                   </Link>
                               </Button>
                             )}
@@ -290,7 +290,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                               <Button variant="outline" className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500" asChild>
                                   <Link href="/offers">
                                       <BadgePercent className="me-2 h-4 w-4"/>
-                                      <span className="hidden sm:inline-block">عروض ميدجرام</span>
+                                      <span className="hidden md:inline-block">عروض ميدجرام</span>
                                   </Link>
                               </Button>
                             )}
@@ -299,7 +299,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             <SheetTrigger asChild>
                                 <Button variant="outline" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
                                     <Menu className="sm:me-2 h-4 w-4" />
-                                    <span className="hidden sm:inline">القائمة الرئيسية</span>
+                                    <span className="hidden md:inline">القائمة الرئيسية</span>
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="bottom" className="h-[90vh] flex flex-col">

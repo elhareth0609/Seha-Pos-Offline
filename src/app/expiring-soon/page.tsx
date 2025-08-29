@@ -209,8 +209,12 @@ export default function ExpiringSoonPage() {
                         <TableCell className="font-mono">{formatDaysLeft(item.expiration_date)}</TableCell>
                         <TableCell>{getExpirationBadge(item.expiration_date)}</TableCell>
                         <TableCell className="text-left">
-                            <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item)}>
-                                <ShoppingBasket className="h-5 w-5 text-blue-600"/>
+                            <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => addToOrderRequestCart(item)} 
+                            className="hover:text-blue-600 group">
+                                <ShoppingBasket className="h-5 w-5 text-blue-600 group-hover:text-white"/>
                             </Button>
                         </TableCell>
                       </TableRow>
@@ -278,8 +282,12 @@ export default function ExpiringSoonPage() {
                         <TableCell>{getExpirationBadge(item.expiration_date)}</TableCell>
                         <TableCell className="text-left">
                             <div className="flex justify-end items-center gap-2">
-                                <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item)}>
-                                    <ShoppingBasket className="h-5 w-5 text-blue-600"/>
+                                <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => addToOrderRequestCart(item)}
+                                className="hover:text-blue-600 group">
+                                    <ShoppingBasket className="h-5 w-5 text-blue-600 group-hover:text-white"/>
                                 </Button>
                                <AlertDialog>
                                     <AlertDialogTrigger asChild>
