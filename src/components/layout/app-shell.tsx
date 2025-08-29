@@ -356,7 +356,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         </Link>
                          <Sheet open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
                             <SheetTrigger asChild>
-                                 <Button variant="ghost" size="icon" className="text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50 relative">
+                                 <Button variant="ghost" size="icon" className="me-10 text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50 relative">
                                     <Bell className="h-5 w-5"/>
                                     {unreadCount > 0 && (
                                         <span className="absolute top-0 right-0 flex h-3 w-3">
