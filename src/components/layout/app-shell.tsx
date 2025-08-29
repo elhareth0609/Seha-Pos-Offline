@@ -335,7 +335,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
            <main className="flex-1">
             <div className="container py-4">
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4 pb-4 border-b">
-                     <div className="flex flex-1 items-center justify-start gap-2 md:flex-grow-0">
+                     <div className="flex flex-1 items-center justify-start gap-4 md:flex-grow-0">
                         <Link href="/" className="flex items-center gap-2 font-semibold">
                             <img src="/icon.png" alt="Site Icon" className="h-6 w-6" />
                             <span className="hidden sm:inline-block">ميدجرام</span>
