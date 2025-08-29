@@ -261,8 +261,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             </div>
                         )}
                     </div>
-                     <div className="flex flex-1 items-center justify-end gap-2 md:flex-grow-0">
-                         <div className="items-center gap-2 flex">
+                    <div className="flex flex-1 items-center justify-end gap-2 md:flex-grow-0">
+                        <div className="items-center gap-2 flex">
                             {currentUser?.role === 'Admin' ? (
                                 <Button variant="outline" asChild>
                                     <Link href="/tasks">
@@ -278,12 +278,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                                     </Button>
                                 </SheetTrigger>
                             )}
+                            {hasPermission('/sales') && (
                               <Button variant="outline" asChild>
                                   <Link href="/sales">
                                       <ShoppingCart className="me-2 h-4 w-4"/>
                                       <span className="hidden sm:inline-block">المبيعات</span>
                                   </Link>
                               </Button>
+                            )}
+                            {hasPermission('/offers') && (
+                              <Button variant="outline" className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500" asChild>
+                                  <Link href="/offers">
+                                      <BadgePercent className="me-2 h-4 w-4"/>
+                                      <span className="hidden sm:inline-block">عروض ميدجرام</span>
+                                  </Link>
+                              </Button>
+                            )}
                         </div>
                           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                             <SheetTrigger asChild>
