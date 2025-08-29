@@ -60,7 +60,6 @@ const fileToDataUri = (file: File): Promise<string> => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
         reader.onerror = reject;
-        reader.readAsDataURL(file);
     });
 };
 
@@ -338,6 +337,9 @@ export default function SuperAdminPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                     <Button variant="outline" asChild>
+                        <Link href="/superadmin/reports"><FileText className="me-2"/> عرض التقارير</Link>
+                    </Button>
+                    <Button variant="outline" asChild>
                         <Link href="/superadmin/account">
                             <Settings className="me-2"/>
                             إعدادات الحساب
@@ -377,50 +379,45 @@ export default function SuperAdminPage() {
                                 <CardTitle>مدراء الصيدليات</CardTitle>
                                 <CardDescription>قائمة بجميع حسابات مدراء الصيدليات المسجلين.</CardDescription>
                             </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Button variant="outline" asChild>
-                                    <Link href="/superadmin/reports"><FileText className="me-2"/> عرض التقارير</Link>
-                                </Button>
-                                <Dialog open={isAddAdminOpen} onOpenChange={setIsAddAdminOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button><PlusCircle className="me-2"/> إنشاء حساب مدير</Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>إنشاء حساب مدير صيدلية</DialogTitle>
-                                        </DialogHeader>
-                                        <Form {...addAdminForm}>
-                                            <form onSubmit={addAdminForm.handleSubmit(handleAddAdmin)} className="space-y-4 py-2">
-                                                <FormField control={addAdminForm.control} name="name" render={({ field }) => (
-                                                    <FormItem><FormLabel>اسم المدير</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                                )} />
-                                                <FormField control={addAdminForm.control} name="email" render={({ field }) => (
-                                                    <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
-                                                )} />
-                                                <FormField control={addAdminForm.control} name="pin" render={({ field }) => (
-                                                    <FormItem><FormLabel>رمز PIN</FormLabel><FormControl><Input type="password"   {...field} /></FormControl><FormMessage /></FormItem>
-                                                )} />
-                                                <FormField control={addAdminForm.control} name="province" render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>المحافظة</FormLabel>
-                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                            <FormControl><SelectTrigger><SelectValue placeholder="اختر محافظة..." /></SelectTrigger></FormControl>
-                                                            <SelectContent>
-                                                                {iraqProvinces.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )} />
-                                                <DialogFooter className="pt-4">
-                                                    <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
-                                                    <Button type="submit" variant="success">إنشاء الحساب</Button>
-                                                </DialogFooter>
-                                            </form>
-                                        </Form>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
+                            <Dialog open={isAddAdminOpen} onOpenChange={setIsAddAdminOpen}>
+                                <DialogTrigger asChild>
+                                    <Button><PlusCircle className="me-2"/> إنشاء حساب مدير</Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>إنشاء حساب مدير صيدلية</DialogTitle>
+                                    </DialogHeader>
+                                    <Form {...addAdminForm}>
+                                        <form onSubmit={addAdminForm.handleSubmit(handleAddAdmin)} className="space-y-4 py-2">
+                                            <FormField control={addAdminForm.control} name="name" render={({ field }) => (
+                                                <FormItem><FormLabel>اسم المدير</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                            <FormField control={addAdminForm.control} name="email" render={({ field }) => (
+                                                <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                            <FormField control={addAdminForm.control} name="pin" render={({ field }) => (
+                                                <FormItem><FormLabel>رمز PIN</FormLabel><FormControl><Input type="password"   {...field} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                            <FormField control={addAdminForm.control} name="province" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>المحافظة</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl><SelectTrigger><SelectValue placeholder="اختر محافظة..." /></SelectTrigger></FormControl>
+                                                        <SelectContent>
+                                                            {iraqProvinces.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                            <DialogFooter className="pt-4">
+                                                <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                                                <Button type="submit" variant="success">إنشاء الحساب</Button>
+                                            </DialogFooter>
+                                        </form>
+                                    </Form>
+                                </DialogContent>
+                            </Dialog>
                         </div>
                         <div className="pt-4 flex flex-wrap gap-2">
                             <Input 

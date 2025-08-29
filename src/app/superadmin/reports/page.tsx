@@ -5,22 +5,29 @@ import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { AppSettings, Medication, Sale, User } from '@/lib/types';
-import { DollarSign, TrendingUp, PieChart, TrendingDown, ArrowLeft } from 'lucide-react';
+import type { AppSettings, Sale, User } from '@/lib/types';
+import { DollarSign, TrendingUp, PieChart, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
+type PharmacyPerformance = {
+    pharmacy_id: string;
+    pharmacy_name: string;
+    province: string;
+    total_sales: number;
+    total_profit: number;
+    employee_count: number;
+}
+
 export default function SuperAdminReportsPage() {
-    const { currentUser, getPharmacyData, getAllPharmacySettings } = useAuth();
+    const { currentUser, getPharmacyData, getAllPharmacySettings, users } = useAuth();
     const router = useRouter();
     
-    const [selectedPharmacyId, setSelectedPharmacyId] = React.useState<string | null>(null);
-    const [pharmacySettings, setPharmacySettings] = React.useState<Record<string, AppSettings>>({});
-    const [pharmacyData, setPharmacyData] = React.useState<{users: User[], sales: Sale[], inventory: Medication[]} | null>(null);
-    const [loading, setLoading] = React.useState(false);
+    const [allPharmacySettings, setAllPharmacySettings] = React.useState<Record<string, AppSettings>>({});
+    const [allPharmacySales, setAllPharmacySales] = React.useState<Record<string, Sale[]>>({});
+    const [loading, setLoading] = React.useState(true);
 
     React.useEffect(() => {
         if (currentUser && currentUser.role !== 'SuperAdmin') {
@@ -29,85 +36,64 @@ export default function SuperAdminReportsPage() {
     }, [currentUser, router]);
 
     React.useEffect(() => {
-        const fetchSettings = async () => {
-            if (currentUser?.role === 'SuperAdmin') {
+        const fetchAllData = async () => {
+            if (currentUser?.role !== 'SuperAdmin') return;
+            setLoading(true);
+            try {
                 const settings = await getAllPharmacySettings();
-                setPharmacySettings(settings);
+                setAllPharmacySettings(settings);
+
+                const salesPromises = Object.keys(settings).map(id => getPharmacyData(id).then(data => ({ id, sales: data.sales })));
+                const salesResults = await Promise.all(salesPromises);
+
+                const salesMap: Record<string, Sale[]> = {};
+                salesResults.forEach(result => {
+                    salesMap[result.id] = result.sales;
+                });
+                setAllPharmacySales(salesMap);
+
+            } catch (error) {
+                console.error("Failed to fetch all pharmacy data", error);
+            } finally {
+                setLoading(false);
             }
         };
-        fetchSettings();
-    }, [currentUser, getAllPharmacySettings]);
 
-    // 新增：当选择的药房ID改变时获取数据
-    React.useEffect(() => {
-        const fetchData = async () => {
-            if (selectedPharmacyId && currentUser?.role === 'SuperAdmin') {
-                setLoading(true);
-                try {
-                    const data = await getPharmacyData(selectedPharmacyId);
-                    setPharmacyData(data);
-                } catch (error) {
-                    console.error('Error fetching pharmacy data:', error);
-                    setPharmacyData(null);
-                } finally {
-                    setLoading(false);
-                }
-            } else {
-                setPharmacyData(null);
-            }
-        };
-        fetchData();
-    }, [selectedPharmacyId, getPharmacyData, currentUser]);
+        fetchAllData();
+    }, [currentUser, getAllPharmacySettings, getPharmacyData]);
 
-    
-    const selectedPharmacyData = React.useMemo(() => {
-        if (!selectedPharmacyId || !pharmacyData) return null;
-        
-        const { users, sales, inventory } = pharmacyData;
-        const pharmacyAdmins = users.filter(u => u.role === 'Admin');
-        const pharmacyUsers: User[] = users.filter(u => String(u.pharmacy_id) === selectedPharmacyId && u.role === "Employee");
+    const performanceData = React.useMemo(() => {
+        return Object.keys(allPharmacySettings).map(pharmacyId => {
+            const settings = allPharmacySettings[pharmacyId];
+            const sales = allPharmacySales[pharmacyId] || [];
+            
+            const total_sales = sales.reduce((acc, sale) => acc + (sale.total || 0), 0);
+            const total_profit = sales.reduce((acc, sale) => acc + ((sale.profit || 0) - (sale.discount || 0)), 0);
+            
+            const pharmacyUsers = users.filter(u => String(u.pharmacy_id) === pharmacyId && u.role !== 'SuperAdmin');
+            const pharmacyAdmin = pharmacyUsers.find(u => u.role === 'Admin');
 
-        const totalRevenue = sales.reduce((acc, sale) => {
-            const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
-            return acc + (isNaN(total) ? 0 : total);
-        }, 0);
-        const totalProfit = sales.reduce((acc, sale) => {
-            const  total = (typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0))) -
-            (typeof sale.discount === 'number' ? sale.discount : parseFloat(String(sale.discount || 0)));
-            return acc + (isNaN(total) ? 0 : total);
-        }, 0);
-        const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
-        
-        const lowStockItems = inventory.filter(item => item.stock < item.reorder_point).slice(0, 5);
-        // console.log(sales)
-        const topSellingItems = sales
-            .flatMap(s => s.items)
-            .reduce((acc, item) => {
-                if (!item.is_return) {
-                    acc[item.medication_id] = (acc[item.medication_id] || 0) + item.quantity;
-                }
-                return acc;
-            }, {} as { [key: string]: number });
-        
-        const topSoldArray = Object.entries(topSellingItems)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5)
-            .map(([medication_id, quantity]) => {
-                console.log(medication_id, quantity);
-                const med = inventory.find(m => m.id == medication_id);
-                console.log("med ", med);
-                return { name: med?.name || 'غير معروف', quantity, medication_id };
-            });
+            return {
+                pharmacy_id: pharmacyId,
+                pharmacy_name: settings.pharmacyName || `صيدلية #${pharmacyId}`,
+                province: pharmacyAdmin?.province || 'غير محدد',
+                total_sales,
+                total_profit,
+                employee_count: pharmacyUsers.length,
+            };
+        }).sort((a,b) => b.total_sales - a.total_sales); // Sort by highest sales
+    }, [allPharmacySettings, allPharmacySales, users]);
 
-        return {
-            totalRevenue,
-            totalProfit,
-            profitMargin,
-            lowStockItems,
-            topSoldArray,
-            pharmacyUsers,
-        };
-    }, [selectedPharmacyId, pharmacyData]);
+    const globalTotals = React.useMemo(() => {
+        const total_sales = performanceData.reduce((acc, p) => acc + p.total_sales, 0);
+        const total_profit = performanceData.reduce((acc, p) => acc + p.total_profit, 0);
+        const profit_margin = total_sales > 0 ? (total_profit / total_sales) * 100 : 0;
+        return { total_sales, total_profit, profit_margin };
+    }, [performanceData]);
+
+    if (loading) {
+        return <div className="text-center py-10">جاري تحميل التقارير المجمعة...</div>
+    }
 
     if (!currentUser || currentUser.role !== 'SuperAdmin') {
         return null;
@@ -119,122 +105,77 @@ export default function SuperAdminReportsPage() {
                 <CardHeader>
                     <div className="flex justify-between items-center">
                         <div>
-                            <CardTitle>تقارير الصيدليات</CardTitle>
-                            <CardDescription>اختر صيدلية لعرض تقاريرها المفصلة.</CardDescription>
+                            <CardTitle>التقارير الإجمالية للشركة</CardTitle>
+                            <CardDescription>نظرة شاملة على أداء جميع الصيدليات.</CardDescription>
                         </div>
                         <Button variant="outline" asChild>
-                            <Link href="/superadmin"><ArrowLeft className="me-2"/> العودة</Link>
+                            <Link href="/superadmin"><ArrowLeft className="me-2"/> العودة للوحة التحكم</Link>
                         </Button>
                     </div>
                 </CardHeader>
-                <CardContent>
-                    <Select onValueChange={setSelectedPharmacyId}>
-                        <SelectTrigger className="w-full md:w-1/3">
-                            <SelectValue placeholder="اختر صيدلية..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {Object.entries(pharmacySettings).map(([pharmacyId, pharmacy]: [string, AppSettings]) => {
-                                return (
-                                    <SelectItem key={pharmacyId} value={pharmacyId}>
-                                        {pharmacy?.pharmacyName || 'صيدلية جديدة'}
-                                    </SelectItem>
-                                );
-                            })}
-                        </SelectContent>
-                    </Select>
-                    {loading && (
-                        <div className="mt-4 text-center text-muted-foreground">
-                            جاري تحميل البيانات...
-                        </div>
-                    )}
+                <CardContent className="grid gap-4 md:grid-cols-3">
+                     <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">إجمالي المبيعات (كل الفروع)</CardTitle>
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold font-mono">{globalTotals.total_sales.toLocaleString()}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">إجمالي صافي الربح</CardTitle>
+                            <TrendingUp className="h-4 w-4 text-green-600" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-green-600 font-mono">{globalTotals.total_profit.toLocaleString()}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">متوسط هامش الربح</CardTitle>
+                            <PieChart className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold font-mono">{globalTotals.profit_margin.toFixed(2)}%</div>
+                        </CardContent>
+                    </Card>
                 </CardContent>
             </Card>
 
-            {selectedPharmacyData && (
-                <div className="space-y-6 animate-in fade-in mx-2">
-                    <div className="grid gap-4 md:grid-cols-3">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">إجمالي المبيعات</CardTitle>
-                                <DollarSign className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold font-mono">{selectedPharmacyData.totalRevenue.toLocaleString()}</div>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">صافي الربح</CardTitle>
-                                <TrendingUp className="h-4 w-4 text-green-600" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-green-600 font-mono">{selectedPharmacyData.totalProfit.toLocaleString()}</div>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">هامش الربح</CardTitle>
-                                <PieChart className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold font-mono">{selectedPharmacyData.profitMargin.toFixed(2)}%</div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        <Card>
-                            <CardHeader><CardTitle>الأصناف الأكثر مبيعًا</CardTitle></CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader><TableRow><TableHead>الدواء</TableHead><TableHead>الكمية المباعة</TableHead></TableRow></TableHeader>
-                                    <TableBody>
-                                        {selectedPharmacyData.topSoldArray.map(item => (
-                                            <TableRow key={item.medication_id}><TableCell>{item.name}</TableCell><TableCell className="font-mono">{item.quantity}</TableCell></TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader><CardTitle>أصناف منخفضة المخزون</CardTitle></CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>الدواء</TableHead>
-                                            <TableHead>المخزون</TableHead>
-                                            <TableHead>نقطة الطلب</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {selectedPharmacyData.lowStockItems.map(item => (
-                                            <TableRow key={item.id}>
-                                                <TableCell>{item.name}</TableCell>
-                                                <TableCell><Badge variant="destructive" className="font-mono">{item.stock}</Badge></TableCell>
-                                                <TableCell className="font-mono">{item.reorder_point}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader><CardTitle>موظفو الصيدلية</CardTitle></CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader><TableRow><TableHead>الاسم</TableHead><TableHead>البريد الإلكتروني</TableHead></TableRow></TableHeader>
-                                    <TableBody>
-                                        {selectedPharmacyData.pharmacyUsers.map(user => (
-                                            <TableRow key={user.id}><TableCell>{user.name}</TableCell><TableCell>{user.email}</TableCell></TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-            )}
+            <Card>
+                <CardHeader>
+                    <CardTitle>تحليل مقارن لأداء الصيدليات</CardTitle>
+                    <CardDescription>مقارنة بين الصيدليات بناءً على المؤشرات المالية الرئيسية.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>اسم الصيدلية</TableHead>
+                                <TableHead>المحافظة</TableHead>
+                                <TableHead>إجمالي المبيعات</TableHead>
+                                <TableHead>صافي الربح</TableHead>
+                                <TableHead>عدد الموظفين</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {performanceData.map(p => (
+                                <TableRow key={p.pharmacy_id}>
+                                    <TableCell className="font-medium">{p.pharmacy_name}</TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline">{p.province}</Badge>
+                                    </TableCell>
+                                    <TableCell className="font-mono">{p.total_sales.toLocaleString()}</TableCell>
+                                    <TableCell className="font-mono text-green-600">{p.total_profit.toLocaleString()}</TableCell>
+                                    <TableCell className="font-mono text-center">{p.employee_count}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
         </div>
     );
 }

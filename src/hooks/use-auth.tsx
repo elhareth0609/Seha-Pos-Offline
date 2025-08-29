@@ -456,7 +456,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const getPharmacyData = async (pharmacyId: string) => {
          try {
             return await apiRequest(`/superadmin/pharmacies/${pharmacyId}`);
-        } catch(e: any) { return { sales: [], inventory: [] }; }
+        } catch(e: any) { return { sales: [], inventory: [], users: [] }; }
     };
     
     const clearPharmacyData = async () => {
