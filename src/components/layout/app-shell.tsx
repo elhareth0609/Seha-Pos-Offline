@@ -49,7 +49,7 @@ import { ScrollArea } from "../ui/scroll-area";
 import { Checkbox } from "../ui/checkbox";
 import { Label } from "../ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "../ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -235,147 +235,131 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <TooltipProvider>
       <Sheet>
         <div className="flex min-h-screen flex-col bg-muted/40">
-          <header className="sticky top-0 z-50 w-full border-b bg-background shadow-sm">
-            <div className="container flex h-16 items-center">
-              <div className="flex-1 md:flex-grow-0">
-                  <Link href="/" className="flex items-center gap-2 font-semibold">
-                      <PackagePlus className="h-6 w-6 text-primary" />
-                      <span className="hidden sm:inline-block">Midgram</span>
-                  </Link>
-              </div>
+           <main className="flex-1">
+            <div className="container py-4">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4 pb-4 border-b">
+                     <div className="flex-1 md:flex-grow-0">
+                        <Link href="/" className="flex items-center gap-2 font-semibold">
+                            <PackagePlus className="h-6 w-6 text-primary" />
+                            <span className="hidden sm:inline-block">Midgram</span>
+                        </Link>
+                    </div>
 
-              <div className="flex flex-1 items-center justify-center gap-2">
-                {currentUser?.role === 'Admin' && (
-                  <div className="hidden lg:block">
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <span tabIndex={0} className="text-sm text-muted-foreground cursor-help animate-pulse outline-none">
-                                    تذكر النسخ الاحتياطي!
-                                </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>لحماية بياناتك، قم بعمل نسخة احتياطية بشكل دوري.</p>
-                            </TooltipContent>
-                        </Tooltip>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-1 items-center justify-end gap-2 md:flex-grow-0">
-                  <div className="hidden items-center gap-2 md:flex">
-                      {hasPermission('/sales') && (
-                        <Button variant="outline" asChild>
-                          <Link href="/sales">المبيعات</Link>
-                        </Button>
-                      )}
-                      {hasPermission('/offers') && (
-                        <Button variant="outline" className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500" asChild>
-                          <Link href="/offers">عروض ميدجرام</Link>
-                        </Button>
-                      )}
-                      {hasPermission('/inventory') && (
-                        <Button variant="outline" asChild>
-                          <Link href="/inventory">المخزون</Link>
-                        </Button>
-                      )}
-                  </div>
-                <div className="items-center gap-2">
-                    {currentUser?.role === 'Admin' ? (
-                        <Button variant="outline" asChild>
-                            <Link href="/tasks">
-                                <ListChecks className="me-2 h-4 w-4"/>
-                                <span className="hidden sm:inline-block">المهام</span>
-                            </Link>
-                        </Button>
-                    ) : (
-                        <SheetTrigger asChild>
-                            <Button variant="outline">
-                                <ListChecks className="sm:me-2 h-4 w-4"/>
-                                <span className="hidden sm:inline-block">مهامي</span>
-                            </Button>
-                        </SheetTrigger>
-                    )}
-                </div>
-                  <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-                    <SheetTrigger asChild>
-                        <Button variant="outline" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-                            <Menu className="sm:me-2 h-4 w-4" />
-                            <span className="hidden sm:inline">القائمة الرئيسية</span>
-                        </Button>
-                    </SheetTrigger>
-                    <SheetContent side="bottom" className="h-[90vh] flex flex-col">
-                        <SheetHeader>
-                            <SheetTitle>القائمة الرئيسية</SheetTitle>
-                            <SheetDescription>اختر وجهتك التالية في النظام.</SheetDescription>
-                        </SheetHeader>
-                        <div className="flex-1 overflow-auto">
-                          <div className="py-4 space-y-6">
-                              {navGroups.map(group => {
-                                  const groupItems = navItems.filter(item => item.group === group.key);
-                                  if (groupItems.length === 0) return null;
-                                  return (
-                                      <div key={group.key}>
-                                          <h3 className="mb-4 text-lg font-semibold tracking-tight">{group.title}</h3>
-                                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                                              {groupItems.map(item => (
-                                                  <SheetClose asChild key={item.href}>
-                                                  <Link href={item.href}>
-                                                      <Card className="h-full hover:bg-primary hover:text-primary-foreground transition-colors group">
-                                                          <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2 aspect-square">
-                                                              <item.icon className="h-7 w-7 text-primary group-hover:text-primary-foreground" />
-                                                              <span className="text-xs font-medium">{item.label}</span>
-                                                          </CardContent>
-                                                      </Card>
-                                                  </Link>
-                                                  </SheetClose>
-                                              ))}
-                                          </div>
-                                           <Separator className="mt-6" />
-                                      </div>
-                                  )
-                              })}
-                             {currentUser?.role === 'Admin' && (
-                              <>
-                                <h3 className="mb-4 text-lg font-semibold tracking-tight">النسخ الاحتياطي والاستيراد</h3>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                                    <Card className="hover:bg-accent hover:text-accent-foreground transition-colors group cursor-pointer" onClick={handleImportClick}>
-                                        <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2 aspect-square">
-                                            <Upload className="h-7 w-7 text-accent-foreground" />
-                                            <span className="text-xs font-medium">استيراد بيانات</span>
-                                        </CardContent>
-                                    </Card>
-                                    <Card className="hover:bg-accent hover:text-accent-foreground transition-colors group cursor-pointer" onClick={handleBackup}>
-                                        <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2 aspect-square">
-                                            <FileDown className="h-7 w-7 text-accent-foreground" />
-                                            <span className="text-xs font-medium">نسخ احتياطي</span>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                              </>
+                    <div className="flex flex-1 items-center justify-center gap-2">
+                         {currentUser?.role === 'Admin' && (
+                            <div className="hidden lg:block">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span tabIndex={0} className="text-sm text-muted-foreground cursor-help animate-pulse outline-none">
+                                            تذكر النسخ الاحتياطي!
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>لحماية بياناتك، قم بعمل نسخة احتياطية بشكل دوري.</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
+                        )}
+                    </div>
+                     <div className="flex flex-1 items-center justify-end gap-2 md:flex-grow-0">
+                         <div className="items-center gap-2">
+                            {currentUser?.role === 'Admin' ? (
+                                <Button variant="outline" asChild>
+                                    <Link href="/tasks">
+                                        <ListChecks className="me-2 h-4 w-4"/>
+                                        <span className="hidden sm:inline-block">المهام</span>
+                                    </Link>
+                                </Button>
+                            ) : (
+                                <SheetTrigger asChild>
+                                    <Button variant="outline">
+                                        <ListChecks className="sm:me-2 h-4 w-4"/>
+                                        <span className="hidden sm:inline-block">مهامي</span>
+                                    </Button>
+                                </SheetTrigger>
                             )}
-                          </div>
                         </div>
-                    </SheetContent>
-                  </Sheet>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="flex items-center gap-2 px-2">
-                            <UserCircle />
-                            <span className="hidden sm:inline-block text-sm font-medium">{currentUser?.name || "المستخدم"}</span>
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={logout}>
-                            <LogOut className="me-2 h-4 w-4" />
-                            <span>تسجيل الخروج</span>
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+                          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+                            <SheetTrigger asChild>
+                                <Button variant="outline" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                                    <Menu className="sm:me-2 h-4 w-4" />
+                                    <span className="hidden sm:inline">القائمة الرئيسية</span>
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent side="bottom" className="h-[90vh] flex flex-col">
+                                <SheetHeader>
+                                    <SheetTitle>القائمة الرئيسية</SheetTitle>
+                                    <SheetDescription>اختر وجهتك التالية في النظام.</SheetDescription>
+                                </SheetHeader>
+                                <div className="flex-1 overflow-auto">
+                                <ScrollArea className="h-full">
+                                  <div className="py-4 space-y-6">
+                                      {navGroups.map(group => {
+                                          const groupItems = navItems.filter(item => item.group === group.key);
+                                          if (groupItems.length === 0) return null;
+                                          return (
+                                              <div key={group.key}>
+                                                  <h3 className="mb-4 text-lg font-semibold tracking-tight">{group.title}</h3>
+                                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                                                      {groupItems.map(item => (
+                                                          <SheetClose asChild key={item.href}>
+                                                          <Link href={item.href}>
+                                                              <Card className="h-full hover:bg-primary hover:text-primary-foreground transition-colors group">
+                                                                  <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2 aspect-square">
+                                                                      <item.icon className="h-7 w-7 text-primary group-hover:text-primary-foreground" />
+                                                                      <span className="text-xs font-medium">{item.label}</span>
+                                                                  </CardContent>
+                                                              </Card>
+                                                          </Link>
+                                                          </SheetClose>
+                                                      ))}
+                                                  </div>
+                                                   <Separator className="mt-6" />
+                                              </div>
+                                          )
+                                      })}
+                                     {currentUser?.role === 'Admin' && (
+                                      <>
+                                        <h3 className="mb-4 text-lg font-semibold tracking-tight">النسخ الاحتياطي والاستيراد</h3>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                                            <Card className="hover:bg-accent hover:text-accent-foreground transition-colors group cursor-pointer" onClick={handleImportClick}>
+                                                <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2 aspect-square">
+                                                    <Upload className="h-7 w-7 text-accent-foreground" />
+                                                    <span className="text-xs font-medium">استيراد بيانات</span>
+                                                </CardContent>
+                                            </Card>
+                                            <Card className="hover:bg-accent hover:text-accent-foreground transition-colors group cursor-pointer" onClick={handleBackup}>
+                                                <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2 aspect-square">
+                                                    <FileDown className="h-7 w-7 text-accent-foreground" />
+                                                    <span className="text-xs font-medium">نسخ احتياطي</span>
+                                                </CardContent>
+                                            </Card>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                  </ScrollArea>
+                                </div>
+                            </SheetContent>
+                          </Sheet>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="flex items-center gap-2 px-2">
+                                    <UserCircle />
+                                    <span className="hidden sm:inline-block text-sm font-medium">{currentUser?.name || "المستخدم"}</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onSelect={logout}>
+                                    <LogOut className="me-2 h-4 w-4" />
+                                    <span>تسجيل الخروج</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                </div>
+                {children}
             </div>
-          </header>
-          <main className="flex-1">
-            <div className="container py-4">{children}</div>
           </main>
         </div>
         <TasksSheet />
