@@ -303,58 +303,60 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             <span className="hidden sm:inline">القائمة الرئيسية</span>
                         </Button>
                     </SheetTrigger>
-                    <SheetContent side="bottom" className="h-full md:h-auto">
+                    <SheetContent side="bottom" className="h-full md:h-auto flex flex-col">
                         <SheetHeader>
                             <SheetTitle>القائمة الرئيسية</SheetTitle>
                             <SheetDescription>اختر وجهتك التالية في النظام.</SheetDescription>
                         </SheetHeader>
-                        <ScrollArea className="h-[calc(100%-6rem)]">
-                            <div className="py-4 space-y-6">
-                                {navGroups.map(group => {
-                                    const groupItems = navItems.filter(item => item.group === group.key);
-                                    if (groupItems.length === 0) return null;
-                                    return (
-                                        <div key={group.key}>
-                                            <h3 className="mb-4 text-lg font-semibold tracking-tight">{group.title}</h3>
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                                                {groupItems.map(item => (
-                                                    <SheetClose asChild key={item.href}>
-                                                    <Link href={item.href}>
-                                                        <Card className="h-full hover:bg-primary hover:text-primary-foreground transition-colors group">
-                                                            <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-2 aspect-square">
-                                                                <item.icon className="h-8 w-8 text-primary group-hover:text-primary-foreground" />
-                                                                <span className="text-sm font-medium">{item.label}</span>
-                                                            </CardContent>
-                                                        </Card>
-                                                    </Link>
-                                                    </SheetClose>
-                                                ))}
-                                            </div>
-                                             <Separator className="mt-6" />
-                                        </div>
-                                    )
-                                })}
-                               {currentUser?.role === 'Admin' && (
-                                <>
-                                  <h3 className="mb-4 text-lg font-semibold tracking-tight">النسخ الاحتياطي والاستيراد</h3>
-                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                                      <Card className="hover:bg-accent hover:text-accent-foreground transition-colors group cursor-pointer" onClick={handleImportClick}>
-                                          <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-2 aspect-square">
-                                              <Upload className="h-8 w-8 text-accent-foreground" />
-                                              <span className="text-sm font-medium">استيراد بيانات</span>
-                                          </CardContent>
-                                      </Card>
-                                      <Card className="hover:bg-accent hover:text-accent-foreground transition-colors group cursor-pointer" onClick={handleBackup}>
-                                          <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-2 aspect-square">
-                                              <FileDown className="h-8 w-8 text-accent-foreground" />
-                                              <span className="text-sm font-medium">نسخ احتياطي</span>
-                                          </CardContent>
-                                      </Card>
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                        </ScrollArea>
+                        <div className="flex-1 overflow-hidden">
+                          <ScrollArea className="h-full">
+                              <div className="py-4 space-y-6">
+                                  {navGroups.map(group => {
+                                      const groupItems = navItems.filter(item => item.group === group.key);
+                                      if (groupItems.length === 0) return null;
+                                      return (
+                                          <div key={group.key}>
+                                              <h3 className="mb-4 text-lg font-semibold tracking-tight">{group.title}</h3>
+                                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                                                  {groupItems.map(item => (
+                                                      <SheetClose asChild key={item.href}>
+                                                      <Link href={item.href}>
+                                                          <Card className="h-full hover:bg-primary hover:text-primary-foreground transition-colors group">
+                                                              <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2 aspect-square">
+                                                                  <item.icon className="h-7 w-7 text-primary group-hover:text-primary-foreground" />
+                                                                  <span className="text-xs font-medium">{item.label}</span>
+                                                              </CardContent>
+                                                          </Card>
+                                                      </Link>
+                                                      </SheetClose>
+                                                  ))}
+                                              </div>
+                                               <Separator className="mt-6" />
+                                          </div>
+                                      )
+                                  })}
+                                 {currentUser?.role === 'Admin' && (
+                                  <>
+                                    <h3 className="mb-4 text-lg font-semibold tracking-tight">النسخ الاحتياطي والاستيراد</h3>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                                        <Card className="hover:bg-accent hover:text-accent-foreground transition-colors group cursor-pointer" onClick={handleImportClick}>
+                                            <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2 aspect-square">
+                                                <Upload className="h-7 w-7 text-accent-foreground" />
+                                                <span className="text-xs font-medium">استيراد بيانات</span>
+                                            </CardContent>
+                                        </Card>
+                                        <Card className="hover:bg-accent hover:text-accent-foreground transition-colors group cursor-pointer" onClick={handleBackup}>
+                                            <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2 aspect-square">
+                                                <FileDown className="h-7 w-7 text-accent-foreground" />
+                                                <span className="text-xs font-medium">نسخ احتياطي</span>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                          </ScrollArea>
+                        </div>
                     </SheetContent>
                   </Sheet>
                   <DropdownMenu>
