@@ -303,7 +303,7 @@ export default function ExpiringSoonPage() {
                                                 سيتم نقل {item.name} (كمية: {item.stock}) إلى قائمة التالف وحذفه من المخزون. لا يمكن التراجع عن هذا الإجراء.
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
-                                        <AlertDialogFooter>
+                                        <AlertDialogFooter className="sm:space-x-reverse">
                                             <AlertDialogCancel>إلغاء</AlertDialogCancel>
                                             <AlertDialogAction onClick={() => handleMarkAsDamaged(item.id)} className={buttonVariants({ variant: "destructive" })}>
                                                 نعم، قم بالنقل

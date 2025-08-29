@@ -844,7 +844,7 @@ export default function SalesPage() {
                                     const medInInventory = allInventory?.find(med => med.id === item.id);
                                     const stock = medInInventory?.stock ?? 0;
                                     const remainingStock = stock - (item.quantity || 0);
-                                    const isBelowCost = (item.price || 0) < (item.purchase_price || 0);
+                                    const isBelowCost = (Number(item.price) || 0) < (Number(item.purchase_price) || 0);
                                     const alternatives = findAlternatives(item);
                                     return (
                                         <div key={`${item.id}-${item.is_return}`} className={cn("flex flex-col gap-3 p-3", item.is_return && "bg-red-50 dark:bg-red-900/20")}>
@@ -936,10 +936,7 @@ export default function SalesPage() {
                                     const medInInventory = allInventory?.find(med => med.id === item.id);
                                     const stock = medInInventory?.stock ?? 0;
                                     const remainingStock = stock - (item.quantity || 0);
-                                    console.log('price type:', typeof item.price, 'value:', item.price);
-                                    console.log('purchase_price type:', typeof item.purchase_price, 'value:', item.purchase_price);
-                                    const isBelowCost = (item.price || 0) < (item.purchase_price || 0);
-                                    console.log('isBelowCost type:', typeof isBelowCost, 'value:', isBelowCost);
+                                    const isBelowCost = (Number(item.price) || 0) < (Number(item.purchase_price) || 0);
                                     const alternatives = findAlternatives(item);
 
                                     return (
