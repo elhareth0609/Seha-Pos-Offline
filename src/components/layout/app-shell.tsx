@@ -278,6 +278,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                                     </Button>
                                 </SheetTrigger>
                             )}
+                              <Button variant="outline" asChild>
+                                  <Link href="/sales">
+                                      <ShoppingCart className="me-2 h-4 w-4"/>
+                                      <span className="hidden sm:inline-block">المبيعات</span>
+                                  </Link>
+                              </Button>
                         </div>
                           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                             <SheetTrigger asChild>
