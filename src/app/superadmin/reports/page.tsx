@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { isWithinInterval, parseISO } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type PharmacyPerformance = {
     pharmacy_id: string;
@@ -22,6 +23,7 @@ type PharmacyPerformance = {
     total_sales: number;
     total_profit: number;
     employee_count: number;
+    purchase_order_count: number;
 }
 
 export default function SuperAdminReportsPage() {
@@ -77,34 +79,43 @@ export default function SuperAdminReportsPage() {
         fetchAllData();
     }, [currentUser, getAllPharmacySettings, getPharmacyData]);
     
-    const filteredSales = React.useMemo(() => {
-        if (!dateFrom && !dateTo) {
-            return allPharmacySales;
-        }
-        const newFilteredSales: Record<string, Sale[]> = {};
-        const interval = {
-            start: dateFrom ? parseISO(dateFrom) : new Date(0),
-            end: dateTo ? parseISO(dateTo) : new Date(),
+    const { performanceData, topSellingMedications, topPurchasingPharmacies, topPurchasedItems } = React.useMemo(() => {
+        const dateInterval = dateFrom && dateTo ? { start: parseISO(dateFrom), end: parseISO(dateTo) } : null;
+
+        const filterByDate = <T extends { date: string }>(items: T[]): T[] => {
+            if (!dateInterval) return items;
+            return items.filter(item => isWithinInterval(parseISO(item.date), dateInterval));
         };
+        
+        const medicationCounts: { [key: string]: { name: string, quantity: number } } = {};
+        const pharmacyPurchaseCounts: { [key: string]: number } = {};
+        const topPurchasedItemsMap: Record<string, {name: string, quantity: number}> = {};
 
-        for (const pharmacyId in allPharmacySales) {
-            newFilteredSales[pharmacyId] = allPharmacySales[pharmacyId].filter(sale => 
-                isWithinInterval(parseISO(sale.date), interval)
-            );
-        }
-        return newFilteredSales;
-    }, [allPharmacySales, dateFrom, dateTo]);
-
-    const performanceData = React.useMemo(() => {
-        return Object.keys(allPharmacySettings).map(pharmacyId => {
+        const perfData = Object.keys(allPharmacySettings).map(pharmacyId => {
             const settings = allPharmacySettings[pharmacyId];
-            const sales = filteredSales[pharmacyId] || [];
+            const sales = filterByDate(allPharmacySales[pharmacyId] || []);
+            const purchases = filterByDate(allPharmacyPurchases[pharmacyId] || []);
             
             const total_sales = sales.reduce((acc, sale) => acc + (sale.total || 0), 0);
             const total_profit = sales.reduce((acc, sale) => acc + ((sale.profit || 0) - (sale.discount || 0)), 0);
             
             const pharmacyUsers = users.filter(u => String(u.pharmacy_id) === pharmacyId && u.role !== 'SuperAdmin');
             const pharmacyAdmin = pharmacyUsers.find(u => u.role === 'Admin');
+            
+            // For top selling medications
+            sales.forEach(sale => sale.items?.forEach(item => {
+                if (!item.is_return) {
+                    medicationCounts[item.medication_id] = medicationCounts[item.medication_id] || { name: item.name, quantity: 0 };
+                    medicationCounts[item.medication_id].quantity += item.quantity;
+                }
+            }));
+
+            // For top purchasing pharmacies & items
+            pharmacyPurchaseCounts[pharmacyId] = purchases.length;
+            purchases.forEach(po => po.items?.forEach(item => {
+                topPurchasedItemsMap[item.medication_id] = topPurchasedItemsMap[item.medication_id] || { name: item.name, quantity: 0 };
+                topPurchasedItemsMap[item.medication_id].quantity += item.quantity;
+            }));
 
             return {
                 pharmacy_id: pharmacyId,
@@ -113,83 +124,41 @@ export default function SuperAdminReportsPage() {
                 total_sales,
                 total_profit,
                 employee_count: pharmacyUsers.length,
+                purchase_order_count: purchases.length,
             };
-        }).sort((a,b) => b.total_sales - a.total_sales); // Sort by highest sales
-    }, [allPharmacySettings, filteredSales, users]);
+        }).sort((a,b) => b.total_sales - a.total_sales);
 
-    const topSellingMedications = React.useMemo(() => {
-        const medicationCounts: { [key: string]: { name: string, quantity: number } } = {};
-        const salesData = Object.values(filteredSales).flat();
-
-        if(!salesData) return [];
-
-        salesData.forEach(sale => {
-            if (sale.items) {
-                sale.items.forEach(item => {
-                    if (!item.is_return) {
-                        if (medicationCounts[item.medication_id]) {
-                            medicationCounts[item.medication_id].quantity += item.quantity;
-                        } else {
-                            medicationCounts[item.medication_id] = {
-                                name: item.name,
-                                quantity: item.quantity,
-                            };
-                        }
-                    }
-                });
-            }
-        });
-
-        return Object.values(medicationCounts)
-            .sort((a, b) => b.quantity - a.quantity)
-            .slice(0, 30);
-    }, [filteredSales]);
-    
-    const purchaseAnalytics = React.useMemo(() => {
-        if (!allPharmacyPurchases || Object.keys(allPharmacyPurchases).length === 0) {
-            return { topPharmacy: 'N/A', topItemName: 'N/A' };
-        }
-
-        const pharmacyPurchaseCounts: Record<string, number> = {};
-        const topPurchasedItems: Record<string, {name: string, quantity: number}> = {};
-
-        Object.entries(allPharmacyPurchases).forEach(([pharmacyId, purchases]) => {
-            pharmacyPurchaseCounts[pharmacyId] = (pharmacyPurchaseCounts[pharmacyId] || 0) + (purchases?.length || 0);
-            if (purchases) {
-                purchases.forEach(po => {
-                    if (po.items) {
-                        po.items.forEach(item => {
-                            if (item.medication_id) {
-                                if (topPurchasedItems[item.medication_id]) {
-                                    topPurchasedItems[item.medication_id].quantity += item.quantity;
-                                } else {
-                                    topPurchasedItems[item.medication_id] = { name: item.name, quantity: item.quantity };
-                                }
-                            }
-                        });
-                    }
-                });
-            }
-        });
-
-        const topPharmacyId = Object.keys(pharmacyPurchaseCounts).length > 0 
-            ? Object.keys(pharmacyPurchaseCounts).reduce((a, b) => pharmacyPurchaseCounts[a] > pharmacyPurchaseCounts[b] ? a : b)
-            : '';
+        const topSellers = Object.values(medicationCounts).sort((a, b) => b.quantity - a.quantity).slice(0, 30);
+        const topBuyers = Object.entries(pharmacyPurchaseCounts)
+            .map(([pharmacy_id, count]) => ({
+                pharmacy_id,
+                name: allPharmacySettings[pharmacy_id]?.pharmacyName || `صيدلية #${pharmacy_id}`,
+                count
+            }))
+            .sort((a,b) => b.count - a.count);
             
-        const topPharmacy = allPharmacySettings[topPharmacyId]?.pharmacyName || 'N/A';
+        const topItems = Object.values(topPurchasedItemsMap).sort((a,b) => b.quantity - a.quantity).slice(0,30);
 
-        const topItem = Object.keys(topPurchasedItems).length > 0
-            ? Object.values(topPurchasedItems).reduce((a, b) => a.quantity > b.quantity ? a : b)
-            : {name: 'N/A', quantity: 0};
+        return {
+            performanceData: perfData,
+            topSellingMedications: topSellers,
+            topPurchasingPharmacies: topBuyers,
+            topPurchasedItems: topItems,
+        };
 
-
-        return { topPharmacy, topItemName: topItem.name };
-
-    }, [allPharmacyPurchases, allPharmacySettings]);
+    }, [allPharmacySettings, allPharmacySales, allPharmacyPurchases, users, dateFrom, dateTo]);
 
 
     if (loading) {
-        return <div className="text-center py-10">جاري تحميل التقارير المجمعة...</div>
+        return (
+             <div className="flex flex-col gap-6 p-4">
+                <Skeleton className="h-20 w-full" />
+                <div className="grid gap-6 lg:grid-cols-3">
+                    <Skeleton className="h-96 w-full lg:col-span-2" />
+                    <Skeleton className="h-96 w-full" />
+                </div>
+            </div>
+        )
     }
 
     if (!currentUser || currentUser.role !== 'SuperAdmin') {
@@ -209,27 +178,17 @@ export default function SuperAdminReportsPage() {
                             <Link href="/superadmin"><ArrowLeft className="me-2"/> العودة للوحة التحكم</Link>
                         </Button>
                     </div>
+                    <div className="pt-4 flex gap-4 items-end">
+                        <div className="flex-1 space-y-2">
+                           <Label htmlFor="date-from">من تاريخ</Label>
+                           <Input id="date-from" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+                       </div>
+                       <div className="flex-1 space-y-2">
+                           <Label htmlFor="date-to">إلى تاريخ</Label>
+                           <Input id="date-to" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+                       </div>
+                    </div>
                 </CardHeader>
-                 <CardContent className="grid gap-4 md:grid-cols-2">
-                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">الصيدلية الأكثر شراءً</CardTitle>
-                            <Building className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{purchaseAnalytics.topPharmacy}</div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">الدواء الأكثر شراءً</CardTitle>
-                            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{purchaseAnalytics.topItemName}</div>
-                        </CardContent>
-                    </Card>
-                </CardContent>
             </Card>
 
             <div className="grid gap-6 lg:grid-cols-3">
@@ -237,16 +196,6 @@ export default function SuperAdminReportsPage() {
                     <CardHeader>
                         <CardTitle>تحليل مقارن لأداء الصيدليات</CardTitle>
                         <CardDescription>مقارنة بين الصيدليات بناءً على المؤشرات المالية الرئيسية.</CardDescription>
-                        <div className="pt-4 flex gap-4 items-end">
-                             <div className="flex-1 space-y-2">
-                                <Label htmlFor="date-from">من تاريخ</Label>
-                                <Input id="date-from" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-                            </div>
-                            <div className="flex-1 space-y-2">
-                                <Label htmlFor="date-to">إلى تاريخ</Label>
-                                <Input id="date-to" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
-                            </div>
-                        </div>
                     </CardHeader>
                     <CardContent>
                         <Table>
@@ -280,7 +229,7 @@ export default function SuperAdminReportsPage() {
                         <CardTitle>الأدوية الأكثر مبيعًا (كل الفروع)</CardTitle>
                         <CardDescription>أفضل 30 دواء مبيعًا في الفترة المحددة.</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="max-h-96 overflow-y-auto">
                          <Table>
                             <TableHeader>
                                 <TableRow>
@@ -293,6 +242,56 @@ export default function SuperAdminReportsPage() {
                                     <TableRow key={index}>
                                         <TableCell className="font-medium">{med.name}</TableCell>
                                         <TableCell className="text-left font-mono">{med.quantity.toLocaleString()}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </div>
+             <div className="grid gap-6 lg:grid-cols-3">
+                <Card className="lg:col-span-2">
+                    <CardHeader>
+                        <CardTitle>الصيدليات الأكثر شراءً</CardTitle>
+                        <CardDescription>ترتيب الصيدليات حسب عدد قوائم الشراء المستلمة.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>اسم الصيدلية</TableHead>
+                                    <TableHead className="text-left">عدد قوائم الشراء</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {topPurchasingPharmacies.map(p => (
+                                    <TableRow key={p.pharmacy_id}>
+                                        <TableCell className="font-medium">{p.name}</TableCell>
+                                        <TableCell className="font-mono text-left">{p.count}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>الأدوية الأكثر شراءً (كل الفروع)</CardTitle>
+                        <CardDescription>أكثر الأصناف التي يتم استلامها من الموردين.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="max-h-96 overflow-y-auto">
+                         <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>الدواء</TableHead>
+                                    <TableHead className="text-left">الكمية المشتراة</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {topPurchasedItems.map((item, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell className="font-medium">{item.name}</TableCell>
+                                        <TableCell className="text-left font-mono">{item.quantity.toLocaleString()}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
