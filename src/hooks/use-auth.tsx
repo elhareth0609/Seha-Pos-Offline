@@ -364,9 +364,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const removeFromOrderRequestCart = async (orderItemId: string, skipToast = false) => {
-       try {
+        try {
             await apiRequest(`/order-requests/${orderItemId}`, 'DELETE');
-            setOrderRequestCart(prev => prev.filter(item => item.id !== orderItemId));
+            setOrderRequestCart(prev => prev.filter(item => item.id != orderItemId));
             if (!skipToast) {
                 toast({ title: "تم الحذف من الطلبات" });
             }

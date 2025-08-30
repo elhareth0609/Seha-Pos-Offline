@@ -85,7 +85,7 @@ export default function OrderRequestsPage() {
     };
 
     fetchCart();
-  }, []); // Empty dependency array to run only once on mount
+  }, [getOrderRequestCart]); // Add getOrderRequestCart to dependency array to refresh when cart changes
 
 
 
@@ -102,7 +102,16 @@ export default function OrderRequestsPage() {
       updateOrderRequestItem(orderItemId, { [field]: itemData[field] });
     }
   };
-  
+
+  const handleDelete = async (id: string) => {
+    await removeFromOrderRequestCart(id, false);
+    // Refresh the cart data after deletion
+    const cart = await getOrderRequestCart();
+    if (Array.isArray(cart)) {
+      setOrderRequestCart(cart);
+    }
+  };
+
   const handleApplyMasterSettings = () => {
     if (!masterSupplierId && !masterPurchaseId && !masterDate) {
       toast({ variant: 'destructive', title: "لا يوجد إعدادات لتطبيقها", description: "الرجاء اختيار مورد أو إدخال رقم قائمة أو تحديد تاريخ." });
@@ -327,10 +336,17 @@ export default function OrderRequestsPage() {
                                 />
                             </TableCell>
                             <TableCell className="flex items-center">
-                                <Button size="icon" variant="ghost" className="text-blue-600" onClick={() => duplicateOrderRequestItem(item.id)}>
+                                <Button size="icon" variant="ghost" className="text-blue-600" onClick={async () => {
+                                    await duplicateOrderRequestItem(item.id);
+                                    // Refresh the cart data after duplication
+                                    const cart = await getOrderRequestCart();
+                                    if (Array.isArray(cart)) {
+                                      setOrderRequestCart(cart);
+                                    }
+                                }}>
                                     <Copy className="h-4 w-4" />
                                 </Button>
-                                <Button size="icon" variant="ghost" className="text-destructive" onClick={() => removeFromOrderRequestCart(item.id, false)}>
+                                <Button size="icon" variant="ghost" className="text-destructive" onClick={() => handleDelete(item.id)}>
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             </TableCell>
