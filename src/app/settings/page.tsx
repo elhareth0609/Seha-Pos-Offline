@@ -54,7 +54,6 @@ const settingsSchema = z.object({
   pharmacyAddress: z.string().default(""),
   pharmacyPhone: z.string().default(""),
   pharmacyEmail: z.string().email({ message: "بريد إلكتروني غير صالح." }).or(z.literal("")).default(""),
-  expirationThresholdDays: z.coerce.number().int().positive({ message: "يجب أن يكون عدد الأيام رقمًا صحيحًا موجبًا." }),
   invoiceFooterMessage: z.string().default("شكرًا لزيارتكم!"),
 })
 
@@ -82,11 +81,11 @@ export default function SettingsPage() {
     
     const onSettingsSubmit = (data: SettingsFormValues) => {
         const settingsData: AppSettings = {
+            ...settings, // preserve existing settings
             pharmacyName: data.pharmacyName,
             pharmacyAddress: data.pharmacyAddress || "",
             pharmacyPhone: data.pharmacyPhone || "",
             pharmacyEmail: data.pharmacyEmail || "",
-            expirationThresholdDays: data.expirationThresholdDays,
             invoiceFooterMessage: data.invoiceFooterMessage || "شكرًا لزيارتكم!",
         };
         setSettings(settingsData);
@@ -121,7 +120,6 @@ export default function SettingsPage() {
                             <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
                             <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
                         </div>
-                        <div className="space-y-2"><Skeleton className="h-4 w-48" /><Skeleton className="h-10 w-full" /></div>
                         <div className="space-y-2"><Skeleton className="h-4 w-48" /><Skeleton className="h-20 w-full" /></div>
                     </CardContent>
                     <CardFooter>
@@ -140,7 +138,7 @@ export default function SettingsPage() {
                   <CardHeader>
                     <CardTitle>الإعدادات العامة</CardTitle>
                     <CardDescription>
-                      إدارة الإعدادات العامة للصيدلية. تؤثر هذه الإعدادات على الفواتير والتقارير والتنبيهات.
+                      إدارة الإعدادات العامة للصيدلية. تؤثر هذه الإعدادات على الفواتير والتقارير.
                     </CardDescription>
                   </CardHeader>
                     <CardContent className="space-y-4">
@@ -158,12 +156,6 @@ export default function SettingsPage() {
                                 <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
                         </div>
-                         <FormField control={settingsForm.control} name="expirationThresholdDays" render={({ field }) => (
-                             <FormItem><FormLabel>تنبيه انتهاء الصلاحية (بالأيام)</FormLabel><FormControl><Input type="number" {...field} /></FormControl>
-                               <FormDescription>سيتم إدراج الأدوية التي تنتهي صلاحيتها خلال هذه الفترة في صفحة "قريب الانتهاء".</FormDescription>
-                               <FormMessage />
-                             </FormItem>
-                         )}/>
                          <FormField control={settingsForm.control} name="invoiceFooterMessage" render={({ field }) => (
                             <FormItem><FormLabel>رسالة تذييل الفاتورة</FormLabel><FormControl><Textarea {...field} placeholder="شكرًا لزيارتكم!" /></FormControl>
                               <FormDescription>هذه الرسالة ستظهر في أسفل كل فاتورة مطبوعة.</FormDescription>
