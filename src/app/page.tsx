@@ -20,7 +20,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import type { Medication, Sale, AppSettings, Task } from "@/lib/types";
-import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle, Coins, ListChecks, ShoppingBasket } from "lucide-react";
+import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle, Coins, ListChecks, ShoppingBasket, Package } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, isWithinInterval, isToday, endOfMonth, endOfWeek, subMonths, startOfYear, endOfYear } from 'date-fns';
 import Link from "next/link";
@@ -457,38 +457,41 @@ export default function Dashboard() {
             </Tabs>
           </Card>
           <Card className="lg:col-span-2">
-              <CardHeader>
-                  <CardTitle>الأدوية الأقل مبيعًا (الراكدة)</CardTitle>
-                   <div className="flex items-center gap-2 pt-2">
-                    <Label htmlFor="stagnant-days">لم يتم بيعها منذ</Label>
-                    <Input id="stagnant-days" type="number" value={leastSoldDays} onChange={(e) => setLeastSoldDays(Number(e.target.value))} className="w-24 h-8" />
-                    <Label>يوم</Label>
-                   </div>
-              </CardHeader>
-              <CardContent>
-                   <ScrollArea className="h-72">
-                      <Table>
-                          <TableHeader>
-                              <TableRow>
-                                  <TableHead>الدواء</TableHead>
-                                  <TableHead className="text-left">الرصيد الحالي</TableHead>
-                              </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                              {leastSellingMedications.length > 0 ? leastSellingMedications.map(item => (
-                                  <TableRow key={item.id} className="text-right">
-                                      <TableCell className="font-semibold text-base">{item.name}</TableCell>
-                                      <TableCell className="font-mono text-left text-base">{item.stock}</TableCell>
-                                  </TableRow>
-                              )) : (
-                                  <TableRow>
-                                      <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد أصناف راكدة لهذه الفترة.</TableCell>
-                                  </TableRow>
-                              )}
-                          </TableBody>
-                      </Table>
-                  </ScrollArea>
-              </CardContent>
+            <CardHeader>
+                <CardTitle>الأدوية الأقل مبيعًا (الراكدة)</CardTitle>
+                <div className="flex items-center gap-2 pt-2 text-sm text-muted-foreground">
+                    <Label htmlFor="stagnant-days" className="shrink-0">عرض الأصناف التي لم يتم بيعها منذ</Label>
+                    <Input id="stagnant-days" type="number" value={leastSoldDays} onChange={(e) => setLeastSoldDays(Number(e.target.value))} className="w-20 h-8" />
+                    <span>يوم</span>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <ScrollArea className="h-72">
+                    {leastSellingMedications.length > 0 ? (
+                        <div className="space-y-2">
+                            {leastSellingMedications.map(item => (
+                                <div key={item.id} className="flex items-center justify-between p-3 rounded-md hover:bg-muted">
+                                    <div>
+                                        <p className="font-semibold text-base">{item.name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {item.scientific_names?.join(', ')}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-base">
+                                        <span className="text-muted-foreground">الرصيد:</span>
+                                        <span className="font-mono font-semibold">{item.stock}</span>
+                                        <Package className="h-4 w-4 text-muted-foreground" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-center h-24 text-muted-foreground">
+                            <p>لا توجد أصناف راكدة لهذه الفترة.</p>
+                        </div>
+                    )}
+                </ScrollArea>
+            </CardContent>
           </Card>
       </div>
     </div>
