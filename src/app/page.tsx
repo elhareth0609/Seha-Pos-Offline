@@ -352,8 +352,8 @@ export default function Dashboard() {
                                         <Badge variant="destructive" className="font-mono text-base">{item.stock}</Badge>
                                       </TableCell>
                                       <TableCell className="text-left">
-                                        <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item)}>
-                                            <ShoppingBasket className="h-5 w-5 text-blue-600"/>
+                                        <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item)} className="hover:text-blue-600 group">
+                                            <ShoppingBasket className="h-5 w-5 text-blue-600 group-hover:text-white"/>
                                         </Button>
                                       </TableCell>
                                   </TableRow>
