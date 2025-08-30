@@ -3,10 +3,12 @@
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative, Notification } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 import { PinDialog } from '@/components/auth/PinDialog';
+import { differenceInDays, parseISO, startOfToday, isSameDay, endOfMonth } from 'date-fns';
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -33,7 +35,7 @@ type AuthResponse = {
     offers: Offer[];
 };
 
-type ActiveInvoice = {
+export type ActiveInvoice = {
     cart: SaleItem[];
     discountValue: string;
     discountType: 'fixed' | 'percentage';
@@ -151,9 +153,13 @@ interface AuthContextType {
     getPaginatedItemMovements: (page: number, perPage: number, search: string, medication_id: string) => Promise<PaginatedResponse<TransactionHistoryItem>>;
     getMedicationMovements: (medId: string) => Promise<TransactionHistoryItem[]>;
 
-    activeInvoice: ActiveInvoice;
-    setActiveInvoice: React.Dispatch<React.SetStateAction<ActiveInvoice>>;
-    resetActiveInvoice: () => void;
+    // Multi-invoice state
+    activeInvoices: ActiveInvoice[];
+    currentInvoiceIndex: number;
+    updateActiveInvoice: (updater: (invoice: ActiveInvoice) => ActiveInvoice) => void;
+    switchToInvoice: (index: number) => void;
+    createNewInvoice: () => void;
+    closeInvoice: (index: number, isAfterSale?: boolean) => void;
     
     verifyPin: (pin: string, isDeletePin?: boolean) => Promise<boolean>;
     updateUserPinRequirement: (userId: string, requirePin: boolean) => Promise<void>;
@@ -178,6 +184,9 @@ interface AuthContextType {
     }>>;
 
     addRepresentative: (rep: Omit<MedicalRepresentative, 'id'>) => Promise<MedicalRepresentative | null>;
+
+    // Notifications
+    getNotifications: () => Promise<Notification[]>;
     
 }
 
@@ -291,7 +300,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [activeTimeLogId, setActiveTimeLogId] = React.useState<string | null>(null);
     const [advertisements, setAdvertisements] = React.useState<Advertisement[]>([]);
     const [offers, setOffers] = React.useState<Offer[]>([]);
-    const [activeInvoice, setActiveInvoice] = React.useState<ActiveInvoice>(initialActiveInvoice);
+    
+    // Multi-invoice state
+    const [activeInvoices, setActiveInvoices] = React.useState<ActiveInvoice[]>([initialActiveInvoice]);
+    const [currentInvoiceIndex, setCurrentInvoiceIndex] = React.useState(0);
+
     const [orderRequestCart, setOrderRequestCart] = React.useState<OrderRequestItem[]>([]);
     const [purchaseDraft, setPurchaseDraft] = React.useState<{
         invoiceId: string;
@@ -313,12 +326,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const addToOrderRequestCart = async (item: Medication) => {
         const tempId = `temp-${Date.now()}`;
         const newItem = { ...item, id: tempId, medication_id: item.id, quantity: 1 };
+        setOrderRequestCart(prev => [...prev, newItem]);
         
         try {
-            const savedItem = await apiRequest('/order-requests', 'POST', { medication_id: item.id, quantity: 1 });
+            const savedItem = await apiRequest('/order-requests', 'POST', { medication_id: item.id, quantity: 1, is_new: true });
             setOrderRequestCart(prev => prev.map(i => (i.id === tempId ? savedItem : i)));
             toast({ title: 'تمت الإضافة إلى الطلبات', description: `تمت إضافة ${item.name} إلى قائمة الطلبات.` });
         } catch(e) {
+            setOrderRequestCart(prev => prev.filter(i => i.id !== tempId));
             toast({ variant: 'destructive', title: 'فشل الإضافة', description: 'لم يتم إضافة الطلب. الرجاء المحاولة مرة أخرى.' });
         }
     };
@@ -344,10 +359,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const updateActiveInvoice = React.useCallback((updater: (invoice: ActiveInvoice) => ActiveInvoice) => {
+        setActiveInvoices(prevInvoices => 
+            prevInvoices.map((invoice, index) => 
+                index === currentInvoiceIndex ? updater(invoice) : invoice
+            )
+        );
+    }, [currentInvoiceIndex]);
 
-    const resetActiveInvoice = React.useCallback(() => {
-        setActiveInvoice(initialActiveInvoice);
-    }, []);
+    const switchToInvoice = (index: number) => {
+        if (index >= 0 && index < activeInvoices.length) {
+            setCurrentInvoiceIndex(index);
+        }
+    };
+
+    const createNewInvoice = () => {
+        setActiveInvoices(prev => [...prev, initialActiveInvoice]);
+        setCurrentInvoiceIndex(activeInvoices.length);
+    };
+
+    const closeInvoice = (index: number, isAfterSale = false) => {
+        if (activeInvoices.length > 1) {
+            setActiveInvoices(prev => prev.filter((_, i) => i !== index));
+            if (currentInvoiceIndex >= index && currentInvoiceIndex > 0) {
+                setCurrentInvoiceIndex(prev => prev - 1);
+            }
+        } else if (isAfterSale) {
+            setActiveInvoices([initialActiveInvoice]);
+            setCurrentInvoiceIndex(0);
+        } else {
+             setActiveInvoices(prev => prev.map((inv, i) => i === index ? initialActiveInvoice : inv));
+        }
+    };
 
 
     const setAllData = (data: AuthResponse) => {
@@ -1130,6 +1173,82 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         return newRep;
     };
 
+    const getNotifications = React.useCallback(async (): Promise<Notification[]> => {
+        const generatedNotifications: Notification[] = [];
+        const today = startOfToday();
+        const DEBT_LIMIT = 1000000; // 1 Million IQD, can be moved to settings
+    
+        // Inventory Notifications
+        inventory.forEach(med => {
+            if (med.stock <= 0) {
+                generatedNotifications.push({ id: `out_of_stock_${med.id}`, type: 'out_of_stock', message: `نفد من المخزون: ${med.name}.`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
+            } else if (med.stock < med.reorder_point) {
+                generatedNotifications.push({ id: `low_stock_${med.id}`, type: 'low_stock', message: `مخزون منخفض: ${med.name}. الكمية المتبقية: ${med.stock}`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
+            }
+    
+            if (med.expiration_date) {
+                const expDate = parseISO(med.expiration_date);
+                if (expDate < today) {
+                    generatedNotifications.push({ id: `expired_${med.id}`, type: 'expired', message: `دواء منتهي: ${med.name}. الرجاء نقله إلى التالف.`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
+                } else {
+                    const daysLeft = differenceInDays(expDate, today);
+                    if (daysLeft <= settings.expirationThresholdDays) {
+                         generatedNotifications.push({ id: `expiring_soon_${med.id}`, type: 'expiring_soon', message: `قريب الانتهاء: ${med.name} خلال ${daysLeft} يوم.`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
+                    }
+                }
+            }
+        });
+
+        // Sales Notifications (Admin only)
+        if(currentUser?.role === 'Admin') {
+            sales.forEach(sale => {
+                if (sale.discount && sale.discount > 20000) { 
+                     generatedNotifications.push({ id: `large_discount_${sale.id}`, type: 'large_discount', message: `خصم كبير بقيمة ${sale.discount.toLocaleString()} في الفاتورة #${sale.id}.`, data: { saleId: sale.id }, read: false, created_at: sale.date });
+                }
+                sale.items.forEach(item => {
+                    if (!item.is_return && item.price < item.purchase_price) {
+                         generatedNotifications.push({ id: `below_cost_${sale.id}_${item.medication_id}`, type: 'sale_below_cost', message: `تم بيع ${item.name} بأقل من الكلفة في الفاتورة #${sale.id}.`, data: { saleId: sale.id, medicationId: item.medication_id }, read: false, created_at: sale.date });
+                    }
+                })
+            });
+        }
+
+        // Task Notifications
+        tasks.forEach(task => {
+            if (!task.completed && task.user_id === currentUser?.id) {
+                generatedNotifications.push({ id: `task_assigned_${task.id}`, type: 'task_assigned', message: `مهمة جديدة: ${task.description}`, data: { taskId: task.id, userId: task.user_id }, read: false, created_at: task.created_at });
+            }
+        });
+        
+        // Month End Reminder (Admin only)
+        if (currentUser?.role === 'Admin' && isSameDay(new Date(), endOfMonth(new Date()))) {
+            generatedNotifications.push({ id: 'month_end_reminder', type: 'month_end_reminder', message: 'تذكير: اليوم هو نهاية الشهر. لا تنسَ إقفال الحسابات.', data: {}, read: false, created_at: new Date().toISOString() });
+        }
+
+        // Supplier Debt Limit (Admin only)
+        if (currentUser?.role === 'Admin') {
+            suppliers.forEach(supplier => {
+                const purchases = purchaseOrders.filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.total_amount, 0);
+                const returns = supplierReturns.filter(r => r.supplier_id === supplier.id).reduce((sum, r) => sum + r.total_amount, 0);
+                const supplierPayments = payments.filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.amount, 0);
+                const netDebt = purchases - returns - supplierPayments;
+
+                if(netDebt > DEBT_LIMIT) {
+                    generatedNotifications.push({ id: `debt_limit_${supplier.id}`, type: 'supplier_debt_limit', message: `تجاوز حد الدين للمورد ${supplier.name}. الدين الحالي: ${netDebt.toLocaleString()}`, data: { supplierId: supplier.id }, read: false, created_at: new Date().toISOString() });
+                }
+            });
+        }
+        
+        // New Purchase Order
+        purchaseOrders.forEach(po => {
+            if (isSameDay(new Date(po.date), today)) {
+                 generatedNotifications.push({ id: `new_po_${po.id}`, type: 'new_purchase_order', message: `تم استلام قائمة شراء جديدة #${po.id} من ${po.supplier_name}.`, data: { purchaseOrderId: po.id }, read: false, created_at: po.date });
+            }
+        });
+    
+        return Promise.resolve(generatedNotifications.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+    }, [inventory, sales, tasks, settings.expirationThresholdDays, currentUser, suppliers, purchaseOrders, supplierReturns, payments]);
+
 
     const setScopedSettings = async (value: AppSettings | ((val: AppSettings) => AppSettings)) => {
        const newSettings = typeof value === 'function' ? value(settings) : value;
@@ -1178,12 +1297,13 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             getPaginatedTasks, getMineTasks, addTask, updateTask, updateStatusTask, deleteTask,
             restoreItem, permDelete, clearTrash, getPaginatedTrash,
             getPaginatedUsers,
-            activeInvoice, setActiveInvoice, resetActiveInvoice,
+            activeInvoices, currentInvoiceIndex, updateActiveInvoice, switchToInvoice, createNewInvoice, closeInvoice,
             addRepresentative,
             verifyPin, updateUserPinRequirement,
             getArchivedMonths, getArchivedMonthData,
             getOrderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, updateOrderRequestItem,
             purchaseDraft, setPurchaseDraft,
+            getNotifications,
         }}>
             {children}
         </AuthContext.Provider>

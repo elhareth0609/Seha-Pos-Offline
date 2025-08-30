@@ -119,6 +119,7 @@ export default function ReportsPage() {
     const [dateTo, setDateTo] = React.useState<string>("");
     const [employeeId, setEmployeeId] = React.useState<string>("all");
     const [paymentMethod, setPaymentMethod] = React.useState<string>("all");
+    const [invoiceType, setInvoiceType] = React.useState<string>("all");
     
     const [itemToDelete, setItemToDelete] = React.useState<Sale | null>(null);
     const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
@@ -128,11 +129,21 @@ export default function ReportsPage() {
 
     const canManagePreviousSales = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_previous_sales;
 
-    const fetchData = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string, empId: string, pMethod: string) => {
+    const fetchData = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string, empId: string, pMethod: string, invType: string) => {
         setLoading(true);
         try {
             const data = await getPaginatedSales(page, limit, search, from, to, empId, pMethod);
-            setSales(data.data);
+            
+            let filteredData = data.data;
+
+            if (invType !== 'all') {
+                filteredData = filteredData.filter(sale => {
+                    const isReturnInvoice = sale.items.every(item => item.is_return);
+                    return invType === 'returns' ? isReturnInvoice : !isReturnInvoice;
+                });
+            }
+
+            setSales(filteredData);
             setTotalPages(data.last_page);
             setCurrentPage(data.current_page);
         } catch (error) {
@@ -145,10 +156,10 @@ export default function ReportsPage() {
     React.useEffect(() => {
         setIsClient(true);
         const handler = setTimeout(() => {
-            fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod);
+            fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, invoiceType);
         }, 300);
         return () => clearTimeout(handler);
-    }, [currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, fetchData]);
+    }, [currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, invoiceType, fetchData]);
     
 
     const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
@@ -182,6 +193,7 @@ export default function ReportsPage() {
         setDateTo("");
         setEmployeeId("all");
         setPaymentMethod("all");
+        setInvoiceType("all");
     };
 
     const handleDeleteSale = async () => {
@@ -192,7 +204,7 @@ export default function ReportsPage() {
         } else {
             const success = await deleteSale(itemToDelete.id);
             if (success) {
-                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod);
+                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, invoiceType);
                 setItemToDelete(null);
             }
         }
@@ -205,7 +217,7 @@ export default function ReportsPage() {
             setIsPinDialogOpen(false);
             const success = await deleteSale(itemToDelete.id);
             if (success) {
-                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod);
+                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, invoiceType);
                 setItemToDelete(null);
             }
         } else {
@@ -345,12 +357,12 @@ export default function ReportsPage() {
                 <CardHeader>
                     <CardTitle>سجل المبيعات</CardTitle>
                     <CardDescription>عرض وطباعة جميع فواتير المبيعات السابقة. اضغط على الصف لعرض التفاصيل.</CardDescription>
-                     <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
+                     <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
                         <div className="space-y-2 md:col-span-2">
                             <Label htmlFor="search-term">بحث</Label>
                             <Input 
                                 id="search-term"
-                                placeholder="ابحث برقم الفاتورة، المريض، المادة، أو اكتب 'مرتجع'..."
+                                placeholder="ابحث برقم الفاتورة، المريض، أو المادة..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -387,6 +399,19 @@ export default function ReportsPage() {
                                     <SelectItem value="all">الكل</SelectItem>
                                     <SelectItem value="cash">نقداً</SelectItem>
                                     <SelectItem value="card">بطاقة إلكترونية</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="invoice-type-filter">نوع الفاتورة</Label>
+                            <Select value={invoiceType} onValueChange={setInvoiceType}>
+                                <SelectTrigger id="invoice-type-filter">
+                                    <SelectValue placeholder="الكل"/>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">الكل</SelectItem>
+                                    <SelectItem value="sales">بيع فقط</SelectItem>
+                                    <SelectItem value="returns">مرتجع فقط</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

@@ -51,11 +51,10 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput } from "@/lib/types"
-import { PlusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight } from "lucide-react"
+import { PlusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import { InvoiceTemplate } from "@/components/ui/invoice"
 import { useAuth } from "@/hooks/use-auth"
@@ -70,6 +69,7 @@ import { differenceInDays, parseISO, startOfToday } from "date-fns"
 import { Badge } from "@/components/ui/badge"
 import { useRouter } from "next/navigation"
 import { PinDialog } from "@/components/auth/PinDialog"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
 const printElement = (element: HTMLElement, title: string = 'Print') => {
   const printWindow = window.open('', '_blank');
@@ -345,9 +345,12 @@ export default function SalesPage() {
   const { 
     currentUser, 
     scopedData, 
-    activeInvoice, 
-    setActiveInvoice, 
-    resetActiveInvoice, 
+    activeInvoices, 
+    currentInvoiceIndex,
+    updateActiveInvoice,
+    switchToInvoice,
+    createNewInvoice,
+    closeInvoice,
     addPatient, 
     addSale, 
     updateSale, 
@@ -363,10 +366,11 @@ export default function SalesPage() {
   const [settings] = scopedData.settings;
   const [allInventory, setAllInventory] = React.useState<Medication[]>([]);
 
+  const activeInvoice = activeInvoices[currentInvoiceIndex];
+  if (!activeInvoice) {
+      return <div>Loading...</div>;
+  }
   const { cart, discountType, discountValue, patientId, paymentMethod, saleIdToUpdate } = activeInvoice;
-  const setCart = (updater: (prev: SaleItem[]) => SaleItem[]) => {
-      setActiveInvoice(prev => ({ ...prev, cart: updater(prev.cart) }));
-  };
   
   const [searchTerm, setSearchTerm] = React.useState("")
   const [suggestions, setSuggestions] = React.useState<Medication[]>([])
@@ -384,7 +388,7 @@ export default function SalesPage() {
   const [newPatientPhone, setNewPatientPhone] = React.useState("");
   const [sortedSales, setSortedSales] = React.useState<Sale[]>([]);
 
-  const [mode, setMode] = React.useState<'new' | 'return'>('new');
+  const [mode, setMode] = React.useState<'sale' | 'return'>('sale');
   
   const isOnline = useOnlineStatus();
   const priceModificationAllowed = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_salesPriceModification;
@@ -414,7 +418,7 @@ export default function SalesPage() {
         
         const today = new Date();
         today.setHours(0,0,0,0);
-        if (medication.expiration_date && parseISO(medication.expiration_date) < today) {
+        if (medication.expiration_date && parseISO(medication.expiration_date) < today && mode !== 'return') {
             toast({ variant: 'destructive', title: 'منتج منتهي الصلاحية', description: `لا يمكن بيع ${medication.name} لأنه منتهي الصلاحية.` });
             return;
         }
@@ -424,37 +428,44 @@ export default function SalesPage() {
             return;
         }
 
-        setCart((prevCart) => {
-            const existingItem = prevCart.find(item => item.id === medication.id && item.is_return === (mode === 'return'))
+        updateActiveInvoice(invoice => {
+            const existingItem = invoice.cart.find(item => item.id === medication.id && item.is_return === (mode === 'return'))
 
             if (existingItem) {
                 if (Number(existingItem.quantity) >= Number(medication.stock) && mode !== 'return') {
                     toast({ variant: 'destructive', title: 'كمية غير كافية', description: `لا يمكن إضافة المزيد من ${medication.name}. الرصيد المتوفر: ${medication.stock}` });
-                    return prevCart;
+                    return invoice;
                 }
-                return prevCart.map(item =>
-                    item.id === medication.id && item.is_return === (mode === 'return')
-                    ? { ...item, quantity: item.quantity + 1 }
-                    : item
-                )
+                return {
+                    ...invoice,
+                    cart: invoice.cart.map(item =>
+                        item.id === medication.id && item.is_return === (mode === 'return')
+                        ? { ...item, quantity: item.quantity + 1 }
+                        : item
+                    )
+                }
             }
-            return [...prevCart, { 
-                id: medication.id, 
-                medication_id: medication.id, 
-                name: medication.name, 
-                scientific_names: medication.scientific_names, 
-                quantity: 1, 
-                price: medication.price || 0,
-                purchase_price: medication.purchase_price || 0, 
-                expiration_date: medication.expiration_date, 
-                is_return: mode === 'return', 
-                dosage: medication.dosage,
-                dosage_form: medication.dosage_form,
-            }]
-        })
+             return {
+                ...invoice,
+                cart: [...invoice.cart, { 
+                    id: medication.id, 
+                    medication_id: medication.id, 
+                    name: medication.name, 
+                    scientific_names: medication.scientific_names, 
+                    quantity: 1, 
+                    price: medication.price || 0,
+                    purchase_price: medication.purchase_price || 0, 
+                    expiration_date: medication.expiration_date, 
+                    is_return: mode === 'return', 
+                    dosage: medication.dosage,
+                    dosage_form: medication.dosage_form,
+                }]
+             }
+        });
+
         setSearchTerm("")
         setSuggestions([])
-    }, [mode, setCart, toast])
+    }, [mode, updateActiveInvoice, toast])
   
   const handleScan = React.useCallback(async (result: string) => {
     const results = await searchAllInventory(result);
@@ -535,7 +546,10 @@ export default function SalesPage() {
     const newQuantity = parseFloat(newQuantityStr);
     if (isNaN(newQuantity) || newQuantity < 0) return;
     
-    setCart(cart => cart.map(item => (item.id === id && item.is_return === isReturn ? { ...item, quantity: newQuantity } : item)));
+    updateActiveInvoice(invoice => ({
+        ...invoice,
+        cart: invoice.cart.map(item => (item.id === id && item.is_return === isReturn ? { ...item, quantity: newQuantity } : item))
+    }));
   };
 
   const updateTotalPrice = (id: string, isReturn: boolean | undefined, newTotalPriceStr: string) => {
@@ -544,26 +558,24 @@ export default function SalesPage() {
     const newTotalPrice = parseFloat(newTotalPriceStr);
     if (isNaN(newTotalPrice) || newTotalPrice < 0) return;
 
-    setCart(cart => cart.map(item => {
-      if (item.id === id && item.is_return === isReturn) {
-        const newUnitPrice = item.quantity > 0 ? newTotalPrice / item.quantity : 0;
-        return { ...item, price: newUnitPrice };
-      }
-      return item;
+    updateActiveInvoice(invoice => ({
+        ...invoice,
+        cart: invoice.cart.map(item => {
+            if (item.id === id && item.is_return === isReturn) {
+                const newUnitPrice = item.quantity > 0 ? newTotalPrice / item.quantity : 0;
+                return { ...item, price: newUnitPrice };
+            }
+            return item;
+        })
     }));
   };
 
   const removeFromCart = (id: string, isReturn: boolean | undefined) => {
-    setCart(cart => cart.filter(item => !(item.id === id && item.is_return === isReturn)))
+    updateActiveInvoice(invoice => ({
+        ...invoice,
+        cart: invoice.cart.filter(item => !(item.id === id && item.is_return === isReturn))
+    }));
   }
-
-  const toggleReturn = (id: string, isReturn: boolean | undefined) => {
-    setCart(cart => cart.map(item => 
-      item.id === id && item.is_return === isReturn 
-        ? { ...item, is_return: !item.is_return } 
-        : item
-    ));
-  };
 
   const subtotal = cart.reduce((total, item) => {
       const itemTotal = (item.price || 0) * (item.quantity || 0);
@@ -658,7 +670,7 @@ export default function SalesPage() {
         const success = await deleteSale(saleIdToUpdate);
         if(success) {
             setSortedSales(prev => prev.filter(s => s.id !== saleIdToUpdate));
-            handleNewInvoiceClick();
+            closeInvoice(currentInvoiceIndex);
             toast({ title: "تم حذف الفاتورة" });
         }
     }
@@ -672,7 +684,7 @@ export default function SalesPage() {
         const success = await deleteSale(saleIdToUpdate);
         if(success) {
             setSortedSales(prev => prev.filter(s => s.id !== saleIdToUpdate));
-            handleNewInvoiceClick();
+            closeInvoice(currentInvoiceIndex);
             toast({ title: "تم حذف الفاتورة" });
         }
     } else {
@@ -682,17 +694,17 @@ export default function SalesPage() {
 
 
   const handleNewInvoiceClick = () => {
-    resetActiveInvoice();
+    createNewInvoice();
     setSearchTerm('');
     setSaleToPrint(null);
-    setMode('new');
+    setMode('sale');
   };
-
-  const handleReturnInvoiceClick = () => {
-    resetActiveInvoice();
+  
+  const handleCloseInvoice = (index: number) => {
+    closeInvoice(index);
     setSearchTerm('');
     setSaleToPrint(null);
-    setMode('return');
+    setMode('sale');
   };
   
   const handleReviewClick = () => {
@@ -702,7 +714,7 @@ export default function SalesPage() {
   const handleAddNewPatient = async () => {
       const newPatient = await addPatient(newPatientName, newPatientPhone);
       if (newPatient) {
-          setActiveInvoice(prev => ({...prev, patientId: newPatient.id}));
+          updateActiveInvoice(prev => ({...prev, patientId: newPatient.id}));
           toast({ title: "تم إضافة المريض", description: `تم تحديد ${newPatient.name} لهذه الفاتورة.` });
           setNewPatientName("");
           setNewPatientPhone("");
@@ -736,9 +748,24 @@ export default function SalesPage() {
     const handleDiscountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         if (value === '' || /^\d*\.?\d*$/.test(value)) {
-            setActiveInvoice(prev => ({...prev, discountValue: value}));
+            updateActiveInvoice(prev => ({...prev, discountValue: value}));
         }
     };
+    
+    const handlePaymentMethodChange = (value: 'cash' | 'card') => {
+        updateActiveInvoice(prev => ({...prev, paymentMethod: value}));
+    };
+    
+  const handleModeChange = (newMode: 'sale' | 'return') => {
+    if (!newMode) return;
+    setMode(newMode);
+    updateActiveInvoice(invoice => {
+        return {
+            ...invoice,
+            cart: invoice.cart.map(item => ({ ...item, is_return: newMode === 'return' }))
+        }
+    });
+  };
 
   return (
     <>
@@ -811,27 +838,44 @@ export default function SalesPage() {
                             <BarcodeScanner onScan={handleScan} onOpenChange={setIsScannerOpen}/>
                         </DialogContent>
                     </Dialog>
+                     <Button variant="secondary" onClick={handleReviewClick}>
+                        <FileText className="me-2"/>
+                        مراجعة الفواتير
+                    </Button>
                 </div>
 
                 <Card className="flex-1 flex flex-col">
-                    <CardHeader className="py-4">
-                        <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
-                            <CardTitle className="text-xl">
-                                {mode === 'new' && 'الفاتورة الحالية'}
-                                {mode === 'return' && 'فاتورة استرجاع'}
-                                {saleIdToUpdate && `تعديل الفاتورة #${saleIdToUpdate}`}
-                            </CardTitle>
-                            <div className="flex items-center gap-2">
-                                <Button onClick={handleNewInvoiceClick} variant={mode === 'new' ? 'secondary' : 'outline'}>
-                                    <FilePlus className="me-2"/> فاتورة جديدة
-                                </Button>
-                                <Button onClick={handleReturnInvoiceClick} variant={mode === 'return' ? 'secondary' : 'outline'}>
-                                    <ArrowLeftRight className="me-2"/> فاتورة استرجاع
-                                </Button>
-                                <Button onClick={handleReviewClick} variant="outline">
-                                    مراجعة
-                                </Button>
+                    <CardHeader className="py-4 border-b">
+                        <div className="flex items-center justify-between gap-2">
+                             <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                                 {activeInvoices.map((inv, index) => (
+                                    <Button 
+                                        key={index} 
+                                        variant={index === currentInvoiceIndex ? "secondary" : "ghost"}
+                                        onClick={() => switchToInvoice(index)}
+                                        className="h-9 px-3 gap-2"
+                                    >
+                                        <span>فاتورة {index + 1}</span>
+                                        {activeInvoices.length > 1 && (
+                                            <X 
+                                                className="h-3 w-3 text-muted-foreground hover:text-destructive" 
+                                                onClick={(e) => { e.stopPropagation(); handleCloseInvoice(index); }}
+                                            />
+                                        )}
+                                    </Button>
+                                 ))}
+                                 <Button size="icon" variant="ghost" onClick={handleNewInvoiceClick}>
+                                    <PlusCircle className="h-4 w-4"/>
+                                 </Button>
                             </div>
+                            <ToggleGroup type="single" value={mode} onValueChange={(value: 'sale' | 'return') => handleModeChange(value)} size="sm">
+                                <ToggleGroupItem value="sale" aria-label="Toggle sale">
+                                    بيع
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="return" aria-label="Toggle return">
+                                    إرجاع
+                                </ToggleGroupItem>
+                            </ToggleGroup>
                         </div>
                 </CardHeader>
                 <CardContent className="p-0 flex-1 flex flex-col">
@@ -851,7 +895,6 @@ export default function SalesPage() {
                                             <div className="flex justify-between items-start gap-2">
                                                 <div className="flex-grow">
                                                     <div className="flex items-center gap-1 font-medium">
-                                                        <Checkbox checked={!!item.is_return} onCheckedChange={() => toggleReturn(item.id, item.is_return)} aria-label="Mark as return" className="me-2"/>
                                                         {item.name} {item.dosage} {item.dosage_form}
                                                         {alternatives.length > 0 && (
                                                             <Popover>
@@ -924,7 +967,6 @@ export default function SalesPage() {
                           <Table className="hidden md:table">
                               <TableHeader className="sticky top-0 bg-background z-10">
                                   <TableRow>
-                                      <TableHead className="w-12 text-center"><ArrowLeftRight className="h-4 w-4 mx-auto"/></TableHead>
                                       <TableHead>المنتج</TableHead>
                                       <TableHead className="w-[120px] text-center">الكمية</TableHead>
                                       <TableHead className="w-[120px] text-center">السعر</TableHead>
@@ -941,9 +983,6 @@ export default function SalesPage() {
 
                                     return (
                                         <TableRow key={`${item.id}-${item.is_return}`} className={cn(item.is_return && "bg-red-50 dark:bg-red-900/20")}>
-                                            <TableCell className="text-center">
-                                                <Checkbox checked={!!item.is_return} onCheckedChange={() => toggleReturn(item.id, item.is_return)} aria-label="Mark as return"/>
-                                            </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-1">
                                                     <span className="font-medium">{item.name} {item.dosage} {item.dosage_form}</span>
@@ -1063,7 +1102,7 @@ export default function SalesPage() {
                                       <Input placeholder="ابحث بالاسم..." value={patientSearchTerm} onChange={(e) => handlePatientSearch(e.target.value)} />
                                       <ScrollArea className="h-48 border rounded-md">
                                           {patientSuggestions.map(p => (
-                                              <div key={p.id} onClick={() => { setActiveInvoice(prev => ({...prev, patientId: p.id})); setIsPatientModalOpen(false); }}
+                                              <div key={p.id} onClick={() => { updateActiveInvoice(prev => ({...prev, patientId: p.id})); setIsPatientModalOpen(false); }}
                                                   className="p-2 hover:bg-accent cursor-pointer">
                                                   {p.name}
                                               </div>
@@ -1107,15 +1146,15 @@ export default function SalesPage() {
                         inputMode="decimal"
                         pattern="[0-9]*\.?[0-9]*"
                         />
-                        <RadioGroup defaultValue="fixed" value={discountType} onValueChange={(value: any) => setActiveInvoice(prev => ({...prev, discountType: value}))} className="flex">
-                            <Button type="button" size="sm" variant={discountType === 'fixed' ? 'secondary' : 'ghost'} onClick={() => setActiveInvoice(prev => ({...prev, discountType: 'fixed'}))}>IQD</Button>
-                            <Button type="button" size="icon" variant={discountType === 'percentage' ? 'secondary' : 'ghost'} onClick={() => setActiveInvoice(prev => ({...prev, discountType: 'percentage'}))} className="h-9 w-9"><Percent className="h-4 w-4" /></Button>
+                        <RadioGroup defaultValue="fixed" value={discountType} onValueChange={(value: any) => updateActiveInvoice(prev => ({...prev, discountType: value}))} className="flex">
+                            <Button type="button" size="sm" variant={discountType === 'fixed' ? 'secondary' : 'ghost'} onClick={() => updateActiveInvoice(prev => ({...prev, discountType: 'fixed'}))}>IQD</Button>
+                            <Button type="button" size="icon" variant={discountType === 'percentage' ? 'secondary' : 'ghost'} onClick={() => updateActiveInvoice(prev => ({...prev, discountType: 'percentage'}))} className="h-9 w-9"><Percent className="h-4 w-4" /></Button>
                         </RadioGroup>
                       </div>
                       <Separator />
                       <div className="flex justify-between w-full text-lg font-semibold">
                           <span>الإجمالي</span>
-                          <span className={cn("font-mono", finalTotal < 0 ? 'text-destructive' : '')}>{finalTotal.toLocaleString()}</span>
+                           <span className={cn("font-mono", finalTotal < 0 ? 'text-destructive' : '')}>{finalTotal.toLocaleString()}</span>
                       </div>
                   </CardContent>
                   <CardFooter className="flex flex-col items-stretch gap-2">
@@ -1176,7 +1215,7 @@ export default function SalesPage() {
                                           <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>{finalTotal.toLocaleString()}</span></div>
                                       </div>
                                       <Separator />
-                                       <RadioGroup defaultValue="cash" value={paymentMethod} onValueChange={(value: any) => setActiveInvoice(prev => ({ ...prev, paymentMethod: value }))} className="flex gap-4 pt-2">
+                                       <RadioGroup defaultValue="cash" value={paymentMethod} onValueChange={handlePaymentMethodChange} className="flex gap-4 pt-2">
                                             <Label htmlFor="payment-cash" className="flex items-center gap-2 cursor-pointer rounded-md border p-3 flex-1 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
                                                 <RadioGroupItem value="cash" id="payment-cash" />
                                                 الدفع نقداً
@@ -1196,26 +1235,28 @@ export default function SalesPage() {
                               </DialogContent>
                           </Dialog>
                       </div>
-                       <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                              <Button variant="outline" className="w-full" disabled={cart.length === 0}>
-                                  <X className="me-2"/>
-                                  {saleIdToUpdate ? 'إلغاء التعديل' : 'إلغاء الفاتورة'}
-                              </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                              <AlertDialogHeader>
-                                  <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                      {saleIdToUpdate ? 'سيتم تجاهل جميع التغييرات التي قمت بها.' : 'سيتم حذف جميع الأصناف من السلة الحالية.'}
-                                  </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                  <AlertDialogCancel>تراجع</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleNewInvoiceClick()} className={buttonVariants({ variant: "destructive" })}>نعم</AlertDialogAction>
-                              </AlertDialogFooter>
-                          </AlertDialogContent>
-                      </AlertDialog>
+                      {activeInvoices.length === 1 && activeInvoice.cart.length > 0 && (
+                         <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                  <Button variant="outline" className="w-full" disabled={cart.length === 0}>
+                                      <X className="me-2"/>
+                                      {saleIdToUpdate ? 'إلغاء التعديل' : 'إلغاء الفاتورة'}
+                                  </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                      <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                          {saleIdToUpdate ? 'سيتم تجاهل جميع التغييرات التي قمت بها.' : 'سيتم حذف جميع الأصناف من السلة الحالية.'}
+                                      </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                      <AlertDialogCancel>تراجع</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => closeInvoice(currentInvoiceIndex)} className={buttonVariants({ variant: "destructive" })}>نعم</AlertDialogAction>
+                                  </AlertDialogFooter>
+                              </AlertDialogContent>
+                         </AlertDialog>
+                      )}
                       {saleIdToUpdate && canManagePreviousSales && (
                          <AlertDialog>
                               <AlertDialogTrigger asChild>
@@ -1242,7 +1283,7 @@ export default function SalesPage() {
               </Card>
           </div>
         <Dialog open={isReceiptOpen} onOpenChange={(open) => {
-            if (!open) handleNewInvoiceClick();
+            if (!open) closeInvoice(currentInvoiceIndex, true);
             setIsReceiptOpen(open);
         }}>
             <DialogContent>
@@ -1255,7 +1296,7 @@ export default function SalesPage() {
                 <DialogFooter className="sm:justify-between gap-2">
                     <Button onClick={() => {
                         setIsReceiptOpen(false);
-                        handleNewInvoiceClick();
+                        closeInvoice(currentInvoiceIndex, true);
                     }} className="w-full sm:w-auto">
                         فاتورة جديدة
                     </Button>

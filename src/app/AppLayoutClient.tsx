@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -24,6 +25,7 @@ const allNavItems = [
   { href: "/trash", permissionKey: 'manage_trash' },
   { href: "/guide", permissionKey: 'manage_guide' },
   { href: "/settings", permissionKey: 'manage_settings' },
+  { href: "/hr", permissionKey: 'manage_hr' },
 ];
 
 

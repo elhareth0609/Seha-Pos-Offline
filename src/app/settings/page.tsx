@@ -39,25 +39,14 @@ import {
     DialogClose,
     DialogDescription
 } from "@/components/ui/dialog"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-    DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
 import { Skeleton } from '@/components/ui/skeleton'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { useAuth } from '@/hooks/use-auth'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, Clock, Wallet, MoreVertical, Pencil, Coins, FileArchive } from 'lucide-react'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Trash2, ShieldCheck, User as UserIcon } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import Image from 'next/image'
-import { differenceInMinutes, formatDistanceStrict, isWithinInterval, parseISO } from 'date-fns'
-import { ar } from 'date-fns/locale'
 import { appSettings as fallbackSettings } from '@/lib/data'
+import { Switch } from '@/components/ui/switch'
 
 
 const settingsSchema = z.object({
@@ -65,7 +54,6 @@ const settingsSchema = z.object({
   pharmacyAddress: z.string().default(""),
   pharmacyPhone: z.string().default(""),
   pharmacyEmail: z.string().email({ message: "بريد إلكتروني غير صالح." }).or(z.literal("")).default(""),
-  expirationThresholdDays: z.coerce.number().int().positive({ message: "يجب أن يكون عدد الأيام رقمًا صحيحًا موجبًا." }),
   invoiceFooterMessage: z.string().default("شكرًا لزيارتكم!"),
 })
 
@@ -175,32 +163,17 @@ function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (o
 
 export default function SettingsPage() {
     const { toast } = useToast()
-    const { currentUser, users, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate, scopedData, logout, clearPharmacyData } = useAuth();
-    
-    const { settings: [settings, setSettings], timeLogs: [timeLogs] } = scopedData;
+    const { currentUser, users, scopedData, clearPharmacyData, updateUserPinRequirement } = useAuth();
+    const { settings: [settings, setSettings] } = scopedData;
 
     const [isClient, setIsClient] = React.useState(false);
-    
-    const [isAddUserOpen, setIsAddUserOpen] = React.useState(false);
-    const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = React.useState(false);
-    const [isTimeLogDialogOpen, setIsTimeLogDialogOpen] = React.useState(false);
-    const [isEditUserDialogOpen, setIsEditUserDialogOpen] = React.useState(false);
-    const [editingUser, setEditingUser] = React.useState<User | null>(null);
-    const [currentUserPermissions, setCurrentUserPermissions] = React.useState<UserPermissions | null>(null);
-    const [currentUserHourlyRate, setCurrentUserHourlyRate] = React.useState<string>("");
-    const [dateFrom, setDateFrom] = React.useState<string>("");
-    const [dateTo, setDateTo] = React.useState<string>("");
+    const [isSecurityDialogOpen, setIsSecurityDialogOpen] = React.useState(false);
 
     const settingsForm = useForm<SettingsFormValues>({
         resolver: zodResolver(settingsSchema),
         defaultValues: { ...fallbackSettings },
     });
     
-     const editUserForm = useForm<EditUserFormValues>({
-        resolver: zodResolver(editUserSchema),
-        defaultValues: { name: "", email: "", pin: "", confirmPin: "" }
-    });
-
     React.useEffect(() => {
         setIsClient(true);
         if (settings) {
@@ -208,41 +181,16 @@ export default function SettingsPage() {
         }
     }, [settings, settingsForm]);
     
-    React.useEffect(() => {
-        if (editingUser) {
-            editUserForm.reset({
-                name: editingUser.name,
-                email: editingUser.email,
-                pin: '',
-                confirmPin: '',
-            });
-        }
-    }, [editingUser, editUserForm]);
-
-
     const onSettingsSubmit = (data: SettingsFormValues) => {
         const settingsData: AppSettings = {
+            ...settings, // preserve existing settings
             pharmacyName: data.pharmacyName,
             pharmacyAddress: data.pharmacyAddress || "",
             pharmacyPhone: data.pharmacyPhone || "",
             pharmacyEmail: data.pharmacyEmail || "",
-            expirationThresholdDays: data.expirationThresholdDays,
             invoiceFooterMessage: data.invoiceFooterMessage || "شكرًا لزيارتكم!",
         };
-        
         setSettings(settingsData);
-    }
-    
-    const onEditUserSubmit = async (data: EditUserFormValues) => {
-        if (!editingUser) return;
-        const success = await updateUser(editingUser.id, {
-            name: data.name,
-            email: data.email!,
-            pin: data.pin || undefined
-        });
-        if (success) {
-            setIsEditUserDialogOpen(false);
-        }
     }
 
     const handleClearData = async () => {
@@ -253,113 +201,11 @@ export default function SettingsPage() {
         await clearPharmacyData();
     }
 
-    const handleDeleteUser = (userToDelete: User) => {
-        if (userToDelete.role === 'Admin') {
-            toast({ variant: 'destructive', title: 'خطأ', description: 'لا يمكن حذف حساب المدير.' });
-            return;
-        }
-        deleteUser(userToDelete.id);
-    }
-    
-    const openPermissionsDialog = (user: User) => {
-        setEditingUser(user);
-        const permissions: UserPermissions = user.permissions || {
-            manage_sales: true,
-            manage_inventory: true,
-            manage_purchases: false,
-            manage_suppliers: false,
-            manage_reports: false,
-            manage_itemMovement: true,
-            manage_patients: true,
-            manage_expiringSoon: true,
-            manage_guide: true,
-            manage_settings: false,
-            manage_trash: false,
-            manage_salesPriceModification: false,
-            manage_users: false,
-            manage_previous_sales: false,
-            manage_expenses: false,
-            manage_tasks: false,
-            manage_close_month: false,
-            manage_archives: false,
-            manage_order_requests: false,
-            manage_offers: false,
-        };
-        setCurrentUserPermissions(permissions);
-        setIsPermissionsDialogOpen(true);
-    };
-    
-    const openEditDialog = (user: User) => {
-        setEditingUser(user);
-        setIsEditUserDialogOpen(true);
-    }
-
-    const handlePermissionChange = (key: keyof UserPermissions, checked: boolean) => {
-        if (currentUserPermissions) {
-            setCurrentUserPermissions({ ...currentUserPermissions, [key]: checked });
-        }
-    };
-
-    const handleSavePermissions = async () => {
-        if (editingUser && currentUserPermissions) {
-            const success = await updateUserPermissions(editingUser.id, currentUserPermissions);
-            if (success) {
-                setIsPermissionsDialogOpen(false);
-                setEditingUser(null);
-                setCurrentUserPermissions(null);
-            }
-        }
-    };
-
-    const openTimeLogDialog = (user: User) => {
-        setEditingUser(user);
-        setCurrentUserHourlyRate(String(user.hourly_rate || 0));
-        setDateFrom("");
-        setDateTo("");
-        setIsTimeLogDialogOpen(true);
-    };
-    
-    const handleSaveHourlyRate = async () => {
-        if (!editingUser) return;
-        const rate = parseFloat(currentUserHourlyRate);
-        if (isNaN(rate) || rate < 0) {
-            toast({ variant: 'destructive', title: 'معدل غير صالح', description: 'الرجاء إدخال رقم موجب.' });
-            return;
-        }
-        await updateUserHourlyRate(editingUser.id, rate);
+    const handlePinRequirementChange = (userId: string, requirePin: boolean) => {
+        updateUserPinRequirement(userId, requirePin);
     };
 
     const pharmacyUsers = users.filter(u => u.pharmacy_id === currentUser?.pharmacy_id && u.role !== 'SuperAdmin');
-    
-    const filteredTimeLogs = React.useMemo(() => {
-        if (!editingUser) return [];
-        let userLogs = timeLogs.filter(log => log.user_id === editingUser.id);
-        
-        if (dateFrom && dateTo) {
-            const from = new Date(dateFrom);
-            const to = new Date(dateTo);
-to.setHours(23, 59, 59, 999);
-            userLogs = userLogs.filter(log => isWithinInterval(parseISO(log.clock_in), { start: from, end: to }));
-        } else if (dateFrom) {
-            userLogs = userLogs.filter(log => new Date(log.clock_in) >= new Date(dateFrom));
-        } else if (dateTo) {
-            const to = new Date(dateTo);
-to.setHours(23, 59, 59, 999);
-            userLogs = userLogs.filter(log => new Date(log.clock_in) <= to);
-        }
-
-        return userLogs.sort((a,b) => new Date(b.clock_in).getTime() - new Date(a.clock_in).getTime());
-    }, [editingUser, timeLogs, dateFrom, dateTo]);
-
-
-    const totalMinutes = filteredTimeLogs.reduce((acc, log) => {
-        if (log.clock_out) {
-            return acc + differenceInMinutes(new Date(log.clock_out), new Date(log.clock_in));
-        }
-        return acc;
-    }, 0);
-    const totalHours = totalMinutes / 60;
-    const totalSalary = totalHours * (editingUser?.hourly_rate || 0);
 
     if (!isClient || !currentUser) {
         return (
@@ -376,7 +222,6 @@ to.setHours(23, 59, 59, 999);
                             <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
                             <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
                         </div>
-                        <div className="space-y-2"><Skeleton className="h-4 w-48" /><Skeleton className="h-10 w-full" /></div>
                         <div className="space-y-2"><Skeleton className="h-4 w-48" /><Skeleton className="h-20 w-full" /></div>
                     </CardContent>
                     <CardFooter>
@@ -399,80 +244,26 @@ to.setHours(23, 59, 59, 999);
                     </CardDescription>
                   </CardHeader>
                     <CardContent className="space-y-4">
-                        <FormField
-                          control={settingsForm.control}
-                          name="pharmacyName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>اسم الصيدلية</FormLabel>
-                              <FormControl><Input {...field} /></FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={settingsForm.control}
-                          name="pharmacyAddress"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>العنوان</FormLabel>
-                              <FormControl><Textarea {...field} /></FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <FormField control={settingsForm.control} name="pharmacyName" render={({ field }) => (
+                            <FormItem><FormLabel>اسم الصيدلية</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                        <FormField control={settingsForm.control} name="pharmacyAddress" render={({ field }) => (
+                            <FormItem><FormLabel>العنوان</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                        )}/>
                         <div className="grid md:grid-cols-2 gap-4">
-                            <FormField
-                              control={settingsForm.control}
-                              name="pharmacyPhone"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>رقم الهاتف</FormLabel>
-                                  <FormControl><Input {...field} /></FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={settingsForm.control}
-                              name="pharmacyEmail"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>البريد الإلكتروني</FormLabel>
-                                  <FormControl><Input type="email" {...field} /></FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+                            <FormField control={settingsForm.control} name="pharmacyPhone" render={({ field }) => (
+                                <FormItem><FormLabel>رقم الهاتف</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={settingsForm.control} name="pharmacyEmail" render={({ field }) => (
+                                <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
                         </div>
-                         <FormField
-                           control={settingsForm.control}
-                           name="expirationThresholdDays"
-                           render={({ field }) => (
-                             <FormItem>
-                               <FormLabel>تنبيه انتهاء الصلاحية (بالأيام)</FormLabel>
-                               <FormControl><Input type="number" {...field} /></FormControl>
-                               <FormDescription>
-                                 سيتم إدراج الأدوية التي تنتهي صلاحيتها خلال هذه الفترة في صفحة "قريب الانتهاء".
-                               </FormDescription>
-                               <FormMessage />
-                             </FormItem>
-                           )}
-                         />
-                         <FormField
-                          control={settingsForm.control}
-                          name="invoiceFooterMessage"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>رسالة تذييل الفاتورة</FormLabel>
-                              <FormControl><Textarea {...field} placeholder="شكرًا لزيارتكم!" /></FormControl>
-                              <FormDescription>
-                                هذه الرسالة ستظهر في أسفل كل فاتورة مطبوعة.
-                              </FormDescription>
+                         <FormField control={settingsForm.control} name="invoiceFooterMessage" render={({ field }) => (
+                            <FormItem><FormLabel>رسالة تذييل الفاتورة</FormLabel><FormControl><Textarea {...field} placeholder="شكرًا لزيارتكم!" /></FormControl>
+                              <FormDescription>هذه الرسالة ستظهر في أسفل كل فاتورة مطبوعة.</FormDescription>
                               <FormMessage />
                             </FormItem>
-                          )}
-                        />
+                         )}/>
                     </CardContent>
                     <CardFooter>
                         <Button type="submit" variant="success">حفظ التغييرات</Button>
@@ -483,96 +274,26 @@ to.setHours(23, 59, 59, 999);
         
         {currentUser.role === 'Admin' && (
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle>إدارة الموظفين</CardTitle>
-                        <CardDescription>
-                            إضافة، عرض، وحذف حسابات الموظفين وصلاحياتهم.
-                        </CardDescription>
-                    </div>
-                    <Button size="sm" onClick={() => setIsAddUserOpen(true)}><PlusCircle className="me-2 h-4 w-4" /> إضافة موظف</Button>
+                <CardHeader>
+                    <CardTitle>إعدادات الحذف الآمن</CardTitle>
+                    <CardDescription>
+                        قم بتفعيل خيار طلب رمز PIN قبل تنفيذ أي عملية حذف لحماية بياناتك من الحذف العرضي أو غير المصرح به.
+                    </CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>الاسم</TableHead>
-                                <TableHead>الدور</TableHead>
-                                <TableHead>سعر الساعة</TableHead>
-                                <TableHead className="text-left">الإجراءات</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {pharmacyUsers.map(user => (
-                                <TableRow key={user.id}>
-                                    <TableCell className="font-medium flex items-center gap-2">
-                                        <button onClick={() => openTimeLogDialog(user)} className="flex items-center gap-2 text-right hover:text-primary">
-                                            {user.image1DataUri ? (
-                                                <Image src={user.image1DataUri} alt={user.name} width={32} height={32} className="rounded-full object-cover" />
-                                            ) : (
-                                                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
-                                                    <UserIcon className="h-4 w-4" />
-                                                </div>
-                                            )}
-                                            {user.name}
-                                        </button>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'}>
-                                            {user.role === 'Admin' ? 'مدير' : 'موظف'}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="font-mono">
-                                        {(user.hourly_rate || 0).toLocaleString()}
-                                    </TableCell>
-                                    <TableCell className="text-left">
-                                        {user.role !== 'Admin' && (
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                        <MoreVertical className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onSelect={() => openEditDialog(user)}>
-                                                        <Pencil className="me-2 h-4 w-4" />
-                                                        تعديل البيانات
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onSelect={() => openPermissionsDialog(user)}>
-                                                        <ShieldCheck className="me-2 h-4 w-4" />
-                                                        إدارة الصلاحيات
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger asChild>
-                                                            <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive">
-                                                                <Trash2 className="me-2" />
-                                                                حذف
-                                                            </button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
-                                                                <AlertDialogDescription>
-                                                                    سيتم حذف الموظف {user.name} نهائياً. لا يمكن التراجع عن هذا الإجراء.
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                                                <AlertDialogAction onClick={() => handleDeleteUser(user)} className="bg-destructive hover:bg-destructive/90">
-                                                                    نعم، قم بالحذف
-                                                                </AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                <CardContent className="space-y-4">
+                    {pharmacyUsers.map(user => (
+                        <div key={user.id} className="flex items-center justify-between p-2 border rounded-md">
+                            <Label htmlFor={`pin-switch-${user.id}`} className="cursor-pointer">
+                                <div className="font-medium">{user.name}</div>
+                                <div className="text-xs text-muted-foreground">{user.role === 'Admin' ? 'مدير' : 'موظف'}</div>
+                            </Label>
+                            <Switch
+                                id={`pin-switch-${user.id}`}
+                                checked={user.require_pin_for_delete}
+                                onCheckedChange={(checked) => handlePinRequirementChange(user.id, checked)}
+                            />
+                        </div>
+                    ))}
                 </CardContent>
             </Card>
         )}
@@ -606,153 +327,6 @@ to.setHours(23, 59, 59, 999);
                 </CardContent>
             </Card>
         )}
-        
-        <AddUserDialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen} />
-
-         <Dialog open={isPermissionsDialogOpen} onOpenChange={setIsPermissionsDialogOpen}>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>صلاحيات الموظف: {editingUser?.name}</DialogTitle>
-                    <DialogDescription>
-                        اختر الأقسام التي يمكن للموظف الوصول إليها.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {currentUserPermissions && permissionLabels.map(p => (
-                        <div key={p.key} className="flex items-center space-x-2 space-x-reverse">
-                            <Checkbox
-                                id={`perm-${p.key}`}
-                                checked={currentUserPermissions[p.key as keyof UserPermissions]}
-                                onCheckedChange={(checked) => handlePermissionChange(p.key as keyof UserPermissions, !!checked)}
-                            />
-                            <Label htmlFor={`perm-${p.key}`} className="flex-1 cursor-pointer">{p.label}</Label>
-                        </div>
-                    ))}
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button variant="outline" onClick={() => { setEditingUser(null); setCurrentUserPermissions(null); }}>إلغاء</Button>
-                    </DialogClose>
-                    <Button onClick={handleSavePermissions} variant="success">حفظ الصلاحيات</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-        
-        <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>تعديل بيانات الموظف: {editingUser?.name}</DialogTitle>
-                    <DialogDescription>
-                        تحديث اسم، بريد إلكتروني، أو رمز PIN للموظف.
-                    </DialogDescription>
-                </DialogHeader>
-                <Form {...editUserForm}>
-                    <form onSubmit={editUserForm.handleSubmit(onEditUserSubmit)} className="space-y-4 py-2">
-                         <FormField control={editUserForm.control} name="name" render={({ field }) => (
-                            <FormItem><FormLabel>الاسم</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                        <FormField control={editUserForm.control} name="email" render={({ field }) => (
-                            <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                        <FormField control={editUserForm.control} name="pin" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>رمز PIN الجديد (اختياري)</FormLabel>
-                                <FormControl>
-                                    <Input type="password"  maxLength={6} {...field} placeholder="اتركه فارغًا لعدم التغيير" />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                        <FormField control={editUserForm.control} name="confirmPin" render={({ field }) => (
-                            <FormItem><FormLabel>تأكيد رمز PIN الجديد</FormLabel><FormControl><Input type="password"  maxLength={6} {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                        <DialogFooter className="pt-4">
-                            <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
-                            <Button type="submit" variant="success">حفظ التغييرات</Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
-        
-        <Dialog open={isTimeLogDialogOpen} onOpenChange={setIsTimeLogDialogOpen}>
-            <DialogContent className="sm:max-w-4xl">
-                <DialogHeader>
-                    <DialogTitle>سجل دوام الموظف: {editingUser?.name}</DialogTitle>
-                    <DialogDescription>
-                        عرض سجلات الدخول والخروج وحساب الراتب المستحق.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
-                    <div className="md:col-span-2 space-y-4">
-                        <div className="flex items-center gap-2">
-                            <Label htmlFor="hourly_rate">سعر الساعة:</Label>
-                            <Input id="hourly_rate" type="number" value={currentUserHourlyRate} onChange={(e) => setCurrentUserHourlyRate(e.target.value)} className="w-24"/>
-                            <Button onClick={handleSaveHourlyRate} size="sm">حفظ</Button>
-                        </div>
-                        <div className="flex gap-2 items-end">
-                            <div className="flex-1 space-y-2">
-                                <Label htmlFor="date-from">من تاريخ</Label>
-                                <Input id="date-from" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-                            </div>
-                            <div className="flex-1 space-y-2">
-                                <Label htmlFor="date-to">إلى تاريخ</Label>
-                                <Input id="date-to" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
-                            </div>
-                            <Button onClick={() => { setDateFrom(""); setDateTo(""); }} variant="outline">مسح</Button>
-                        </div>
-
-                        <div className="max-h-64 overflow-y-auto border rounded-md">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>تاريخ الدخول</TableHead>
-                                    <TableHead>تاريخ الخروج</TableHead>
-                                    <TableHead>المدة</TableHead>
-                                    <TableHead>الأجر</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredTimeLogs.map(log => {
-                                    const duration = log.clock_out ? formatDistanceStrict(new Date(log.clock_out), new Date(log.clock_in), { locale: ar, unit: 'minute' }) : "جارٍ العمل";
-                                    const minutes = log.clock_out ? differenceInMinutes(new Date(log.clock_out), new Date(log.clock_in)) : 0;
-                                    const salary = (minutes / 60) * (editingUser?.hourly_rate || 0);
-
-                                    return (
-                                        <TableRow key={log.id}>
-                                            <TableCell>{new Date(log.clock_in).toLocaleString('ar-EG')}</TableCell>
-                                            <TableCell>{log.clock_out ? new Date(log.clock_out).toLocaleString('ar-EG') : '-'}</TableCell>
-                                            <TableCell className="font-mono">{duration}</TableCell>
-                                            <TableCell className="font-mono">{salary.toLocaleString()}</TableCell>
-                                        </TableRow>
-                                    );
-                                })}
-                            </TableBody>
-                        </Table>
-                        </div>
-                    </div>
-                     <div className="md:col-span-1 space-y-4 rounded-md bg-muted p-4">
-                        <h3 className="font-semibold text-lg text-center">الملخص</h3>
-                        <div className="space-y-2">
-                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4"/> إجمالي الساعات:</span>
-                                <span className="font-bold font-mono">{totalHours.toFixed(2)} ساعة</span>
-                            </div>
-                            <div className="flex justify-between items-center text-lg">
-                                <span className="text-muted-foreground flex items-center gap-2"><Wallet className="h-5 w-5"/> إجمالي الراتب:</span>
-                                <span className="font-bold text-green-600 font-mono">{totalSalary.toLocaleString()}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsTimeLogDialogOpen(false)}>إغلاق</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-
     </div>
   )
 }
-
-    

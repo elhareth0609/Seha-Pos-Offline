@@ -42,7 +42,8 @@ import { ShoppingBasket, Trash2 } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
 
 export default function ExpiringSoonPage() {
-  const { getPaginatedExpiringSoon, markAsDamaged, addToOrderRequestCart } = useAuth();
+  const { getPaginatedExpiringSoon, markAsDamaged, addToOrderRequestCart, scopedData, getNotifications } = useAuth();
+  const { settings: [settings, setSettings] } = scopedData;
   
   const [expiringMedications, setExpiringMedications] = React.useState<Medication[]>([]);
   const [expiredMedications, setExpiredMedications] = React.useState<Medication[]>([]);
@@ -64,6 +65,12 @@ export default function ExpiringSoonPage() {
   const [loading, setLoading] = React.useState(true);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [activeTab, setActiveTab] = React.useState('expiring');
+  
+  const [threshold, setThreshold] = React.useState(settings.expirationThresholdDays || 90);
+  
+  React.useEffect(() => {
+    setThreshold(settings.expirationThresholdDays || 90);
+  }, [settings]);
 
 
   const fetchData = React.useCallback(async (page: number, limit: number, search: string, type: 'expiring' | 'expired' | 'damaged') => {
@@ -99,7 +106,10 @@ export default function ExpiringSoonPage() {
   }, [getPaginatedExpiringSoon]);
 
   React.useEffect(() => {
-    fetchData(1, perPage, searchTerm, activeTab as 'expiring' | 'expired' | 'damaged');
+    const handler = setTimeout(() => {
+        fetchData(1, perPage, searchTerm, activeTab as 'expiring' | 'expired' | 'damaged');
+    }, 500); // Debounce search
+    return () => clearTimeout(handler);
   }, [perPage, searchTerm, activeTab, fetchData]);
 
 
@@ -139,6 +149,10 @@ export default function ExpiringSoonPage() {
       }
   }
 
+  const handleSaveThreshold = () => {
+    setSettings(prev => ({...prev, expirationThresholdDays: threshold}));
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -146,12 +160,12 @@ export default function ExpiringSoonPage() {
         <CardDescription>
           قائمة بالأدوية التي انتهت صلاحيتها أو على وشك الانتهاء، والأدوية التي تم إتلافها.
         </CardDescription>
-        <div className="pt-4 flex flex-wrap gap-2">
+        <div className="pt-4 flex flex-wrap gap-4 items-end">
             <Input 
               placeholder="ابحث بالاسم أو الباركود..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
+              className="max-w-xs"
             />
              <div className="flex items-center gap-2">
               <Label htmlFor="per-page" className="shrink-0">لكل صفحة:</Label>
@@ -166,6 +180,13 @@ export default function ExpiringSoonPage() {
                   <SelectItem value="100">100</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+             <div className="flex items-end gap-2 border-s ps-4">
+                 <div className="space-y-1">
+                    <Label htmlFor="expiration-threshold">تنبيه خلال (يوم)</Label>
+                    <Input id="expiration-threshold" type="number" value={threshold} onChange={(e) => setThreshold(Number(e.target.value))} className="w-28 h-9"/>
+                 </div>
+                <Button onClick={handleSaveThreshold} className="h-9">حفظ</Button>
             </div>
         </div>
       </CardHeader>

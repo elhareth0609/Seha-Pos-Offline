@@ -23,6 +23,16 @@ export type UserPermissions = {
     manage_archives: boolean;
     manage_order_requests: boolean;
     manage_offers: boolean;
+    manage_hr: boolean;
+};
+
+export type Notification = {
+  id: string;
+  type: 'low_stock' | 'out_of_stock' | 'expiring_soon' | 'expired' | 'task_assigned' | 'sale_below_cost' | 'large_discount' | 'supplier_debt_limit' | 'month_end_reminder' | 'new_purchase_order';
+  message: string;
+  data?: Record<string, any>;
+  read: boolean;
+  created_at: string;
 };
 
 export type MedicalRepresentative = {
@@ -97,6 +107,15 @@ export type Sale = {
   employee_id: string;
   employeeName: string;
   payment_method: 'cash' | 'card';
+};
+
+export type ActiveInvoice = {
+    cart: SaleItem[];
+    discountValue: string;
+    discountType: 'fixed' | 'percentage';
+    patientId: string | null;
+    paymentMethod: 'cash' | 'card';
+    saleIdToUpdate?: string | null;
 };
 
 export type PurchaseOrderItem = {
@@ -344,4 +363,32 @@ export type TransactionHistoryItem = {
   balance: number;
   documentId: string;
   actor: string;
+};
+
+
+export type TopSellingMedication = {
+    medication_id: string;
+    name: string;
+    quantity: number;
+    profit?: number;
+};
+
+export type PharmacyPerformance = {
+    pharmacy_id: string;
+    pharmacy_name: string;
+    province: string;
+    total_sales: number;
+    total_profit: number;
+    employee_count: number;
+};
+
+export type TopPurchasingPharmacy = {
+    pharmacy_id: string;
+    name: string;
+    count: number;
+};
+
+export type TopPurchasedItem = {
+    name: string;
+    quantity: number;
 };
