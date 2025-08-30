@@ -326,12 +326,10 @@ export default function Dashboard() {
         </Card>
 
 
-       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Card className="lg:col-span-1">
               <CardHeader className="flex-row items-center justify-between">
-                  <div>
-                      <CardTitle>تحتاج إعادة طلب</CardTitle>
-                  </div>
+                  <CardTitle>تحتاج إعادة طلب</CardTitle>
                   <Link href="/inventory">
                       <Button variant="outline">عرض المخزون</Button>
                   </Link>
@@ -343,19 +341,15 @@ export default function Dashboard() {
                               <TableRow>
                                   <TableHead>الاسم</TableHead>
                                   <TableHead>المخزون</TableHead>
-                                  <TableHead>نقطة الطلب</TableHead>
                                   <TableHead className="text-left">طلب</TableHead>
                               </TableRow>
                           </TableHeader>
                           <TableBody>
                               {reorder_pointItems.length > 0 ? reorder_pointItems.map(item => (
                                   <TableRow key={item.id} className="text-right">
-                                      <TableCell className="font-medium">{item.name}</TableCell>
+                                      <TableCell className="font-medium text-base">{item.name}</TableCell>
                                       <TableCell>
-                                        <Badge variant="destructive" className="font-mono">{item.stock}</Badge>
-                                      </TableCell>
-                                      <TableCell>
-                                        <div className="font-medium">{item.reorder_point}</div>
+                                        <Badge variant="destructive" className="font-mono text-base">{item.stock}</Badge>
                                       </TableCell>
                                       <TableCell className="text-left">
                                         <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item)}>
@@ -365,7 +359,7 @@ export default function Dashboard() {
                                   </TableRow>
                               )) : (
                                   <TableRow>
-                                      <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">لا توجد أصناف.</TableCell>
+                                      <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">لا توجد أصناف.</TableCell>
                                   </TableRow>
                               )}
                           </TableBody>
@@ -375,9 +369,7 @@ export default function Dashboard() {
           </Card>
           <Card className="lg:col-span-1">
               <CardHeader className="flex-row items-center justify-between">
-                  <div>
-                      <CardTitle>قريب الانتهاء ومنتهي</CardTitle>
-                  </div>
+                  <CardTitle>قريب الانتهاء ومنتهي</CardTitle>
                   <Link href="/expiring-soon">
                       <Button variant="outline">عرض الكل</Button>
                   </Link>
@@ -387,30 +379,24 @@ export default function Dashboard() {
                     <Table>
                       <TableHeader>
                           <TableRow>
-                              <TableHead className="w-1/2">الاسم</TableHead>
-                              <TableHead className="w-1/2">الحالة</TableHead>
+                              <TableHead className="w-2/3">الاسم</TableHead>
+                              <TableHead className="w-1/3">الحالة</TableHead>
                           </TableRow>
                       </TableHeader>
                       <TableBody>
                           {expiredItems.length > 0 && expiredItems.map(item => (
                               <TableRow key={item.id}>
-                                  <TableCell className="text-right">
-                                      <div className="font-medium">{item.name}</div>
-                                      <div className="text-xs text-muted-foreground font-mono">{item.barcodes?.join(', ')}</div>
-                                  </TableCell>
-                                  <TableCell className="text-right">
+                                  <TableCell className="font-medium text-base">{item.name}</TableCell>
+                                  <TableCell>
                                     <Badge variant="destructive">منتهي الصلاحية</Badge>
                                   </TableCell>
                               </TableRow>
                           ))}
                           {expiringSoonItems.length > 0 && expiringSoonItems.map(item => (
                               <TableRow key={item.id}>
-                                  <TableCell className="text-right">
-                                      <div className="font-medium">{item.name}</div>
-                                      <div className="text-xs text-muted-foreground font-mono">{item.barcodes?.join(', ')}</div>
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <Badge variant="secondary" className="bg-yellow-400 text-yellow-900 font-mono">{differenceInDays(parseISO(item.expiration_date), new Date())} يوم</Badge>
+                                  <TableCell className="font-medium text-base">{item.name}</TableCell>
+                                  <TableCell>
+                                    <Badge variant="secondary" className="bg-yellow-400 text-yellow-900 font-mono text-sm">{differenceInDays(parseISO(item.expiration_date), new Date())} يوم</Badge>
                                   </TableCell>
                               </TableRow>
                           ))}
@@ -424,7 +410,7 @@ export default function Dashboard() {
                 </ScrollArea>
               </CardContent>
           </Card>
-          <Card className="lg:col-span-2">
+           <Card className="lg:col-span-1">
             <Tabs defaultValue="top-selling">
               <CardHeader>
                 <TabsList className="grid w-full grid-cols-2">
@@ -436,21 +422,33 @@ export default function Dashboard() {
                 <ScrollArea className="h-72">
                   <TabsContent value="top-selling">
                     <Table>
-                      <TableHeader><TableRow><TableHead>الدواء</TableHead><TableHead className="text-left">الكمية المباعة</TableHead></TableRow></TableHeader>
                       <TableBody>
                         {topPerformingMedications.topByQuantity.length > 0 ? topPerformingMedications.topByQuantity.map((item) => (
-                            <TableRow key={item.medication_id}><TableCell className="font-medium text-right">{item.name}</TableCell><TableCell className="font-mono text-left">{item.quantity.toLocaleString()}</TableCell></TableRow>
-                        )) : (<TableRow><TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد بيانات مبيعات لعرضها.</TableCell></TableRow>)}
+                            <TableRow key={item.medication_id}>
+                                <TableCell className="font-semibold text-base">{item.name}</TableCell>
+                                <TableCell className="text-left">
+                                    <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item as unknown as Medication)}>
+                                        <ShoppingBasket className="h-5 w-5 text-blue-600"/>
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        )) : (<TableRow><TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد بيانات.</TableCell></TableRow>)}
                       </TableBody>
                     </Table>
                   </TabsContent>
                   <TabsContent value="most-profitable">
-                    <Table>
-                      <TableHeader><TableRow><TableHead>الدواء</TableHead><TableHead className="text-left">إجمالي الربح</TableHead></TableRow></TableHeader>
+                     <Table>
                       <TableBody>
                         {topPerformingMedications.topByProfit.length > 0 ? topPerformingMedications.topByProfit.map((item) => (
-                            <TableRow key={item.medication_id}><TableCell className="font-medium text-right">{item.name}</TableCell><TableCell className="font-mono text-left text-green-600">{item.profit.toLocaleString()}</TableCell></TableRow>
-                        )) : (<TableRow><TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد بيانات مبيعات لعرضها.</TableCell></TableRow>)}
+                            <TableRow key={item.medication_id}>
+                                <TableCell className="font-semibold text-base">{item.name}</TableCell>
+                                <TableCell className="text-left">
+                                     <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item as unknown as Medication)}>
+                                        <ShoppingBasket className="h-5 w-5 text-blue-600"/>
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        )) : (<TableRow><TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد بيانات.</TableCell></TableRow>)}
                       </TableBody>
                     </Table>
                   </TabsContent>
@@ -458,7 +456,7 @@ export default function Dashboard() {
               </CardContent>
             </Tabs>
           </Card>
-          <Card className="lg:col-span-4">
+          <Card className="lg:col-span-2">
               <CardHeader>
                   <CardTitle>الأدوية الأقل مبيعًا (الراكدة)</CardTitle>
                    <div className="flex items-center gap-2 pt-2">
@@ -473,24 +471,18 @@ export default function Dashboard() {
                           <TableHeader>
                               <TableRow>
                                   <TableHead>الدواء</TableHead>
-                                  <TableHead>الرصيد الحالي</TableHead>
-                                  <TableHead className="text-left">إجراء</TableHead>
+                                  <TableHead className="text-left">الرصيد الحالي</TableHead>
                               </TableRow>
                           </TableHeader>
                           <TableBody>
                               {leastSellingMedications.length > 0 ? leastSellingMedications.map(item => (
                                   <TableRow key={item.id} className="text-right">
-                                      <TableCell className="font-medium">{item.name}</TableCell>
-                                      <TableCell className="font-mono">{item.stock}</TableCell>
-                                      <TableCell className="text-left">
-                                        <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item)}>
-                                            <ShoppingBasket className="h-5 w-5 text-blue-600"/>
-                                        </Button>
-                                      </TableCell>
+                                      <TableCell className="font-semibold text-base">{item.name}</TableCell>
+                                      <TableCell className="font-mono text-left text-base">{item.stock}</TableCell>
                                   </TableRow>
                               )) : (
                                   <TableRow>
-                                      <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">لا توجد أصناف راكدة لهذه الفترة.</TableCell>
+                                      <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد أصناف راكدة لهذه الفترة.</TableCell>
                                   </TableRow>
                               )}
                           </TableBody>
