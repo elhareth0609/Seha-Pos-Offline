@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import type { User, TimeLog } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Wallet, Clock, User as UserIcon, Calendar, ClipboardUser } from 'lucide-react';
+import { Wallet, Clock, User as UserIcon, Calendar, UserCog } from 'lucide-react';
 import Image from 'next/image';
 import { differenceInMinutes, formatDistanceStrict, isWithinInterval, parseISO } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -120,7 +120,7 @@ export default function HRPage() {
             <Card>
                 <CardHeader>
                     <div className="flex items-center gap-4">
-                        <ClipboardUser className="h-10 w-10 text-primary" />
+                        <UserCog className="h-10 w-10 text-primary" />
                         <div>
                             <CardTitle>شؤون الموظفين</CardTitle>
                             <CardDescription>عرض وإدارة سجلات الدوام والرواتب لموظفي الصيدلية.</CardDescription>
@@ -264,3 +264,5 @@ export default function HRPage() {
         </>
     );
 }
+
+    

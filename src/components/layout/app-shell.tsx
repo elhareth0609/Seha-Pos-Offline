@@ -35,7 +35,7 @@ import {
   ArrowRight,
   DollarSign,
   Receipt,
-  ClipboardUser,
+  UserCog,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -87,7 +87,7 @@ const allNavItems = [
   
   { href: "/offers", icon: BadgePercent, label: "عروض ميدجرام", group: 'external' },
 
-  { href: "/hr", icon: ClipboardUser, label: "شؤون الموظفين", group: 'admin' },
+  { href: "/hr", icon: UserCog, label: "شؤون الموظفين", group: 'admin' },
   { href: "/trash", icon: Trash2, label: "سلة المحذوفات", group: 'admin' },
   { href: "/close-month", icon: FileArchive, label: "الحسابات الختامية", group: 'admin' },
   { href: "/settings", icon: Settings, label: "الإعدادات", group: 'admin' },
@@ -528,3 +528,5 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </TooltipProvider>
   );
 }
+
+    
