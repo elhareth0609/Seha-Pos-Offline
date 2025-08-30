@@ -755,6 +755,17 @@ export default function SalesPage() {
     const handlePaymentMethodChange = (value: 'cash' | 'card') => {
         updateActiveInvoice(prev => ({...prev, paymentMethod: value}));
     };
+    
+  const handleModeChange = (newMode: 'sale' | 'return') => {
+    if (!newMode) return;
+    setMode(newMode);
+    updateActiveInvoice(invoice => {
+        return {
+            ...invoice,
+            cart: invoice.cart.map(item => ({ ...item, is_return: newMode === 'return' }))
+        }
+    });
+  };
 
   return (
     <>
@@ -857,7 +868,7 @@ export default function SalesPage() {
                                     <PlusCircle className="h-4 w-4"/>
                                  </Button>
                             </div>
-                            <ToggleGroup type="single" value={mode} onValueChange={(value) => { if (value) setMode(value as 'sale' | 'return')}} size="sm">
+                            <ToggleGroup type="single" value={mode} onValueChange={(value: 'sale' | 'return') => handleModeChange(value)} size="sm">
                                 <ToggleGroupItem value="sale" aria-label="Toggle sale">
                                     بيع
                                 </ToggleGroupItem>

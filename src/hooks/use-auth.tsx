@@ -379,13 +379,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const closeInvoice = (index: number, isAfterSale = false) => {
         if (activeInvoices.length > 1) {
             setActiveInvoices(prev => prev.filter((_, i) => i !== index));
+            // Adjust current index if the closed one was before or was the current one
             if (currentInvoiceIndex >= index && currentInvoiceIndex > 0) {
                 setCurrentInvoiceIndex(prev => prev - 1);
             }
         } else if (isAfterSale) {
+            // If it's the last invoice and it's after a sale, reset it
             setActiveInvoices([initialActiveInvoice]);
             setCurrentInvoiceIndex(0);
         } else {
+             // If it's the last invoice and user wants to clear it, just reset it.
              setActiveInvoices(prev => prev.map((inv, i) => i === index ? initialActiveInvoice : inv));
         }
     };
