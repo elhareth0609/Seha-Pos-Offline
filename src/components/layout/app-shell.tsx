@@ -373,7 +373,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                      <div className="flex flex-1 items-center justify-start gap-2 md:flex-grow-0">
                         <Link href="/" className="flex items-center gap-2 font-semibold">
                             <img src="/icon.png" alt="Site Icon" className="h-6 w-6" />
-                            <span className="hidden sm:inline-block">ميدجرام</span>
                         </Link>
                          <div className="flex items-center gap-2">
                             <Sheet open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
