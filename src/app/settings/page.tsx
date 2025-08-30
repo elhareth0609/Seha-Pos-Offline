@@ -240,7 +240,7 @@ export default function SettingsPage() {
                   <CardHeader>
                     <CardTitle>الإعدادات العامة</CardTitle>
                     <CardDescription>
-                      إدارة الإعدادات العامة للصيدلية. تؤثر هذه الإعدادات على الفواتير والتقارير والتنبيهات.
+                      إدارة الإعدادات العامة للصيدلية. تؤثر هذه الإعدادات على الفواتير والفواتير والتنبيهات.
                     </CardDescription>
                   </CardHeader>
                     <CardContent className="space-y-4">
