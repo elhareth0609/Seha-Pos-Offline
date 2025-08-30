@@ -109,6 +109,15 @@ export type Sale = {
   payment_method: 'cash' | 'card';
 };
 
+export type ActiveInvoice = {
+    cart: SaleItem[];
+    discountValue: string;
+    discountType: 'fixed' | 'percentage';
+    patientId: string | null;
+    paymentMethod: 'cash' | 'card';
+    saleIdToUpdate?: string | null;
+};
+
 export type PurchaseOrderItem = {
   id: string;
   medication_id?: string;
@@ -383,5 +392,3 @@ export type TopPurchasedItem = {
     name: string;
     quantity: number;
 };
-
-    

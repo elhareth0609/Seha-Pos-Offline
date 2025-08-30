@@ -35,7 +35,7 @@ type AuthResponse = {
     offers: Offer[];
 };
 
-type ActiveInvoice = {
+export type ActiveInvoice = {
     cart: SaleItem[];
     discountValue: string;
     discountType: 'fixed' | 'percentage';
@@ -153,9 +153,13 @@ interface AuthContextType {
     getPaginatedItemMovements: (page: number, perPage: number, search: string, medication_id: string) => Promise<PaginatedResponse<TransactionHistoryItem>>;
     getMedicationMovements: (medId: string) => Promise<TransactionHistoryItem[]>;
 
-    activeInvoice: ActiveInvoice;
-    setActiveInvoice: React.Dispatch<React.SetStateAction<ActiveInvoice>>;
-    resetActiveInvoice: () => void;
+    // Multi-invoice state
+    activeInvoices: ActiveInvoice[];
+    currentInvoiceIndex: number;
+    updateActiveInvoice: (updater: (invoice: ActiveInvoice) => ActiveInvoice) => void;
+    switchToInvoice: (index: number) => void;
+    createNewInvoice: () => void;
+    closeInvoice: (index: number, isAfterSale?: boolean) => void;
     
     verifyPin: (pin: string, isDeletePin?: boolean) => Promise<boolean>;
     updateUserPinRequirement: (userId: string, requirePin: boolean) => Promise<void>;
@@ -296,7 +300,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [activeTimeLogId, setActiveTimeLogId] = React.useState<string | null>(null);
     const [advertisements, setAdvertisements] = React.useState<Advertisement[]>([]);
     const [offers, setOffers] = React.useState<Offer[]>([]);
-    const [activeInvoice, setActiveInvoice] = React.useState<ActiveInvoice>(initialActiveInvoice);
+    
+    // Multi-invoice state
+    const [activeInvoices, setActiveInvoices] = React.useState<ActiveInvoice[]>([initialActiveInvoice]);
+    const [currentInvoiceIndex, setCurrentInvoiceIndex] = React.useState(0);
+
     const [orderRequestCart, setOrderRequestCart] = React.useState<OrderRequestItem[]>([]);
     const [purchaseDraft, setPurchaseDraft] = React.useState<{
         invoiceId: string;
@@ -349,10 +357,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const updateActiveInvoice = React.useCallback((updater: (invoice: ActiveInvoice) => ActiveInvoice) => {
+        setActiveInvoices(prevInvoices => 
+            prevInvoices.map((invoice, index) => 
+                index === currentInvoiceIndex ? updater(invoice) : invoice
+            )
+        );
+    }, [currentInvoiceIndex]);
 
-    const resetActiveInvoice = React.useCallback(() => {
-        setActiveInvoice(initialActiveInvoice);
-    }, []);
+    const switchToInvoice = (index: number) => {
+        if (index >= 0 && index < activeInvoices.length) {
+            setCurrentInvoiceIndex(index);
+        }
+    };
+
+    const createNewInvoice = () => {
+        setActiveInvoices(prev => [...prev, initialActiveInvoice]);
+        setCurrentInvoiceIndex(activeInvoices.length);
+    };
+
+    const closeInvoice = (index: number, isAfterSale = false) => {
+        if (activeInvoices.length > 1) {
+            setActiveInvoices(prev => prev.filter((_, i) => i !== index));
+            if (currentInvoiceIndex >= index && currentInvoiceIndex > 0) {
+                setCurrentInvoiceIndex(prev => prev - 1);
+            }
+        } else if (isAfterSale) {
+            setActiveInvoices([initialActiveInvoice]);
+            setCurrentInvoiceIndex(0);
+        } else {
+             setActiveInvoices(prev => prev.map((inv, i) => i === index ? initialActiveInvoice : inv));
+        }
+    };
 
 
     const setAllData = (data: AuthResponse) => {
@@ -1259,7 +1295,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             getPaginatedTasks, getMineTasks, addTask, updateTask, updateStatusTask, deleteTask,
             restoreItem, permDelete, clearTrash, getPaginatedTrash,
             getPaginatedUsers,
-            activeInvoice, setActiveInvoice, resetActiveInvoice,
+            activeInvoices, currentInvoiceIndex, updateActiveInvoice, switchToInvoice, createNewInvoice, closeInvoice,
             addRepresentative,
             verifyPin, updateUserPinRequirement,
             getArchivedMonths, getArchivedMonthData,
