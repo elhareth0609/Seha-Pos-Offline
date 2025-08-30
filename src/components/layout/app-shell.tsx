@@ -353,24 +353,59 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return navItems.some(item => item.href === href);
   }
 
-  const handleBackup = async () => {
-    try {
-      // Create a hidden link element to download the backup file
-      const link = document.createElement('a');
-      link.href = `${process.env.NEXT_PUBLIC_API_URL}/backup`;
-      link.download = `backup-${new Date().toISOString().split('T')[0]}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      toast({ title: "تم بدء النسخ الاحتياطي", description: "جاري تحميل ملف النسخ الاحتياطي..." });
-    } catch (error: any) {
+const handleBackup = async () => {
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
       toast({ 
         variant: "destructive", 
         title: "فشل النسخ الاحتياطي", 
-        description: error.message || "حدث خطأ أثناء عملية النسخ الاحتياطي" 
+        description: "يجب تسجيل الدخول أولاً" 
       });
+      return;
     }
-  };
+    
+    toast({ title: "جاري إعداد النسخ الاحتياطي", description: "يرجى الانتظار..." });
+    
+    // استخدم fetch للحصول على ملف النسخ الاحتياطي مع رمز المصادقة
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/backup`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/zip'
+      }
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'فشل إنشاء النسخ الاحتياطي');
+    }
+    
+    // تحويل الاستجابة إلى blob وحفظها كملف
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `backup-${new Date().toISOString().split('T')[0]}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    
+    // تنظيف
+    setTimeout(() => {
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    }, 100);
+    
+    toast({ title: "تم إنشاء النسخ الاحتياطي", description: "تم حفظ ملف النسخ الاحتياطي بنجاح" });
+  } catch (error: any) {
+    toast({ 
+      variant: "destructive", 
+      title: "فشل النسخ الاحتياطي", 
+      description: error.message || "حدث خطأ أثناء عملية النسخ الاحتياطي" 
+    });
+  }
+};
 
   const handleImportClick = () => {
     // Create a hidden file input element
@@ -544,15 +579,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                                       <>
                                         <h3 className="mb-4 text-lg font-semibold tracking-tight">النسخ الاحتياطي والاستيراد</h3>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                                            <Card className="hover:bg-accent hover:text-accent-foreground transition-colors group cursor-pointer" onClick={handleImportClick}>
+                                            <Card className="h-full hover:bg-primary hover:text-primary-foreground transition-colors group cursor-pointer" onClick={handleImportClick}>
                                                 <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2 aspect-square">
-                                                    <Upload className="h-7 w-7 text-accent-foreground" />
+                                                    <Upload className="h-7 w-7 text-primary group-hover:text-primary-foreground" />
                                                     <span className="text-xs font-medium">استيراد بيانات</span>
                                                 </CardContent>
                                             </Card>
-                                            <Card className="hover:bg-accent hover:text-accent-foreground transition-colors group cursor-pointer" onClick={handleBackup}>
+                                            <Card className="h-full hover:bg-primary hover:text-primary-foreground transition-colors group cursor-pointer" onClick={handleBackup}>
                                                 <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2 aspect-square">
-                                                    <FileDown className="h-7 w-7 text-accent-foreground" />
+                                                    <FileDown className="h-7 w-7 text-primary group-hover:text-primary-foreground" />
                                                     <span className="text-xs font-medium">نسخ احتياطي</span>
                                                 </CardContent>
                                             </Card>
