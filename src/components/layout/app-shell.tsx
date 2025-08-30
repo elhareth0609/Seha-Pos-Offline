@@ -67,6 +67,7 @@ import {
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { ThemeToggle } from "../ui/theme-toggle";
 
 const allNavItems = [
   { href: "/", icon: LayoutDashboard, label: "لوحة التحكم", group: 'main' },
@@ -511,6 +512,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                    <ThemeToggle />
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem onSelect={logout}>
                                     <LogOut className="me-2 h-4 w-4" />
                                     <span>تسجيل الخروج</span>
@@ -528,5 +533,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </TooltipProvider>
   );
 }
-
-    
