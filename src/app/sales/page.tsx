@@ -51,7 +51,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput } from "@/lib/types"
-import { PlusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight } from "lucide-react"
+import { PlusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -70,6 +70,7 @@ import { differenceInDays, parseISO, startOfToday } from "date-fns"
 import { Badge } from "@/components/ui/badge"
 import { useRouter } from "next/navigation"
 import { PinDialog } from "@/components/auth/PinDialog"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
 const printElement = (element: HTMLElement, title: string = 'Print') => {
   const printWindow = window.open('', '_blank');
@@ -368,7 +369,6 @@ export default function SalesPage() {
 
   const activeInvoice = activeInvoices[currentInvoiceIndex];
   if (!activeInvoice) {
-      // This should ideally not happen if an invoice is always present
       return <div>Loading...</div>;
   }
   const { cart, discountType, discountValue, patientId, paymentMethod, saleIdToUpdate } = activeInvoice;
@@ -389,7 +389,7 @@ export default function SalesPage() {
   const [newPatientPhone, setNewPatientPhone] = React.useState("");
   const [sortedSales, setSortedSales] = React.useState<Sale[]>([]);
 
-  const [mode, setMode] = React.useState<'new' | 'return'>('new');
+  const [mode, setMode] = React.useState<'sale' | 'return'>('sale');
   
   const isOnline = useOnlineStatus();
   const priceModificationAllowed = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_salesPriceModification;
@@ -419,7 +419,7 @@ export default function SalesPage() {
         
         const today = new Date();
         today.setHours(0,0,0,0);
-        if (medication.expiration_date && parseISO(medication.expiration_date) < today) {
+        if (medication.expiration_date && parseISO(medication.expiration_date) < today && mode !== 'return') {
             toast({ variant: 'destructive', title: 'منتج منتهي الصلاحية', description: `لا يمكن بيع ${medication.name} لأنه منتهي الصلاحية.` });
             return;
         }
@@ -709,23 +709,14 @@ export default function SalesPage() {
     createNewInvoice();
     setSearchTerm('');
     setSaleToPrint(null);
-    setMode('new');
+    setMode('sale');
   };
   
   const handleCloseInvoice = (index: number) => {
     closeInvoice(index);
     setSearchTerm('');
     setSaleToPrint(null);
-    setMode('new');
-  };
-
-
-  const handleReturnInvoiceClick = () => {
-    // This logic might need adjustment. For now, it creates a new invoice in 'return' mode.
-    createNewInvoice();
-    setSearchTerm('');
-    setSaleToPrint(null);
-    setMode('return');
+    setMode('sale');
   };
   
   const handleReviewClick = () => {
@@ -848,30 +839,44 @@ export default function SalesPage() {
                             <BarcodeScanner onScan={handleScan} onOpenChange={setIsScannerOpen}/>
                         </DialogContent>
                     </Dialog>
+                     <Button variant="secondary" onClick={handleReviewClick}>
+                        <FileText className="me-2"/>
+                        مراجعة الفواتير
+                    </Button>
                 </div>
 
                 <Card className="flex-1 flex flex-col">
                     <CardHeader className="py-4 border-b">
-                        <div className="flex items-center gap-2 overflow-x-auto pb-2">
-                             {activeInvoices.map((inv, index) => (
-                                <Button 
-                                    key={index} 
-                                    variant={index === currentInvoiceIndex ? "secondary" : "ghost"}
-                                    onClick={() => switchToInvoice(index)}
-                                    className="h-9 px-3 gap-2"
-                                >
-                                    <span>فاتورة {index + 1}</span>
-                                    {activeInvoices.length > 1 && (
-                                        <X 
-                                            className="h-3 w-3 text-muted-foreground hover:text-destructive" 
-                                            onClick={(e) => { e.stopPropagation(); handleCloseInvoice(index); }}
-                                        />
-                                    )}
-                                </Button>
-                             ))}
-                             <Button size="icon" variant="ghost" onClick={handleNewInvoiceClick}>
-                                <PlusCircle className="h-4 w-4"/>
-                             </Button>
+                        <div className="flex items-center justify-between gap-2">
+                             <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                                 {activeInvoices.map((inv, index) => (
+                                    <Button 
+                                        key={index} 
+                                        variant={index === currentInvoiceIndex ? "secondary" : "ghost"}
+                                        onClick={() => switchToInvoice(index)}
+                                        className="h-9 px-3 gap-2"
+                                    >
+                                        <span>فاتورة {index + 1}</span>
+                                        {activeInvoices.length > 1 && (
+                                            <X 
+                                                className="h-3 w-3 text-muted-foreground hover:text-destructive" 
+                                                onClick={(e) => { e.stopPropagation(); handleCloseInvoice(index); }}
+                                            />
+                                        )}
+                                    </Button>
+                                 ))}
+                                 <Button size="icon" variant="ghost" onClick={handleNewInvoiceClick}>
+                                    <PlusCircle className="h-4 w-4"/>
+                                 </Button>
+                            </div>
+                            <ToggleGroup type="single" value={mode} onValueChange={(value) => { if (value) setMode(value as 'sale' | 'return')}} size="sm">
+                                <ToggleGroupItem value="sale" aria-label="Toggle sale">
+                                    بيع
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="return" aria-label="Toggle return">
+                                    إرجاع
+                                </ToggleGroupItem>
+                            </ToggleGroup>
                         </div>
                 </CardHeader>
                 <CardContent className="p-0 flex-1 flex flex-col">
