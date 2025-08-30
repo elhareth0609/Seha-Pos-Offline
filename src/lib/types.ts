@@ -355,3 +355,31 @@ export type TransactionHistoryItem = {
   documentId: string;
   actor: string;
 };
+
+
+export type TopSellingMedication = {
+    medication_id: string;
+    name: string;
+    quantity: number;
+    profit?: number;
+};
+
+export type PharmacyPerformance = {
+    pharmacy_id: string;
+    pharmacy_name: string;
+    province: string;
+    total_sales: number;
+    total_profit: number;
+    employee_count: number;
+};
+
+export type TopPurchasingPharmacy = {
+    pharmacy_id: string;
+    name: string;
+    count: number;
+};
+
+export type TopPurchasedItem = {
+    name: string;
+    quantity: number;
+};

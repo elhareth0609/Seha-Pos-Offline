@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import type { Medication, Sale, AppSettings, Task } from "@/lib/types";
 import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle, Coins, ListChecks, ShoppingBasket } from "lucide-react";
@@ -43,6 +43,7 @@ export default function Dashboard() {
   const [isClient, setIsClient] = React.useState(false);
   const [dateFrom, setDateFrom] = React.useState<string>(startOfMonth(new Date()).toISOString().split('T')[0]);
   const [dateTo, setDateTo] = React.useState<string>(endOfMonth(new Date()).toISOString().split('T')[0]);
+  const [leastSoldDays, setLeastSoldDays] = React.useState(30);
 
 
   React.useEffect(() => {
@@ -133,8 +134,8 @@ export default function Dashboard() {
     return daysLeft >= 0 && daysLeft <= expirationThreshold;
   }).sort((a,b) => differenceInDays(parseISO(a.expiration_date), today) - differenceInDays(parseISO(b.expiration_date), today));
   
-  const topSellingMedications = React.useMemo(() => {
-    const stats: { [medId: string]: { name: string; quantity: number } } = {};
+  const topPerformingMedications = React.useMemo(() => {
+    const stats: { [medId: string]: { name: string; quantity: number, profit: number } } = {};
 
     sales.forEach(sale => {
         (sale.items || []).forEach(item => {
@@ -145,21 +146,44 @@ export default function Dashboard() {
                 stats[item.medication_id] = {
                     name: med?.name || item.name,
                     quantity: 0,
+                    profit: 0,
                 };
             }
             stats[item.medication_id].quantity += item.quantity;
+            stats[item.medication_id].profit += (item.price - item.purchase_price) * item.quantity;
         });
     });
 
-    return Object.entries(stats)
-      .map(([medication_id, data]) => ({
-          medication_id,
-          name: data.name,
-          quantity: data.quantity,
-      }))
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 10);
+    const allMeds = Object.entries(stats).map(([medication_id, data]) => ({
+      medication_id,
+      name: data.name,
+      quantity: data.quantity,
+      profit: data.profit,
+    }));
+    
+    const topByQuantity = [...allMeds].sort((a,b) => b.quantity - a.quantity).slice(0,10);
+    const topByProfit = [...allMeds].sort((a,b) => b.profit - a.profit).slice(0,10);
+
+    return { topByQuantity, topByProfit };
   }, [sales, inventory]);
+
+  const leastSellingMedications = React.useMemo(() => {
+    if (leastSoldDays <= 0) return [];
+    
+    const cutoffDate = subMonths(new Date(), leastSoldDays / 30);
+    const recentSoldIds = new Set();
+    
+    sales.forEach(sale => {
+        if(new Date(sale.date) > cutoffDate) {
+            (sale.items || []).forEach(item => {
+                if(!item.is_return) recentSoldIds.add(item.medication_id);
+            });
+        }
+    });
+
+    return inventory.filter(med => !recentSoldIds.has(med.id) && med.stock > 0).slice(0,10);
+
+  }, [sales, inventory, leastSoldDays]);
 
   const salesPerformance = React.useMemo(() => {
     if (!isClient) return { totalRevenue: 0, totalProfit: 0, profitMargin: 0, invoiceCount: 0, totalExpenses: 0 };
@@ -302,8 +326,8 @@ export default function Dashboard() {
         </Card>
 
 
-       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Card>
+       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="lg:col-span-1">
               <CardHeader className="flex-row items-center justify-between">
                   <div>
                       <CardTitle>تحتاج إعادة طلب</CardTitle>
@@ -349,10 +373,10 @@ export default function Dashboard() {
                   </ScrollArea>
               </CardContent>
           </Card>
-          <Card>
+          <Card className="lg:col-span-1">
               <CardHeader className="flex-row items-center justify-between">
                   <div>
-                      <CardTitle>قريب الانتهاء ومنتهي الصلاحية</CardTitle>
+                      <CardTitle>قريب الانتهاء ومنتهي</CardTitle>
                   </div>
                   <Link href="/expiring-soon">
                       <Button variant="outline">عرض الكل</Button>
@@ -400,37 +424,79 @@ export default function Dashboard() {
                 </ScrollArea>
               </CardContent>
           </Card>
-          <Card>
-            <CardHeader>
-                <CardTitle>الأدوية الأكثر مبيعًا</CardTitle>
-                <CardDescription>أفضل 10 أدوية مبيعًا حسب الكمية.</CardDescription>
-            </CardHeader>
-            <CardContent>
-             <ScrollArea className="h-72">
-              <Table>
-                  <TableHeader>
-                      <TableRow>
-                          <TableHead >الدواء</TableHead>
-                          <TableHead>الكمية المباعة</TableHead>
-                      </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                      {topSellingMedications.length > 0 ? topSellingMedications.map((item) => (
-                          <TableRow key={item.medication_id}>
-                              <TableCell className="font-medium text-right">{item.name}</TableCell>
-                              <TableCell className="font-mono text-right">{item.quantity}</TableCell>
-                          </TableRow>
-                      )) : (
-                          <TableRow>
-                              <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">
-                                  لا توجد بيانات مبيعات لعرضها.
-                              </TableCell>
-                          </TableRow>
-                      )}
-                  </TableBody>
-              </Table>
-              </ScrollArea>
-            </CardContent>
+          <Card className="lg:col-span-2">
+            <Tabs defaultValue="top-selling">
+              <CardHeader>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="top-selling">الأكثر مبيعًا</TabsTrigger>
+                  <TabsTrigger value="most-profitable">الأكثر ربحًا</TabsTrigger>
+                </TabsList>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-72">
+                  <TabsContent value="top-selling">
+                    <Table>
+                      <TableHeader><TableRow><TableHead>الدواء</TableHead><TableHead className="text-left">الكمية المباعة</TableHead></TableRow></TableHeader>
+                      <TableBody>
+                        {topPerformingMedications.topByQuantity.length > 0 ? topPerformingMedications.topByQuantity.map((item) => (
+                            <TableRow key={item.medication_id}><TableCell className="font-medium text-right">{item.name}</TableCell><TableCell className="font-mono text-left">{item.quantity.toLocaleString()}</TableCell></TableRow>
+                        )) : (<TableRow><TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد بيانات مبيعات لعرضها.</TableCell></TableRow>)}
+                      </TableBody>
+                    </Table>
+                  </TabsContent>
+                  <TabsContent value="most-profitable">
+                    <Table>
+                      <TableHeader><TableRow><TableHead>الدواء</TableHead><TableHead className="text-left">إجمالي الربح</TableHead></TableRow></TableHeader>
+                      <TableBody>
+                        {topPerformingMedications.topByProfit.length > 0 ? topPerformingMedications.topByProfit.map((item) => (
+                            <TableRow key={item.medication_id}><TableCell className="font-medium text-right">{item.name}</TableCell><TableCell className="font-mono text-left text-green-600">{item.profit.toLocaleString()}</TableCell></TableRow>
+                        )) : (<TableRow><TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد بيانات مبيعات لعرضها.</TableCell></TableRow>)}
+                      </TableBody>
+                    </Table>
+                  </TabsContent>
+                </ScrollArea>
+              </CardContent>
+            </Tabs>
+          </Card>
+          <Card className="lg:col-span-4">
+              <CardHeader>
+                  <CardTitle>الأدوية الأقل مبيعًا (الراكدة)</CardTitle>
+                   <div className="flex items-center gap-2 pt-2">
+                    <Label htmlFor="stagnant-days">لم يتم بيعها منذ</Label>
+                    <Input id="stagnant-days" type="number" value={leastSoldDays} onChange={(e) => setLeastSoldDays(Number(e.target.value))} className="w-24 h-8" />
+                    <Label>يوم</Label>
+                   </div>
+              </CardHeader>
+              <CardContent>
+                   <ScrollArea className="h-72">
+                      <Table>
+                          <TableHeader>
+                              <TableRow>
+                                  <TableHead>الدواء</TableHead>
+                                  <TableHead>الرصيد الحالي</TableHead>
+                                  <TableHead className="text-left">إجراء</TableHead>
+                              </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                              {leastSellingMedications.length > 0 ? leastSellingMedications.map(item => (
+                                  <TableRow key={item.id} className="text-right">
+                                      <TableCell className="font-medium">{item.name}</TableCell>
+                                      <TableCell className="font-mono">{item.stock}</TableCell>
+                                      <TableCell className="text-left">
+                                        <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item)}>
+                                            <ShoppingBasket className="h-5 w-5 text-blue-600"/>
+                                        </Button>
+                                      </TableCell>
+                                  </TableRow>
+                              )) : (
+                                  <TableRow>
+                                      <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">لا توجد أصناف راكدة لهذه الفترة.</TableCell>
+                                  </TableRow>
+                              )}
+                          </TableBody>
+                      </Table>
+                  </ScrollArea>
+              </CardContent>
           </Card>
       </div>
     </div>
