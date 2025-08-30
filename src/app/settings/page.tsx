@@ -51,12 +51,10 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useAuth } from '@/hooks/use-auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, Clock, Wallet, MoreVertical, Pencil, Coins, FileArchive } from 'lucide-react'
+import { Trash2, PlusCircle, ShieldCheck, User as UserIcon, MoreVertical, Pencil } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import Image from 'next/image'
-import { differenceInMinutes, formatDistanceStrict, isWithinInterval, parseISO } from 'date-fns'
-import { ar } from 'date-fns/locale'
 import { appSettings as fallbackSettings } from '@/lib/data'
 
 
@@ -111,6 +109,7 @@ const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: stri
     { key: 'manage_close_month', label: 'الوصول إلى إغلاق الشهر' },
     { key: 'manage_order_requests', label: 'الوصول إلى طلبات الطلب' },
     { key: 'manage_offers', label: 'الوصول إلى العروض' },
+    { key: 'manage_hr', label: 'الوصول إلى شؤون الموظفين' },
 ];
 
 function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
@@ -175,22 +174,18 @@ function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (o
 
 export default function SettingsPage() {
     const { toast } = useToast()
-    const { currentUser, users, deleteUser, updateUser, updateUserPermissions, updateUserHourlyRate, scopedData, logout, clearPharmacyData } = useAuth();
+    const { currentUser, users, deleteUser, updateUser, updateUserPermissions, scopedData, clearPharmacyData } = useAuth();
     
-    const { settings: [settings, setSettings], timeLogs: [timeLogs] } = scopedData;
+    const { settings: [settings, setSettings] } = scopedData;
 
     const [isClient, setIsClient] = React.useState(false);
     
     const [isAddUserOpen, setIsAddUserOpen] = React.useState(false);
     const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = React.useState(false);
-    const [isTimeLogDialogOpen, setIsTimeLogDialogOpen] = React.useState(false);
     const [isEditUserDialogOpen, setIsEditUserDialogOpen] = React.useState(false);
     const [editingUser, setEditingUser] = React.useState<User | null>(null);
     const [currentUserPermissions, setCurrentUserPermissions] = React.useState<UserPermissions | null>(null);
-    const [currentUserHourlyRate, setCurrentUserHourlyRate] = React.useState<string>("");
-    const [dateFrom, setDateFrom] = React.useState<string>("");
-    const [dateTo, setDateTo] = React.useState<string>("");
-
+    
     const settingsForm = useForm<SettingsFormValues>({
         resolver: zodResolver(settingsSchema),
         defaultValues: { ...fallbackSettings },
@@ -284,6 +279,7 @@ export default function SettingsPage() {
             manage_archives: false,
             manage_order_requests: false,
             manage_offers: false,
+            manage_hr: false,
         };
         setCurrentUserPermissions(permissions);
         setIsPermissionsDialogOpen(true);
@@ -311,55 +307,8 @@ export default function SettingsPage() {
         }
     };
 
-    const openTimeLogDialog = (user: User) => {
-        setEditingUser(user);
-        setCurrentUserHourlyRate(String(user.hourly_rate || 0));
-        setDateFrom("");
-        setDateTo("");
-        setIsTimeLogDialogOpen(true);
-    };
-    
-    const handleSaveHourlyRate = async () => {
-        if (!editingUser) return;
-        const rate = parseFloat(currentUserHourlyRate);
-        if (isNaN(rate) || rate < 0) {
-            toast({ variant: 'destructive', title: 'معدل غير صالح', description: 'الرجاء إدخال رقم موجب.' });
-            return;
-        }
-        await updateUserHourlyRate(editingUser.id, rate);
-    };
-
     const pharmacyUsers = users.filter(u => u.pharmacy_id === currentUser?.pharmacy_id && u.role !== 'SuperAdmin');
     
-    const filteredTimeLogs = React.useMemo(() => {
-        if (!editingUser) return [];
-        let userLogs = timeLogs.filter(log => log.user_id === editingUser.id);
-        
-        if (dateFrom && dateTo) {
-            const from = new Date(dateFrom);
-            const to = new Date(dateTo);
-to.setHours(23, 59, 59, 999);
-            userLogs = userLogs.filter(log => isWithinInterval(parseISO(log.clock_in), { start: from, end: to }));
-        } else if (dateFrom) {
-            userLogs = userLogs.filter(log => new Date(log.clock_in) >= new Date(dateFrom));
-        } else if (dateTo) {
-            const to = new Date(dateTo);
-to.setHours(23, 59, 59, 999);
-            userLogs = userLogs.filter(log => new Date(log.clock_in) <= to);
-        }
-
-        return userLogs.sort((a,b) => new Date(b.clock_in).getTime() - new Date(a.clock_in).getTime());
-    }, [editingUser, timeLogs, dateFrom, dateTo]);
-
-
-    const totalMinutes = filteredTimeLogs.reduce((acc, log) => {
-        if (log.clock_out) {
-            return acc + differenceInMinutes(new Date(log.clock_out), new Date(log.clock_in));
-        }
-        return acc;
-    }, 0);
-    const totalHours = totalMinutes / 60;
-    const totalSalary = totalHours * (editingUser?.hourly_rate || 0);
 
     if (!isClient || !currentUser) {
         return (
@@ -506,7 +455,7 @@ to.setHours(23, 59, 59, 999);
                             {pharmacyUsers.map(user => (
                                 <TableRow key={user.id}>
                                     <TableCell className="font-medium flex items-center gap-2">
-                                        <button onClick={() => openTimeLogDialog(user)} className="flex items-center gap-2 text-right hover:text-primary">
+                                        <div className="flex items-center gap-2 text-right">
                                             {user.image1DataUri ? (
                                                 <Image src={user.image1DataUri} alt={user.name} width={32} height={32} className="rounded-full object-cover" />
                                             ) : (
@@ -515,7 +464,7 @@ to.setHours(23, 59, 59, 999);
                                                 </div>
                                             )}
                                             {user.name}
-                                        </button>
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'}>
@@ -674,85 +623,7 @@ to.setHours(23, 59, 59, 999);
                 </Form>
             </DialogContent>
         </Dialog>
-        
-        <Dialog open={isTimeLogDialogOpen} onOpenChange={setIsTimeLogDialogOpen}>
-            <DialogContent className="sm:max-w-4xl">
-                <DialogHeader>
-                    <DialogTitle>سجل دوام الموظف: {editingUser?.name}</DialogTitle>
-                    <DialogDescription>
-                        عرض سجلات الدخول والخروج وحساب الراتب المستحق.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
-                    <div className="md:col-span-2 space-y-4">
-                        <div className="flex items-center gap-2">
-                            <Label htmlFor="hourly_rate">سعر الساعة:</Label>
-                            <Input id="hourly_rate" type="number" value={currentUserHourlyRate} onChange={(e) => setCurrentUserHourlyRate(e.target.value)} className="w-24"/>
-                            <Button onClick={handleSaveHourlyRate} size="sm">حفظ</Button>
-                        </div>
-                        <div className="flex gap-2 items-end">
-                            <div className="flex-1 space-y-2">
-                                <Label htmlFor="date-from">من تاريخ</Label>
-                                <Input id="date-from" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-                            </div>
-                            <div className="flex-1 space-y-2">
-                                <Label htmlFor="date-to">إلى تاريخ</Label>
-                                <Input id="date-to" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
-                            </div>
-                            <Button onClick={() => { setDateFrom(""); setDateTo(""); }} variant="outline">مسح</Button>
-                        </div>
-
-                        <div className="max-h-64 overflow-y-auto border rounded-md">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>تاريخ الدخول</TableHead>
-                                    <TableHead>تاريخ الخروج</TableHead>
-                                    <TableHead>المدة</TableHead>
-                                    <TableHead>الأجر</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredTimeLogs.map(log => {
-                                    const duration = log.clock_out ? formatDistanceStrict(new Date(log.clock_out), new Date(log.clock_in), { locale: ar, unit: 'minute' }) : "جارٍ العمل";
-                                    const minutes = log.clock_out ? differenceInMinutes(new Date(log.clock_out), new Date(log.clock_in)) : 0;
-                                    const salary = (minutes / 60) * (editingUser?.hourly_rate || 0);
-
-                                    return (
-                                        <TableRow key={log.id}>
-                                            <TableCell>{new Date(log.clock_in).toLocaleString('ar-EG')}</TableCell>
-                                            <TableCell>{log.clock_out ? new Date(log.clock_out).toLocaleString('ar-EG') : '-'}</TableCell>
-                                            <TableCell className="font-mono">{duration}</TableCell>
-                                            <TableCell className="font-mono">{salary.toLocaleString()}</TableCell>
-                                        </TableRow>
-                                    );
-                                })}
-                            </TableBody>
-                        </Table>
-                        </div>
-                    </div>
-                     <div className="md:col-span-1 space-y-4 rounded-md bg-muted p-4">
-                        <h3 className="font-semibold text-lg text-center">الملخص</h3>
-                        <div className="space-y-2">
-                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4"/> إجمالي الساعات:</span>
-                                <span className="font-bold font-mono">{totalHours.toFixed(2)} ساعة</span>
-                            </div>
-                            <div className="flex justify-between items-center text-lg">
-                                <span className="text-muted-foreground flex items-center gap-2"><Wallet className="h-5 w-5"/> إجمالي الراتب:</span>
-                                <span className="font-bold text-green-600 font-mono">{totalSalary.toLocaleString()}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsTimeLogDialogOpen(false)}>إغلاق</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
 
     </div>
   )
 }
-
-    

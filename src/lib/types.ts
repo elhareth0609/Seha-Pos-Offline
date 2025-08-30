@@ -23,6 +23,7 @@ export type UserPermissions = {
     manage_archives: boolean;
     manage_order_requests: boolean;
     manage_offers: boolean;
+    manage_hr: boolean;
 };
 
 export type Notification = {
