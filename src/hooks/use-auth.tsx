@@ -327,7 +327,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     const [addingToCart, setAddingToCart] = React.useState(false);
     const addToOrderRequestCart = async (item: Medication) => {
-        setAddingToCart(true); // Prevent double-clicks
+        if (addingToCart) return;
+        setAddingToCart(true);
         try {
             const newItemData = { medication_id: item.id, quantity: 1, is_new: true };
             const savedItem = await apiRequest('/order-requests', 'POST', newItemData);
@@ -348,12 +349,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const newItemData = { medication_id: originalItem.medication_id, quantity: 1, is_new: true };
             const savedItem = await apiRequest('/order-requests', 'POST', newItemData);
             
-            // Find the index of the original item to insert the new one after it
             const originalIndex = orderRequestCart.findIndex(item => item.id === orderItemId);
-            const newCart = [...orderRequestCart];
-            newCart.splice(originalIndex + 1, 0, savedItem);
             
-            setOrderRequestCart(newCart);
+            setOrderRequestCart(currentCart => {
+                const newCart = [...currentCart];
+                newCart.splice(originalIndex + 1, 0, savedItem);
+                return newCart;
+            });
+            
             toast({ title: 'تم تكرار الصنف', description: `تمت إضافة نسخة جديدة من ${originalItem.name}.` });
         } catch (e) {
             toast({ variant: 'destructive', title: 'فشل التكرار', description: 'لم يتم تكرار الطلب. الرجاء المحاولة مرة أخرى.' });
@@ -403,16 +406,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const closeInvoice = (index: number, isAfterSale = false) => {
         if (activeInvoices.length > 1) {
             setActiveInvoices(prev => prev.filter((_, i) => i !== index));
-            // Adjust current index if needed
             if (currentInvoiceIndex >= index && currentInvoiceIndex > 0) {
                 setCurrentInvoiceIndex(prev => prev - 1);
             }
         } else if (isAfterSale) {
-            // If it's the last invoice AND it's after a sale, reset it.
             setActiveInvoices([initialActiveInvoice]);
             setCurrentInvoiceIndex(0);
         } else {
-            // If it's the last invoice but not after a sale (just a cancel), reset it.
             setActiveInvoices(prev => prev.map((inv, i) => i === index ? initialActiveInvoice : inv));
         }
     };
