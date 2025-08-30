@@ -323,18 +323,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return [];
         }
     }
+    
+    const [addingToCart, setAddingToCart] = React.useState(false);
     const addToOrderRequestCart = async (item: Medication) => {
+        if (addingToCart) return; // Prevent double-clicks
+        setAddingToCart(true);
+
         const tempId = `temp-${Date.now()}`;
         const newItem = { ...item, id: tempId, medication_id: item.id, quantity: 1 };
+        
+        // Optimistic update
         setOrderRequestCart(prev => [...prev, newItem]);
         
         try {
             const savedItem = await apiRequest('/order-requests', 'POST', { medication_id: item.id, quantity: 1, is_new: true });
+            // Replace temporary item with real one from server
             setOrderRequestCart(prev => prev.map(i => (i.id === tempId ? savedItem : i)));
             toast({ title: 'تمت الإضافة إلى الطلبات', description: `تمت إضافة ${item.name} إلى قائمة الطلبات.` });
         } catch(e) {
+            // Revert optimistic update on failure
             setOrderRequestCart(prev => prev.filter(i => i.id !== tempId));
             toast({ variant: 'destructive', title: 'فشل الإضافة', description: 'لم يتم إضافة الطلب. الرجاء المحاولة مرة أخرى.' });
+        } finally {
+            setAddingToCart(false);
         }
     };
 
@@ -381,14 +392,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const closeInvoice = (index: number, isAfterSale = false) => {
         if (activeInvoices.length > 1) {
             setActiveInvoices(prev => prev.filter((_, i) => i !== index));
+            // Adjust current index if needed
             if (currentInvoiceIndex >= index && currentInvoiceIndex > 0) {
                 setCurrentInvoiceIndex(prev => prev - 1);
             }
         } else if (isAfterSale) {
+            // If it's the last invoice AND it's after a sale, reset it.
             setActiveInvoices([initialActiveInvoice]);
             setCurrentInvoiceIndex(0);
         } else {
-             setActiveInvoices(prev => prev.map((inv, i) => i === index ? initialActiveInvoice : inv));
+            // If it's the last invoice but not after a sale (just a cancel), reset it.
+            setActiveInvoices(prev => prev.map((inv, i) => i === index ? initialActiveInvoice : inv));
         }
     };
 
