@@ -27,7 +27,7 @@ export type UserPermissions = {
 
 export type Notification = {
   id: string;
-  type: 'low_stock' | 'out_of_stock' | 'expiring_soon' | 'expired' | 'task_assigned' | 'sale_below_cost' | 'large_discount';
+  type: 'low_stock' | 'out_of_stock' | 'expiring_soon' | 'expired' | 'task_assigned' | 'sale_below_cost' | 'large_discount' | 'supplier_debt_limit' | 'month_end_reminder' | 'new_purchase_order';
   message: string;
   data?: Record<string, any>;
   read: boolean;

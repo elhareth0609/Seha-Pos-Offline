@@ -7,7 +7,7 @@ import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Sup
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 import { PinDialog } from '@/components/auth/PinDialog';
-import { differenceInDays, parseISO, startOfToday } from 'date-fns';
+import { differenceInDays, parseISO, startOfToday, isSameDay, endOfMonth } from 'date-fns';
 
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -1138,6 +1138,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     const getNotifications = React.useCallback(async (): Promise<Notification[]> => {
         const generatedNotifications: Notification[] = [];
         const today = startOfToday();
+        const DEBT_LIMIT = 1000000; // 1 Million IQD, can be moved to settings
     
         // Inventory Notifications
         inventory.forEach(med => {
@@ -1150,7 +1151,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             if (med.expiration_date) {
                 const expDate = parseISO(med.expiration_date);
                 if (expDate < today) {
-                    generatedNotifications.push({ id: `expired_${med.id}`, type: 'expired', message: `منتهي الصلاحية: ${med.name}.`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
+                    generatedNotifications.push({ id: `expired_${med.id}`, type: 'expired', message: `دواء منتهي: ${med.name}. الرجاء نقله إلى التالف.`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
                 } else {
                     const daysLeft = differenceInDays(expDate, today);
                     if (daysLeft <= settings.expirationThresholdDays) {
@@ -1160,30 +1161,55 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             }
         });
 
-        // Sales Notifications
-        sales.forEach(sale => {
-            if (sale.discount && sale.discount > 20000) { // Example threshold
-                 generatedNotifications.push({ id: `large_discount_${sale.id}`, type: 'large_discount', message: `خصم كبير بقيمة ${sale.discount.toLocaleString()} في الفاتورة #${sale.id}.`, data: { saleId: sale.id }, read: false, created_at: sale.date });
-            }
-            sale.items.forEach(item => {
-                if (!item.is_return && item.price < item.purchase_price) {
-                     generatedNotifications.push({ id: `below_cost_${sale.id}_${item.medication_id}`, type: 'sale_below_cost', message: `تم بيع ${item.name} بأقل من الكلفة في الفاتورة #${sale.id}.`, data: { saleId: sale.id, medicationId: item.medication_id }, read: false, created_at: sale.date });
+        // Sales Notifications (Admin only)
+        if(currentUser?.role === 'Admin') {
+            sales.forEach(sale => {
+                if (sale.discount && sale.discount > 20000) { 
+                     generatedNotifications.push({ id: `large_discount_${sale.id}`, type: 'large_discount', message: `خصم كبير بقيمة ${sale.discount.toLocaleString()} في الفاتورة #${sale.id}.`, data: { saleId: sale.id }, read: false, created_at: sale.date });
                 }
-            })
-        });
+                sale.items.forEach(item => {
+                    if (!item.is_return && item.price < item.purchase_price) {
+                         generatedNotifications.push({ id: `below_cost_${sale.id}_${item.medication_id}`, type: 'sale_below_cost', message: `تم بيع ${item.name} بأقل من الكلفة في الفاتورة #${sale.id}.`, data: { saleId: sale.id, medicationId: item.medication_id }, read: false, created_at: sale.date });
+                    }
+                })
+            });
+        }
 
         // Task Notifications
         tasks.forEach(task => {
-            if (!task.completed) { // Simple check for now
-                // This would be better if we check if it's newly assigned
-                // For simplicity, we'll assume all open tasks are "new" for notification purposes for now
+            if (!task.completed && task.user_id === currentUser?.id) {
                 generatedNotifications.push({ id: `task_assigned_${task.id}`, type: 'task_assigned', message: `مهمة جديدة: ${task.description}`, data: { taskId: task.id, userId: task.user_id }, read: false, created_at: task.created_at });
             }
         });
+        
+        // Month End Reminder (Admin only)
+        if (currentUser?.role === 'Admin' && isSameDay(new Date(), endOfMonth(new Date()))) {
+            generatedNotifications.push({ id: 'month_end_reminder', type: 'month_end_reminder', message: 'تذكير: اليوم هو نهاية الشهر. لا تنسَ إقفال الحسابات.', data: {}, read: false, created_at: new Date().toISOString() });
+        }
+
+        // Supplier Debt Limit (Admin only)
+        if (currentUser?.role === 'Admin') {
+            suppliers.forEach(supplier => {
+                const purchases = purchaseOrders.filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.total_amount, 0);
+                const returns = supplierReturns.filter(r => r.supplier_id === supplier.id).reduce((sum, r) => sum + r.total_amount, 0);
+                const supplierPayments = payments.filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.amount, 0);
+                const netDebt = purchases - returns - supplierPayments;
+
+                if(netDebt > DEBT_LIMIT) {
+                    generatedNotifications.push({ id: `debt_limit_${supplier.id}`, type: 'supplier_debt_limit', message: `تجاوز حد الدين للمورد ${supplier.name}. الدين الحالي: ${netDebt.toLocaleString()}`, data: { supplierId: supplier.id }, read: false, created_at: new Date().toISOString() });
+                }
+            });
+        }
+        
+        // New Purchase Order
+        purchaseOrders.forEach(po => {
+            if (isSameDay(new Date(po.date), today)) {
+                 generatedNotifications.push({ id: `new_po_${po.id}`, type: 'new_purchase_order', message: `تم استلام قائمة شراء جديدة #${po.id} من ${po.supplier_name}.`, data: { purchaseOrderId: po.id }, read: false, created_at: po.date });
+            }
+        });
     
-        // In a real app, this would be an API call and would handle read state.
         return Promise.resolve(generatedNotifications.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
-    }, [inventory, sales, tasks, settings.expirationThresholdDays]);
+    }, [inventory, sales, tasks, settings.expirationThresholdDays, currentUser, suppliers, purchaseOrders, supplierReturns, payments]);
 
 
     const setScopedSettings = async (value: AppSettings | ((val: AppSettings) => AppSettings)) => {

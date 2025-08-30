@@ -34,6 +34,7 @@ import {
   AlertTriangle,
   ArrowRight,
   DollarSign,
+  Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -178,6 +179,12 @@ const getNotificationIcon = (type: Notification['type']) => {
         case 'sale_below_cost':
         case 'large_discount':
             return <DollarSign className="h-4 w-4 text-orange-500" />;
+        case 'supplier_debt_limit':
+            return <Landmark className="h-4 w-4 text-red-700" />;
+        case 'month_end_reminder':
+            return <FileArchive className="h-4 w-4 text-indigo-500" />;
+        case 'new_purchase_order':
+             return <Receipt className="h-4 w-4 text-green-500" />;
         default:
             return <Bell className="h-4 w-4 text-muted-foreground" />;
     }
@@ -207,6 +214,15 @@ function NotificationsSheet({ notifications }: { notifications: Notification[] }
             // In a real app, you might want to highlight the specific sale
             router.push('/reports');
         }
+        break;
+      case 'supplier_debt_limit':
+        router.push('/suppliers');
+        break;
+      case 'month_end_reminder':
+        router.push('/close-month');
+        break;
+      case 'new_purchase_order':
+        router.push('/purchases?tab=purchase-history');
         break;
       default:
         break;
