@@ -94,7 +94,7 @@ export default function LoginPage() {
                         <h1 className="text-5xl font-bold">ميدجرام</h1>
                     </div>
                     <p className="text-xl text-muted-foreground mt-2">
-                        نظام إدارة صيدليات متكامل، مصمم لتبسيط عملياتك اليومية من المبيعات والمخزون إلى المشتريات والتقارير المالية.
+                        نظام إدارة صيدليات متكامل، مصمم لتبسيط عملياتك اليومية من المبيعات والمخزون إلى المشتريات والفواتير المالية.
                     </p>
                     <Dialog>
                         <DialogTrigger asChild>

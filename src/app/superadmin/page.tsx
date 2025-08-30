@@ -60,6 +60,7 @@ const fileToDataUri = (file: File): Promise<string> => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
         reader.onerror = reject;
+        reader.readAsDataURL(file);
     });
 };
 
@@ -345,7 +346,7 @@ export default function SuperAdminPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                     <Button variant="outline" asChild>
-                        <Link href="/superadmin/reports"><FileText className="me-2"/> عرض التقارير</Link>
+                        <Link href="/superadmin/reports"><FileText className="me-2"/> عرض الفواتير</Link>
                     </Button>
                     <Button variant="outline" asChild>
                         <Link href="/superadmin/account">

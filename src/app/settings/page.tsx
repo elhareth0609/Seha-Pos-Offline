@@ -59,6 +59,108 @@ const settingsSchema = z.object({
 
 type SettingsFormValues = z.infer<typeof settingsSchema>
 
+const addUserSchema = z.object({
+    name: z.string().min(3, { message: "الرجاء إدخال اسم مكون من 3 أحرف على الأقل." }),
+    email: z.string().email({ message: "الرجاء إدخال بريد إلكتروني صالح."}),
+    pin: z.string().length(6, { message: "يجب أن يتكون رمز PIN من 6 أرقام." }),
+});
+
+type AddUserFormValues = z.infer<typeof addUserSchema>;
+
+const editUserSchema = z.object({
+    name: z.string().min(3, { message: "الرجاء إدخال اسم مكون من 3 أحرف على الأقل." }),
+    email: z.string().email({ message: "الرجاء إدخال بريد إلكتروني صالح."}),
+    pin: z.string().optional().refine(val => !val || val.length === 6, { message: "رمز PIN يجب أن يكون 6 أرقام." }),
+    confirmPin: z.string().optional(),
+}).refine(data => data.pin === data.confirmPin, {
+    message: "رموز PIN غير متطابقة",
+    path: ["confirmPin"],
+});
+
+type EditUserFormValues = z.infer<typeof editUserSchema>;
+
+
+const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: string }[] = [
+    { key: 'manage_sales', label: 'الوصول إلى قسم المبيعات' },
+    { key: 'manage_inventory', label: 'الوصول إلى المخزون' },
+    { key: 'manage_purchases', label: 'الوصول إلى المشتريات' },
+    { key: 'manage_suppliers', label: 'الوصول إلى الموردين' },
+    { key: 'manage_reports', label: 'الوصول إلى الفواتير' },
+    { key: 'manage_expenses', label: 'الوصول إلى الصرفيات' },
+    { key: 'manage_tasks', label: 'الوصول إلى المهام' },
+    { key: 'manage_itemMovement', label: 'الوصول إلى حركة المادة' },
+    { key: 'manage_patients', label: 'الوصول إلى أصدقاء الصيدلية' },
+    { key: 'manage_expiringSoon', label: 'الوصول إلى قريب الانتهاء' },
+    { key: 'manage_trash', label: 'الوصول إلى سلة المحذوفات' },
+    { key: 'manage_settings', label: 'الوصول إلى الإعدادات' },
+    { key: 'manage_salesPriceModification', label: 'تعديل أسعار البيع في الفاتورة' },
+    { key: 'manage_previous_sales', label: 'تعديل وحذف المبيعات السابقة' },
+    { key: 'manage_guide', label: 'الوصول إلى الدليل' },
+    { key: 'manage_close_month', label: 'الوصول إلى إغلاق الشهر' },
+    { key: 'manage_order_requests', label: 'الوصول إلى طلبات الطلب' },
+    { key: 'manage_offers', label: 'الوصول إلى العروض' },
+];
+
+function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
+    const { registerUser } = useAuth();
+    const addUserForm = useForm<AddUserFormValues>({
+        resolver: zodResolver(addUserSchema),
+        defaultValues: { name: "", email: "", pin: "" }
+    });
+
+    const resetDialog = () => {
+        addUserForm.reset();
+        onOpenChange(false);
+    }
+
+    const onAddUserSubmit = async (data: AddUserFormValues) => {
+        const success = await registerUser(data.name, data.email, data.pin);
+        if (success) {
+            resetDialog();
+        }
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>إضافة موظف جديد</DialogTitle>
+                </DialogHeader>
+                <Form {...addUserForm}>
+                    <form onSubmit={addUserForm.handleSubmit(onAddUserSubmit)} className="space-y-4 py-2">
+                        <FormField control={addUserForm.control} name="name" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>اسم الموظف</FormLabel>
+                                <FormControl><Input placeholder="اسم الموظف الكامل" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={addUserForm.control} name="email" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>البريد الإلكتروني</FormLabel>
+                                <FormControl><Input type="email" placeholder="example@email.com" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={addUserForm.control} name="pin" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>رمز PIN</FormLabel>
+                                <FormControl><Input type="password"  maxLength={6} {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <DialogFooter className="pt-4">
+                            <Button type="button" variant="outline" onClick={resetDialog}>إلغاء</Button>
+                            <Button type="submit" disabled={addUserForm.formState.isSubmitting} variant="success">إضافة الموظف</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+
 export default function SettingsPage() {
     const { toast } = useToast()
     const { currentUser, users, scopedData, clearPharmacyData, updateUserPinRequirement } = useAuth();
@@ -138,7 +240,7 @@ export default function SettingsPage() {
                   <CardHeader>
                     <CardTitle>الإعدادات العامة</CardTitle>
                     <CardDescription>
-                      إدارة الإعدادات العامة للصيدلية. تؤثر هذه الإعدادات على الفواتير والتقارير.
+                      إدارة الإعدادات العامة للصيدلية. تؤثر هذه الإعدادات على الفواتير والتقارير والتنبيهات.
                     </CardDescription>
                   </CardHeader>
                     <CardContent className="space-y-4">

@@ -326,12 +326,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const addToOrderRequestCart = async (item: Medication) => {
         const tempId = `temp-${Date.now()}`;
         const newItem = { ...item, id: tempId, medication_id: item.id, quantity: 1 };
+        setOrderRequestCart(prev => [...prev, newItem]);
         
         try {
-            const savedItem = await apiRequest('/order-requests', 'POST', { medication_id: item.id, quantity: 1 });
+            const savedItem = await apiRequest('/order-requests', 'POST', { medication_id: item.id, quantity: 1, is_new: true });
             setOrderRequestCart(prev => prev.map(i => (i.id === tempId ? savedItem : i)));
             toast({ title: 'تمت الإضافة إلى الطلبات', description: `تمت إضافة ${item.name} إلى قائمة الطلبات.` });
         } catch(e) {
+            setOrderRequestCart(prev => prev.filter(i => i.id !== tempId));
             toast({ variant: 'destructive', title: 'فشل الإضافة', description: 'لم يتم إضافة الطلب. الرجاء المحاولة مرة أخرى.' });
         }
     };
@@ -379,16 +381,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const closeInvoice = (index: number, isAfterSale = false) => {
         if (activeInvoices.length > 1) {
             setActiveInvoices(prev => prev.filter((_, i) => i !== index));
-            // Adjust current index if the closed one was before or was the current one
             if (currentInvoiceIndex >= index && currentInvoiceIndex > 0) {
                 setCurrentInvoiceIndex(prev => prev - 1);
             }
         } else if (isAfterSale) {
-            // If it's the last invoice and it's after a sale, reset it
             setActiveInvoices([initialActiveInvoice]);
             setCurrentInvoiceIndex(0);
         } else {
-             // If it's the last invoice and user wants to clear it, just reset it.
              setActiveInvoices(prev => prev.map((inv, i) => i === index ? initialActiveInvoice : inv));
         }
     };

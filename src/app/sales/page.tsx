@@ -432,7 +432,7 @@ export default function SalesPage() {
             const existingItem = invoice.cart.find(item => item.id === medication.id && item.is_return === (mode === 'return'))
 
             if (existingItem) {
-                if (existingItem.quantity >= medication.stock && mode !== 'return') {
+                if (Number(existingItem.quantity) >= Number(medication.stock) && mode !== 'return') {
                     toast({ variant: 'destructive', title: 'كمية غير كافية', description: `لا يمكن إضافة المزيد من ${medication.name}. الرصيد المتوفر: ${medication.stock}` });
                     return invoice;
                 }
@@ -623,7 +623,7 @@ export default function SalesPage() {
     for (const itemInCart of cart) {
         if (!itemInCart.is_return) {
             const med = allInventory?.find(m => m.id === itemInCart.id);
-            if (!med || med.stock < itemInCart.quantity) {
+            if (!med || Number(med.stock) < Number(itemInCart.quantity)) {
                 toast({ variant: 'destructive', title: `كمية غير كافية من ${itemInCart.name}`, description: `الكمية المطلوبة ${itemInCart.quantity}, المتوفر ${med?.stock ?? 0}` });
                 return;
             }
@@ -888,7 +888,7 @@ export default function SalesPage() {
                                     const medInInventory = allInventory?.find(med => med.id === item.id);
                                     const stock = medInInventory?.stock ?? 0;
                                     const remainingStock = stock - (item.quantity || 0);
-                                    const isBelowCost = (item.price || 0) < (item.purchase_price || 0);
+                                    const isBelowCost = (Number(item.price) || 0) < (Number(item.purchase_price) || 0);
                                     const alternatives = findAlternatives(item);
                                     return (
                                         <div key={`${item.id}-${item.is_return}`} className={cn("flex flex-col gap-3 p-3", item.is_return && "bg-red-50 dark:bg-red-900/20")}>
@@ -978,7 +978,7 @@ export default function SalesPage() {
                                     const medInInventory = allInventory?.find(med => med.id === item.id);
                                     const stock = medInInventory?.stock ?? 0;
                                     const remainingStock = stock - (item.quantity || 0);
-                                    const isBelowCost = (item.price || 0) < (item.purchase_price || 0);
+                                    const isBelowCost = (Number(item.price) || 0) < (Number(item.purchase_price) || 0);
                                     const alternatives = findAlternatives(item);
 
                                     return (

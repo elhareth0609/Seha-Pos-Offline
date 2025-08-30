@@ -226,7 +226,7 @@ export default function SuperAdminReportsPage() {
                 <CardHeader>
                     <div className="flex justify-between items-center">
                         <div>
-                            <CardTitle>التقارير الإجمالية للشركة</CardTitle>
+                            <CardTitle>الفواتير الإجمالية للشركة</CardTitle>
                             <CardDescription>نظرة شاملة على أداء جميع الصيدليات.</CardDescription>
                         </div>
                         <Button variant="outline" asChild>
