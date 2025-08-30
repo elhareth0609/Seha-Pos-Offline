@@ -171,6 +171,7 @@ interface AuthContextType {
     addToOrderRequestCart: (item: Medication) => void;
     removeFromOrderRequestCart: (orderItemId: string, skipToast?: boolean) => void;
     updateOrderRequestItem: (orderItemId: string, data: Partial<OrderRequestItem>) => Promise<void>;
+    duplicateOrderRequestItem: (orderItemId: string) => Promise<void>;
 
     purchaseDraft: {
         invoiceId: string;
@@ -326,26 +327,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     const [addingToCart, setAddingToCart] = React.useState(false);
     const addToOrderRequestCart = async (item: Medication) => {
-        if (addingToCart) return; // Prevent double-clicks
-        setAddingToCart(true);
-
-        const tempId = `temp-${Date.now()}`;
-        const newItem = { ...item, id: tempId, medication_id: item.id, quantity: 1 };
-        
-        // Optimistic update
-        setOrderRequestCart(prev => [...prev, newItem]);
-        
+        setAddingToCart(true); // Prevent double-clicks
         try {
-            const savedItem = await apiRequest('/order-requests', 'POST', { medication_id: item.id, quantity: 1, is_new: true });
-            // Replace temporary item with real one from server
-            setOrderRequestCart(prev => prev.map(i => (i.id === tempId ? savedItem : i)));
+            const newItemData = { medication_id: item.id, quantity: 1, is_new: true };
+            const savedItem = await apiRequest('/order-requests', 'POST', newItemData);
+            setOrderRequestCart(prev => [...prev, savedItem]);
             toast({ title: 'تمت الإضافة إلى الطلبات', description: `تمت إضافة ${item.name} إلى قائمة الطلبات.` });
-        } catch(e) {
-            // Revert optimistic update on failure
-            setOrderRequestCart(prev => prev.filter(i => i.id !== tempId));
+        } catch (e) {
             toast({ variant: 'destructive', title: 'فشل الإضافة', description: 'لم يتم إضافة الطلب. الرجاء المحاولة مرة أخرى.' });
         } finally {
             setAddingToCart(false);
+        }
+    };
+    
+    const duplicateOrderRequestItem = async (orderItemId: string) => {
+        const originalItem = orderRequestCart.find(item => item.id === orderItemId);
+        if (!originalItem) return;
+
+        try {
+            const newItemData = { medication_id: originalItem.medication_id, quantity: 1, is_new: true };
+            const savedItem = await apiRequest('/order-requests', 'POST', newItemData);
+            
+            // Find the index of the original item to insert the new one after it
+            const originalIndex = orderRequestCart.findIndex(item => item.id === orderItemId);
+            const newCart = [...orderRequestCart];
+            newCart.splice(originalIndex + 1, 0, savedItem);
+            
+            setOrderRequestCart(newCart);
+            toast({ title: 'تم تكرار الصنف', description: `تمت إضافة نسخة جديدة من ${originalItem.name}.` });
+        } catch (e) {
+            toast({ variant: 'destructive', title: 'فشل التكرار', description: 'لم يتم تكرار الطلب. الرجاء المحاولة مرة أخرى.' });
         }
     };
 
@@ -1315,7 +1326,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             addRepresentative,
             verifyPin, updateUserPinRequirement,
             getArchivedMonths, getArchivedMonthData,
-            getOrderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, updateOrderRequestItem,
+            getOrderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, updateOrderRequestItem, duplicateOrderRequestItem,
             purchaseDraft, setPurchaseDraft,
             getNotifications,
         }}>

@@ -10,14 +10,6 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -29,7 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import type { OrderRequestItem, Supplier, PurchaseOrderItem } from "@/lib/types"
-import { Trash2, Send, ShoppingBasket, ArrowLeft } from "lucide-react"
+import { Trash2, Send, ShoppingBasket, ArrowLeft, Copy } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation"
 
@@ -40,6 +32,7 @@ export default function OrderRequestsPage() {
     removeFromOrderRequestCart,
     updateOrderRequestItem,
     addPurchaseOrder,
+    duplicateOrderRequestItem,
   } = useAuth();
   
   const { suppliers: [suppliers] } = scopedData;
@@ -104,7 +97,7 @@ export default function OrderRequestsPage() {
   
   const handleApplyMasterSettings = () => {
     if (!masterSupplierId && !masterPurchaseId && !masterDate) {
-      toast({ variant: 'destructive', title: "لا يوجد إعدادات لتطبيقها", description: "الالرجاء اختيار مورد أو إدخال رقم قائمة أو تحديد تاريخ." });
+      toast({ variant: 'destructive', title: "لا يوجد إعدادات لتطبيقها", description: "الرجاء اختيار مورد أو إدخال رقم قائمة أو تحديد تاريخ." });
       return;
     }
 
@@ -254,7 +247,7 @@ export default function OrderRequestsPage() {
                         <TableHead>تاريخ الانتهاء</TableHead>
                         <TableHead className="min-w-[180px]">المورد</TableHead>
                         <TableHead className="min-w-[150px]">رقم القائمة</TableHead>
-                        <TableHead>حذف</TableHead>
+                        <TableHead>الإجراءات</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -325,8 +318,13 @@ export default function OrderRequestsPage() {
                                   placeholder="رقم القائمة"
                                 />
                             </TableCell>
-                            <TableCell>
-                                <Button size="icon" variant="ghost" className="text-destructive" onClick={() => removeFromOrderRequestCart(item.id, false)}><Trash2 className="h-4 w-4" /></Button>
+                            <TableCell className="flex items-center">
+                                <Button size="icon" variant="ghost" className="text-blue-600" onClick={() => duplicateOrderRequestItem(item.id)}>
+                                    <Copy className="h-4 w-4" />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="text-destructive" onClick={() => removeFromOrderRequestCart(item.id, false)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
                             </TableCell>
                         </TableRow>
                     ))}
