@@ -578,17 +578,6 @@ export default function SalesPage() {
     }));
   }
 
-  const toggleReturn = (id: string, isReturn: boolean | undefined) => {
-    updateActiveInvoice(invoice => ({
-        ...invoice,
-        cart: invoice.cart.map(item => 
-          item.id === id && item.is_return === isReturn 
-            ? { ...item, is_return: !item.is_return } 
-            : item
-        )
-    }));
-  };
-
   const subtotal = cart.reduce((total, item) => {
       const itemTotal = (item.price || 0) * (item.quantity || 0);
       return item.is_return ? total - itemTotal : total + itemTotal;
@@ -896,7 +885,6 @@ export default function SalesPage() {
                                             <div className="flex justify-between items-start gap-2">
                                                 <div className="flex-grow">
                                                     <div className="flex items-center gap-1 font-medium">
-                                                        <Checkbox checked={!!item.is_return} onCheckedChange={() => toggleReturn(item.id, item.is_return)} aria-label="Mark as return" className="me-2"/>
                                                         {item.name} {item.dosage} {item.dosage_form}
                                                         {alternatives.length > 0 && (
                                                             <Popover>
@@ -969,7 +957,6 @@ export default function SalesPage() {
                           <Table className="hidden md:table">
                               <TableHeader className="sticky top-0 bg-background z-10">
                                   <TableRow>
-                                      <TableHead className="w-12 text-center"><ArrowLeftRight className="h-4 w-4 mx-auto"/></TableHead>
                                       <TableHead>المنتج</TableHead>
                                       <TableHead className="w-[120px] text-center">الكمية</TableHead>
                                       <TableHead className="w-[120px] text-center">السعر</TableHead>
@@ -986,9 +973,6 @@ export default function SalesPage() {
 
                                     return (
                                         <TableRow key={`${item.id}-${item.is_return}`} className={cn(item.is_return && "bg-red-50 dark:bg-red-900/20")}>
-                                            <TableCell className="text-center">
-                                                <Checkbox checked={!!item.is_return} onCheckedChange={() => toggleReturn(item.id, item.is_return)} aria-label="Mark as return"/>
-                                            </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-1">
                                                     <span className="font-medium">{item.name} {item.dosage} {item.dosage_form}</span>
