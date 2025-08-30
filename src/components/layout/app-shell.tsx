@@ -353,12 +353,73 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return navItems.some(item => item.href === href);
   }
 
-  const handleBackup = () => {
-    toast({ title: "ملاحظة", description: "سيتم تنفيذ وظيفة النسخ الاحتياطي من الواجهة الخلفية (Laravel)." });
+  const handleBackup = async () => {
+    try {
+      // Create a hidden link element to download the backup file
+      const link = document.createElement('a');
+      link.href = `${process.env.NEXT_PUBLIC_API_URL}/backup`;
+      link.download = `backup-${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast({ title: "تم بدء النسخ الاحتياطي", description: "جاري تحميل ملف النسخ الاحتياطي..." });
+    } catch (error: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "فشل النسخ الاحتياطي", 
+        description: error.message || "حدث خطأ أثناء عملية النسخ الاحتياطي" 
+      });
+    }
   };
 
   const handleImportClick = () => {
-    toast({ title: "ملاحظة", description: "سيتم تنفيذ وظيفة الاستيراد من الواجهة الخلفية (Laravel)." });
+    // Create a hidden file input element
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.zip,.json';
+    
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      
+      try {
+        const formData = new FormData();
+        formData.append('backup_file', file);
+        
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/import`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'فشل استيراد البيانات');
+        }
+        
+        toast({ 
+          title: "تم استيراد البيانات بنجاح", 
+          description: "سيتم تحميل الصفحة لتطبيق التغييرات..." 
+        });
+        
+        // Reload the page after a short delay to apply changes
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } catch (error: any) {
+        toast({ 
+          variant: "destructive", 
+          title: "فشل استيراد البيانات", 
+          description: error.message || "حدث خطأ أثناء عملية الاستيراد" 
+        });
+      }
+    };
+    
+    // Trigger the file selection dialog
+    input.click();
   };
 
 
