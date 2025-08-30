@@ -55,7 +55,6 @@ import { PlusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User a
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import { InvoiceTemplate } from "@/components/ui/invoice"
 import { useAuth } from "@/hooks/use-auth"
@@ -1144,7 +1143,7 @@ export default function SalesPage() {
                       <Separator />
                       <div className="flex justify-between w-full text-lg font-semibold">
                           <span>الإجمالي</span>
-                          <span className={cn("font-mono", finalTotal < 0 ? 'text-destructive' : '')}>{finalTotal.toLocaleString()}</span>
+                           <span className={cn("font-mono", finalTotal < 0 ? 'text-destructive' : '')}>{finalTotal.toLocaleString()}</span>
                       </div>
                   </CardContent>
                   <CardFooter className="flex flex-col items-stretch gap-2">
