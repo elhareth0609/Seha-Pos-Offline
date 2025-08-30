@@ -180,8 +180,16 @@ export default function HRPage() {
 
 
     const pharmacyUsers = React.useMemo(() => {
-        return users.filter(u => u.pharmacy_id === currentUser?.pharmacy_id && u.role !== 'SuperAdmin');
-    }, [users, currentUser]);
+        return users.filter(u => u.pharmacy_id === currentUser?.pharmacy_id && u.role !== 'SuperAdmin').map(user => {
+            const userTimeLogs = timeLogs.filter(log => log.user_id === user.id && log.clock_out);
+            const totalMinutes = userTimeLogs.reduce((acc, log) => {
+                return acc + differenceInMinutes(new Date(log.clock_out!), new Date(log.clock_in));
+            }, 0);
+            const totalHours = totalMinutes / 60;
+            const calculatedSalary = totalHours * (user.hourly_rate || 0);
+            return { ...user, calculatedSalary };
+        });
+    }, [users, currentUser, timeLogs]);
 
     const openTimeLogDialog = (user: User) => {
         setSelectedUser(user);
@@ -261,6 +269,7 @@ export default function HRPage() {
                                 <TableHead>الموظف</TableHead>
                                 <TableHead>الدور</TableHead>
                                 <TableHead>سعر الساعة</TableHead>
+                                <TableHead>الراتب المستحق</TableHead>
                                 <TableHead className="text-left">الإجراءات</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -270,6 +279,7 @@ export default function HRPage() {
                                     <TableRow key={`skel-hr-${i}`}>
                                         <TableCell><div className="flex items-center gap-2"><Skeleton className="h-8 w-8 rounded-full" /><Skeleton className="h-5 w-24" /></div></TableCell>
                                         <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                                         <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                                         <TableCell className="text-left"><Skeleton className="h-8 w-8" /></TableCell>
                                     </TableRow>
@@ -295,6 +305,9 @@ export default function HRPage() {
                                     </TableCell>
                                     <TableCell className="font-mono">
                                         {(user.hourly_rate || 0).toLocaleString()}
+                                    </TableCell>
+                                    <TableCell className="font-mono font-semibold text-green-600">
+                                        {user.calculatedSalary.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                                     </TableCell>
                                     <TableCell className="text-left">
                                          <DropdownMenu>
@@ -323,7 +336,7 @@ export default function HRPage() {
                                                     <AlertDialog>
                                                         <AlertDialogTrigger asChild>
                                                             <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive">
-                                                                <Trash2 className="me-2" /> حذف
+                                                                <Trash2 className="me-2 h-4 w-4"/> حذف الموظف
                                                             </button>
                                                         </AlertDialogTrigger>
                                                         <AlertDialogContent>
