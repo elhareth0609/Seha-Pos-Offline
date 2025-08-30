@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/hooks/use-auth';
 import AppLayoutClient from './AppLayoutClient';
+import { ThemeProvider } from "next-themes";
 
 // Temporarily removing Google Fonts import due to connection issues
 // We'll use system fonts as fallback
@@ -31,12 +32,19 @@ export default function RootLayout({
         <link rel="icon" href="/icon.png" />
       </head>
       <body className="font-body antialiased">
-        <AuthProvider>
-            <AppLayoutClient>
-              {children}
-            </AppLayoutClient>
-            <Toaster />
-        </AuthProvider>
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+        >
+            <AuthProvider>
+                <AppLayoutClient>
+                  {children}
+                </AppLayoutClient>
+                <Toaster />
+            </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
