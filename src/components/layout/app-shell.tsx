@@ -375,21 +375,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             <img src="/icon.png" alt="Site Icon" className="h-6 w-6" />
                             <span className="hidden sm:inline-block">ميدجرام</span>
                         </Link>
-                         <Sheet open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
-                            <SheetTrigger asChild>
-                                 <Button variant="ghost" size="icon" className="text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50 relative">
-                                    <Bell className="h-5 w-5"/>
-                                    {unreadCount > 0 && (
-                                        <span className="absolute top-0 right-0 flex h-3 w-3">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                                        </span>
-                                    )}
-                                </Button>
-                            </SheetTrigger>
-                            <NotificationsSheet notifications={notifications} />
-                        </Sheet>
-                         <ThemeToggle />
+                         <div className="flex items-center gap-2">
+                            <Sheet open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+                                <SheetTrigger asChild>
+                                     <Button variant="ghost" size="icon" className="text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50 relative">
+                                        <Bell className="h-5 w-5"/>
+                                        {unreadCount > 0 && (
+                                            <span className="absolute top-0 right-0 flex h-3 w-3">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                            </span>
+                                        )}
+                                    </Button>
+                                </SheetTrigger>
+                                <NotificationsSheet notifications={notifications} />
+                            </Sheet>
+                             <ThemeToggle />
+                        </div>
                     </div>
 
                     <div className="flex flex-1 items-center justify-center gap-2">
