@@ -27,8 +27,8 @@ export default function RepresentativesPage() {
         try {
             const params = new URLSearchParams({
                 page: String(page),
-                limit: '20', // Fetch 20 reps per page
-                ...(search && { name: search })
+                limit: '50', // Fetch 20 reps per page
+                ...(search && { name: search,status: 'active'})
             });
 
             const response = await fetch(`${REPS_API_URL}?${params.toString()}`);
@@ -42,7 +42,7 @@ export default function RepresentativesPage() {
                 setTotalPages(result.data.pagination.totalPages || 1);
                 setCurrentPage(result.data.pagination.page || 1);
             } else {
-                 setReps([]);
+                setReps([]);
             }
 
         } catch (error) {
