@@ -104,7 +104,7 @@ export default function RepresentativesPage() {
                                 <TableHead>الشركة / المكتب</TableHead>
                                 <TableHead>المدينة</TableHead>
                                 <TableHead>رقم الهاتف</TableHead>
-                                <TableHead>الحالة</TableHead>
+                                {/* <TableHead>الحالة</TableHead> */}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -115,7 +115,7 @@ export default function RepresentativesPage() {
                                         <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                                         <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                                         <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-                                        <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                                        {/* <TableCell><Skeleton className="h-6 w-16" /></TableCell> */}
                                     </TableRow>
                                 ))
                             ) : reps.length > 0 ? (
@@ -123,24 +123,24 @@ export default function RepresentativesPage() {
                                     <TableRow key={rep.id}>
                                         <TableCell>
                                             <div className="flex items-center gap-3">
-                                                <Image 
+                                                {/* <Image 
                                                     src={rep.image_url || '/placeholder-user.png'} 
                                                     alt={rep.comm_name} 
                                                     width={40}
                                                     height={40}
                                                     className="rounded-full bg-muted object-cover h-10 w-10"
-                                                />
+                                                /> */}
                                                 <span className="font-medium">{rep.comm_name}</span>
                                             </div>
                                         </TableCell>
                                         <TableCell>{rep.office_name}</TableCell>
                                         <TableCell>{rep.city}</TableCell>
                                         <TableCell className="font-mono text-left" dir="ltr">{rep.phone_number}</TableCell>
-                                        <TableCell>
+                                        {/* <TableCell>
                                             <Badge variant={rep.status === 'active' ? 'secondary' : 'destructive'} className={rep.status === 'active' ? 'bg-green-100 text-green-800' : ''}>
                                                 {rep.status === 'active' ? 'فعال' : 'محذوف'}
                                             </Badge>
-                                        </TableCell>
+                                        </TableCell> */}
                                     </TableRow>
                                 ))
                             ) : (
