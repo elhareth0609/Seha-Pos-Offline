@@ -4,109 +4,65 @@
 import * as React from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Contact, Phone, Building, MapPin, Search, PlusCircle } from 'lucide-react';
+import { Contact, Phone, Building, MapPin, Search } from 'lucide-react';
 import type { MedicalRepresentative } from '@/lib/types';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { useAuth } from '@/hooks/use-auth';
+import { Badge } from '@/components/ui/badge';
 
-
-// This is a placeholder URL. Replace it with the actual API endpoint from your Flutter app's backend.
-const REPS_API_URL = 'https://your-representatives-api.com/api/reps'; 
-
-const iraqProvinces = [
-    "بغداد", "البصرة", "نينوى", "أربيل", "السليمانية", "دهوك", "كركوك", 
-    "الأنبار", "صلاح الدين", "ديالى", "واسط", "بابل", "كربلاء", "النجف", 
-    "القادسية", "ميسان", "ذي قار", "المثنى"
-];
+// API Endpoint for representatives
+const REPS_API_URL = 'https://us-central1-midgram-e4985.cloudfunctions.net/getRepresentatives'; 
 
 export default function RepresentativesPage() {
-    const { addRepresentative, currentUser } = useAuth();
     const [reps, setReps] = React.useState<MedicalRepresentative[]>([]);
-    const [filteredReps, setFilteredReps] = React.useState<MedicalRepresentative[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [searchTerm, setSearchTerm] = React.useState('');
-    
-    // Add Rep Dialog State
-    const [isAddRepOpen, setIsAddRepOpen] = React.useState(false);
-    const [newRepName, setNewRepName] = React.useState('');
-    const [newRepCompany, setNewRepCompany] = React.useState('');
-    const [newRepPhone, setNewRepPhone] = React.useState('');
-    const [newRepProvince, setNewRepProvince] = React.useState('');
+    const [currentPage, setCurrentPage] = React.useState(1);
+    const [totalPages, setTotalPages] = React.useState(1);
 
+    const fetchReps = React.useCallback(async (page: number, search: string) => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams({
+                page: String(page),
+                limit: '20', // Fetch 20 reps per page
+                ...(search && { name: search })
+            });
 
-    React.useEffect(() => {
-        const fetchReps = async () => {
-            setLoading(true);
-            try {
-                // In a real scenario, you would add an API key or token for authentication
-                const response = await fetch(REPS_API_URL);
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const data: MedicalRepresentative[] = await response.json();
-                setReps(data);
-                setFilteredReps(data);
-            } catch (error) {
-                console.error("Failed to fetch representatives:", error);
-                // Here you might want to show a toast notification to the user
-            } finally {
-                setLoading(false);
+            const response = await fetch(`${REPS_API_URL}?${params.toString()}`);
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
             }
-        };
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+                setReps(result.data.representatives || []);
+                setTotalPages(result.data.pagination.totalPages || 1);
+                setCurrentPage(result.data.pagination.page || 1);
+            } else {
+                 setReps([]);
+            }
 
-        // fetchReps(); // Disabled for now to prevent errors with placeholder URL
-        setLoading(false); // Set loading to false for demonstration purposes
+        } catch (error) {
+            console.error("Failed to fetch representatives:", error);
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
     React.useEffect(() => {
-        let filteredData = reps;
-        
-        // Filter based on the current user's pharmacy province
-        if (currentUser?.province) {
-            filteredData = filteredData.filter(item => item.province === currentUser.province);
-        }
+        const handler = setTimeout(() => {
+            fetchReps(1, searchTerm); // Reset to page 1 on new search
+        }, 500); // Debounce search
+        return () => clearTimeout(handler);
+    }, [searchTerm, fetchReps]);
 
-        // Filter by search term (name and company)
-        if (searchTerm) {
-            const lowercasedFilter = searchTerm.toLowerCase();
-            filteredData = filteredData.filter(item =>
-                item.name.toLowerCase().includes(lowercasedFilter) ||
-                item.company.toLowerCase().includes(lowercasedFilter)
-            );
-        }
-        
-        setFilteredReps(filteredData);
-    }, [searchTerm, reps, currentUser]);
-    
-    const handleAddRep = () => {
-        if (!newRepName || !newRepCompany || !newRepPhone || !newRepProvince) {
-            // You can add a toast notification here for validation
-            return;
-        }
-        const newRep: MedicalRepresentative = {
-            id: `manual-${Date.now()}`, // Temporary ID for manually added reps
-            name: newRepName,
-            company: newRepCompany,
-            phone_number: newRepPhone,
-            province: newRepProvince,
-            photo_url: '', // No photo for manually added reps, will use placeholder
-        };
-        
-        // This should be replaced with a call to useAuth's addRepresentative in a real scenario
-        setReps(prev => [...prev, newRep]);
-        
-        // Reset form and close dialog
-        setIsAddRepOpen(false);
-        setNewRepName('');
-        setNewRepCompany('');
-        setNewRepPhone('');
-        setNewRepProvince('');
-    }
+    React.useEffect(() => {
+        fetchReps(currentPage, searchTerm);
+    }, [currentPage, fetchReps]);
+
 
     return (
         <div className="space-y-6">
@@ -118,50 +74,10 @@ export default function RepresentativesPage() {
                             <div>
                                 <CardTitle className="text-3xl">دليل المندوبين</CardTitle>
                                 <CardDescription>
-                                    قائمة بأسماء ومعلومات التواصل لمندوبي الشركات الطبية في محافظتك.
+                                    قائمة بأسماء ومعلومات التواصل لمندوبي الشركات الطبية.
                                 </CardDescription>
                             </div>
                         </div>
-                         <Dialog open={isAddRepOpen} onOpenChange={setIsAddRepOpen}>
-                            <DialogTrigger asChild>
-                                <Button><PlusCircle className="me-2"/> إضافة مندوب</Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>إضافة مندوب جديد</DialogTitle>
-                                    <DialogDescription>أدخل بيانات المندوب لحفظها في الدليل.</DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4 py-2">
-                                    <div className="space-y-1">
-                                        <Label htmlFor="rep-name">الاسم</Label>
-                                        <Input id="rep-name" value={newRepName} onChange={e => setNewRepName(e.target.value)} required />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label htmlFor="rep-company">الشركة</Label>
-                                        <Input id="rep-company" value={newRepCompany} onChange={e => setNewRepCompany(e.target.value)} required />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label htmlFor="rep-phone">رقم الهاتف</Label>
-                                        <Input id="rep-phone" type="tel" value={newRepPhone} onChange={e => setNewRepPhone(e.target.value)} required />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label htmlFor="rep-province">المحافظة</Label>
-                                        <Select onValueChange={setNewRepProvince} required>
-                                            <SelectTrigger id="rep-province"><SelectValue placeholder="اختر محافظة..." /></SelectTrigger>
-                                            <SelectContent>
-                                                {iraqProvinces.map(province => (
-                                                    <SelectItem key={province} value={province}>{province}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
-                                    <Button onClick={handleAddRep} variant="success">إضافة</Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -179,63 +95,88 @@ export default function RepresentativesPage() {
                 </CardContent>
             </Card>
 
-            {loading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                        <Card key={i} className="p-4 space-y-3">
-                            <div className="flex items-center gap-4">
-                                <Skeleton className="h-16 w-16 rounded-full" />
-                                <div className="space-y-2 flex-1">
-                                    <Skeleton className="h-5 w-3/4" />
-                                    <Skeleton className="h-4 w-1/2" />
-                                </div>
-                            </div>
-                            <Skeleton className="h-4 w-full" />
-                            <Skeleton className="h-4 w-full" />
-                        </Card>
-                    ))}
-                </div>
-            ) : filteredReps.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {filteredReps.map(rep => (
-                        <Card key={rep.id} className="flex flex-col p-4 transition-all hover:shadow-lg hover:border-primary">
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="relative h-20 w-20">
-                                    <Image 
-                                        src={rep.photo_url || '/placeholder-user.png'} 
-                                        alt={rep.name} 
-                                        layout="fill"
-                                        objectFit="cover"
-                                        className="rounded-full bg-muted"
-                                    />
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="text-lg font-bold text-primary">{rep.name}</h3>
-                                    <p className="text-sm text-muted-foreground">{rep.company}</p>
-                                </div>
-                            </div>
-                            <div className="space-y-2 text-sm flex-grow">
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                    <MapPin className="h-4 w-4" />
-                                    <span>{rep.province}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                    <Phone className="h-4 w-4" />
-                                    <span className="font-mono">{rep.phone_number}</span>
-                                </div>
-                            </div>
-                        </Card>
-                    ))}
-                </div>
-            ) : (
-                 <div className="text-center py-16 text-muted-foreground">
-                    <Contact className="h-16 w-16 mx-auto mb-4" />
-                    <p className="font-semibold">لا توجد بيانات لعرضها</p>
-                    <p className="text-sm">
-                        {reps.length > 0 ? 'لا يوجد مندوبون لهذه المحافظة أو مطابقون لبحثك.' : 'لم يتم جلب بيانات المندوبين بعد.'}
-                    </p>
-                </div>
-            )}
+            <Card>
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>المندوب</TableHead>
+                                <TableHead>الشركة / المكتب</TableHead>
+                                <TableHead>المدينة</TableHead>
+                                <TableHead>رقم الهاتف</TableHead>
+                                <TableHead>الحالة</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                Array.from({ length: 10 }).map((_, i) => (
+                                    <TableRow key={`skel-${i}`}>
+                                        <TableCell><div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-full" /><div className="space-y-1"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-16" /></div></div></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                                        <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                                    </TableRow>
+                                ))
+                            ) : reps.length > 0 ? (
+                                reps.map(rep => (
+                                    <TableRow key={rep.id}>
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <Image 
+                                                    src={rep.image_url || '/placeholder-user.png'} 
+                                                    alt={rep.comm_name} 
+                                                    width={40}
+                                                    height={40}
+                                                    className="rounded-full bg-muted object-cover h-10 w-10"
+                                                />
+                                                <span className="font-medium">{rep.comm_name}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{rep.office_name}</TableCell>
+                                        <TableCell>{rep.city}</TableCell>
+                                        <TableCell className="font-mono text-left" dir="ltr">{rep.phone_number}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={rep.status === 'active' ? 'secondary' : 'destructive'} className={rep.status === 'active' ? 'bg-green-100 text-green-800' : ''}>
+                                                {rep.status === 'active' ? 'فعال' : 'محذوف'}
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center h-24">
+                                        لا توجد بيانات لعرضها.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+                 <CardFooter className="flex items-center justify-between pt-4">
+                      <span className="text-sm text-muted-foreground">
+                          صفحة {currentPage} من {totalPages}
+                      </span>
+                      <div className="flex gap-2">
+                          <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                              disabled={currentPage === 1 || loading}
+                          >
+                              السابق
+                          </Button>
+                          <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                              disabled={currentPage >= totalPages || loading}
+                          >
+                              التالي
+                          </Button>
+                      </div>
+                  </CardFooter>
+            </Card>
         </div>
     );
 }

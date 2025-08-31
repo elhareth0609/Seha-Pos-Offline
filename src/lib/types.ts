@@ -37,11 +37,12 @@ export type Notification = {
 
 export type MedicalRepresentative = {
     id: string;
-    name: string;
-    company: string;
-    photo_url: string;
-    province: string;
+    comm_name: string;
+    office_name: string;
+    image_url: string | null;
+    city: string;
     phone_number: string;
+    status: 'active' | 'deleted';
 };
 
 export type Medication = {
