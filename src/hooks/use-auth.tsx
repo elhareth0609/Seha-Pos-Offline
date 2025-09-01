@@ -249,12 +249,23 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
         
         if (!response.ok) {
             const errorMessage = responseData.message || 'An API error occurred';
+
+            // If the error message is "Unauthenticated", redirect to login page
+            if (errorMessage === "Unauthenticated") {
+                localStorage.removeItem('authToken');
+                window.location.href = '/';
+                throw new Error('Session expired. Please login again.');
+            }
+
             throw new Error(errorMessage);
         }
 
         return responseData.data ?? responseData;
     } catch (error: any) {
-        toast({ variant: 'destructive', title: 'خطأ في الشبكة', description: error.message });
+        // Don't show toast for unauthenticated errors since we're redirecting
+        if (error.message !== 'Session expired. Please login again.') {
+            toast({ variant: 'destructive', title: 'خطأ في الشبكة', description: error.message });
+        }
         throw error;
     }
 }
@@ -463,7 +474,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     const logout = async () => {
         try {
-            if (activeTimeLogId && (currentUser?.role === 'Employee' || currentUser?.role === 'Admin')) {
+            if (currentUser?.role === 'Employee') {
                 await apiRequest(`/time-logs/${activeTimeLogId}`, 'PUT');
                 setActiveTimeLogId(null);
             }

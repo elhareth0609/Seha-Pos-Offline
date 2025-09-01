@@ -266,7 +266,15 @@ export default function SuperAdminReportsPage() {
                         </CardHeader>
                         <CardContent>
                             <Table>
-                                <TableHeader><TableRow><TableHead>اسم الصيدلية</TableHead><TableHead>المحافظة</TableHead><TableHead>إجمالي المبيعات</TableHead><TableHead>صافي الربح</TableHead><TableHead>عدد الموظفين</TableHead></TableRow></TableHeader>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>اسم الصيدلية</TableHead>
+                                        <TableHead>المحافظة</TableHead>
+                                        <TableHead>إجمالي المبيعات</TableHead>
+                                        <TableHead>صافي الربح</TableHead>
+                                        <TableHead>عدد الموظفين</TableHead>
+                                    </TableRow>
+                                </TableHeader>
                                 <TableBody>
                                     {performanceData.length > 0 ? performanceData.map(p => (
                                         <TableRow key={p.pharmacy_id}>
