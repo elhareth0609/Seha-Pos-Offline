@@ -7,6 +7,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter
 } from "@/components/ui/card"
 import {
     Table,
@@ -19,8 +20,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import type { Patient } from "@/lib/types"
-import { UserPlus, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import type { Patient, Sale, PatientPayment } from "@/lib/types"
+import { UserPlus, MoreHorizontal, Pencil, Trash2, Wallet, FileText, ChevronDown } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -39,12 +40,35 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useAuth } from "@/hooks/use-auth"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
+import { ScrollArea } from "@/components/ui/scroll-area"
+
+type StatementItem = {
+    date: string;
+    type: 'فاتورة' | 'دفعة';
+    details: string;
+    debit: number; // For sales
+    credit: number; // For payments
+    balance: number;
+};
+
 
 export default function PatientsPage() {
-  const { addPatient, updatePatient, deletePatient, getPaginatedPatients } = useAuth();
+  const { addPatient, updatePatient, deletePatient, getPaginatedPatients, scopedData, addPatientPayment } = useAuth();
   
   const [patients, setPatients] = React.useState<Patient[]>([]);
   const [totalPages, setTotalPages] = React.useState(1);
@@ -52,21 +76,22 @@ export default function PatientsPage() {
   const [perPage, setPerPage] = React.useState(10);
   const [loading, setLoading] = React.useState(true);
   const [searchTerm, setSearchTerm] = React.useState("");
+  const { toast } = useToast();
   
+  const { sales: [sales], payments: [allPayments] } = scopedData;
+
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [newPatientName, setNewPatientName] = React.useState("");
   const [newPatientPhone, setNewPatientPhone] = React.useState("");
   
-  const [addNameError, setAddNameError] = React.useState("");
-  const [addPhoneError, setAddPhoneError] = React.useState("");
-  
   const [editingPatient, setEditingPatient] = React.useState<Patient | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
-  
-  const [editNameError, setEditNameError] = React.useState("");
-  const [editPhoneError, setEditPhoneError] = React.useState("");
-  
 
+  const [isStatementOpen, setIsStatementOpen] = React.useState(false);
+  const [statementData, setStatementData] = React.useState<{ patient: Patient | null; items: StatementItem[] }>({ patient: null, items: [] });
+  const [selectedPatientForPayment, setSelectedPatientForPayment] = React.useState<Patient | null>(null);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
+  
   const fetchData = React.useCallback(async (page: number, limit: number, search: string) => {
     setLoading(true);
     try {
@@ -92,35 +117,14 @@ export default function PatientsPage() {
   const resetAddDialog = () => {
     setNewPatientName("");
     setNewPatientPhone("");
-    setAddNameError("");
-    setAddPhoneError("");
     setIsAddDialogOpen(false);
   }
   
-  const validateAddForm = () => {
-    let isValid = true;
-    setAddNameError("");
-    setAddPhoneError("");
-    
-    if (!newPatientName.trim()) {
-      setAddNameError("الاسم مطلوب");
-      isValid = false;
-    } else if (newPatientName.trim().length < 2) {
-      setAddNameError("الاسم يجب أن يكون حرفين على الأقل");
-      isValid = false;
-    }
-    
-    if (newPatientPhone.trim() && !/^[0-9+\- ]+$/.test(newPatientPhone)) {
-        setAddPhoneError("رقم الهاتف يجب أن يحتوي على أرقام فقط");
-        isValid = false;
-    }
-    
-    return isValid;
-  }
-  
   const handleAddPatient = async () => {
-    if (!validateAddForm()) return;
-    
+    if (!newPatientName.trim()) {
+        toast({ variant: 'destructive', title: "الاسم مطلوب" });
+        return;
+    }
     const success = await addPatient(newPatientName, newPatientPhone);
     if (success) {
       fetchData(1, perPage, ""); // Refresh data
@@ -130,30 +134,7 @@ export default function PatientsPage() {
   
   const openEditDialog = (patient: Patient) => {
     setEditingPatient(patient);
-    setEditNameError("");
-    setEditPhoneError("");
     setIsEditDialogOpen(true);
-  }
-  
-  const validateEditForm = (name: string, phone: string) => {
-    let isValid = true;
-    setEditNameError("");
-    setEditPhoneError("");
-    
-    if (!name.trim()) {
-      setEditNameError("الاسم مطلوب");
-      isValid = false;
-    } else if (name.trim().length < 2) {
-      setEditNameError("الاسم يجب أن يكون حرفين على الأقل");
-      isValid = false;
-    }
-    
-    if (phone.trim() && !/^[0-9+\- ]+$/.test(phone)) {
-      setEditPhoneError("رقم الهاتف يجب أن يحتوي على أرقام فقط");
-      isValid = false;
-    }
-    
-    return isValid;
   }
   
   const handleEditPatient = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -164,7 +145,10 @@ export default function PatientsPage() {
       const name = formData.get("name") as string;
       const phone = formData.get("phone") as string;
       
-      if (!validateEditForm(name, phone)) return;
+       if (!name.trim()) {
+            toast({ variant: 'destructive', title: "الاسم مطلوب" });
+            return;
+        }
       
       const success = await updatePatient(editingPatient.id, { name, phone });
       
@@ -179,20 +163,69 @@ export default function PatientsPage() {
       const success = await deletePatient(patientId);
       if(success) fetchData(currentPage, perPage, searchTerm);
   }
+
+  const handleAddPayment = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedPatientForPayment) return;
+
+    const formData = new FormData(event.currentTarget);
+    const amount = parseFloat(formData.get('amount') as string);
+    const notes = formData.get('notes') as string;
+
+    const success = await addPatientPayment(selectedPatientForPayment.id, amount, notes);
+    if (success) {
+        setIsPaymentDialogOpen(false);
+        setSelectedPatientForPayment(null);
+    }
+  }
   
-    const handlePhoneInput = (value: string) => {
-        // Remove all non-digit characters except + and -
-        return value.replace(/[^\d+-]/g, '');
+  const patientDebts = React.useMemo(() => {
+    const debts: { [patientId: string]: number } = {};
+    sales.forEach(sale => {
+        if (sale.patient_id && sale.payment_method === 'credit') {
+            debts[sale.patient_id] = (debts[sale.patient_id] || 0) + sale.total;
+        }
+    });
+
+    allPayments.patientPayments.forEach(payment => {
+        if (debts[payment.patient_id]) {
+            debts[payment.patient_id] -= payment.amount;
+        }
+    });
+    return debts;
+  }, [sales, allPayments.patientPayments]);
+
+  const handleShowStatement = (patient: Patient) => {
+        const patientSales = sales
+            .filter(s => s.patient_id === patient.id && s.payment_method === 'credit')
+            .map(s => ({ date: s.date, type: 'فاتورة' as const, details: `فاتورة #${s.id}`, debit: s.total, credit: 0 }));
+
+        const patientPayments = allPayments.patientPayments
+            .filter(p => p.patient_id === patient.id)
+            .map(p => ({ date: p.date, type: 'دفعة' as const, details: `دفعة نقدية ${p.notes ? `(${p.notes})` : ''}`, debit: 0, credit: p.amount }));
+        
+        const allTransactions = [...patientSales, ...patientPayments]
+            .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        
+        let runningBalance = 0;
+        const statementItems = allTransactions.map(t => {
+            runningBalance += t.debit - t.credit;
+            return { ...t, balance: runningBalance };
+        });
+
+        setStatementData({ patient, items: statementItems.reverse() });
+        setIsStatementOpen(true);
     };
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex justify-between items-start">
             <div>
                 <CardTitle>أصدقاء الصيدلية</CardTitle>
                 <CardDescription>
-                إدارة ملفات المرضى (الزبائن الدائمين).
+                إدارة ملفات المرضى (الزبائن الدائمين) وديونهم.
                 </CardDescription>
             </div>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -207,34 +240,26 @@ export default function PatientsPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="patient-name" className="text-right">الاسم</Label>
-                            <div className="col-span-3">
-                                <Input 
-                                    id="patient-name" 
-                                    type="text" 
-                                    value={newPatientName} 
-                                    onChange={(e) => setNewPatientName(e.target.value)} 
-                                    className={addNameError ? "border-destructive" : ""} 
-                                    placeholder="مثال: محمد عبدالله" 
-                                    required 
-                                />
-                                {addNameError && <p className="text-sm text-destructive mt-1">{addNameError}</p>}
-                            </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="patient-name">الاسم</Label>
+                             <Input 
+                                id="patient-name" 
+                                type="text" 
+                                value={newPatientName} 
+                                onChange={(e) => setNewPatientName(e.target.value)} 
+                                placeholder="مثال: محمد عبدالله" 
+                                required 
+                            />
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="patient-phone" className="text-right">رقم الهاتف</Label>
-                            <div className="col-span-3">
-                                <Input 
-                                    id="patient-phone" 
-                                    type="tel" 
-                                    value={newPatientPhone} 
-                                    onChange={(e) => setNewPatientPhone(e.target.value)} 
-                                    className={addPhoneError ? "border-destructive" : ""} 
-                                    placeholder="اختياري" 
-                                />
-                                {addPhoneError && <p className="text-sm text-destructive mt-1">{addPhoneError}</p>}
-                            </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="patient-phone">رقم الهاتف</Label>
+                            <Input 
+                                id="patient-phone" 
+                                type="tel" 
+                                value={newPatientPhone} 
+                                onChange={(e) => setNewPatientPhone(e.target.value)} 
+                                placeholder="اختياري" 
+                            />
                         </div>
                     </div>
                     <DialogFooter>
@@ -274,62 +299,64 @@ export default function PatientsPage() {
         <Table>
             <TableHeader>
                 <TableRow>
-                    <TableHead>المعرف</TableHead>
                     <TableHead>الاسم</TableHead>
                     <TableHead>رقم الهاتف</TableHead>
-                    <TableHead><span className="sr-only">الإجراءات</span></TableHead>
+                    <TableHead>إجمالي الدين</TableHead>
+                    <TableHead className="text-left">الإجراءات</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
                  {loading ? Array.from({length: perPage}).map((_, i) => (
                     <TableRow key={`skel-${i}`}>
-                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                         <TableCell><Skeleton className="h-5 w-40" /></TableCell>
                         <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                        <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                        <TableCell><div className="flex justify-end gap-2"><Skeleton className="h-8 w-8" /><Skeleton className="h-8 w-8" /><Skeleton className="h-8 w-8" /></div></TableCell>
                     </TableRow>
                  )) : patients.length > 0 ? patients.map((patient) => (
                      <TableRow key={patient.id}>
-                        <TableCell>{patient.id}</TableCell>
                         <TableCell className="font-medium">{patient.name}</TableCell>
                         <TableCell className="font-mono text-muted-foreground">{patient.phone || 'لا يوجد'}</TableCell>
-                        <TableCell>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button aria-haspopup="true" size="icon" variant="ghost">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                        <span className="sr-only">Toggle menu</span>
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>إجراءات</DropdownMenuLabel>
-                                    <DropdownMenuItem onSelect={() => openEditDialog(patient)}>
-                                        <Pencil className="me-2 h-4 w-4"/>
-                                        تعديل
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <Dialog>
-                                        <DialogTrigger asChild>
-                                            <button className="text-destructive relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground">
-                                                <Trash2 className="me-2 h-4 w-4"/>
-                                                حذف
-                                            </button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogHeader>
-                                                <DialogTitle>هل أنت متأكد من حذف {patient.name}؟</DialogTitle>
-                                                <DialogDescription>
-                                                    سيتم حذف هذا المريض نهائياً. لا يمكن التراجع عن هذا الإجراء.
-                                                </DialogDescription>
-                                            </DialogHeader>
-                                            <DialogFooter>
-                                                <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
-                                                <Button variant="destructive" onClick={() => handleDeletePatient(patient.id)}>نعم، قم بالحذف</Button>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                    </Dialog>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                        <TableCell className="font-mono font-semibold text-destructive">{(patientDebts[patient.id] || 0).toLocaleString()}</TableCell>
+                        <TableCell className="text-left">
+                            <div className="flex justify-end gap-1">
+                                <Button variant="outline" size="sm" onClick={() => handleShowStatement(patient)}><FileText className="me-2 h-3 w-3"/>كشف حساب</Button>
+                                <Button variant="success" size="sm" onClick={() => { setSelectedPatientForPayment(patient); setIsPaymentDialogOpen(true); }}><Wallet className="me-2 h-3 w-3"/>تسديد</Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                                            <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onSelect={() => openEditDialog(patient)}>
+                                            <Pencil className="me-2 h-4 w-4"/>
+                                            تعديل
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <button className="text-destructive relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground">
+                                                    <Trash2 className="me-2 h-4 w-4"/>
+                                                    حذف
+                                                </button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <DialogTitle>هل أنت متأكد من حذف {patient.name}؟</DialogTitle>
+                                                    <AlertDialogDescription>
+                                                        سيتم حذف هذا المريض نهائياً. لا يمكن التراجع عن هذا الإجراء.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
+                                                    <Button variant="destructive" onClick={() => handleDeletePatient(patient.id)}>نعم، قم بالحذف</Button>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
                         </TableCell>
                      </TableRow>
                  )) : (
@@ -366,62 +393,88 @@ export default function PatientsPage() {
               </div>
           </div>
       </CardContent>
-       <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
-            setIsEditDialogOpen(open);
-            if (!open) {
-                setEditingPatient(null);
-                setEditNameError("");
-                setEditPhoneError("");
-            }
-        }}>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>تعديل بيانات المريض</DialogTitle>
-                </DialogHeader>
-                {editingPatient && (
-                    <form onSubmit={handleEditPatient} className="space-y-4 pt-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="edit-patient-name" className="text-right">الاسم</Label>
-                            <div className="col-span-3">
-                                <Input 
-                                    id="edit-patient-name" 
-                                    name="name" 
-                                    defaultValue={editingPatient.name} 
-                                    required 
-                                    className={editNameError ? "border-destructive" : ""} 
-                                />
-                                {editNameError && <p className="text-sm text-destructive mt-1">{editNameError}</p>}
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="edit-patient-phone" className="text-right">رقم الهاتف</Label>
-                            <div className="col-span-3">
-                                <Input 
-                                    id="edit-patient-phone" 
-                                    name="phone" 
-                                    type="tel" 
-                                    defaultValue={editingPatient.phone || ''} 
-                                    onChange={(e) => {
-                                        const input = e.target as HTMLInputElement;
-                                        input.value = handlePhoneInput(input.value);
-                                        const event = new Event('input', { bubbles: true });
-                                        input.dispatchEvent(event);
-                                    }}
-
-                                    className={editPhoneError ? "border-destructive" : ""} 
-                                />
-                                {editPhoneError && <p className="text-sm text-destructive mt-1">{editPhoneError}</p>}
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
-                            <Button type="submit" variant="success">حفظ التغييرات</Button>
-                        </DialogFooter>
-                    </form>
-                )}
-            </DialogContent>
-        </Dialog>
     </Card>
+    
+    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+                <DialogTitle>تعديل بيانات المريض</DialogTitle>
+            </DialogHeader>
+            {editingPatient && (
+                <form onSubmit={handleEditPatient} className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-patient-name">الاسم</Label>
+                        <Input id="edit-patient-name" name="name" defaultValue={editingPatient.name} required />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-patient-phone">رقم الهاتف</Label>
+                        <Input id="edit-patient-phone" name="phone" type="tel" defaultValue={editingPatient.phone || ''} />
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                        <Button type="submit" variant="success">حفظ التغييرات</Button>
+                    </DialogFooter>
+                </form>
+            )}
+        </DialogContent>
+    </Dialog>
+     <Dialog open={isStatementOpen} onOpenChange={setIsStatementOpen}>
+        <DialogContent className="max-w-3xl">
+            <DialogHeader>
+                <DialogTitle>كشف حساب: {statementData.patient?.name}</DialogTitle>
+                <DialogDescription>عرض تفصيلي لجميع الحركات المالية للمريض.</DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="max-h-[60vh] mt-4">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>التاريخ</TableHead>
+                            <TableHead>البيان</TableHead>
+                            <TableHead>مدين (عليه)</TableHead>
+                            <TableHead>دائن (له)</TableHead>
+                            <TableHead>الرصيد</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {statementData.items.map((item, index) => (
+                          <TableRow key={index}>
+                                <TableCell className="text-xs">{new Date(item.date).toLocaleDateString('ar-EG')}</TableCell>
+                                <TableCell>{item.details}</TableCell>
+                                <TableCell className="font-mono text-red-600">{item.debit > 0 ? item.debit.toLocaleString() : '-'}</TableCell>
+                                <TableCell className="font-mono text-green-600">{item.credit > 0 ? item.credit.toLocaleString() : '-'}</TableCell>
+                                <TableCell className="font-mono text-md">{item.balance.toLocaleString()}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </ScrollArea>
+             <DialogFooter>
+                <DialogClose asChild><Button variant="outline">إغلاق</Button></DialogClose>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+    <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>تسجيل دفعة من: {selectedPatientForPayment?.name}</DialogTitle>
+                <DialogDescription>أدخل المبلغ الذي دفعه المريض. سيتم خصم هذا المبلغ من دينه.</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleAddPayment} className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="amount">المبلغ المدفوع</Label>
+                    <Input id="amount" name="amount" type="number" step="1" required autoFocus />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="notes">ملاحظات (اختياري)</Label>
+                    <Input id="notes" name="notes" placeholder="مثال: دفعة من حساب شهر يوليو" />
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                    <Button type="submit" variant="success">حفظ الدفعة</Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+    </Dialog>
+    </>
   )
 }
-    

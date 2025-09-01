@@ -28,10 +28,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import type { OrderRequestItem, Supplier, PurchaseOrderItem } from "@/lib/types"
-import { Trash2, Send, ShoppingBasket, ArrowLeft, Copy, Percent } from "lucide-react"
+import type { OrderRequestItem, Supplier, PurchaseOrderItem, Medication } from "@/lib/types"
+import { Trash2, Send, ShoppingBasket, ArrowLeft, Copy, Percent, BrainCircuit } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
 type EditableOrderItem = OrderRequestItem & { profit_margin?: number };
 
@@ -43,9 +45,10 @@ export default function OrderRequestsPage() {
     updateOrderRequestItem,
     addPurchaseOrder,
     duplicateOrderRequestItem,
+    updatePreferenceScore,
   } = useAuth();
   
-  const { suppliers: [suppliers] } = scopedData;
+  const { suppliers: [suppliers], inventory: [inventory], sales: [sales], settings: [settings] } = scopedData;
   const { toast } = useToast();
   const router = useRouter();
 
@@ -55,6 +58,7 @@ export default function OrderRequestsPage() {
   const [masterDate, setMasterDate] = React.useState(new Date().toISOString().split('T')[0]);
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [orderRequestCart, setOrderRequestCart] = React.useState<OrderRequestItem[]>([]);
+  const [selectedSuggestions, setSelectedSuggestions] = React.useState<Set<string>>(new Set());
 
     const calculateProfitMargin = (purchasePrice: number, sellPrice: number) => {
         if (!purchasePrice || purchasePrice <= 0) return 0;
@@ -97,7 +101,7 @@ export default function OrderRequestsPage() {
     };
 
     fetchCart();
-  }, [getOrderRequestCart]); // Add getOrderRequestCart to dependency array to refresh when cart changes
+  }, [getOrderRequestCart]);
 
 
   const handleOrderItemChange = (orderItemId: string, field: keyof EditableOrderItem, value: any) => {
@@ -258,170 +262,301 @@ export default function OrderRequestsPage() {
     }
 };
 
-  return (
+ const systemSuggestions = React.useMemo(() => {
+    const lowStock = inventory.filter(i => i.stock > 0 && i.stock <= i.reorder_point);
+
+    const salesStats: { [medId: string]: { quantity: number; profit: number } } = {};
+    sales.forEach(sale => {
+      sale.items.forEach(item => {
+        if (!item.is_return) {
+          salesStats[item.medication_id] = salesStats[item.medication_id] || { quantity: 0, profit: 0 };
+          salesStats[item.medication_id].quantity += item.quantity;
+          salesStats[item.medication_id].profit += (item.price - item.purchase_price) * item.quantity;
+        }
+      });
+    });
+
+    const topSelling = Object.entries(salesStats)
+      .sort(([, a], [, b]) => b.quantity - a.quantity)
+      .slice(0, 10)
+      .map(([medication_id]) => inventory.find(i => i.id === medication_id))
+      .filter((i): i is Medication => !!i);
+
+    const topProfit = Object.entries(salesStats)
+      .sort(([, a], [, b]) => b.profit - a.profit)
+      .slice(0, 10)
+      .map(([medication_id]) => inventory.find(i => i.id === medication_id))
+      .filter((i): i is Medication => !!i);
+
+    const preferenceScores = settings.suggestion_preference_score || {};
+    const sortWithPreference = (a: Medication, b: Medication) => (preferenceScores[b.id] || 100) - (preferenceScores[a.id] || 100);
+      
+    return {
+        lowStock: lowStock.sort(sortWithPreference),
+        topSelling: topSelling.sort(sortWithPreference),
+        topProfit: topProfit.sort(sortWithPreference)
+    };
+}, [inventory, sales, settings.suggestion_preference_score]);
+
+
+ const handleAddSuggestionsToCart = () => {
+    const suggestionsToAdd = [
+      ...systemSuggestions.lowStock,
+      ...systemSuggestions.topSelling,
+      ...systemSuggestions.topProfit
+    ].filter(med => selectedSuggestions.has(med.id));
+    
+    // Update preference scores
+    const allSuggestedIds = new Set([...systemSuggestions.lowStock, ...systemSuggestions.topSelling, ...systemSuggestions.topProfit].map(i => i.id));
+    allSuggestedIds.forEach(medId => {
+        updatePreferenceScore(medId, selectedSuggestions.has(medId));
+    });
+
+    suggestionsToAdd.forEach(med => {
+        const orderItem = orderRequestCart.find(item => item.medication_id === med.id);
+        if (!orderItem) {
+            // This needs to be an async operation, but we'll do it optimistically
+             const newItemData = { medication_id: med.id, quantity: 1, is_new: true };
+             apiRequest('/order-requests', 'POST', newItemData).then(savedItem => {
+                setOrderRequestCart(prev => [...prev, savedItem]);
+             });
+        }
+    });
+
+    toast({ title: `تم إضافة ${suggestionsToAdd.length} صنف إلى قائمة الطلبات` });
+    setSelectedSuggestions(new Set());
+};
+
+const handleSuggestionSelection = (medId: string, checked: boolean) => {
+    setSelectedSuggestions(prev => {
+        const newSet = new Set(prev);
+        if (checked) {
+            newSet.add(medId);
+        } else {
+            newSet.delete(medId);
+        }
+        return newSet;
+    });
+};
+
+const SuggestionTable = ({ title, meds }: { title: string, meds: Medication[] }) => (
     <Card>
-      <CardHeader>
-        <CardTitle>طلبات الأدوية</CardTitle>
-        <CardDescription>
-          هنا تظهر الأدوية التي طلبتها من المخزون. قم بتعبئة بياناتها ثم اضغط على "إعداد قائمة الشراء" لنقلها إلى صفحة المشتريات للمراجعة النهائية.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {orderRequestCart.length > 0 ? (
-          <div className="space-y-4">
-            <div className="p-4 border rounded-md bg-muted/50 space-y-4">
-                <h3 className="font-semibold">إعدادات الإدخال السريع</h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                    <div className="space-y-2">
-                        <Label htmlFor="master-purchase-id">رقم قائمة موحد</Label>
-                        <Input id="master-purchase-id" value={masterPurchaseId} onChange={e => setMasterPurchaseId(e.target.value)} placeholder="مثال: PO-JUL24" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="master-supplier-id">تحديد مورد للكل</Label>
-                        <Select value={masterSupplierId} onValueChange={setMasterSupplierId}>
-                            <SelectTrigger id="master-supplier-id"><SelectValue placeholder="اختر موردًا..." /></SelectTrigger>
-                            <SelectContent>{(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
-                        </Select>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="master-date">تاريخ قائمة موحد</Label>
-                        <Input id="master-date" type="date" value={masterDate} onChange={e => setMasterDate(e.target.value)} />
-                    </div>
-                    <Button onClick={handleApplyMasterSettings}>تطبيق على الكل</Button>
-                </div>
-            </div>
-             <div className="space-y-3">
-              <h3 className="text-lg font-semibold flex items-center gap-2"><ShoppingBasket /> قائمة الطلبات ({orderRequestCart.length})</h3>
-              <div className="border rounded-md overflow-x-auto">
-              <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="min-w-[250px]">الدواء</TableHead>
-                        <TableHead>الكمية المستلمة</TableHead>
-                        <TableHead>سعر الشراء</TableHead>
-                        <TableHead>سعر البيع</TableHead>
-                        <TableHead>تاريخ الانتهاء</TableHead>
-                        <TableHead className="min-w-[180px]">المورد</TableHead>
-                        <TableHead className="min-w-[150px]">رقم القائمة</TableHead>
-                        <TableHead>الإجراءات</TableHead>
-                    </TableRow>
-                </TableHeader>
+        <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+        <CardContent>
+            <Table>
+                <TableHeader><TableRow><TableHead className="w-12"></TableHead><TableHead>الدواء</TableHead><TableHead>الرصيد الحالي</TableHead></TableRow></TableHeader>
                 <TableBody>
-                    {orderRequestCart.map(item => {
-                        const editableData = editableOrderItems[item.id] || {};
-                        return (
-                        <TableRow key={item.id}>
-                            <TableCell>
-                                <div className="font-medium">{item.name}</div>
-                                <div className="text-xs text-muted-foreground">{item.scientific_names?.join(', ')}</div>
-                                <div className="text-xs text-muted-foreground">الرصيد الحالي: <span className="font-mono">{item.stock}</span></div>
-                            </TableCell>
-                            <TableCell>
-                                <Input 
-                                  type="number"
-                                  value={editableData.quantity || ''}
-                                  onChange={e => handleOrderItemChange(item.id, 'quantity', parseInt(e.target.value, 10) || 0)}
-                                  onBlur={() => handleBlur(item.id, 'quantity')}
-                                  className="w-20 h-9"
-                                  placeholder="الكمية"
-                                />
-                            </TableCell>
-                            <TableCell>
-                                <Input 
-                                  type="number"
-                                  value={editableData.purchase_price || ''}
-                                  onChange={e => handleOrderItemChange(item.id, 'purchase_price', e.target.value)}
-                                  onBlur={() => handleBlur(item.id, 'purchase_price')}
-                                  className="w-24 h-9"
-                                  placeholder="سعر الشراء"
-                                />
-                            </TableCell>
-                            <TableCell>
-                                <div className="flex items-center gap-1">
-                                    <Input 
-                                        type="number"
-                                        value={editableData.price || ''}
-                                        onChange={e => handleOrderItemChange(item.id, 'price', e.target.value)}
-                                        onBlur={() => handleBlur(item.id, 'price')}
-                                        className="w-24 h-9"
-                                        placeholder="سعر البيع"
-                                    />
-                                    <div className="relative w-20">
-                                        <Input
-                                            type="number"
-                                            value={editableData.profit_margin?.toFixed(0) || ''}
-                                            onChange={e => handleOrderItemChange(item.id, 'profit_margin', e.target.value)}
-                                            onBlur={() => handleBlur(item.id, 'profit_margin')}
-                                            className="h-9 pe-6"
-                                        />
-                                        <Percent className="absolute top-1/2 -translate-y-1/2 start-1.5 h-3 w-3 text-muted-foreground" />
-                                    </div>
-                                </div>
-                            </TableCell>
-                            <TableCell>
-                                 <Input 
-                                  type="date"
-                                  value={editableData.expiration_date || ''}
-                                  onChange={e => handleOrderItemChange(item.id, 'expiration_date', e.target.value)}
-                                  onBlur={() => handleBlur(item.id, 'expiration_date')}
-                                  className="h-9"
-                                />
-                            </TableCell>
-                            <TableCell>
-                                <Select 
-                                    value={editableData.supplier_id || ''}
-                                    onValueChange={value => {
-                                        handleOrderItemChange(item.id, 'supplier_id', value)
-                                        updateOrderRequestItem(item.id, { supplier_id: value });
-                                    }}
-                                >
-                                    <SelectTrigger className="h-9"><SelectValue placeholder="اختر مورد" /></SelectTrigger>
-                                    <SelectContent>{(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
-                                </Select>
-                            </TableCell>
-                             <TableCell>
-                                <Input 
-                                  value={editableData.invoice_id || ''}
-                                  onChange={e => handleOrderItemChange(item.id, 'invoice_id', e.target.value)}
-                                  onBlur={() => handleBlur(item.id, 'invoice_id')}
-                                  className="w-32 h-9"
-                                  placeholder="رقم القائمة"
-                                />
-                            </TableCell>
-                            <TableCell className="flex items-center">
-                                <Button size="icon" variant="ghost" className="text-blue-600" onClick={async () => {
-                                    await duplicateOrderRequestItem(item.id);
-                                    // Refresh the cart data after duplication
-                                    const cart = await getOrderRequestCart();
-                                    if (Array.isArray(cart)) {
-                                      setOrderRequestCart(cart);
-                                    }
-                                }}>
-                                    <Copy className="h-4 w-4" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="text-destructive" onClick={() => handleDelete(item.id)}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </TableCell>
+                    {meds.map(med => (
+                        <TableRow key={med.id}>
+                            <TableCell><Checkbox checked={selectedSuggestions.has(med.id)} onCheckedChange={(checked) => handleSuggestionSelection(med.id, !!checked)}/></TableCell>
+                            <TableCell>{med.name}</TableCell>
+                            <TableCell>{med.stock}</TableCell>
                         </TableRow>
-                    )})}
+                    ))}
                 </TableBody>
-              </Table>
-              </div>
-          </div>
-          <Button onClick={handlePreparePurchaseOrder} size="lg" className="w-full" variant="success" disabled={isProcessing}>
-            <ArrowLeft className="me-2 h-4 w-4" />
-            {isProcessing ? "جاري التجهيز..." : "إتمام وإنشاء قوائم الشراء"}
-          </Button>
-        </div>
-        ) : (
-            <div className="text-center py-16 text-muted-foreground">
-                <ShoppingBasket className="h-16 w-16 mx-auto mb-4" />
-                <p>قائمة الطلبات فارغة.</p>
-                <p className="text-sm">اذهب إلى المخزون واضغط على زر "طلب" لإضافة الأدوية هنا.</p>
-            </div>
-        )}
-      </CardContent>
+            </Table>
+        </CardContent>
     </Card>
+);
+
+return (
+    <Tabs defaultValue="requests">
+        <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="requests">قائمة الطلبات اليدوية</TabsTrigger>
+            <TabsTrigger value="suggestions">اقتراحات النظام <BrainCircuit className="me-2"/></TabsTrigger>
+        </TabsList>
+        <TabsContent value="requests">
+             <Card>
+                <CardHeader>
+                    <CardTitle>طلبات الأدوية</CardTitle>
+                    <CardDescription>
+                    هنا تظهر الأدوية التي طلبتها من المخزون. قم بتعبئة بياناتها ثم اضغط على "إتمام وإنشاء قوائم الشراء" لنقلها إلى صفحة المشتريات للمراجعة النهائية.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {orderRequestCart.length > 0 ? (
+                    <div className="space-y-4">
+                        <div className="p-4 border rounded-md bg-muted/50 space-y-4">
+                            <h3 className="font-semibold">إعدادات الإدخال السريع</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                <div className="space-y-2">
+                                    <Label htmlFor="master-purchase-id">رقم قائمة موحد</Label>
+                                    <Input id="master-purchase-id" value={masterPurchaseId} onChange={e => setMasterPurchaseId(e.target.value)} placeholder="مثال: PO-JUL24" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="master-supplier-id">تحديد مورد للكل</Label>
+                                    <Select value={masterSupplierId} onValueChange={setMasterSupplierId}>
+                                        <SelectTrigger id="master-supplier-id"><SelectValue placeholder="اختر موردًا..." /></SelectTrigger>
+                                        <SelectContent>{(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="master-date">تاريخ قائمة موحد</Label>
+                                    <Input id="master-date" type="date" value={masterDate} onChange={e => setMasterDate(e.target.value)} />
+                                </div>
+                                <Button onClick={handleApplyMasterSettings}>تطبيق على الكل</Button>
+                            </div>
+                        </div>
+                        <div className="space-y-3">
+                        <h3 className="text-lg font-semibold flex items-center gap-2"><ShoppingBasket /> قائمة الطلبات ({orderRequestCart.length})</h3>
+                        <div className="border rounded-md overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="min-w-[250px]">الدواء</TableHead>
+                                    <TableHead>الكمية المستلمة</TableHead>
+                                    <TableHead>سعر الشراء</TableHead>
+                                    <TableHead>سعر البيع</TableHead>
+                                    <TableHead>تاريخ الانتهاء</TableHead>
+                                    <TableHead className="min-w-[180px]">المورد</TableHead>
+                                    <TableHead className="min-w-[150px]">رقم القائمة</TableHead>
+                                    <TableHead>الإجراءات</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {orderRequestCart.map(item => {
+                                    const editableData = editableOrderItems[item.id] || {};
+                                    return (
+                                    <TableRow key={item.id}>
+                                        <TableCell>
+                                            <div className="font-medium">{item.name}</div>
+                                            <div className="text-xs text-muted-foreground">{item.scientific_names?.join(', ')}</div>
+                                            <div className="text-xs text-muted-foreground">الرصيد الحالي: <span className="font-mono">{item.stock}</span></div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Input 
+                                            type="number"
+                                            value={editableData.quantity || ''}
+                                            onChange={e => handleOrderItemChange(item.id, 'quantity', parseInt(e.target.value, 10) || 0)}
+                                            onBlur={() => handleBlur(item.id, 'quantity')}
+                                            className="w-20 h-9"
+                                            placeholder="الكمية"
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <Input 
+                                            type="number"
+                                            value={editableData.purchase_price || ''}
+                                            onChange={e => handleOrderItemChange(item.id, 'purchase_price', e.target.value)}
+                                            onBlur={() => handleBlur(item.id, 'purchase_price')}
+                                            className="w-24 h-9"
+                                            placeholder="سعر الشراء"
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-1">
+                                                <Input 
+                                                    type="number"
+                                                    value={editableData.price || ''}
+                                                    onChange={e => handleOrderItemChange(item.id, 'price', e.target.value)}
+                                                    onBlur={() => handleBlur(item.id, 'price')}
+                                                    className="w-24 h-9"
+                                                    placeholder="سعر البيع"
+                                                />
+                                                <div className="relative w-20">
+                                                    <Input
+                                                        type="number"
+                                                        value={editableData.profit_margin?.toFixed(0) || ''}
+                                                        onChange={e => handleOrderItemChange(item.id, 'profit_margin', e.target.value)}
+                                                        onBlur={() => handleBlur(item.id, 'profit_margin')}
+                                                        className="h-9 pe-6"
+                                                    />
+                                                    <Percent className="absolute top-1/2 -translate-y-1/2 start-1.5 h-3 w-3 text-muted-foreground" />
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Input 
+                                            type="date"
+                                            value={editableData.expiration_date || ''}
+                                            onChange={e => handleOrderItemChange(item.id, 'expiration_date', e.target.value)}
+                                            onBlur={() => handleBlur(item.id, 'expiration_date')}
+                                            className="h-9"
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <Select 
+                                                value={editableData.supplier_id || ''}
+                                                onValueChange={value => {
+                                                    handleOrderItemChange(item.id, 'supplier_id', value)
+                                                    updateOrderRequestItem(item.id, { supplier_id: value });
+                                                }}
+                                            >
+                                                <SelectTrigger className="h-9"><SelectValue placeholder="اختر مورد" /></SelectTrigger>
+                                                <SelectContent>{(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                                            </Select>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Input 
+                                            value={editableData.invoice_id || ''}
+                                            onChange={e => handleOrderItemChange(item.id, 'invoice_id', e.target.value)}
+                                            onBlur={() => handleBlur(item.id, 'invoice_id')}
+                                            className="w-32 h-9"
+                                            placeholder="رقم القائمة"
+                                            />
+                                        </TableCell>
+                                        <TableCell className="flex items-center">
+                                            <Button size="icon" variant="ghost" className="text-blue-600" onClick={async () => {
+                                                await duplicateOrderRequestItem(item.id);
+                                                // Refresh the cart data after duplication
+                                                const cart = await getOrderRequestCart();
+                                                if (Array.isArray(cart)) {
+                                                setOrderRequestCart(cart);
+                                                }
+                                            }}>
+                                                <Copy className="h-4 w-4" />
+                                            </Button>
+                                            <Button size="icon" variant="ghost" className="text-destructive" onClick={() => handleDelete(item.id)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                )})}
+                            </TableBody>
+                        </Table>
+                        </div>
+                    </div>
+                    <Button onClick={handlePreparePurchaseOrder} size="lg" className="w-full" variant="success" disabled={isProcessing}>
+                        <ArrowLeft className="me-2 h-4 w-4" />
+                        {isProcessing ? "جاري التجهيز..." : "إتمام وإنشاء قوائم الشراء"}
+                    </Button>
+                    </div>
+                    ) : (
+                        <div className="text-center py-16 text-muted-foreground">
+                            <ShoppingBasket className="h-16 w-16 mx-auto mb-4" />
+                            <p>قائمة الطلبات فارغة.</p>
+                            <p className="text-sm">اذهب إلى المخزون واضغط على زر "طلب" لإضافة الأدوية هنا، أو استخدم اقتراحات النظام.</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="suggestions">
+            <Card>
+                 <CardHeader>
+                    <CardTitle>اقتراحات النظام الذكية</CardTitle>
+                    <CardDescription>
+                        يقترح النظام عليك الأصناف التي قد تحتاج لطلبها بناءً على حالة المخزون والمبيعات. حدد ما تريد إضافته ثم اضغط على زر الإضافة.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <SuggestionTable title="أدوية ذات مخزون منخفض" meds={systemSuggestions.lowStock} />
+                        <SuggestionTable title="الأدوية الأكثر مبيعًا" meds={systemSuggestions.topSelling} />
+                    </div>
+                     <SuggestionTable title="الأدوية الأكثر ربحية" meds={systemSuggestions.topProfit} />
+
+                    <Button 
+                        size="lg" 
+                        className="w-full" 
+                        onClick={handleAddSuggestionsToCart}
+                        disabled={selectedSuggestions.size === 0}
+                    >
+                        إضافة ({selectedSuggestions.size}) أصناف محددة إلى قائمة الطلبات
+                    </Button>
+                </CardContent>
+            </Card>
+        </TabsContent>
+    </Tabs>
   )
 }

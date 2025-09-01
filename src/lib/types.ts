@@ -28,7 +28,7 @@ export type UserPermissions = {
 
 export type Notification = {
   id: string;
-  type: 'low_stock' | 'out_of_stock' | 'expiring_soon' | 'expired' | 'task_assigned' | 'sale_below_cost' | 'large_discount' | 'supplier_debt_limit' | 'month_end_reminder' | 'new_purchase_order';
+  type: 'low_stock' | 'out_of_stock' | 'expiring_soon' | 'expired' | 'task_assigned' | 'sale_below_cost' | 'large_discount' | 'supplier_debt_limit' | 'month_end_reminder' | 'new_purchase_order' | 'alternative_expiry';
   message: string;
   data?: Record<string, any>;
   read: boolean;
@@ -107,7 +107,7 @@ export type Sale = {
   patientName?: string;
   employee_id: string;
   employeeName: string;
-  payment_method: 'cash' | 'card';
+  payment_method: 'cash' | 'card' | 'credit';
 };
 
 export type ActiveInvoice = {
@@ -115,8 +115,9 @@ export type ActiveInvoice = {
     discountValue: string;
     discountType: 'fixed' | 'percentage';
     patientId: string | null;
-    paymentMethod: 'cash' | 'card';
+    paymentMethod: 'cash' | 'card' | 'credit';
     saleIdToUpdate?: string | null;
+    reviewIndex?: number | null;
 };
 
 export type PurchaseOrderItem = {
@@ -174,6 +175,14 @@ export type SupplierPayment = {
     notes?: string;
 }
 
+export type PatientPayment = {
+    id: string;
+    date: string;
+    patient_id: string;
+    amount: number;
+    notes?: string;
+}
+
 export type Supplier = {
   id: string;
   name: string;
@@ -221,6 +230,7 @@ export type AppSettings = {
     pharmacyEmail: string;
     expirationThresholdDays: number;
     invoiceFooterMessage?: string;
+    suggestion_preference_score?: Record<string, number>;
 }
 
 export type TrashItem = {

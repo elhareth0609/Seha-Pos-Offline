@@ -50,7 +50,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput } from "@/lib/types"
+import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput, Notification } from "@/lib/types"
 import { PlusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText, Calculator } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
@@ -63,7 +63,7 @@ import { calculateDose, type DoseCalculationInput } from "@/ai/flows/dose-calcul
 import { Skeleton } from "@/components/ui/skeleton"
 import { useOnlineStatus } from "@/hooks/use-online-status"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Tooltip, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import AdCarousel from "@/components/ui/ad-carousel"
 import { differenceInDays, parseISO, startOfToday } from "date-fns"
 import { Badge } from "@/components/ui/badge"
@@ -381,6 +381,7 @@ export default function SalesPage() {
   const [isCheckoutOpen, setIsCheckoutOpen] = React.useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = React.useState(false);
   const [saleToPrint, setSaleToPrint] = React.useState<Sale | null>(null);
+  const [alternativeExpiryAlert, setAlternativeExpiryAlert] = React.useState<Notification | null>(null);
   
   const [isDosingAssistantOpen, setIsDosingAssistantOpen] = React.useState(false);
 
@@ -418,7 +419,9 @@ export default function SalesPage() {
     }, [searchAllSales]);
 
     const addToCart = React.useCallback((medication: Medication) => {
+        setAlternativeExpiryAlert(null); // Clear previous alert
         
+        // Expiry check
         const today = new Date();
         today.setHours(0,0,0,0);
         if (medication.expiration_date && parseISO(medication.expiration_date) < today && mode !== 'return') {
@@ -426,10 +429,39 @@ export default function SalesPage() {
             return;
         }
 
+        // Stock check
         if (medication.stock <= 0 && mode !== 'return') {
             toast({ variant: 'destructive', title: 'نفد من المخزون', description: `لا يمكن بيع ${medication.name} لأن الكمية 0.` });
             return;
         }
+
+        // Alternative expiry check
+        if (medication.scientific_names && medication.scientific_names.length > 0) {
+            const alternatives = allInventory.filter(med => 
+                med.id !== medication.id &&
+                med.scientific_names?.some(scName => medication.scientific_names!.includes(scName))
+            );
+
+            let closerExpiryAlternative: Medication | null = null;
+            for (const alt of alternatives) {
+                if (parseISO(alt.expiration_date) < parseISO(medication.expiration_date)) {
+                    if (!closerExpiryAlternative || parseISO(alt.expiration_date) < parseISO(closerExpiryAlternative.expiration_date)) {
+                        closerExpiryAlternative = alt;
+                    }
+                }
+            }
+            if (closerExpiryAlternative) {
+                 setAlternativeExpiryAlert({
+                    id: `alt_expiry_${medication.id}`,
+                    type: 'alternative_expiry',
+                    message: `تنبيه: يوجد بديل (${closerExpiryAlternative.name}) بتاريخ انتهاء أقرب. يُنصح ببيعه أولاً.`,
+                    data: { medicationId: medication.id, alternativeId: closerExpiryAlternative.id },
+                    read: false,
+                    created_at: new Date().toISOString()
+                });
+            }
+        }
+
 
         updateActiveInvoice(invoice => {
             const existingItem = invoice.cart.find(item => item.id === medication.id && item.is_return === (mode === 'return'))
@@ -468,7 +500,7 @@ export default function SalesPage() {
 
         setSearchTerm("")
         setSuggestions([])
-    }, [mode, updateActiveInvoice, toast])
+    }, [mode, updateActiveInvoice, toast, allInventory])
   
   const handleScan = React.useCallback(async (result: string) => {
     const results = await searchAllInventory(result);
@@ -622,6 +654,11 @@ export default function SalesPage() {
       toast({ title: "السلة فارغة", description: "أضف منتجات إلى السلة قبل إتمام العملية.", variant: "destructive" })
       return;
     }
+
+    if (paymentMethod === 'credit' && !patientId) {
+        toast({ title: "مريض غير محدد", description: "يجب تحديد مريض (صديق صيدلية) للفواتير الآجلة.", variant: "destructive" })
+        return;
+    }
     
     for (const itemInCart of cart) {
         if (!itemInCart.is_return) {
@@ -700,6 +737,7 @@ export default function SalesPage() {
     createNewInvoice();
     setSearchTerm('');
     setSaleToPrint(null);
+    setAlternativeExpiryAlert(null);
     setMode('sale');
   };
   
@@ -707,6 +745,7 @@ export default function SalesPage() {
     closeInvoice(index);
     setSearchTerm('');
     setSaleToPrint(null);
+    setAlternativeExpiryAlert(null);
     setMode('sale');
   };
   
@@ -755,7 +794,7 @@ export default function SalesPage() {
         }
     };
     
-    const handlePaymentMethodChange = (value: 'cash' | 'card') => {
+    const handlePaymentMethodChange = (value: 'cash' | 'card' | 'credit') => {
         updateActiveInvoice(prev => ({...prev, paymentMethod: value}));
     };
     
@@ -882,7 +921,16 @@ export default function SalesPage() {
                         </div>
                 </CardHeader>
                 <CardContent className="p-0 flex-1 flex flex-col">
-                    
+                     {alternativeExpiryAlert && (
+                        <Alert variant="destructive" className="m-2 rounded-lg">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>تنبيه</AlertTitle>
+                            <AlertDescription>
+                                {alternativeExpiryAlert.message}
+                                <Button variant="link" className="p-0 h-auto ms-2" onClick={() => setAlternativeExpiryAlert(null)}>إخفاء</Button>
+                            </AlertDescription>
+                        </Alert>
+                    )}
                     <ScrollArea className="h-full">
                     {cart.length > 0 ? (
                         <>
@@ -1187,10 +1235,7 @@ export default function SalesPage() {
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent className="w-auto p-0 border-0 bg-transparent shadow-none">
-                                    <DialogHeader>
-                                        <DialogTitle className="sr-only">Calculator</DialogTitle>
-                                    </DialogHeader>
-                                    <CalculatorComponent />
+                                     <CalculatorComponent />
                                 </DialogContent>
                             </Dialog>
                           <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
@@ -1245,6 +1290,10 @@ export default function SalesPage() {
                                                 <RadioGroupItem value="card" id="payment-card" />
                                                 بطاقة إلكترونية
                                             </Label>
+                                             <Label htmlFor="payment-credit" className="flex items-center gap-2 cursor-pointer rounded-md border p-3 flex-1 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
+                                                <RadioGroupItem value="credit" id="payment-credit" />
+                                                آجل (دين)
+                                            </Label>
                                         </RadioGroup>
                                   </div>
                                   <DialogFooter>
@@ -1266,7 +1315,7 @@ export default function SalesPage() {
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                   <AlertDialogHeader>
-                                      <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                                      <DialogTitle>هل أنت متأكد؟</DialogTitle>
                                       <AlertDialogDescription>
                                           {saleIdToUpdate ? 'سيتم تجاهل جميع التغييرات التي قمت بها.' : 'سيتم حذف جميع الأصناف من السلة الحالية.'}
                                       </AlertDialogDescription>
@@ -1288,7 +1337,7 @@ export default function SalesPage() {
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                   <AlertDialogHeader>
-                                      <AlertDialogTitle>هل أنت متأكد من حذف الفاتورة؟</AlertDialogTitle>
+                                      <DialogTitle>هل أنت متأكد من حذف الفاتورة؟</DialogTitle>
                                       <AlertDialogDescription>
                                           لا يمكن التراجع عن هذا الإجراء. سيتم إعادة كميات الأصناف المباعة إلى المخزون.
                                       </AlertDialogDescription>

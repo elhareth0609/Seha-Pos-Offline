@@ -2,6 +2,7 @@
 "use client"
 
 import * as React from 'react';
+import * as XLSX from 'xlsx';
 import {
   Card,
   CardContent,
@@ -400,6 +401,7 @@ export default function ReportsPage() {
                                     <SelectItem value="all">الكل</SelectItem>
                                     <SelectItem value="cash">نقداً</SelectItem>
                                     <SelectItem value="card">بطاقة إلكترونية</SelectItem>
+                                    <SelectItem value="credit">آجل (دين)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -477,7 +479,7 @@ export default function ReportsPage() {
                                                             </AlertDialogTrigger>
                                                             <AlertDialogContent>
                                                                 <AlertDialogHeader>
-                                                                    <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                                                                    <DialogTitle>هل أنت متأكد؟</DialogTitle>
                                                                     <AlertDialogDescription>
                                                                         سيتم حذف هذه الفاتورة نهائياً. هذه العملية ستعيد كميات الأصناف المباعة إلى المخزون.
                                                                     </AlertDialogDescription>
