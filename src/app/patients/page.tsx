@@ -181,6 +181,10 @@ export default function PatientsPage() {
   
   const patientDebts = React.useMemo(() => {
     const debts: { [patientId: string]: number } = {};
+    if (!sales || !allPayments || !allPayments.patientPayments) {
+        return debts;
+    }
+
     sales.forEach(sale => {
         if (sale.patient_id && sale.payment_method === 'credit') {
             debts[sale.patient_id] = (debts[sale.patient_id] || 0) + sale.total;
@@ -193,14 +197,14 @@ export default function PatientsPage() {
         }
     });
     return debts;
-  }, [sales, allPayments.patientPayments]);
+  }, [sales, allPayments]);
 
   const handleShowStatement = (patient: Patient) => {
         const patientSales = sales
             .filter(s => s.patient_id === patient.id && s.payment_method === 'credit')
             .map(s => ({ date: s.date, type: 'فاتورة' as const, details: `فاتورة #${s.id}`, debit: s.total, credit: 0 }));
 
-        const patientPayments = allPayments.patientPayments
+        const patientPayments = (allPayments.patientPayments || [])
             .filter(p => p.patient_id === patient.id)
             .map(p => ({ date: p.date, type: 'دفعة' as const, details: `دفعة نقدية ${p.notes ? `(${p.notes})` : ''}`, debit: 0, credit: p.amount }));
         
