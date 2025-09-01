@@ -259,14 +259,19 @@ export default function PatientsPage() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="patient-phone">رقم الهاتف</Label>
-                            <Input 
-                                id="patient-phone" 
-                                type="tel" 
-                                value={newPatientPhone} 
-                                onChange={(e) => setNewPatientPhone(e.target.value)} 
-                                placeholder="اختياري" 
-                            />
+                            <Label htmlFor="patient-phone" className="text-right">رقم الهاتف</Label>
+                            <div className="col-span-3">
+                                <Input 
+                                    id="patient-phone" 
+                                    type="tel" 
+                                    value={newPatientPhone} 
+                                    onChange={(e) => {
+                                        const onlyNums = e.target.value.replace(/\D/g, ""); // remove anything not 0–9
+                                        setNewPatientPhone(onlyNums);
+                                    }}
+                                    placeholder="اختياري" 
+                                />
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>

@@ -484,7 +484,7 @@ export default function ReportsPage() {
                                                                         سيتم حذف هذه الفاتورة نهائياً. هذه العملية ستعيد كميات الأصناف المباعة إلى المخزون.
                                                                     </AlertDialogDescription>
                                                                 </AlertDialogHeader>
-                                                                <AlertDialogFooter>
+                                                                <AlertDialogFooter className='sm:space-x-reverse'>
                                                                     <AlertDialogCancel>إلغاء</AlertDialogCancel>
                                                                     <AlertDialogAction onClick={handleDeleteSale} className={buttonVariants({ variant: "destructive" })}>
                                                                         نعم، قم بالحذف

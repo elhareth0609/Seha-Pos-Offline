@@ -114,7 +114,7 @@ function AdminRow({ admin, onDelete, onToggleStatus, onEdit }: { admin: User, on
                                         هذا الإجراء لا يمكن التراجع عنه. سيتم حذف حساب المدير <span className="font-bold">{admin.name}</span> وكل بيانات صيدليته نهائيًا.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
-                                <AlertDialogFooter>
+                                <AlertDialogFooter className='sm:space-x-reverse'>
                                     <AlertDialogCancel>إلغاء</AlertDialogCancel>
                                     <AlertDialogAction onClick={() => onDelete(admin)} className="bg-destructive hover:bg-destructive/90">
                                         نعم، قم بالحذف
@@ -673,7 +673,7 @@ export default function SuperAdminPage() {
                                             <AlertDialogHeader>
                                                 <AlertDialogTitle>هل أنت متأكد من حذف هذا العرض؟</AlertDialogTitle>
                                             </AlertDialogHeader>
-                                            <AlertDialogFooter>
+                                            <AlertDialogFooter className='sm:space-x-reverse'>
                                                 <AlertDialogCancel>إلغاء</AlertDialogCancel>
                                                 <AlertDialogAction onClick={() => deleteOffer(offer.id)} className="bg-destructive hover:bg-destructive/90">حذف</AlertDialogAction>
                                             </AlertDialogFooter>
@@ -746,7 +746,7 @@ export default function SuperAdminPage() {
                                                 <AlertDialogHeader>
                                                     <AlertDialogTitle>هل أنت متأكد من حذف هذا الإعلان؟</AlertDialogTitle>
                                                 </AlertDialogHeader>
-                                                <AlertDialogFooter>
+                                                <AlertDialogFooter className='sm:space-x-reverse'>
                                                     <AlertDialogCancel>إلغاء</AlertDialogCancel>
                                                     <AlertDialogAction onClick={() => deleteAdvertisement(ad.id)} className="bg-destructive hover:bg-destructive/90">حذف</AlertDialogAction>
                                                 </AlertDialogFooter>

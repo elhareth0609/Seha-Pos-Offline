@@ -931,10 +931,11 @@ export default function SalesPage() {
                                     >
                                         <span>فاتورة {index + 1}</span>
                                         {activeInvoices.length > 1 && (
-                                            <X 
-                                                className="h-3 w-3 text-muted-foreground hover:text-destructive" 
-                                                onClick={(e) => { e.stopPropagation(); handleCloseInvoice(index); }}
-                                            />
+                                            <span 
+                                            className="text-muted-foreground hover:text-destructive"
+                                            onClick={(e) => { e.stopPropagation(); handleCloseInvoice(index); }}>
+                                                <X className="h-3 w-3 " />
+                                            </span>
                                         )}
                                     </Button>
                                  ))}
@@ -1016,7 +1017,11 @@ export default function SalesPage() {
                                                     </div>
                                                     <div className="text-xs text-muted-foreground">({(item.scientific_names || []).join(', ')})</div>
                                                 </div>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeFromCart(item.id, item.is_return)}><X className="h-4 w-4 text-destructive" /></Button>
+                                                <Button variant="ghost" size="icon" 
+                                                className="h-8 w-8 shrink-0 hover:text-white" 
+                                                onClick={() => removeFromCart(item.id, item.is_return)}>
+                                                    <X className="h-4 w-4 text-destructive" />
+                                                </Button>
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-3 items-end">
@@ -1331,7 +1336,7 @@ export default function SalesPage() {
                                              </Label>
                                         </RadioGroup>
                                   </div>
-                                  <DialogFooter>
+                                  <DialogFooter className='sm:space-x-reverse'>
                                       <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
                                       <Button onClick={handleFinalizeSale} variant={saleIdToUpdate ? 'default' : 'success'}>
                                         {saleIdToUpdate ? 'تأكيد التعديل' : (mode === 'return' ? 'تأكيد الاسترجاع' : 'تأكيد البيع')}
@@ -1379,8 +1384,8 @@ export default function SalesPage() {
                                       <AlertDialogDescription>
                                           لا يمكن التراجع عن هذا الإجراء. سيتم إعادة كميات الأصناف المباعة إلى المخزون.
                                       </AlertDialogDescription>
-                                  </DialogHeader>
-                                  <AlertDialogFooter>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter className='sm:space-x-reverse'>
                                       <AlertDialogCancel>تراجع</AlertDialogCancel>
                                       <AlertDialogAction onClick={handleDeleteCurrentSale} className={buttonVariants({ variant: "destructive" })}>نعم، قم بالحذف</AlertDialogAction>
                                   </AlertDialogFooter>
