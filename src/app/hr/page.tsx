@@ -155,7 +155,7 @@ export default function HRPage() {
             manage_guide: true, manage_settings: false, manage_trash: false, manage_salesPriceModification: false,
             manage_users: false, manage_previous_sales: false, manage_expenses: false, manage_tasks: false,
             manage_close_month: false, manage_archives: false, manage_order_requests: false, manage_offers: false,
-            manage_hr: false,
+            manage_hr: false, manage_support: false
         };
         setCurrentUserPermissions(permissions);
         setIsPermissionsDialogOpen(true);

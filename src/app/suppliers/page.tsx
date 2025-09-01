@@ -219,7 +219,7 @@ export default function SuppliersPage() {
             items: ret.items,
         }));
 
-    const supplierPaymentsData = supplierPayments.filter(p => p.supplier_id === supplier.id)
+    const supplierPaymentsData = supplierPayments.supplierPayments.filter(p => p.supplier_id === supplier.id)
         .map(p => ({ 
             id: p.id,
             date: p.date, 
@@ -260,7 +260,7 @@ export default function SuppliersPage() {
     return suppliers.map(supplier => {
       const purchases = purchaseOrders.filter(po => po.supplier_id === supplier.id);
       const returns = supplierReturns.filter(ret => ret.supplier_id === supplier.id);
-      const payments = supplierPayments.filter(p => p.supplier_id === supplier.id);
+      const payments = supplierPayments.supplierPayments.filter(p => p.supplier_id === supplier.id);
 
         const totalPurchases = purchases.reduce((acc, po) => {
             const total_amount = typeof po.total_amount === 'number' ? po.total_amount : parseFloat(String(po.total_amount || 0));
@@ -270,10 +270,11 @@ export default function SuppliersPage() {
             const total_amount = typeof ret.total_amount === 'number' ? ret.total_amount : parseFloat(String(ret.total_amount || 0));
             return acc + (isNaN(total_amount) ? 0 : total_amount);
         }, 0);
-      const totalPayments = payments.reduce((acc, p) => {
-          const amount = typeof p.amount === 'number' ? p.amount : parseFloat(String(p.amount || 0));
-          return acc + (isNaN(amount) ? 0 : amount);
-      }, 0);
+        const totalPayments = payments.reduce((acc: number, p: SupplierPayment) => {
+            const amount = typeof p.amount === 'number' ? p.amount : parseFloat(String(p.amount || 0));
+            return acc + (isNaN(amount) ? 0 : amount);
+        }, 0);
+
 
       const netDebt = totalPurchases - totalReturns - totalPayments;
 

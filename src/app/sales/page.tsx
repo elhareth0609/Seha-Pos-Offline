@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -36,7 +35,6 @@ import {
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
@@ -978,7 +976,10 @@ export default function SalesPage() {
                                     const isBelowCost = (Number(item.price) || 0) < (Number(item.purchase_price) || 0);
                                     const alternatives = findAlternatives(item);
                                     return (
-                                        <div key={`${item.id}-${item.is_return}`} className={cn("flex flex-col gap-3 p-3", item.is_return && "bg-red-50 dark:bg-red-900/20")} onClick={() => checkAlternativeExpiry(item as Medication)}>
+                                        <div key={`${item.id}-${item.is_return}`} className={cn("flex flex-col gap-3 p-3", item.is_return && "bg-red-50 dark:bg-red-900/20")} onClick={() => {
+                                            const medication = allInventory.find(med => med.id === item.id);
+                                            if (medication) checkAlternativeExpiry(medication);
+                                        }}>
                                             <div className="flex justify-between items-start gap-2">
                                                 <div className="flex-grow">
                                                     <div className="flex items-center gap-1 font-medium">
@@ -1076,7 +1077,11 @@ export default function SalesPage() {
                                     const alternatives = findAlternatives(item);
 
                                     return (
-                                        <TableRow key={`${item.id}-${item.is_return}`} className={cn(item.is_return && "bg-red-50 dark:bg-red-900/20", "cursor-pointer")} onClick={() => checkAlternativeExpiry(item as Medication)}>
+                                        <TableRow key={`${item.id}-${item.is_return}`} className={cn(item.is_return && "bg-red-50 dark:bg-red-900/20", "cursor-pointer")} onClick={() => {
+                                            const medication = allInventory.find(med => med.id === item.id);
+                                            if (medication) checkAlternativeExpiry(medication);
+                                        }}>
+
                                             <TableCell>
                                                 <div className="flex items-center gap-1">
                                                     <span className="font-medium">{item.name} {item.dosage} {item.dosage_form}</span>
@@ -1354,12 +1359,12 @@ export default function SalesPage() {
                                 </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
-                                <AlertDialogHeader>
+                                <DialogHeader>
                                     <DialogTitle>هل أنت متأكد؟</DialogTitle>
                                     <DialogDescription>
                                         {saleIdToUpdate ? 'سيتم تجاهل جميع التغييرات التي قمت بها.' : 'سيتم حذف جميع الأصناف من السلة الحالية.'}
                                     </DialogDescription>
-                                </AlertDialogHeader>
+                                </DialogHeader>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>تراجع</AlertDialogCancel>
                                     <AlertDialogAction onClick={() => {
@@ -1384,7 +1389,7 @@ export default function SalesPage() {
                                       <AlertDialogDescription>
                                           لا يمكن التراجع عن هذا الإجراء. سيتم إعادة كميات الأصناف المباعة إلى المخزون.
                                       </AlertDialogDescription>
-                                  </AlertDialogHeader>
+                                  </DialogHeader>
                                   <AlertDialogFooter className='sm:space-x-reverse'>
                                       <AlertDialogCancel>تراجع</AlertDialogCancel>
                                       <AlertDialogAction onClick={handleDeleteCurrentSale} className={buttonVariants({ variant: "destructive" })}>نعم، قم بالحذف</AlertDialogAction>

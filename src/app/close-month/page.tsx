@@ -99,7 +99,7 @@ export default function CloseMonthPage() {
                     return sum + (isNaN(amount) ? 0 : amount);
                 }, 0);
                 
-            const totalPayments = payments[0]
+            const totalPayments = payments[0].supplierPayments
                 .filter(p => p.supplier_id === supplier.id)
                 .reduce((sum, p) => {
                     const amount = typeof p.amount === 'number' ? p.amount : parseFloat(String(p.amount || 0));

@@ -1,5 +1,5 @@
-
 "use client"
+
 import * as React from "react"
 import * as XLSX from 'xlsx';
 import Image from 'next/image';
@@ -241,10 +241,11 @@ export default function InventoryPage() {
         return purchasePrice * (1 + margin / 100);
     };
 
-    const handlePriceChange = (setter: React.Dispatch<React.SetStateAction<MedFormData | null>>, name: 'price' | 'profit_margin' | 'purchase_price', value: string) => {
+    const handlePriceChange = (setter: React.Dispatch<React.SetStateAction<MedFormData>> | React.Dispatch<React.SetStateAction<MedFormData | null>>, name: 'price' | 'profit_margin' | 'purchase_price', value: string) => {
         const numericValue = parseFloat(value) || 0;
-        setter(prev => {
-            if (!prev) return null;
+        setter((prev: MedFormData | null) => {
+            if (!prev) return prev;
+            
             let { purchase_price = 0, price = 0, profit_margin = 0 } = prev;
 
             if (name === 'price') {
@@ -264,6 +265,7 @@ export default function InventoryPage() {
             return { ...prev, purchase_price, price, profit_margin };
         });
     };
+
   
   const openEditModal = (med: Medication) => {
       setEditingMed({
@@ -779,7 +781,7 @@ export default function InventoryPage() {
                                   <Input id="edit-reorder_point" type="number" value={editingMed.reorder_point} onChange={e => setEditingMed(p => p ? {...p, reorder_point: parseInt(e.target.value)} : null)} required />
                               </div>
                           </div>
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>سعر الشراء</Label>
                                     <Input type="number" value={editingMed.purchase_price} onChange={e => handlePriceChange(setEditingMed, 'purchase_price', e.target.value)} required />
