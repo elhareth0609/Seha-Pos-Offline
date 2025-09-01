@@ -442,14 +442,11 @@ export default function SalesPage() {
                     read: false,
                     created_at: new Date().toISOString()
                 });
-                return; // Stop after finding the first one
+                return;
             }
         }
-        // If no alternative found, or if the current alert is for a different item, clear it.
-        if (alternativeExpiryAlert?.data?.medicationId === medication.id) {
-             setAlternativeExpiryAlert(null);
-        }
-    }, [allInventory, alternativeExpiryAlert]);
+        setAlternativeExpiryAlert(null);
+    }, [allInventory]);
 
     const addToCart = React.useCallback((medication: Medication) => {
         // Expiry check
@@ -538,6 +535,15 @@ export default function SalesPage() {
         clearTimeout(handler);
     };
   }, [searchTerm, suggestions, addToCart, searchAllInventory]);
+
+
+  React.useEffect(() => {
+    async function fetchInventory() {
+        const results = await searchAllInventory('');
+        setAllInventory(results);
+    }
+    fetchInventory();
+  }, [searchAllInventory]);
 
 
   const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1301,7 +1307,7 @@ export default function SalesPage() {
                                             <Label htmlFor="payment-card" className="flex items-center justify-center gap-2 cursor-pointer rounded-md border p-3 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
                                                 <RadioGroupItem value="card" id="payment-card" />
                                                 بطاقة
-                                            </Label>
+                                             </Label>
                                              <Label htmlFor="payment-credit" className="flex items-center justify-center gap-2 cursor-pointer rounded-md border p-3 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
                                                 <RadioGroupItem value="credit" id="payment-credit" />
                                                 آجل (دين)
@@ -1319,27 +1325,27 @@ export default function SalesPage() {
                       </div>
                       {activeInvoices.length === 1 && activeInvoice.cart.length > 0 && (
                          <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                  <Button variant="outline" className="w-full" disabled={cart.length === 0}>
-                                      <X className="me-2"/>
-                                      {saleIdToUpdate ? 'إلغاء التعديل' : 'إلغاء الفاتورة'}
-                                  </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                  <DialogHeader>
-                                      <DialogTitle>هل أنت متأكد؟</DialogTitle>
-                                      <AlertDialogDescription>
-                                          {saleIdToUpdate ? 'سيتم تجاهل جميع التغييرات التي قمت بها.' : 'سيتم حذف جميع الأصناف من السلة الحالية.'}
-                                      </AlertDialogDescription>
-                                  </DialogHeader>
-                                  <AlertDialogFooter>
-                                      <AlertDialogCancel>تراجع</AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => {
-                                          closeInvoice(currentInvoiceIndex);
-                                          setAlternativeExpiryAlert(null);
-                                      }} className={buttonVariants({ variant: "destructive" })}>نعم</AlertDialogAction>
-                                  </AlertDialogFooter>
-                              </AlertDialogContent>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="outline" className="w-full" disabled={cart.length === 0}>
+                                    <X className="me-2"/>
+                                    {saleIdToUpdate ? 'إلغاء التعديل' : 'إلغاء الفاتورة'}
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <DialogTitle>هل أنت متأكد؟</DialogTitle>
+                                    <DialogDescription>
+                                        {saleIdToUpdate ? 'سيتم تجاهل جميع التغييرات التي قمت بها.' : 'سيتم حذف جميع الأصناف من السلة الحالية.'}
+                                    </DialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>تراجع</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => {
+                                        closeInvoice(currentInvoiceIndex);
+                                        setAlternativeExpiryAlert(null);
+                                    }} className={buttonVariants({ variant: "destructive" })}>نعم</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
                          </AlertDialog>
                       )}
                       {saleIdToUpdate && canManagePreviousSales && (
