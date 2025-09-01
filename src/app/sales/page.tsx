@@ -240,7 +240,7 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
                         <Label htmlFor="patient-age">عمر المريض (بالسنوات)</Label>
                         <Input id="patient-age" type="number" value={patientAge} onChange={(e) => setPatientAge(e.target.value)} placeholder="مثال: 5" />
                     </div>
-                    <Button onClick={handleCalculate} disabled={isLoading || cartItems.length === 0}>
+                    <Button onClick={handleCalculate} disabled={isLoading || cart.length === 0}>
                         {isLoading ? <BrainCircuit className="me-2 h-4 w-4 animate-spin" /> : <Thermometer className="me-2 h-4 w-4" />}
                         حساب وتحليل
                     </Button>
@@ -418,6 +418,40 @@ export default function SalesPage() {
         fetchInitialSales();
     }, [searchAllSales]);
 
+    const checkAlternativeExpiry = React.useCallback((medication: Medication) => {
+        if (!medication.scientific_names || medication.scientific_names.length === 0 || mode === 'return') {
+            setAlternativeExpiryAlert(null);
+            return;
+        }
+    
+        const alternatives = allInventory.filter(med => 
+            med.id !== medication.id &&
+            med.scientific_names?.some(scName => medication.scientific_names!.includes(scName))
+        );
+    
+        let closerExpiryAlternative: Medication | null = null;
+        for (const alt of alternatives) {
+             if (alt.expiration_date && medication.expiration_date && parseISO(alt.expiration_date) < parseISO(medication.expiration_date)) {
+                if (!closerExpiryAlternative || (closerExpiryAlternative.expiration_date && parseISO(alt.expiration_date) < parseISO(closerExpiryAlternative.expiration_date))) {
+                    closerExpiryAlternative = alt;
+                }
+            }
+        }
+        
+        if (closerExpiryAlternative) {
+             setAlternativeExpiryAlert({
+                id: `alt_expiry_${medication.id}`,
+                type: 'alternative_expiry',
+                message: `تنبيه: يوجد بديل (${closerExpiryAlternative.name}) بتاريخ انتهاء أقرب. يُنصح ببيعه أولاً.`,
+                data: { originalMedication: medication, alternativeMedication: closerExpiryAlternative },
+                read: false,
+                created_at: new Date().toISOString()
+            });
+        } else {
+            setAlternativeExpiryAlert(null);
+        }
+    }, [allInventory, mode]);
+
     const addToCart = React.useCallback((medication: Medication) => {
         // Expiry check
         const today = new Date();
@@ -467,44 +501,11 @@ export default function SalesPage() {
                 }]
              }
         });
-
+        
+        checkAlternativeExpiry(medication);
         setSearchTerm("")
         setSuggestions([])
-    }, [mode, updateActiveInvoice, toast])
-
-    const checkAlternativeExpiry = React.useCallback((medication: Medication) => {
-        if (!medication.scientific_names || medication.scientific_names.length === 0) {
-            setAlternativeExpiryAlert(null);
-            return;
-        }
-    
-        const alternatives = allInventory.filter(med => 
-            med.id !== medication.id &&
-            med.scientific_names?.some(scName => medication.scientific_names!.includes(scName))
-        );
-    
-        let closerExpiryAlternative: Medication | null = null;
-        for (const alt of alternatives) {
-             if (alt.expiration_date && medication.expiration_date && parseISO(alt.expiration_date) < parseISO(medication.expiration_date)) {
-                if (!closerExpiryAlternative || (closerExpiryAlternative.expiration_date && parseISO(alt.expiration_date) < parseISO(closerExpiryAlternative.expiration_date))) {
-                    closerExpiryAlternative = alt;
-                }
-            }
-        }
-        
-        if (closerExpiryAlternative) {
-             setAlternativeExpiryAlert({
-                id: `alt_expiry_${medication.id}`,
-                type: 'alternative_expiry',
-                message: `تنبيه: يوجد بديل (${closerExpiryAlternative.name}) بتاريخ انتهاء أقرب. يُنصح ببيعه أولاً.`,
-                data: { originalMedication: medication, alternativeMedication: closerExpiryAlternative },
-                read: false,
-                created_at: new Date().toISOString()
-            });
-        } else {
-            setAlternativeExpiryAlert(null);
-        }
-    }, [allInventory]);
+    }, [mode, updateActiveInvoice, toast, checkAlternativeExpiry])
     
     const removeFromCart = React.useCallback((id: string, isReturn: boolean | undefined) => {
         updateActiveInvoice(invoice => ({
@@ -1249,6 +1250,16 @@ export default function SalesPage() {
                   </CardContent>
                   <CardFooter className="flex flex-col items-stretch gap-2">
                        <div className="flex items-center gap-2">
+                           <Dialog>
+                               <DialogTrigger asChild>
+                                   <Button variant="outline" size="icon">
+                                       <Calculator />
+                                   </Button>
+                               </DialogTrigger>
+                               <DialogContent className="w-auto p-0 border-0 bg-transparent shadow-none">
+                                    <CalculatorComponent />
+                               </DialogContent>
+                           </Dialog>
                           <Dialog open={isDosingAssistantOpen} onOpenChange={setIsDosingAssistantOpen}>
                               <DialogTrigger asChild>
                                   <Button size="icon" variant="outline" className="relative" disabled={!isOnline || cart.length === 0} aria-label="مساعد الجرعات">
@@ -1262,16 +1273,6 @@ export default function SalesPage() {
                               </DialogTrigger>
                               <DosingAssistant cartItems={cart} />
                           </Dialog>
-                           <Dialog>
-                               <DialogTrigger asChild>
-                                   <Button variant="outline" size="icon">
-                                       <Calculator />
-                                   </Button>
-                               </DialogTrigger>
-                               <DialogContent className="w-auto p-0 border-0 bg-transparent shadow-none">
-                                    <CalculatorComponent />
-                               </DialogContent>
-                           </Dialog>
                           <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
                               <DialogTrigger asChild>
                                   <Button size="lg" className="flex-1" onClick={handleCheckout} disabled={cart.length === 0} variant={saleIdToUpdate ? 'default' : 'success'}>
