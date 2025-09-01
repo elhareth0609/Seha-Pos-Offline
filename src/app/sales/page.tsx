@@ -240,7 +240,7 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
                         <Label htmlFor="patient-age">عمر المريض (بالسنوات)</Label>
                         <Input id="patient-age" type="number" value={patientAge} onChange={(e) => setPatientAge(e.target.value)} placeholder="مثال: 5" />
                     </div>
-                    <Button onClick={handleCalculate} disabled={isLoading || cart.length === 0}>
+                    <Button onClick={handleCalculate} disabled={isLoading || cartItems.length === 0}>
                         {isLoading ? <BrainCircuit className="me-2 h-4 w-4 animate-spin" /> : <Thermometer className="me-2 h-4 w-4" />}
                         حساب وتحليل
                     </Button>
@@ -1430,3 +1430,5 @@ export default function SalesPage() {
     </>
   )
 }
+
+    
