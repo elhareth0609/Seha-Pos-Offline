@@ -257,7 +257,6 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
                 {results && (
                      <div className="space-y-4 pt-4">
                         <Alert variant="destructive">
-                            <AlertTriangle className="h-4 w-4" />
                             <AlertTitle>تنبيه هام</AlertTitle>
                             <AlertDescription>
                                 هذه النتائج هي مجرد اقتراحات من الذكاء الاصطناعي ولا تغني عن خبرة الصيدلي وقراره النهائي. يجب التحقق من الجرعات والتفاعلات دائمًا.
@@ -298,9 +297,12 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
                                                         </Button>
                                                     </PopoverTrigger>
                                                     <PopoverContent className="w-80">
+                                                        <DialogHeader>
+                                                            <DialogTitle>تعليمات الاستخدام</DialogTitle>
+                                                        </DialogHeader>
                                                         <div className="grid gap-4">
                                                             <div className="space-y-2">
-                                                                <h4 className="font-medium leading-none">تعليمات الاستخدام</h4>
+                                                                
                                                                 <p className="text-sm text-muted-foreground">
                                                                     {res.usageInstructions}
                                                                 </p>
@@ -834,7 +836,7 @@ export default function SalesPage() {
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
-                            <DialogTitle>مسح باركود المنتج</DialogTitle>
+                                <DialogTitle>مسح باركود المنتج</DialogTitle>
                             </DialogHeader>
                             <BarcodeScanner onScan={handleScan} onOpenChange={setIsScannerOpen}/>
                         </DialogContent>
@@ -843,16 +845,6 @@ export default function SalesPage() {
                         <FileText className="me-2"/>
                         مراجعة الفواتير
                     </Button>
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" size="icon">
-                                <Calculator />
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="w-auto p-0 border-0 bg-transparent shadow-none">
-                            <CalculatorComponent />
-                        </DialogContent>
-                    </Dialog>
                 </div>
 
                 <Card className="flex-1 flex flex-col">
@@ -913,8 +905,11 @@ export default function SalesPage() {
                                                                     <Replace className="h-4 w-4" /></Button>
                                                                 </PopoverTrigger>
                                                                 <PopoverContent className="w-80">
+                                                                    <DialogHeader>
+                                                                        <DialogTitle>بدائل متاحة</DialogTitle>
+                                                                    </DialogHeader>
                                                                     <div className="space-y-2">
-                                                                        <h4 className="font-medium leading-none">بدائل متاحة</h4>
+                                                                        
                                                                         <div className="space-y-1">
                                                                             {alternatives.map(alt => (
                                                                                 <div key={alt.id} className="text-sm p-2 hover:bg-accent rounded-md flex justify-between items-center">
@@ -1005,8 +1000,10 @@ export default function SalesPage() {
                                                                 </Button>
                                                             </PopoverTrigger>
                                                             <PopoverContent className="w-80">
+                                                                <DialogHeader>
+                                                                    <DialogTitle>بدائل متاحة</DialogTitle>
+                                                                </DialogHeader>
                                                                 <div className="space-y-2">
-                                                                    <h4 className="font-medium leading-none">بدائل متاحة</h4>
                                                                     <div className="space-y-1">
                                                                         {alternatives.map(alt => (
                                                                             <div key={alt.id} className="text-sm p-2 hover:bg-accent rounded-md flex justify-between items-center">
@@ -1172,7 +1169,7 @@ export default function SalesPage() {
                       <div className="flex gap-2">
                           <Dialog open={isDosingAssistantOpen} onOpenChange={setIsDosingAssistantOpen}>
                               <DialogTrigger asChild>
-                                  <Button size="lg" variant="outline" className="w-1/4 relative" disabled={!isOnline || cart.length === 0} aria-label="مساعد الجرعات">
+                                  <Button size="icon" variant="outline" className="relative" disabled={!isOnline || cart.length === 0} aria-label="مساعد الجرعات">
                                       <Thermometer />
                                       {isOnline ? (
                                           <Wifi className="absolute top-1 right-1 h-3 w-3 text-green-500" />
@@ -1183,6 +1180,19 @@ export default function SalesPage() {
                               </DialogTrigger>
                               <DosingAssistant cartItems={cart} />
                           </Dialog>
+                           <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" size="icon">
+                                        <Calculator />
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="w-auto p-0 border-0 bg-transparent shadow-none">
+                                    <DialogHeader>
+                                        <DialogTitle className="sr-only">Calculator</DialogTitle>
+                                    </DialogHeader>
+                                    <CalculatorComponent />
+                                </DialogContent>
+                            </Dialog>
                           <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
                               <DialogTrigger asChild>
                                   <Button size="lg" className="flex-1" onClick={handleCheckout} disabled={cart.length === 0} variant={saleIdToUpdate ? 'default' : 'success'}>
