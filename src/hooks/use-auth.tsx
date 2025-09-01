@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative, Notification } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative, Notification, SupportRequestPayload, PatientPaymentPayload } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 import { PinDialog } from '@/components/auth/PinDialog';
@@ -21,7 +21,10 @@ type AuthResponse = {
         suppliers: Supplier[];
         patients: Patient[];
         trash: TrashItem[];
-        payments: SupplierPayment[];
+        payments: {
+            supplierPayments: SupplierPayment[];
+            patientPayments: PatientPayment[];
+        };
         purchaseOrders: PurchaseOrder[];
         supplierReturns: ReturnOrder[];
         timeLogs: TimeLog[];
@@ -39,7 +42,7 @@ export type ActiveInvoice = {
     discountValue: string;
     discountType: 'fixed' | 'percentage';
     patientId: string | null;
-    paymentMethod: 'cash' | 'card';
+    paymentMethod: 'cash' | 'card' | 'credit';
     saleIdToUpdate?: string | null;
     reviewIndex?: number | null;
 };
@@ -119,6 +122,7 @@ interface AuthContextType {
 
     // Payments
     addPayment: (supplier_id: string, amount: number, notes?: string) => Promise<boolean>;
+    addPatientPayment: (patient_id: string, amount: number, notes?: string) => Promise<boolean>;
     
     // Purchases and Returns
     addPurchaseOrder: (data: any) => Promise<boolean>;
@@ -187,7 +191,7 @@ interface AuthContextType {
 
     // Notifications
     getNotifications: () => Promise<Notification[]>;
-    
+    addSupportRequest: (data: SupportRequestPayload) => Promise<boolean>;
 }
 
 export interface ScopedDataContextType {
@@ -196,7 +200,13 @@ export interface ScopedDataContextType {
     suppliers: [Supplier[], React.Dispatch<React.SetStateAction<Supplier[]>>];
     patients: [Patient[], React.Dispatch<React.SetStateAction<Patient[]>>];
     trash: [TrashItem[], React.Dispatch<React.SetStateAction<TrashItem[]>>];
-    payments: [SupplierPayment[], React.Dispatch<React.SetStateAction<SupplierPayment[]>>];
+    payments: [{
+        supplierPayments: SupplierPayment[],
+        patientPayments: PatientPayment[],
+    }, React.Dispatch<React.SetStateAction<{
+        supplierPayments: SupplierPayment[],
+        patientPayments: PatientPayment[],
+    }>>],
     purchaseOrders: [PurchaseOrder[], React.Dispatch<React.SetStateAction<PurchaseOrder[]>>];
     supplierReturns: [ReturnOrder[], React.Dispatch<React.SetStateAction<ReturnOrder[]>>];
     timeLogs: [TimeLog[], React.Dispatch<React.SetStateAction<TimeLog[]>>];
@@ -289,7 +299,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [suppliers, setSuppliers] = React.useState<Supplier[]>([]);
     const [patients, setPatients] = React.useState<Patient[]>([]);
     const [trash, setTrash] = React.useState<TrashItem[]>([]);
-    const [payments, setPayments] = React.useState<SupplierPayment[]>([]);
+    const [payments, setPayments] = React.useState<{ supplierPayments: SupplierPayment[], patientPayments: PatientPayment[] }>({ supplierPayments: [], patientPayments: [] });
     const [purchaseOrders, setPurchaseOrders] = React.useState<PurchaseOrder[]>([]);
     const [supplierReturns, setSupplierReturns] = React.useState<ReturnOrder[]>([]);
     const [timeLogs, setTimeLogs] = React.useState<TimeLog[]>([]);
@@ -432,7 +442,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setSuppliers(pd.suppliers || []);
             setPatients(pd.patients || []);
             setTrash(pd.trash || []);
-            setPayments(pd.payments || []);
+            setPayments(pd.payments || { supplierPayments: [], patientPayments: [] });
             setPurchaseOrders(pd.purchaseOrders || []);
             setSupplierReturns(pd.supplierReturns || []);
             setTimeLogs(pd.timeLogs || []);
@@ -988,11 +998,20 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
 
     const addPayment = async (supplier_id: string, amount: number, notes?: string) => {
         try {
-            const newPayment = await apiRequest('/payments', 'POST', { supplier_id: supplier_id, amount, notes });
-            setPayments(prev => [...prev, newPayment]);
+            const newPayment = await apiRequest('/payments/supplier', 'POST', { supplier_id: supplier_id, amount, notes });
+            setPayments(prev => ({...prev, supplierPayments: [...prev.supplierPayments, newPayment]}));
             toast({ title: `تم تسجيل دفعة بمبلغ ${amount.toLocaleString()}` });
             return true;
         } catch (e) { return false; }
+    }
+    
+    const addPatientPayment = async (patient_id: string, amount: number, notes?: string) => {
+        try {
+            const newPayment = await apiRequest('/payments/patient', 'POST', { patient_id, amount, notes });
+            setPayments(prev => ({...prev, patientPayments: [...prev.patientPayments, newPayment]}));
+            toast({ title: `تم تسجيل دفعة بمبلغ ${amount.toLocaleString()}` });
+            return true;
+        } catch(e) { return false; }
     }
 
     const addPurchaseOrder = async (data: any) => {
@@ -1196,6 +1215,15 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         toast({ title: "تمت إضافة المندوب بنجاح" });
         return newRep;
     };
+    
+    const addSupportRequest = async (data: SupportRequestPayload) => {
+        try {
+            await apiRequest('/support-requests', 'POST', data);
+            return true;
+        } catch(e) {
+            return false;
+        }
+    };
 
     const getNotifications = React.useCallback(async (): Promise<Notification[]> => {
         const generatedNotifications: Notification[] = [];
@@ -1254,8 +1282,8 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             suppliers.forEach(supplier => {
                 const purchases = purchaseOrders.filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.total_amount, 0);
                 const returns = supplierReturns.filter(r => r.supplier_id === supplier.id).reduce((sum, r) => sum + r.total_amount, 0);
-                const supplierPayments = payments.filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.amount, 0);
-                const netDebt = purchases - returns - supplierPayments;
+                const supplierPaymentsData = payments.supplierPayments.filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.amount, 0);
+                const netDebt = purchases - returns - supplierPaymentsData;
 
                 if(netDebt > DEBT_LIMIT) {
                     generatedNotifications.push({ id: `debt_limit_${supplier.id}`, type: 'supplier_debt_limit', message: `تجاوز حد الدين للمورد ${supplier.name}. الدين الحالي: ${netDebt.toLocaleString()}`, data: { supplierId: supplier.id }, read: false, created_at: new Date().toISOString() });
@@ -1314,7 +1342,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             addSale, updateSale, deleteSale, getPaginatedSales, searchAllSales,
             addSupplier, updateSupplier, deleteSupplier, getPaginatedSuppliers,
             addPatient, updatePatient, deletePatient, getPaginatedPatients, searchAllPatients,
-            addPayment,
+            addPayment, addPatientPayment,
             addPurchaseOrder,
             addReturnOrder, getPaginatedPurchaseOrders, getPaginatedReturnOrders,
             getPaginatedExpenses, addExpense, updateExpense, deleteExpense,
@@ -1328,6 +1356,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             getOrderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, updateOrderRequestItem, duplicateOrderRequestItem,
             purchaseDraft, setPurchaseDraft,
             getNotifications,
+            addSupportRequest
         }}>
             {children}
         </AuthContext.Provider>

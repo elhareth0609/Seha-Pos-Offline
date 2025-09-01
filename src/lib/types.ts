@@ -415,3 +415,14 @@ export type TopPurchasedItem = {
     name: string;
     quantity: number;
 };
+
+export type SupportRequestPayload = {
+    phone_number: string;
+    problem_section: string;
+    contact_time: string;
+};
+
+export type PatientPaymentPayload = {
+    amount: number;
+    notes?: string;
+};
