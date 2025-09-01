@@ -376,18 +376,18 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                   <ScrollArea className="h-72">
-                    <Table>
+                    <Table className="text-right">
                       <TableHeader>
                           <TableRow>
-                              <TableHead className="w-2/3">الاسم</TableHead>
-                              <TableHead className="w-1/3">الحالة</TableHead>
+                              <TableHead className="w-1/2 text-right">الاسم</TableHead>
+                              <TableHead className="w-1/2 text-right">الحالة</TableHead>
                           </TableRow>
                       </TableHeader>
                       <TableBody>
                           {expiredItems.length > 0 && expiredItems.map(item => (
                               <TableRow key={item.id}>
                                   <TableCell className="font-medium text-base">{item.name}</TableCell>
-                                  <TableCell>
+                                  <TableCell >
                                     <Badge variant="destructive">منتهي الصلاحية</Badge>
                                   </TableCell>
                               </TableRow>
@@ -478,8 +478,8 @@ export default function Dashboard() {
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2 text-base">
-                                        <span className="text-muted-foreground">الرصيد:</span>
                                         <span className="font-mono font-semibold">{item.stock}</span>
+                                        <span className="text-muted-foreground">الرصيد</span>
                                         <Package className="h-4 w-4 text-muted-foreground" />
                                     </div>
                                 </div>

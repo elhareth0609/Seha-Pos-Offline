@@ -229,7 +229,10 @@ export default function PatientsPage() {
                                     id="patient-phone" 
                                     type="tel" 
                                     value={newPatientPhone} 
-                                    onChange={(e) => setNewPatientPhone(e.target.value)} 
+                                    onChange={(e) => {
+                                        const onlyNums = e.target.value.replace(/\D/g, ""); // remove anything not 0–9
+                                        setNewPatientPhone(onlyNums);
+                                    }}
                                     className={addPhoneError ? "border-destructive" : ""} 
                                     placeholder="اختياري" 
                                 />

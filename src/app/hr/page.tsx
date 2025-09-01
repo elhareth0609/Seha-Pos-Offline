@@ -344,7 +344,10 @@ export default function HRPage() {
                                                                 <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
                                                                 <AlertDialogDescription>سيتم حذف الموظف {user.name} نهائياً. لا يمكن التراجع عن هذا الإجراء.</AlertDialogDescription>
                                                             </AlertDialogHeader>
-                                                            <AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteUser(user)} className="bg-destructive hover:bg-destructive/90">نعم، قم بالحذف</AlertDialogAction></AlertDialogFooter>
+                                                            <AlertDialogFooter className='sm:space-x-reverse'>
+                                                                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                                                <AlertDialogAction onClick={() => handleDeleteUser(user)} className="bg-destructive hover:bg-destructive/90">نعم، قم بالحذف</AlertDialogAction>
+                                                            </AlertDialogFooter>
                                                         </AlertDialogContent>
                                                     </AlertDialog>
                                                     </>

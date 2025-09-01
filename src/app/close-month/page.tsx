@@ -42,8 +42,8 @@ export default function CloseMonthPage() {
 
     const monthlyStats = React.useMemo(() => {
         if (!sales[0] || !expenses[0] || !users || !timeLogs[0] || !suppliers[0] || !purchaseOrders[0] || !supplierReturns[0] || !payments[0]) {
-             setIsLoadingData(false);
-             return { totalSales: 0, totalExpenses: 0, totalSalaries: 0, totalDebts: 0 };
+            setIsLoadingData(false);
+            return { totalSales: 0, totalExpenses: 0, totalSalaries: 0, totalDebts: 0 };
         }
 
         const interval = dateFrom && dateTo 
@@ -125,12 +125,12 @@ export default function CloseMonthPage() {
 
         setIsClosing(true);
         const success = await closeMonth(pin, dateFrom, dateTo);
-        if (success) {
-            router.push('/'); // Redirect to dashboard after successful closing
-        }
+        // if (success) {
+        //     router.push('/'); // Redirect to dashboard after successful closing
+        // }
         setIsClosing(false);
     }
-    
+
     React.useEffect(() => {
         if (currentUser && currentUser.role !== 'Admin' && !currentUser.permissions?.manage_close_month) {
             router.push('/');
@@ -170,7 +170,7 @@ export default function CloseMonthPage() {
     return (
         <div className="container mx-auto py-8 space-y-8">
             <Card className="max-w-3xl mx-auto">
-                 <CardHeader>
+                <CardHeader>
                     <div className="flex justify-between items-center">
                         <div>
                             <CardTitle className="flex items-center gap-2 text-2xl">
@@ -192,12 +192,12 @@ export default function CloseMonthPage() {
                         </AlertDescription>
                     </Alert>
 
-                     <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="date-from">من تاريخ</Label>
                             <Input id="date-from" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
                         </div>
-                         <div className="space-y-2">
+                        <div className="space-y-2">
                             <Label htmlFor="date-to">إلى تاريخ</Label>
                             <Input id="date-to" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
                         </div>
@@ -205,18 +205,18 @@ export default function CloseMonthPage() {
 
 
                     <div className="border rounded-lg p-4 space-y-3">
-                         <h3 className="font-semibold text-lg mb-2">ملخص الحسابات للفترة المحددة:</h3>
-                         {(isLoadingData || (!dateFrom || !dateTo)) ? (
+                        <h3 className="font-semibold text-lg mb-2">ملخص الحسابات للفترة المحددة:</h3>
+                        {(isLoadingData || (!dateFrom || !dateTo)) ? (
                             <div className="text-center py-8 text-muted-foreground">
                                 {(!dateFrom || !dateTo) ? "الرجاء تحديد فترة زمنية لعرض الحسابات." : "جاري حساب الأرقام..."}
                             </div>
-                         ) : (
+                        ) : (
                             <>
                                 <div className="flex justify-between items-center text-md">
                                     <span className="text-muted-foreground flex items-center gap-2"><DollarSign className="h-4 w-4"/> إجمالي المبيعات:</span> 
                                     <span className="font-mono font-semibold">{monthlyStats.totalSales.toLocaleString()}</span>
                                 </div>
-                                 <div className="flex justify-between items-center text-md">
+                                <div className="flex justify-between items-center text-md">
                                     <span className="text-muted-foreground flex items-center gap-2"><Coins className="h-4 w-4"/> إجمالي المصروفات:</span> 
                                     <span className="font-mono font-semibold text-red-600">{monthlyStats.totalExpenses.toLocaleString()}</span>
                                 </div>
@@ -229,9 +229,9 @@ export default function CloseMonthPage() {
                                     <span className="font-mono font-semibold text-red-600">{monthlyStats.totalDebts.toLocaleString()}</span>
                                 </div>
                             </>
-                         )}
+                        )}
                     </div>
-                     <div className="space-y-2 pt-4">
+                    <div className="space-y-2 pt-4">
                         <Label htmlFor="close-month-pin" className="text-base">رمز PIN للمدير للتأكيد</Label>
                         <Input 
                             id="close-month-pin" 
@@ -243,7 +243,7 @@ export default function CloseMonthPage() {
                     </div>
                 </CardContent>
                 <CardFooter>
-                     <Button 
+                    <Button 
                         variant="destructive" 
                         onClick={handleConfirmClose} 
                         disabled={isClosing || pin.length < 6 || !dateFrom || !dateTo}
@@ -285,7 +285,7 @@ export default function CloseMonthPage() {
             </Card>
             
             {loadingArchiveData ? (
-                 <div className="space-y-6 animate-in fade-in">
+                <div className="space-y-6 animate-in fade-in">
                     <div className="grid gap-4 md:grid-cols-3">
                         <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader> <CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
                         <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
@@ -299,10 +299,10 @@ export default function CloseMonthPage() {
             ) : archiveData ? (
                 <div className="space-y-6 animate-in fade-in">
                     <Card>
-                         <CardHeader>
+                        <CardHeader>
                             <CardTitle>ملخص الأداء المالي لشهر: {archiveData.month_name}</CardTitle>
-                         </CardHeader>
-                         <CardContent>
+                        </CardHeader>
+                        <CardContent>
                             <div className="grid gap-4 md:grid-cols-3">
                                 <Card>
                                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -329,7 +329,7 @@ export default function CloseMonthPage() {
                         </CardContent>
                     </Card>
                     <div className="grid gap-6 md:grid-cols-2">
-                         <Card>
+                        <Card>
                             <CardHeader><CardTitle>الأدوية الأكثر مبيعًا</CardTitle></CardHeader>
                             <CardContent>
                                 <Table>

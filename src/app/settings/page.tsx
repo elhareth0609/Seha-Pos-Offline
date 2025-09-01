@@ -288,6 +288,7 @@ export default function SettingsPage() {
                                 <div className="text-xs text-muted-foreground">{user.role === 'Admin' ? 'مدير' : 'موظف'}</div>
                             </Label>
                             <Switch
+                                dir='ltr'
                                 id={`pin-switch-${user.id}`}
                                 checked={user.require_pin_for_delete}
                                 onCheckedChange={(checked) => handlePinRequirementChange(user.id, checked)}
@@ -318,7 +319,7 @@ export default function SettingsPage() {
                                     هذا الإجراء لا يمكن التراجع عنه. سيؤدي هذا إلى حذف جميع بيانات هذه الصيدلية بشكل دائم، بما في ذلك المخزون والمبيعات والموظفين. لا يمكن استعادة هذه البيانات. سيتم تسجيل خروجك بعد العملية.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
-                            <AlertDialogFooter>
+                            <AlertDialogFooter className='sm:space-x-reverse'>
                                 <AlertDialogCancel>إلغاء</AlertDialogCancel>
                                 <AlertDialogAction onClick={handleClearData} className="bg-destructive hover:bg-destructive/90">نعم، امسح كل شيء</AlertDialogAction>
                             </AlertDialogFooter>

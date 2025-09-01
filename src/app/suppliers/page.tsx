@@ -414,7 +414,7 @@ export default function SuppliersPage() {
                                                     سيتم حذف هذا المورد نهائياً.
                                                 </AlertDialogDescription>
                                             </AlertDialogHeader>
-                                            <AlertDialogFooter>
+                                            <AlertDialogFooter className='sm:space-x-reverse'>
                                                 <AlertDialogCancel>إلغاء</AlertDialogCancel>
                                                 <AlertDialogAction onClick={handleDeleteSupplier} className="bg-destructive hover:bg-destructive/90">
                                                     نعم، قم بالحذف
@@ -564,7 +564,9 @@ export default function SuppliersPage() {
                                 onClick={() => item.items && item.items.length > 0 && toggleStatementRow(item.id)}
                                 className={cn(item.items && item.items.length > 0 && "cursor-pointer text-right")}
                             >
-                                <TableCell className="text-xs">{new Date(item.date).toLocaleDateString('ar-EG')}</TableCell>
+                                <TableCell className="text-xs text-right">
+                                    {new Date(item.date).toLocaleDateString('ar-EG')}
+                                </TableCell>
                                 <TableCell className="flex justify-between items-center">
                                     <div className="font-medium flex items-center gap-2">
                                         {item.items && item.items.length > 0 && (
@@ -574,9 +576,9 @@ export default function SuppliersPage() {
                                     </div>
                                     <div className="text-xs text-muted-foreground ps-6">{item.details}</div>
                                 </TableCell>
-                                <TableCell className="font-mono text-red-600">{item.debit > 0 ? item.debit.toLocaleString() : '-'}</TableCell>
-                                <TableCell className="font-mono text-green-600">{item.credit > 0 ? item.credit.toLocaleString() : '-'}</TableCell>
-                                <TableCell className="font-mono text-md">{item.balance.toLocaleString()}</TableCell>
+                                <TableCell className="font-mono text-red-600 text-right">{item.debit > 0 ? item.debit.toLocaleString() : '-'}</TableCell>
+                                <TableCell className="font-mono text-green-600 text-right">{item.credit > 0 ? item.credit.toLocaleString() : '-'}</TableCell>
+                                <TableCell className="font-mono text-md text-right">{item.balance.toLocaleString()}</TableCell>
                             </TableRow>
                             {expandedStatementRows.has(item.id) && item.items && item.items.length > 0 && (
                                 <TableRow className="bg-muted/50 text-right">

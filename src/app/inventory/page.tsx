@@ -658,7 +658,7 @@ export default function InventoryPage() {
                                                 سيتم حذف هذا الدواء. هذه العملية لا يمكن التراجع عنها.
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
-                                        <AlertDialogFooter>
+                                        <AlertDialogFooter className='sm:space-x-reverse'>
                                             <AlertDialogCancel>إلغاء</AlertDialogCancel>
                                             <AlertDialogAction onClick={handleDelete} className={buttonVariants({ variant: "destructive" })}>
                                                 نعم، قم بالحذف

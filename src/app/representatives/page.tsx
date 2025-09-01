@@ -28,7 +28,7 @@ export default function RepresentativesPage() {
             const params = new URLSearchParams({
                 page: String(page),
                 limit: '50', // Fetch 20 reps per page
-                ...(search && { name: search,status: 'active'})
+                ...(search && { name: search })
             });
 
             const response = await fetch(`${REPS_API_URL}?${params.toString()}`);
@@ -135,7 +135,7 @@ export default function RepresentativesPage() {
                                         </TableCell>
                                         <TableCell>{rep.office_name}</TableCell>
                                         <TableCell>{rep.city}</TableCell>
-                                        <TableCell className="font-mono text-left" dir="ltr">{rep.phone_number}</TableCell>
+                                        <TableCell className="font-mono text-right" dir="ltr">{rep.phone_number}</TableCell>
                                         {/* <TableCell>
                                             <Badge variant={rep.status === 'active' ? 'secondary' : 'destructive'} className={rep.status === 'active' ? 'bg-green-100 text-green-800' : ''}>
                                                 {rep.status === 'active' ? 'فعال' : 'محذوف'}

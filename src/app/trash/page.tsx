@@ -139,6 +139,7 @@ export default function TrashPage() {
                                     <div className="text-xs text-muted-foreground">{user.role === 'Admin' ? 'مدير' : 'موظف'}</div>
                                 </Label>
                                 <Switch
+                                    dir='ltr'
                                     id={`pin-switch-${user.id}`}
                                     checked={user.require_pin_for_delete}
                                     onCheckedChange={(checked) => handlePinRequirementChange(user.id, checked)}

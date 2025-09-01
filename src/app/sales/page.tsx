@@ -1255,7 +1255,7 @@ export default function SalesPage() {
                                           {saleIdToUpdate ? 'سيتم تجاهل جميع التغييرات التي قمت بها.' : 'سيتم حذف جميع الأصناف من السلة الحالية.'}
                                       </AlertDialogDescription>
                                   </AlertDialogHeader>
-                                  <AlertDialogFooter>
+                                  <AlertDialogFooter className='sm:space-x-reverse'>
                                       <AlertDialogCancel>تراجع</AlertDialogCancel>
                                       <AlertDialogAction onClick={() => closeInvoice(currentInvoiceIndex)} className={buttonVariants({ variant: "destructive" })}>نعم</AlertDialogAction>
                                   </AlertDialogFooter>
@@ -1277,7 +1277,7 @@ export default function SalesPage() {
                                           لا يمكن التراجع عن هذا الإجراء. سيتم إعادة كميات الأصناف المباعة إلى المخزون.
                                       </AlertDialogDescription>
                                   </AlertDialogHeader>
-                                  <AlertDialogFooter>
+                                  <AlertDialogFooter className='sm:space-x-reverse'>
                                       <AlertDialogCancel>تراجع</AlertDialogCancel>
                                       <AlertDialogAction onClick={handleDeleteCurrentSale} className={buttonVariants({ variant: "destructive" })}>نعم، قم بالحذف</AlertDialogAction>
                                   </AlertDialogFooter>
