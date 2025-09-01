@@ -489,7 +489,17 @@ const handleBackup = async () => {
                                 </SheetTrigger>
                                 <NotificationsSheet notifications={notifications} />
                             </Sheet>
-                             <ThemeToggle />
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-blue-500 hover:text-blue-600 hover:bg-blue-50" asChild>
+                                        <Link href="/support"><LifeBuoy className="h-5 w-5"/></Link>
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>الدعم الفني</p>
+                                </TooltipContent>
+                            </Tooltip>
+                            <ThemeToggle />
                         </div>
                     </div>
 
