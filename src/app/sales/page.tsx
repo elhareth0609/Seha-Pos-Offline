@@ -38,7 +38,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import {
   Alert,
@@ -63,7 +62,7 @@ import { calculateDose, type DoseCalculationInput } from "@/ai/flows/dose-calcul
 import { Skeleton } from "@/components/ui/skeleton"
 import { useOnlineStatus } from "@/hooks/use-online-status"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Tooltip, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import AdCarousel from "@/components/ui/ad-carousel"
 import { differenceInDays, parseISO, startOfToday } from "date-fns"
 import { Badge } from "@/components/ui/badge"
@@ -418,24 +417,7 @@ export default function SalesPage() {
         fetchInitialSales();
     }, [searchAllSales]);
 
-    const addToCart = React.useCallback((medication: Medication) => {
-        setAlternativeExpiryAlert(null); // Clear previous alert
-        
-        // Expiry check
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        if (medication.expiration_date && parseISO(medication.expiration_date) < today && mode !== 'return') {
-            toast({ variant: 'destructive', title: 'منتج منتهي الصلاحية', description: `لا يمكن بيع ${medication.name} لأنه منتهي الصلاحية.` });
-            return;
-        }
-
-        // Stock check
-        if (medication.stock <= 0 && mode !== 'return') {
-            toast({ variant: 'destructive', title: 'نفد من المخزون', description: `لا يمكن بيع ${medication.name} لأن الكمية 0.` });
-            return;
-        }
-
-        // Alternative expiry check
+    const checkAlternativeExpiry = React.useCallback((medication: Medication) => {
         if (medication.scientific_names && medication.scientific_names.length > 0) {
             const alternatives = allInventory.filter(med => 
                 med.id !== medication.id &&
@@ -444,8 +426,8 @@ export default function SalesPage() {
 
             let closerExpiryAlternative: Medication | null = null;
             for (const alt of alternatives) {
-                if (parseISO(alt.expiration_date) < parseISO(medication.expiration_date)) {
-                    if (!closerExpiryAlternative || parseISO(alt.expiration_date) < parseISO(closerExpiryAlternative.expiration_date)) {
+                 if (alt.expiration_date && medication.expiration_date && parseISO(alt.expiration_date) < parseISO(medication.expiration_date)) {
+                    if (!closerExpiryAlternative || (closerExpiryAlternative.expiration_date && parseISO(alt.expiration_date) < parseISO(closerExpiryAlternative.expiration_date))) {
                         closerExpiryAlternative = alt;
                     }
                 }
@@ -459,9 +441,29 @@ export default function SalesPage() {
                     read: false,
                     created_at: new Date().toISOString()
                 });
+                return; // Stop after finding the first one
             }
         }
+        // If no alternative found, or if the current alert is for a different item, clear it.
+        if (alternativeExpiryAlert?.data?.medicationId === medication.id) {
+             setAlternativeExpiryAlert(null);
+        }
+    }, [allInventory, alternativeExpiryAlert]);
 
+    const addToCart = React.useCallback((medication: Medication) => {
+        // Expiry check
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        if (medication.expiration_date && parseISO(medication.expiration_date) < today && mode !== 'return') {
+            toast({ variant: 'destructive', title: 'منتج منتهي الصلاحية', description: `لا يمكن بيع ${medication.name} لأنه منتهي الصلاحية.` });
+            return;
+        }
+
+        // Stock check
+        if (medication.stock <= 0 && mode !== 'return') {
+            toast({ variant: 'destructive', title: 'نفد من المخزون', description: `لا يمكن بيع ${medication.name} لأن الكمية 0.` });
+            return;
+        }
 
         updateActiveInvoice(invoice => {
             const existingItem = invoice.cart.find(item => item.id === medication.id && item.is_return === (mode === 'return'))
@@ -497,10 +499,12 @@ export default function SalesPage() {
                 }]
              }
         });
+        
+        checkAlternativeExpiry(medication);
 
         setSearchTerm("")
         setSuggestions([])
-    }, [mode, updateActiveInvoice, toast, allInventory])
+    }, [mode, updateActiveInvoice, toast, checkAlternativeExpiry])
   
   const handleScan = React.useCallback(async (result: string) => {
     const results = await searchAllInventory(result);
@@ -613,6 +617,9 @@ export default function SalesPage() {
         ...invoice,
         cart: invoice.cart.filter(item => !(item.id === id && item.is_return === isReturn))
     }));
+    if(alternativeExpiryAlert?.data?.medicationId === id) {
+        setAlternativeExpiryAlert(null);
+    }
   }
 
   const subtotal = cart.reduce((total, item) => {
@@ -702,6 +709,7 @@ export default function SalesPage() {
         setIsReceiptOpen(true);
         const latestSales = await searchAllSales();
         setSortedSales(latestSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        setAlternativeExpiryAlert(null);
     }
   }
 
@@ -945,7 +953,7 @@ export default function SalesPage() {
                                     const isBelowCost = (Number(item.price) || 0) < (Number(item.purchase_price) || 0);
                                     const alternatives = findAlternatives(item);
                                     return (
-                                        <div key={`${item.id}-${item.is_return}`} className={cn("flex flex-col gap-3 p-3", item.is_return && "bg-red-50 dark:bg-red-900/20")}>
+                                        <div key={`${item.id}-${item.is_return}`} className={cn("flex flex-col gap-3 p-3", item.is_return && "bg-red-50 dark:bg-red-900/20")} onClick={() => checkAlternativeExpiry(item as Medication)}>
                                             <div className="flex justify-between items-start gap-2">
                                                 <div className="flex-grow">
                                                     <div className="flex items-center gap-1 font-medium">
@@ -1039,7 +1047,7 @@ export default function SalesPage() {
                                     const alternatives = findAlternatives(item);
 
                                     return (
-                                        <TableRow key={`${item.id}-${item.is_return}`} className={cn(item.is_return && "bg-red-50 dark:bg-red-900/20")}>
+                                        <TableRow key={`${item.id}-${item.is_return}`} className={cn(item.is_return && "bg-red-50 dark:bg-red-900/20", "cursor-pointer")} onClick={() => checkAlternativeExpiry(item as Medication)}>
                                             <TableCell>
                                                 <div className="flex items-center gap-1">
                                                     <span className="font-medium">{item.name} {item.dosage} {item.dosage_form}</span>
@@ -1296,7 +1304,7 @@ export default function SalesPage() {
                                              <Label htmlFor="payment-credit" className="flex items-center justify-center gap-2 cursor-pointer rounded-md border p-3 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
                                                 <RadioGroupItem value="credit" id="payment-credit" />
                                                 آجل (دين)
-                                            </Label>
+                                             </Label>
                                         </RadioGroup>
                                   </div>
                                   <DialogFooter>
@@ -1325,7 +1333,10 @@ export default function SalesPage() {
                                   </DialogHeader>
                                   <AlertDialogFooter>
                                       <AlertDialogCancel>تراجع</AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => closeInvoice(currentInvoiceIndex)} className={buttonVariants({ variant: "destructive" })}>نعم</AlertDialogAction>
+                                      <AlertDialogAction onClick={() => {
+                                          closeInvoice(currentInvoiceIndex);
+                                          setAlternativeExpiryAlert(null);
+                                      }} className={buttonVariants({ variant: "destructive" })}>نعم</AlertDialogAction>
                                   </AlertDialogFooter>
                               </AlertDialogContent>
                          </AlertDialog>
@@ -1395,5 +1406,3 @@ export default function SalesPage() {
     </>
   )
 }
-
-    
