@@ -36,6 +36,7 @@ import {
   DollarSign,
   Receipt,
   UserCog,
+  LifeBuoy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -93,6 +94,7 @@ const allNavItems = [
   { href: "/close-month", icon: FileArchive, label: "الحسابات الختامية", group: 'admin' },
   { href: "/settings", icon: Settings, label: "الإعدادات", group: 'admin' },
   { href: "/guide", icon: HelpCircle, label: "دليل الاستخدام", group: 'admin' },
+  { href: "/support", icon: LifeBuoy, label: "الدعم الفني", group: 'admin' },
 ];
 
 const navGroups = [
@@ -320,6 +322,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         manage_order_requests: false,
         manage_offers: true,
         manage_hr: false,
+        manage_support: true,
     };
 
     const permissionMap: { [key: string]: keyof UserPermissions } = {
@@ -340,6 +343,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         '/order-requests': 'manage_order_requests',
         '/offers': 'manage_offers',
         '/hr': 'manage_hr',
+        '/support': 'manage_support',
     };
 
     return allNavItems.filter(item => {

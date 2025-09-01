@@ -2,6 +2,17 @@
 
 import { z } from 'zod';
 
+export type SupportRequest = {
+    id: string;
+    pharmacy_id: string;
+    pharmacy_name: string;
+    phone_number: string;
+    problem_section: string;
+    contact_time: string;
+    status: 'new' | 'contacted';
+    created_at: string;
+};
+
 export type UserPermissions = {
     manage_sales: boolean;
     manage_inventory: boolean;
@@ -24,6 +35,7 @@ export type UserPermissions = {
     manage_order_requests: boolean;
     manage_offers: boolean;
     manage_hr: boolean;
+    manage_support: boolean;
 };
 
 export type Notification = {
