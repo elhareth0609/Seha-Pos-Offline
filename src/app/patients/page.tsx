@@ -49,6 +49,7 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
+    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useAuth } from "@/hooks/use-auth"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -181,7 +182,7 @@ export default function PatientsPage() {
   
   const patientDebts = React.useMemo(() => {
     const debts: { [patientId: string]: number } = {};
-    if (!sales || !allPayments || !allPayments.patientPayments) {
+    if (!sales || !allPayments) {
         return debts;
     }
 
@@ -191,11 +192,13 @@ export default function PatientsPage() {
         }
     });
 
-    allPayments.patientPayments.forEach(payment => {
-        if (debts[payment.patient_id]) {
-            debts[payment.patient_id] -= payment.amount;
-        }
-    });
+    if (allPayments.patientPayments) {
+        allPayments.patientPayments.forEach(payment => {
+            if (debts[payment.patient_id]) {
+                debts[payment.patient_id] -= payment.amount;
+            }
+        });
+    }
     return debts;
   }, [sales, allPayments]);
 
