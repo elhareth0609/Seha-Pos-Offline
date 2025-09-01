@@ -38,6 +38,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import {
   Alert,
@@ -1225,30 +1226,30 @@ export default function SalesPage() {
                       </div>
                   </CardContent>
                   <CardFooter className="flex flex-col items-stretch gap-2">
-                      <div className="flex gap-2">
-                            <Dialog open={isDosingAssistantOpen} onOpenChange={setIsDosingAssistantOpen}>
-                                <DialogTrigger asChild>
-                                    <Button size="icon" variant="outline" className="relative" disabled={!isOnline || cart.length === 0} aria-label="مساعد الجرعات">
-                                        <Thermometer />
-                                        {isOnline ? (
-                                            <Wifi className="absolute top-1 right-1 h-3 w-3 text-green-500" />
-                                        ) : (
-                                            <WifiOff className="absolute top-1 right-1 h-3 w-3 text-muted-foreground" />
-                                        )}
-                                    </Button>
-                                </DialogTrigger>
-                                <DosingAssistant cartItems={cart} />
-                            </Dialog>
-                             <Dialog>
-                                 <DialogTrigger asChild>
-                                     <Button variant="outline" size="icon">
-                                         <Calculator />
-                                     </Button>
-                                 </DialogTrigger>
-                                 <DialogContent className="w-auto p-0 border-0 bg-transparent shadow-none">
-                                      <CalculatorComponent />
-                                 </DialogContent>
-                             </Dialog>
+                       <div className="flex items-center gap-2">
+                          <Dialog open={isDosingAssistantOpen} onOpenChange={setIsDosingAssistantOpen}>
+                              <DialogTrigger asChild>
+                                  <Button size="icon" variant="outline" className="relative" disabled={!isOnline || cart.length === 0} aria-label="مساعد الجرعات">
+                                      <Thermometer />
+                                      {isOnline ? (
+                                          <Wifi className="absolute top-1 right-1 h-3 w-3 text-green-500" />
+                                      ) : (
+                                          <WifiOff className="absolute top-1 right-1 h-3 w-3 text-muted-foreground" />
+                                      )}
+                                  </Button>
+                              </DialogTrigger>
+                              <DosingAssistant cartItems={cart} />
+                          </Dialog>
+                           <Dialog>
+                               <DialogTrigger asChild>
+                                   <Button variant="outline" size="icon">
+                                       <Calculator />
+                                   </Button>
+                               </DialogTrigger>
+                               <DialogContent className="w-auto p-0 border-0 bg-transparent shadow-none">
+                                    <CalculatorComponent />
+                               </DialogContent>
+                           </Dialog>
                           <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
                               <DialogTrigger asChild>
                                   <Button size="lg" className="flex-1" onClick={handleCheckout} disabled={cart.length === 0} variant={saleIdToUpdate ? 'default' : 'success'}>
