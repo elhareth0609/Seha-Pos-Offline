@@ -418,36 +418,6 @@ export default function SalesPage() {
         fetchInitialSales();
     }, [searchAllSales]);
 
-    const checkAlternativeExpiry = React.useCallback((medication: Medication) => {
-        if (medication.scientific_names && medication.scientific_names.length > 0) {
-            const alternatives = allInventory.filter(med => 
-                med.id !== medication.id &&
-                med.scientific_names?.some(scName => medication.scientific_names!.includes(scName))
-            );
-
-            let closerExpiryAlternative: Medication | null = null;
-            for (const alt of alternatives) {
-                 if (alt.expiration_date && medication.expiration_date && parseISO(alt.expiration_date) < parseISO(medication.expiration_date)) {
-                    if (!closerExpiryAlternative || (closerExpiryAlternative.expiration_date && parseISO(alt.expiration_date) < parseISO(closerExpiryAlternative.expiration_date))) {
-                        closerExpiryAlternative = alt;
-                    }
-                }
-            }
-            if (closerExpiryAlternative) {
-                 setAlternativeExpiryAlert({
-                    id: `alt_expiry_${medication.id}`,
-                    type: 'alternative_expiry',
-                    message: `تنبيه: يوجد بديل (${closerExpiryAlternative.name}) بتاريخ انتهاء أقرب. يُنصح ببيعه أولاً.`,
-                    data: { medicationId: medication.id, alternativeId: closerExpiryAlternative.id },
-                    read: false,
-                    created_at: new Date().toISOString()
-                });
-                return;
-            }
-        }
-        setAlternativeExpiryAlert(null);
-    }, [allInventory]);
-
     const addToCart = React.useCallback((medication: Medication) => {
         // Expiry check
         const today = new Date();
@@ -497,12 +467,65 @@ export default function SalesPage() {
                 }]
              }
         });
-        
-        checkAlternativeExpiry(medication);
 
         setSearchTerm("")
         setSuggestions([])
-    }, [mode, updateActiveInvoice, toast, checkAlternativeExpiry])
+    }, [mode, updateActiveInvoice, toast])
+
+    const checkAlternativeExpiry = React.useCallback((medication: Medication) => {
+        if (!medication.scientific_names || medication.scientific_names.length === 0) {
+            setAlternativeExpiryAlert(null);
+            return;
+        }
+    
+        const alternatives = allInventory.filter(med => 
+            med.id !== medication.id &&
+            med.scientific_names?.some(scName => medication.scientific_names!.includes(scName))
+        );
+    
+        let closerExpiryAlternative: Medication | null = null;
+        for (const alt of alternatives) {
+             if (alt.expiration_date && medication.expiration_date && parseISO(alt.expiration_date) < parseISO(medication.expiration_date)) {
+                if (!closerExpiryAlternative || (closerExpiryAlternative.expiration_date && parseISO(alt.expiration_date) < parseISO(closerExpiryAlternative.expiration_date))) {
+                    closerExpiryAlternative = alt;
+                }
+            }
+        }
+        
+        if (closerExpiryAlternative) {
+             setAlternativeExpiryAlert({
+                id: `alt_expiry_${medication.id}`,
+                type: 'alternative_expiry',
+                message: `تنبيه: يوجد بديل (${closerExpiryAlternative.name}) بتاريخ انتهاء أقرب. يُنصح ببيعه أولاً.`,
+                data: { originalMedication: medication, alternativeMedication: closerExpiryAlternative },
+                read: false,
+                created_at: new Date().toISOString()
+            });
+        } else {
+            setAlternativeExpiryAlert(null);
+        }
+    }, [allInventory]);
+    
+    const removeFromCart = React.useCallback((id: string, isReturn: boolean | undefined) => {
+        updateActiveInvoice(invoice => ({
+            ...invoice,
+            cart: invoice.cart.filter(item => !(item.id === id && item.is_return === isReturn))
+        }));
+        if(alternativeExpiryAlert?.data?.originalMedication?.id === id) {
+            setAlternativeExpiryAlert(null);
+        }
+    }, [updateActiveInvoice, alternativeExpiryAlert]);
+
+    const handleSwapAndAddToCart = () => {
+        if (!alternativeExpiryAlert || !alternativeExpiryAlert.data) return;
+        const { originalMedication, alternativeMedication } = alternativeExpiryAlert.data;
+
+        if (originalMedication && alternativeMedication) {
+            removeFromCart(originalMedication.id, false);
+            addToCart(alternativeMedication as Medication);
+            setAlternativeExpiryAlert(null);
+        }
+    };
   
   const handleScan = React.useCallback(async (result: string) => {
     const results = await searchAllInventory(result);
@@ -618,16 +641,6 @@ export default function SalesPage() {
         })
     }));
   };
-
-  const removeFromCart = (id: string, isReturn: boolean | undefined) => {
-    updateActiveInvoice(invoice => ({
-        ...invoice,
-        cart: invoice.cart.filter(item => !(item.id === id && item.is_return === isReturn))
-    }));
-    if(alternativeExpiryAlert?.data?.medicationId === id) {
-        setAlternativeExpiryAlert(null);
-    }
-  }
 
   const subtotal = cart.reduce((total, item) => {
       const itemTotal = (item.price || 0) * (item.quantity || 0);
@@ -942,10 +955,13 @@ export default function SalesPage() {
                      {alternativeExpiryAlert && (
                         <Alert variant="default" className="m-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 border-yellow-400">
                             <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                            <AlertTitle className="text-yellow-800 dark:text-yellow-300">تنبيه</AlertTitle>
-                            <AlertDescription className="text-yellow-700 dark:text-yellow-400">
-                                {alternativeExpiryAlert.message}
-                                <Button variant="link" className="p-0 h-auto ms-2 text-yellow-700 dark:text-yellow-400" onClick={() => setAlternativeExpiryAlert(null)}>إخفاء</Button>
+                            <AlertTitle className="text-yellow-800 dark:text-yellow-300">تنبيه بديل</AlertTitle>
+                            <AlertDescription className="text-yellow-700 dark:text-yellow-400 flex items-center justify-between">
+                                <span>{alternativeExpiryAlert.message}</span>
+                                <div>
+                                    <Button variant="ghost" size="sm" className="text-yellow-700 dark:text-yellow-400 hover:bg-yellow-200" onClick={handleSwapAndAddToCart}>استبدال وإضافة</Button>
+                                    <Button variant="link" className="p-0 h-auto ms-2 text-yellow-700 dark:text-yellow-400" onClick={() => setAlternativeExpiryAlert(null)}>إخفاء</Button>
+                                </div>
                             </AlertDescription>
                         </Alert>
                     )}
@@ -1324,7 +1340,7 @@ export default function SalesPage() {
                           </Dialog>
                       </div>
                       {activeInvoices.length === 1 && activeInvoice.cart.length > 0 && (
-                         <AlertDialog>
+                          <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button variant="outline" className="w-full" disabled={cart.length === 0}>
                                     <X className="me-2"/>
@@ -1346,7 +1362,7 @@ export default function SalesPage() {
                                     }} className={buttonVariants({ variant: "destructive" })}>نعم</AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
-                         </AlertDialog>
+                          </AlertDialog>
                       )}
                       {saleIdToUpdate && canManagePreviousSales && (
                          <AlertDialog>
