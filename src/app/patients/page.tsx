@@ -414,7 +414,7 @@ export default function PatientsPage() {
                             </div>
                         </div>
                         <DialogFooter>
-                            <DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose>
+                            <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
                             <Button type="submit" variant="success">حفظ التغييرات</Button>
                         </DialogFooter>
                     </form>
@@ -424,5 +424,4 @@ export default function PatientsPage() {
     </Card>
   )
 }
-
     

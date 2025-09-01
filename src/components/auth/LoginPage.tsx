@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { LogIn, PackagePlus, ShieldAlert } from 'lucide-react';
+import { LogIn, ShieldAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
 
@@ -69,20 +69,6 @@ export default function LoginPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const user = await login(email, pin);
-        // if (user) {
-        //      if (user.role === 'SuperAdmin') {
-        //         router.push('/superadmin');
-        //     } else {
-        //         router.push('/');
-        //     }
-        // } else {
-        //     toast({
-        //         variant: 'destructive',
-        //         title: 'بيانات الدخول غير صحيحة',
-        //         description: 'الرجاء التأكد من البريد الإلكتروني ورمز PIN أو أن الحساب فعال.'
-        //     });
-        //     setPin('');
-        // }
     };
 
     return (
