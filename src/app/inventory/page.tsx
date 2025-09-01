@@ -51,7 +51,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
 import type { Medication, AppSettings } from "@/lib/types"
-import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package, Plus, X, Filter, ShoppingBasket } from "lucide-react"
+import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package, Plus, X, Filter, ShoppingBasket, Percent } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import Barcode from '@/components/ui/barcode';
@@ -74,6 +74,8 @@ const fileToDataUri = (file: File): Promise<string> => {
         reader.readAsDataURL(file);
     });
 };
+
+type MedFormData = Partial<Medication> & { profit_margin?: number };
 
 export default function InventoryPage() {
   const { 
@@ -100,14 +102,14 @@ export default function InventoryPage() {
   const [filterDosageForm, setFilterDosageForm] = React.useState<string>("all");
   const [filterExpirationStatus, setFilterExpirationStatus] = React.useState<string>("all");
   
-  const [editingMed, setEditingMed] = React.useState<Medication | null>(null);
+  const [editingMed, setEditingMed] = React.useState<MedFormData | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
-  const [newMed, setNewMed] = React.useState<Partial<Medication>>({
-    id: '', name: '', scientific_names: [], barcodes: [], stock: 0,
+  const [newMed, setNewMed] = React.useState<MedFormData>({
+    id: '', name: '', barcodes: [], scientific_names: [], stock: 0,
     reorder_point: 10, price: 0, purchase_price: 0, expiration_date: '',
-    dosage: '', dosage_form: '', image_url: ''
+    dosage: '', dosage_form: '', image_url: '', profit_margin: 0,
   });
   
   const [addImageFile, setAddImageFile] = React.useState<File | null>(null);
@@ -229,8 +231,45 @@ export default function InventoryPage() {
       }
   };
   
+    const calculateProfitMargin = (purchasePrice: number, sellPrice: number) => {
+        if (!purchasePrice || purchasePrice <= 0) return 0;
+        return ((sellPrice - purchasePrice) / purchasePrice) * 100;
+    };
+
+    const calculateSellPrice = (purchasePrice: number, margin: number) => {
+        if (!purchasePrice || purchasePrice <= 0) return 0;
+        return purchasePrice * (1 + margin / 100);
+    };
+
+    const handlePriceChange = (setter: React.Dispatch<React.SetStateAction<MedFormData | null>>, name: 'price' | 'profit_margin' | 'purchase_price', value: string) => {
+        const numericValue = parseFloat(value) || 0;
+        setter(prev => {
+            if (!prev) return null;
+            let { purchase_price = 0, price = 0, profit_margin = 0 } = prev;
+
+            if (name === 'price') {
+                price = numericValue;
+                profit_margin = calculateProfitMargin(purchase_price, price);
+            } else if (name === 'profit_margin') {
+                profit_margin = numericValue;
+                price = calculateSellPrice(purchase_price, profit_margin);
+            } else if (name === 'purchase_price') {
+                purchase_price = numericValue;
+                if (price > 0) { // Recalculate profit if sell price is already set
+                    profit_margin = calculateProfitMargin(purchase_price, price);
+                } else if (profit_margin > 0) { // Recalculate sell price if margin is set
+                    price = calculateSellPrice(purchase_price, profit_margin);
+                }
+            }
+            return { ...prev, purchase_price, price, profit_margin };
+        });
+    };
+  
   const openEditModal = (med: Medication) => {
-      setEditingMed(med);
+      setEditingMed({
+          ...med,
+          profit_margin: calculateProfitMargin(med.purchase_price, med.price)
+      });
       setEditImagePreview(med.image_url || '');
       setIsEditModalOpen(true);
   }
@@ -238,39 +277,28 @@ export default function InventoryPage() {
   const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       if (!editingMed) return;
-      const formData = new FormData(e.currentTarget);
       
       let image_url = editingMed.image_url || '';
       if (editImageFile) {
           image_url = await fileToDataUri(editImageFile);
       }
-      
-       const scientific_namesArray = (formData.get('scientific_names') as string)
-            .split(',')
-            .map(name => name.trim())
-            .filter(Boolean);
-      
-      const barcodesArray = (formData.get('barcodes') as string)
-            .split(',')
-            .map(bc => bc.trim())
-            .filter(Boolean);
 
       const updatedMedData: Partial<Medication> = {
-          id: editingMed.id as string,
-          barcodes: barcodesArray,
-          name: formData.get('name') as string,
-          scientific_names: scientific_namesArray,
-          stock: parseInt(formData.get('stock') as string, 10),
-          reorder_point: parseInt(formData.get('reorder_point') as string, 10),
-          price: parseFloat(formData.get('price') as string),
-          purchase_price: parseFloat(formData.get('purchase_price') as string),
-          expiration_date: formData.get('expiration_date') as string,
-          dosage: formData.get('dosage') as string,
-          dosage_form: formData.get('dosage_form') as string,
+          id: editingMed.id,
+          barcodes: editingMed.barcodes,
+          name: editingMed.name,
+          scientific_names: editingMed.scientific_names,
+          stock: editingMed.stock,
+          reorder_point: editingMed.reorder_point,
+          price: editingMed.price,
+          purchase_price: editingMed.purchase_price,
+          expiration_date: editingMed.expiration_date,
+          dosage: editingMed.dosage,
+          dosage_form: editingMed.dosage_form,
           image_url: image_url
       }
       
-      const success = await updateMedication(editingMed.id, updatedMedData);
+      const success = await updateMedication(editingMed.id!, updatedMedData);
       if (success) {
         setIsEditModalOpen(false);
         setEditingMed(null);
@@ -288,7 +316,7 @@ export default function InventoryPage() {
     setNewMed({
       id: '', name: '', barcodes: [], scientific_names: [], stock: 0,
       reorder_point: 10, price: 0, purchase_price: 0, expiration_date: '',
-      dosage: '', dosage_form: '', image_url: ''
+      dosage: '', dosage_form: '', image_url: '', profit_margin: 0
     });
     setAddImageFile(null);
     setAddImagePreview('');
@@ -297,38 +325,19 @@ export default function InventoryPage() {
   
   const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
     
     let image_url = newMed.image_url || '';
     if (addImageFile) {
         image_url = await fileToDataUri(addImageFile);
     }
     
-    const scientific_namesArray = (formData.get('scientific_names') as string)
-         .split(',')
-         .map(name => name.trim())
-         .filter(Boolean);
-
-    const barcodesArray = (formData.get('barcodes') as string)
-         .split(',')
-         .map(bc => bc.trim())
-         .filter(Boolean);
+    const { profit_margin, ...newMedData } = newMed;
+    const finalMedData = {
+        ...newMedData,
+        image_url
+    }
     
-    const newMedData: Partial<Medication> = {
-        barcodes: barcodesArray,
-        name: formData.get('name') as string,
-        scientific_names: scientific_namesArray,
-        stock: parseInt(formData.get('stock') as string, 10),
-        reorder_point: parseInt(formData.get('reorder_point') as string, 10),
-        price: parseFloat(formData.get('price') as string),
-        purchase_price: parseFloat(formData.get('purchase_price') as string),
-        expiration_date: formData.get('expiration_date') as string,
-        dosage: formData.get('dosage') as string,
-        dosage_form: formData.get('dosage_form') as string,
-        image_url: image_url,
-    };
-    
-    const success = await addMedication(newMedData);
+    const success = await addMedication(finalMedData);
     if (success) {
       setIsAddModalOpen(false);
       setAddImageFile(null);
@@ -708,30 +717,27 @@ export default function InventoryPage() {
       </Card>
       
       {/* Edit Medication Dialog */}
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <Dialog open={isEditModalOpen} onOpenChange={(open) => { setIsEditModalOpen(open); if (!open) setEditingMed(null); }}>
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>تعديل بيانات الدواء</DialogTitle>
-                    <DialogDescription>
-                        قم بتحديث تفاصيل الدواء.
-                    </DialogDescription>
                 </DialogHeader>
                   {editingMed && (
                       <form onSubmit={handleUpdate} className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-2">
                                   <Label htmlFor="edit-barcodes">الباركود (يفصل بفاصلة ,)</Label>
-                                  <Input id="edit-barcodes" name="barcodes" defaultValue={editingMed.barcodes?.join(', ')} required />
+                                  <Input id="edit-barcodes" value={editingMed.barcodes?.join(', ')} onChange={e => setEditingMed(p => p ? {...p, barcodes: e.target.value.split(',').map(s => s.trim())} : null)} required />
                               </div>
                               <div className="space-y-2">
                                   <Label htmlFor="edit-name">الاسم التجاري</Label>
-                                  <Input id="edit-name" name="name" defaultValue={editingMed.name} required />
+                                  <Input id="edit-name" value={editingMed.name} onChange={e => setEditingMed(p => p ? {...p, name: e.target.value} : null)} required />
                               </div>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-2">
                                   <Label htmlFor="edit-scientific_names">الاسم العلمي (يفصل بفاصلة ,)</Label>
-                                  <Input id="edit-scientific_names" name="scientific_names" defaultValue={editingMed.scientific_names?.join(', ')} />
+                                  <Input id="edit-scientific_names" value={editingMed.scientific_names?.join(', ')}  onChange={e => setEditingMed(p => p ? {...p, scientific_names: e.target.value.split(',').map(s => s.trim())} : null)} />
                               </div>
                               <div className="space-y-2">
                                   <Label htmlFor="edit-image_url">صورة الدواء</Label>
@@ -751,11 +757,11 @@ export default function InventoryPage() {
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                               <div className="space-y-2">
                                 <Label htmlFor="edit-dosage">الجرعة</Label>
-                                <Input id="edit-dosage" name="dosage" defaultValue={editingMed.dosage} />
+                                <Input id="edit-dosage" value={editingMed.dosage} onChange={e => setEditingMed(p => p ? {...p, dosage: e.target.value} : null)} />
                               </div>
                               <div className="space-y-2">
                                   <Label htmlFor="edit-dosage_form">الشكل الدوائي</Label>
-                                  <Select name="dosage_form" defaultValue={editingMed.dosage_form}>
+                                  <Select value={editingMed.dosage_form} onValueChange={val => setEditingMed(p => p ? {...p, dosage_form: val} : null)}>
                                       <SelectTrigger id="edit-dosage_form">
                                         <SelectValue placeholder="اختر الشكل" />
                                       </SelectTrigger>
@@ -766,33 +772,36 @@ export default function InventoryPage() {
                               </div>
                               <div className="space-y-2">
                                 <Label htmlFor="edit-stock">رصيد المخزون</Label>
-                                <Input id="edit-stock" name="stock" type="number" defaultValue={editingMed.stock} required />
+                                <Input id="edit-stock" type="number" value={editingMed.stock} onChange={e => setEditingMed(p => p ? {...p, stock: parseInt(e.target.value)} : null)} required />
                               </div>
                               <div className="space-y-2">
                                   <Label htmlFor="edit-reorder_point">نقطة إعادة الطلب</Label>
-                                  <Input id="edit-reorder_point" name="reorder_point" type="number" defaultValue={editingMed.reorder_point} required />
+                                  <Input id="edit-reorder_point" type="number" value={editingMed.reorder_point} onChange={e => setEditingMed(p => p ? {...p, reorder_point: parseInt(e.target.value)} : null)} required />
                               </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="edit-purchase_price">سعر الشراء</Label>
-                                <Input id="edit-purchase_price" name="purchase_price" type="number" step="1" defaultValue={editingMed.purchase_price} required />
-                              </div>
-                              <div className="space-y-2">
-                                  <Label htmlFor="edit-price">سعر البيع</Label>
-                                  <Input id="edit-price" name="price" type="number" step="1" defaultValue={editingMed.price} required />
-                              </div>
-                          </div>
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>سعر الشراء</Label>
+                                    <Input type="number" value={editingMed.purchase_price} onChange={e => handlePriceChange(setEditingMed, 'purchase_price', e.target.value)} required />
+                                </div>
+                                <div className="flex items-end gap-2">
+                                    <div className="space-y-2 flex-grow">
+                                        <Label>سعر البيع</Label>
+                                        <Input type="number" value={editingMed.price} onChange={e => handlePriceChange(setEditingMed, 'price', e.target.value)} required />
+                                    </div>
+                                    <div className="space-y-2 w-24">
+                                        <Label>النسبة %</Label>
+                                        <div className="relative">
+                                            <Input type="number" value={editingMed.profit_margin?.toFixed(0)} onChange={e => handlePriceChange(setEditingMed, 'profit_margin', e.target.value)} className="pe-7" />
+                                            <Percent className="absolute top-1/2 -translate-y-1/2 start-1.5 h-4 w-4 text-muted-foreground" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                           <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
                                   <Label htmlFor="edit-expiration_date">تاريخ الانتهاء</Label>
-                                  <Input
-                                    id="edit-expiration_date"
-                                    name="expiration_date"
-                                    type="date"
-                                    defaultValue={editingMed.expiration_date ? new Date(editingMed.expiration_date).toISOString().split('T')[0] : ''}
-                                    required
-                                  />
+                                  <Input id="edit-expiration_date" type="date" value={editingMed.expiration_date ? new Date(editingMed.expiration_date).toISOString().split('T')[0] : ''} onChange={e => setEditingMed(p => p ? {...p, expiration_date: e.target.value} : null)} required />
                               </div>
                           </div>
                           <DialogFooter>
@@ -817,17 +826,17 @@ export default function InventoryPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="add-barcodes">الباركود (يفصل بفاصلة ,)</Label>
-                            <Input id="add-barcodes" name="barcodes" defaultValue={newMed.barcodes?.join(', ')} />
+                            <Input id="add-barcodes" value={newMed.barcodes?.join(', ')} onChange={e => setNewMed(p => ({...p, barcodes: e.target.value.split(',').map(s => s.trim())}))} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="add-name">الاسم التجاري</Label>
-                            <Input id="add-name" name="name" defaultValue={newMed.name} required />
+                            <Input id="add-name" value={newMed.name} onChange={e => setNewMed(p => ({...p, name: e.target.value}))} required />
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="add-scientific_names">الاسم العلمي (يفصل بفاصلة ,)</Label>
-                            <Input id="add-scientific_names" name="scientific_names" defaultValue={newMed.scientific_names?.join(', ')} />
+                            <Input id="add-scientific_names" value={newMed.scientific_names?.join(', ')} onChange={e => setNewMed(p => ({...p, scientific_names: e.target.value.split(',').map(s => s.trim())}))} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="add-image_url">صورة الدواء</Label>
@@ -847,11 +856,11 @@ export default function InventoryPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="add-dosage">الجرعة</Label>
-                            <Input id="add-dosage" name="dosage" defaultValue={newMed.dosage} />
+                            <Input id="add-dosage" value={newMed.dosage} onChange={e => setNewMed(p => ({...p, dosage: e.target.value}))} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="add-dosage_form">الشكل الدوائي</Label>
-                            <Select name="dosage_form" defaultValue={newMed.dosage_form}>
+                            <Select value={newMed.dosage_form} onValueChange={val => setNewMed(p => ({...p, dosage_form: val}))}>
                                 <SelectTrigger id="add-dosage_form">
                                   <SelectValue placeholder="اختر الشكل" />
                                 </SelectTrigger>
@@ -862,27 +871,36 @@ export default function InventoryPage() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="add-stock">رصيد المخزون</Label>
-                            <Input id="add-stock" name="stock" type="number" defaultValue={1} required />
+                            <Input id="add-stock" type="number" value={newMed.stock} onChange={e => setNewMed(p => ({...p, stock: parseInt(e.target.value)}))} required />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="add-reorder_point">نقطة إعادة الطلب</Label>
-                            <Input id="add-reorder_point" name="reorder_point" type="number" defaultValue={newMed.reorder_point} required />
+                            <Input id="add-reorder_point" type="number" value={newMed.reorder_point} onChange={e => setNewMed(p => ({...p, reorder_point: parseInt(e.target.value)}))} required />
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="add-purchase_price">سعر الشراء</Label>
-                            <Input id="add-purchase_price" name="purchase_price" type="number" step="1" defaultValue={newMed.purchase_price} required />
+                            <Label>سعر الشراء</Label>
+                            <Input type="number" value={newMed.purchase_price} onChange={e => handlePriceChange(setNewMed, 'purchase_price', e.target.value)} required />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="add-price">سعر البيع</Label>
-                            <Input id="add-price" name="price" type="number" step="1" defaultValue={newMed.price} required />
+                        <div className="flex items-end gap-2">
+                            <div className="space-y-2 flex-grow">
+                                <Label>سعر البيع</Label>
+                                <Input type="number" value={newMed.price} onChange={e => handlePriceChange(setNewMed, 'price', e.target.value)} required />
+                            </div>
+                            <div className="space-y-2 w-24">
+                                <Label>النسبة %</Label>
+                                <div className="relative">
+                                    <Input type="number" value={newMed.profit_margin?.toFixed(0)} onChange={e => handlePriceChange(setNewMed, 'profit_margin', e.target.value)} className="pe-7" />
+                                    <Percent className="absolute top-1/2 -translate-y-1/2 start-1.5 h-4 w-4 text-muted-foreground" />
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="add-expiration_date">تاريخ الانتهاء</Label>
-                            <Input id="add-expiration_date" name="expiration_date" type="date" defaultValue={newMed.expiration_date} required />
+                            <Input id="add-expiration_date" type="date" value={newMed.expiration_date} onChange={e => setNewMed(p => ({...p, expiration_date: e.target.value}))} required />
                         </div>
                     </div>
                     <DialogFooter>

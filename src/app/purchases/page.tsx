@@ -42,7 +42,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import type { PurchaseOrder, Medication, Supplier, ReturnOrder, PurchaseOrderItem, ReturnOrderItem, PaginatedResponse } from "@/lib/types"
-import { PlusCircle, ChevronDown, Trash2, X, Pencil } from "lucide-react"
+import { PlusCircle, ChevronDown, Trash2, X, Pencil, Percent } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -58,6 +58,8 @@ const fileToDataUri = (file: File): Promise<string> => {
 };
 
 const dosage_forms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion"];
+
+type PurchaseItemFormData = Partial<PurchaseOrderItem> & { profit_margin?: number };
 
 export default function PurchasesPage() {
   const { toast } = useToast()
@@ -125,18 +127,51 @@ export default function PurchasesPage() {
 
   // State for modal to add a completely new medication
   const [isAddNewMedModalOpen, setIsAddNewMedModalOpen] = React.useState(false);
-  const [newMedData, setNewMedData] = React.useState<Partial<PurchaseOrderItem>>({
+  const [newMedData, setNewMedData] = React.useState<PurchaseItemFormData>({
       barcodes: [], scientific_names: [], stock: 0, reorder_point: 10,
       price: 0, purchase_price: 0, expiration_date: '',
-      dosage: '', dosage_form: '', image_url: ''
+      dosage: '', dosage_form: '', image_url: '', profit_margin: 0
   });
   const [newMedImageFile, setNewMedImageFile] = React.useState<File | null>(null);
   const [newMedImagePreview, setNewMedImagePreview] = React.useState<string | null>(null);
   
   // State for editing purchase item
-  const [editingPurchaseItem, setEditingPurchaseItem] = React.useState<PurchaseOrderItem | null>(null);
+  const [editingPurchaseItem, setEditingPurchaseItem] = React.useState<PurchaseItemFormData | null>(null);
   const [isEditItemOpen, setIsEditItemOpen] = React.useState(false);
 
+    const calculateProfitMargin = (purchasePrice: number, sellPrice: number) => {
+        if (!purchasePrice || purchasePrice <= 0) return 0;
+        return ((sellPrice - purchasePrice) / purchasePrice) * 100;
+    };
+
+    const calculateSellPrice = (purchasePrice: number, margin: number) => {
+        if (!purchasePrice || purchasePrice <= 0) return 0;
+        return purchasePrice * (1 + margin / 100);
+    };
+
+    const handlePriceChange = (setter: React.Dispatch<React.SetStateAction<PurchaseItemFormData | null>>, name: 'price' | 'profit_margin' | 'purchase_price', value: string) => {
+        const numericValue = parseFloat(value) || 0;
+        setter(prev => {
+            if (!prev) return null;
+            let { purchase_price = 0, price = 0, profit_margin = 0 } = prev;
+
+            if (name === 'price') {
+                price = numericValue;
+                profit_margin = calculateProfitMargin(purchase_price, price);
+            } else if (name === 'profit_margin') {
+                profit_margin = numericValue;
+                price = calculateSellPrice(purchase_price, profit_margin);
+            } else if (name === 'purchase_price') {
+                purchase_price = numericValue;
+                if (price > 0) { 
+                    profit_margin = calculateProfitMargin(purchase_price, price);
+                } else if (profit_margin > 0) {
+                    price = calculateSellPrice(purchase_price, profit_margin);
+                }
+            }
+            return { ...prev, purchase_price, price, profit_margin };
+        });
+    };
 
   const fetchPurchaseHistory = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string) => {
     setPurchaseLoading(true);
@@ -217,7 +252,6 @@ export default function PurchasesPage() {
       if (newSupplier) {
         setPurchaseSupplierId(newSupplier.id);
         setIsAddSupplierOpen(false);
-        // (e.target as HTMLFormElement).reset();
       }
   };
 
@@ -234,7 +268,7 @@ export default function PurchasesPage() {
   };
 
   const handleSelectMed = (med: Medication) => {
-    setNewMedData({ ...med });
+    setNewMedData({ ...med, profit_margin: calculateProfitMargin(med.purchase_price, med.price) });
     setPurchaseItemSearchTerm(med.name);
     setPurchaseItemSuggestions([]);
   };
@@ -243,7 +277,7 @@ export default function PurchasesPage() {
     setNewMedData({
       barcodes: [], scientific_names: [], stock: 0, reorder_point: 10,
       price: 0, purchase_price: 0, expiration_date: '',
-      dosage: '', dosage_form: '', image_url: ''
+      dosage: '', dosage_form: '', image_url: '', profit_margin: 0
     });
     setNewMedImageFile(null);
     setNewMedImagePreview(null);
@@ -257,14 +291,14 @@ export default function PurchasesPage() {
         imageUrl = await fileToDataUri(newMedImageFile);
     }
 
-    const medToAdd = {
-        ...newMedData,
+    const { profit_margin, ...medToAdd } = newMedData;
+    const medWithImage = {
+        ...medToAdd,
         image_url: imageUrl,
-        stock: newMedData.quantity, // New med stock is the purchase quantity
+        stock: medToAdd.quantity,
     };
     
-    // Add to main inventory via API
-    const newMedication = await addMedication(medToAdd);
+    const newMedication = await addMedication(medWithImage);
 
     if (newMedication) {
         const newItemForPurchase: PurchaseOrderItem = {
@@ -296,10 +330,12 @@ export default function PurchasesPage() {
         return;
     }
 
+    const { profit_margin, ...itemData } = newMedData;
+
     const newItem = {
-      ...newMedData,
-      id: newMedData.id!,
-      medication_id: newMedData.id!,
+      ...itemData,
+      id: itemData.id!,
+      medication_id: itemData.id!,
       is_new: false,
     };
     
@@ -343,10 +379,6 @@ export default function PurchasesPage() {
         setIsPurchaseInfoLocked(false);
         fetchPurchaseHistory(1, purchasePerPage, '', '', '');
     }
-  }
-
-  const handleNewMedDataChange = (field: keyof PurchaseOrderItem, value: any) => {
-    setNewMedData(prev => ({...prev, [field]: value}));
   }
 
   const handleNewMedImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -450,7 +482,10 @@ export default function PurchasesPage() {
   }
 
   const openEditItemDialog = (item: PurchaseOrderItem) => {
-    setEditingPurchaseItem({ ...item });
+    setEditingPurchaseItem({ 
+        ...item,
+        profit_margin: calculateProfitMargin(item.purchase_price || 0, item.price || 0)
+    });
     setIsEditItemOpen(true);
   };
   
@@ -458,26 +493,9 @@ export default function PurchasesPage() {
     e.preventDefault();
     if (!editingPurchaseItem) return;
     
-    const formData = new FormData(e.currentTarget as HTMLFormElement);
-    const updatedItem: PurchaseOrderItem = { ...editingPurchaseItem };
+    const { profit_margin, ...updatedItem } = editingPurchaseItem;
     
-    // Fields for both existing and new items
-    updatedItem.quantity = parseInt(formData.get('quantity') as string, 10);
-    updatedItem.purchase_price = parseFloat(formData.get('purchase_price') as string);
-    updatedItem.price = parseFloat(formData.get('price') as string);
-    updatedItem.expiration_date = formData.get('expiration_date') as string;
-    
-    // Fields only for new items
-    if (editingPurchaseItem.is_new) {
-        updatedItem.name = formData.get('name') as string;
-        updatedItem.scientific_names = (formData.get('scientific_names') as string).split(',').map(s => s.trim());
-        updatedItem.barcodes = (formData.get('barcodes') as string).split(',').map(s => s.trim());
-        updatedItem.dosage = formData.get('dosage') as string;
-        updatedItem.dosage_form = formData.get('dosage_form') as string;
-        updatedItem.reorder_point = parseInt(formData.get('reorder_point') as string, 10);
-    }
-    
-    setPurchaseItems(prev => prev.map(item => item.id === updatedItem.id ? updatedItem : item));
+    setPurchaseItems(prev => prev.map(item => item.id === updatedItem.id ? updatedItem as PurchaseOrderItem : item));
     setIsEditItemOpen(false);
     setEditingPurchaseItem(null);
   };
@@ -581,19 +599,25 @@ export default function PurchasesPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
                             <Label>الكمية</Label>
-                            <Input type="number" value={newMedData.quantity || ''} onChange={e => handleNewMedDataChange('quantity', parseInt(e.target.value))} required />
+                            <Input type="number" value={newMedData.quantity || ''} onChange={e => handlePriceChange(setNewMedData, 'quantity', e.target.value)} required />
                         </div>
                          <div>
                             <Label>سعر الشراء</Label>
-                            <Input type="number" value={newMedData.purchase_price || ''} onChange={e => handleNewMedDataChange('purchase_price', parseFloat(e.target.value))} required />
+                            <Input type="number" value={newMedData.purchase_price || ''} onChange={e => handlePriceChange(setNewMedData, 'purchase_price', e.target.value)} required />
                         </div>
-                        <div>
-                            <Label>سعر البيع</Label>
-                            <Input type="number" value={newMedData.price || ''} onChange={e => handleNewMedDataChange('price', parseFloat(e.target.value))} required />
+                        <div className="flex items-end gap-2">
+                            <div className="space-y-1 flex-grow">
+                                <Label>سعر البيع</Label>
+                                <Input type="number" value={newMedData.price || ''} onChange={e => handlePriceChange(setNewMedData, 'price', e.target.value)} required />
+                            </div>
+                            <div className="space-y-1 w-20">
+                                <Label>النسبة %</Label>
+                                <Input type="number" value={newMedData.profit_margin?.toFixed(0) || ''} onChange={e => handlePriceChange(setNewMedData, 'profit_margin', e.target.value)} />
+                            </div>
                         </div>
                         <div>
                             <Label>تاريخ الانتهاء</Label>
-                            <Input type="date" value={newMedData.expiration_date || ''} onChange={e => handleNewMedDataChange('expiration_date', e.target.value)} required />
+                            <Input type="date" value={newMedData.expiration_date || ''} onChange={e => handlePriceChange(setNewMedData, 'expiration_date', e.target.value)} required />
                         </div>
                     </div>
                     <Button type="submit" className="w-full">إضافة إلى القائمة</Button>
@@ -951,25 +975,25 @@ export default function PurchasesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label>الباركود (يفصل بفاصلة ,)</Label>
-                        <Input value={newMedData.barcodes?.join(',') || ''} onChange={e => handleNewMedDataChange('barcodes', e.target.value.split(','))} />
+                        <Input value={newMedData.barcodes?.join(',') || ''} onChange={e => setNewMedData(p => ({...p, barcodes: e.target.value.split(',').map(s => s.trim())}))} />
                     </div>
                      <div className="space-y-2">
                         <Label>الاسم التجاري</Label>
-                        <Input value={newMedData.name || purchaseItemSearchTerm} onChange={e => handleNewMedDataChange('name', e.target.value)} required />
+                        <Input value={newMedData.name || purchaseItemSearchTerm} onChange={e => setNewMedData(p => ({...p, name: e.target.value}))} required />
                     </div>
                 </div>
                 <div className="space-y-2">
                     <Label>الاسم العلمي (يفصل بفاصلة ,)</Label>
-                    <Input value={newMedData.scientific_names?.join(',') || ''} onChange={e => handleNewMedDataChange('scientific_names', e.target.value.split(','))} />
+                    <Input value={newMedData.scientific_names?.join(',') || ''} onChange={e => setNewMedData(p => ({...p, scientific_names: e.target.value.split(',').map(s => s.trim())}))} />
                 </div>
                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="space-y-2">
                         <Label>الجرعة</Label>
-                        <Input value={newMedData.dosage || ''} onChange={e => handleNewMedDataChange('dosage', e.target.value)} />
+                        <Input value={newMedData.dosage || ''} onChange={e => setNewMedData(p => ({...p, dosage: e.target.value}))} />
                     </div>
                      <div className="space-y-2">
                         <Label>الشكل الدوائي</Label>
-                        <Select value={newMedData.dosage_form} onValueChange={val => handleNewMedDataChange('dosage_form', val)}>
+                        <Select value={newMedData.dosage_form} onValueChange={val => setNewMedData(p => ({...p, dosage_form: val}))}>
                             <SelectTrigger>
                                 <SelectValue placeholder="اختر الشكل" />
                             </SelectTrigger>
@@ -978,27 +1002,33 @@ export default function PurchasesPage() {
                     </div>
                     <div className="space-y-2">
                         <Label>الكمية المستلمة</Label>
-                        <Input type="number" value={newMedData.quantity || ''} onChange={e => handleNewMedDataChange('quantity', parseInt(e.target.value))} required />
+                        <Input type="number" value={newMedData.quantity || ''} onChange={e => setNewMedData(p => ({...p, quantity: parseInt(e.target.value)}))} required />
                     </div>
                     <div className="space-y-2">
                         <Label>نقطة إعادة الطلب</Label>
-                        <Input type="number" value={newMedData.reorder_point || 10} onChange={e => handleNewMedDataChange('reorder_point', parseInt(e.target.value))} required />
+                        <Input type="number" value={newMedData.reorder_point || 10} onChange={e => setNewMedData(p => ({...p, reorder_point: parseInt(e.target.value)}))} required />
                     </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label>سعر الشراء</Label>
-                        <Input type="number" value={newMedData.purchase_price || ''} onChange={e => handleNewMedDataChange('purchase_price', parseFloat(e.target.value))} required />
+                        <Input type="number" value={newMedData.purchase_price || ''} onChange={e => handlePriceChange(setNewMedData, 'purchase_price', e.target.value)} required />
                     </div>
-                    <div className="space-y-2">
-                        <Label>سعر البيع</Label>
-                        <Input type="number" value={newMedData.price || ''} onChange={e => handleNewMedDataChange('price', parseFloat(e.target.value))} required />
+                    <div className="flex items-end gap-2">
+                        <div className="space-y-1 flex-grow">
+                            <Label>سعر البيع</Label>
+                            <Input type="number" value={newMedData.price || ''} onChange={e => handlePriceChange(setNewMedData, 'price', e.target.value)} required />
+                        </div>
+                        <div className="space-y-1 w-20">
+                            <Label>النسبة %</Label>
+                            <Input type="number" value={newMedData.profit_margin?.toFixed(0) || ''} onChange={e => handlePriceChange(setNewMedData, 'profit_margin', e.target.value)} />
+                        </div>
                     </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label>تاريخ الانتهاء</Label>
-                        <Input type="date" value={newMedData.expiration_date || ''} onChange={e => handleNewMedDataChange('expiration_date', e.target.value)} required />
+                        <Input type="date" value={newMedData.expiration_date || ''} onChange={e => setNewMedData(p => ({...p, expiration_date: e.target.value}))} required />
                     </div>
                      <div className="space-y-2">
                         <Label>صورة المنتج (اختياري)</Label>
@@ -1020,30 +1050,30 @@ export default function PurchasesPage() {
                 </DialogHeader>
                 {editingPurchaseItem && (
                     <form onSubmit={handleUpdatePurchaseItem} className="space-y-4 pt-2 max-h-[70vh] overflow-y-auto p-1">
-                        {editingPurchaseItem.is_new && (
+                        {editingPurchaseItem.is_new ? (
                              <>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label>الباركود (يفصل بفاصلة ,)</Label>
-                                        <Input name="barcodes" defaultValue={editingPurchaseItem.barcodes?.join(',') || ''} />
+                                        <Input value={editingPurchaseItem.barcodes?.join(',') || ''} onChange={e => setEditingPurchaseItem(p => p ? {...p, barcodes: e.target.value.split(',').map(s => s.trim())} : null)} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>الاسم التجاري</Label>
-                                        <Input name="name" defaultValue={editingPurchaseItem.name || ''} required />
+                                        <Input value={editingPurchaseItem.name || ''} onChange={e => setEditingPurchaseItem(p => p ? {...p, name: e.target.value} : null)} required />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
                                     <Label>الاسم العلمي (يفصل بفاصلة ,)</Label>
-                                    <Input name="scientific_names" defaultValue={editingPurchaseItem.scientific_names?.join(',') || ''} />
+                                    <Input value={editingPurchaseItem.scientific_names?.join(',') || ''} onChange={e => setEditingPurchaseItem(p => p ? {...p, scientific_names: e.target.value.split(',').map(s => s.trim())} : null)} />
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <div className="space-y-2">
                                         <Label>الجرعة</Label>
-                                        <Input name="dosage" defaultValue={editingPurchaseItem.dosage || ''} />
+                                        <Input value={editingPurchaseItem.dosage || ''} onChange={e => setEditingPurchaseItem(p => p ? {...p, dosage: e.target.value} : null)} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>الشكل الدوائي</Label>
-                                        <Select name="dosage_form" defaultValue={editingPurchaseItem.dosage_form}>
+                                        <Select value={editingPurchaseItem.dosage_form} onValueChange={val => setEditingPurchaseItem(p => p ? {...p, dosage_form: val} : null)}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="اختر الشكل" />
                                             </SelectTrigger>
@@ -1052,34 +1082,39 @@ export default function PurchasesPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>الكمية المستلمة</Label>
-                                        <Input name="quantity" type="number" defaultValue={editingPurchaseItem.quantity} required />
+                                        <Input type="number" value={editingPurchaseItem.quantity} onChange={e => setEditingPurchaseItem(p => p ? {...p, quantity: parseInt(e.target.value)} : null)} required />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>نقطة إعادة الطلب</Label>
-                                        <Input name="reorder_point" type="number" defaultValue={editingPurchaseItem.reorder_point} required />
+                                        <Input type="number" value={editingPurchaseItem.reorder_point} onChange={e => setEditingPurchaseItem(p => p ? {...p, reorder_point: parseInt(e.target.value)} : null)} required />
                                     </div>
                                 </div>
                             </>
-                        )}
-                        {!editingPurchaseItem.is_new && (
+                        ) : (
                              <div className="space-y-2">
                                 <Label htmlFor="edit-quantity">الكمية</Label>
-                                <Input id="edit-quantity" name="quantity" type="number" defaultValue={editingPurchaseItem.quantity} required />
+                                <Input id="edit-quantity" name="quantity" type="number" value={editingPurchaseItem.quantity} onChange={e => setEditingPurchaseItem(p => p ? {...p, quantity: parseInt(e.target.value)} : null)} required />
                             </div>
                         )}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>سعر الشراء</Label>
-                                <Input name="purchase_price" type="number" step="0.01" defaultValue={editingPurchaseItem.purchase_price} required />
+                                <Input type="number" step="0.01" value={editingPurchaseItem.purchase_price} onChange={e => handlePriceChange(setEditingPurchaseItem, 'purchase_price', e.target.value)} required />
                             </div>
-                            <div className="space-y-2">
-                                <Label>سعر البيع</Label>
-                                <Input name="price" type="number" step="0.01" defaultValue={editingPurchaseItem.price} required />
+                             <div className="flex items-end gap-2">
+                                <div className="space-y-1 flex-grow">
+                                    <Label>سعر البيع</Label>
+                                    <Input type="number" step="0.01" value={editingPurchaseItem.price} onChange={e => handlePriceChange(setEditingPurchaseItem, 'price', e.target.value)} required />
+                                </div>
+                                <div className="space-y-1 w-20">
+                                    <Label>النسبة %</Label>
+                                    <Input type="number" value={editingPurchaseItem.profit_margin?.toFixed(0)} onChange={e => handlePriceChange(setEditingPurchaseItem, 'profit_margin', e.target.value)} />
+                                </div>
                             </div>
                         </div>
                         <div className="space-y-2">
                             <Label>تاريخ الانتهاء</Label>
-                            <Input name="expiration_date" type="date" defaultValue={editingPurchaseItem.expiration_date} required />
+                            <Input type="date" value={editingPurchaseItem.expiration_date} onChange={e => setEditingPurchaseItem(p => p ? {...p, expiration_date: e.target.value} : null)} required />
                         </div>
                         <DialogFooter className="pt-2">
                             <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>

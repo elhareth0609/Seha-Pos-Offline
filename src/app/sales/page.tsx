@@ -51,7 +51,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput } from "@/lib/types"
-import { PlusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText } from "lucide-react"
+import { PlusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText, Calculator } from "lucide-react"
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -70,6 +70,7 @@ import { Badge } from "@/components/ui/badge"
 import { useRouter } from "next/navigation"
 import { PinDialog } from "@/components/auth/PinDialog"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { CalculatorComponent } from "@/components/ui/calculator"
 
 const printElement = (element: HTMLElement, title: string = 'Print') => {
   const printWindow = window.open('', '_blank');
@@ -842,6 +843,16 @@ export default function SalesPage() {
                         <FileText className="me-2"/>
                         مراجعة الفواتير
                     </Button>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" size="icon">
+                                <Calculator />
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="w-auto p-0 border-0 bg-transparent shadow-none">
+                            <CalculatorComponent />
+                        </DialogContent>
+                    </Dialog>
                 </div>
 
                 <Card className="flex-1 flex flex-col">

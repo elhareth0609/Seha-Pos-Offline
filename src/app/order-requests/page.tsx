@@ -29,9 +29,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import type { OrderRequestItem, Supplier, PurchaseOrderItem } from "@/lib/types"
-import { Trash2, Send, ShoppingBasket, ArrowLeft, Copy } from "lucide-react"
+import { Trash2, Send, ShoppingBasket, ArrowLeft, Copy, Percent } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation"
+
+type EditableOrderItem = OrderRequestItem & { profit_margin?: number };
 
 export default function OrderRequestsPage() {
   const { 
@@ -47,13 +49,22 @@ export default function OrderRequestsPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  const [editableOrderItems, setEditableOrderItems] = React.useState<Record<string, any>>({});
+  const [editableOrderItems, setEditableOrderItems] = React.useState<Record<string, Partial<EditableOrderItem>>>({});
   const [masterPurchaseId, setMasterPurchaseId] = React.useState('');
   const [masterSupplierId, setMasterSupplierId] = React.useState('');
   const [masterDate, setMasterDate] = React.useState(new Date().toISOString().split('T')[0]);
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [orderRequestCart, setOrderRequestCart] = React.useState<OrderRequestItem[]>([]);
 
+    const calculateProfitMargin = (purchasePrice: number, sellPrice: number) => {
+        if (!purchasePrice || purchasePrice <= 0) return 0;
+        return ((sellPrice - purchasePrice) / purchasePrice) * 100;
+    };
+
+    const calculateSellPrice = (purchasePrice: number, margin: number) => {
+        if (!purchasePrice || purchasePrice <= 0) return 0;
+        return purchasePrice * (1 + margin / 100);
+    };
 
   React.useEffect(() => {
     const fetchCart = async () => {
@@ -74,6 +85,7 @@ export default function OrderRequestsPage() {
                   quantity: item.quantity || 1,
                   purchase_price: item.purchase_price,
                   price: item.price,
+                  profit_margin: calculateProfitMargin(item.purchase_price, item.price),
                   expiration_date: item.expiration_date ? new Date(item.expiration_date).toISOString().split('T')[0] : '',
                   supplier_id: item.supplier_id || '',
                   invoice_id: item.invoice_id || '',
@@ -88,24 +100,51 @@ export default function OrderRequestsPage() {
   }, [getOrderRequestCart]); // Add getOrderRequestCart to dependency array to refresh when cart changes
 
 
+  const handleOrderItemChange = (orderItemId: string, field: keyof EditableOrderItem, value: any) => {
+        setEditableOrderItems(prev => {
+            if (!prev[orderItemId]) return prev;
 
-  const handleOrderItemChange = (orderItemId: string, field: string, value: string | number) => {
-    setEditableOrderItems(prev => {
-        const updatedItem = { ...prev[orderItemId], [field]: value };
-        return { ...prev, [orderItemId]: updatedItem };
-    });
-  };
+            const updatedItem = { ...prev[orderItemId] };
+            let { purchase_price = 0, price = 0, profit_margin = 0 } = updatedItem;
+
+            if (field === 'price') {
+                price = Number(value);
+                profit_margin = calculateProfitMargin(purchase_price, price);
+            } else if (field === 'profit_margin') {
+                profit_margin = Number(value);
+                price = calculateSellPrice(purchase_price, profit_margin);
+            } else if (field === 'purchase_price') {
+                purchase_price = Number(value);
+                if (price > 0) {
+                    profit_margin = calculateProfitMargin(purchase_price, price);
+                } else if (profit_margin > 0) {
+                    price = calculateSellPrice(purchase_price, profit_margin);
+                }
+            } else {
+                 (updatedItem as any)[field] = value;
+            }
+
+            updatedItem.price = price;
+            updatedItem.purchase_price = purchase_price;
+            updatedItem.profit_margin = profit_margin;
+
+            return { ...prev, [orderItemId]: updatedItem };
+        });
+    };
+
 
   const handleBlur = (orderItemId: string, field: string) => {
     const itemData = editableOrderItems[orderItemId];
-    if(itemData){
-      updateOrderRequestItem(orderItemId, { [field]: itemData[field] });
+    if(itemData && Object.keys(itemData).includes(field)){
+      updateOrderRequestItem(orderItemId, { [field]: (itemData as any)[field] });
+      if (field === 'purchase_price' || field === 'profit_margin') {
+          updateOrderRequestItem(orderItemId, { price: itemData.price });
+      }
     }
   };
 
   const handleDelete = async (id: string) => {
     await removeFromOrderRequestCart(id, false);
-    // Refresh the cart data after deletion
     const cart = await getOrderRequestCart();
     if (Array.isArray(cart)) {
       setOrderRequestCart(cart);
@@ -171,10 +210,10 @@ export default function OrderRequestsPage() {
         if (!drafts[key]) {
             const supplier = suppliers.find(s => s.id === supplier_id);
             drafts[key] = {
-                id: invoice_id,
-                supplier_id: supplier_id,
+                id: invoice_id!,
+                supplier_id: supplier_id!,
                 supplier_name: supplier?.name || 'مورد غير معروف',
-                date: date,
+                date: date!,
                 items: [],
             };
         }
@@ -183,10 +222,10 @@ export default function OrderRequestsPage() {
             id: item.medication_id,
             medication_id: item.medication_id,
             name: item.name,
-            quantity: editableData.quantity,
-            purchase_price: editableData.purchase_price,
-            price: editableData.price,
-            expiration_date: editableData.expiration_date,
+            quantity: editableData.quantity!,
+            purchase_price: editableData.purchase_price!,
+            price: editableData.price!,
+            expiration_date: editableData.expiration_date!,
             scientific_names: item.scientific_names,
             dosage: item.dosage,
             dosage_form: item.dosage_form,
@@ -268,7 +307,9 @@ export default function OrderRequestsPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {orderRequestCart.map(item => (
+                    {orderRequestCart.map(item => {
+                        const editableData = editableOrderItems[item.id] || {};
+                        return (
                         <TableRow key={item.id}>
                             <TableCell>
                                 <div className="font-medium">{item.name}</div>
@@ -278,7 +319,7 @@ export default function OrderRequestsPage() {
                             <TableCell>
                                 <Input 
                                   type="number"
-                                  value={editableOrderItems[item.id]?.quantity || ''}
+                                  value={editableData.quantity || ''}
                                   onChange={e => handleOrderItemChange(item.id, 'quantity', parseInt(e.target.value, 10) || 0)}
                                   onBlur={() => handleBlur(item.id, 'quantity')}
                                   className="w-20 h-9"
@@ -288,27 +329,39 @@ export default function OrderRequestsPage() {
                             <TableCell>
                                 <Input 
                                   type="number"
-                                  value={editableOrderItems[item.id]?.purchase_price || ''}
-                                  onChange={e => handleOrderItemChange(item.id, 'purchase_price', parseFloat(e.target.value) || 0)}
+                                  value={editableData.purchase_price || ''}
+                                  onChange={e => handleOrderItemChange(item.id, 'purchase_price', e.target.value)}
                                   onBlur={() => handleBlur(item.id, 'purchase_price')}
                                   className="w-24 h-9"
                                   placeholder="سعر الشراء"
                                 />
                             </TableCell>
-                             <TableCell>
-                                <Input 
-                                  type="number"
-                                  value={editableOrderItems[item.id]?.price || ''}
-                                  onChange={e => handleOrderItemChange(item.id, 'price', parseFloat(e.target.value) || 0)}
-                                  onBlur={() => handleBlur(item.id, 'price')}
-                                  className="w-24 h-9"
-                                  placeholder="سعر البيع"
-                                />
+                            <TableCell>
+                                <div className="flex items-center gap-1">
+                                    <Input 
+                                        type="number"
+                                        value={editableData.price || ''}
+                                        onChange={e => handleOrderItemChange(item.id, 'price', e.target.value)}
+                                        onBlur={() => handleBlur(item.id, 'price')}
+                                        className="w-24 h-9"
+                                        placeholder="سعر البيع"
+                                    />
+                                    <div className="relative w-20">
+                                        <Input
+                                            type="number"
+                                            value={editableData.profit_margin?.toFixed(0) || ''}
+                                            onChange={e => handleOrderItemChange(item.id, 'profit_margin', e.target.value)}
+                                            onBlur={() => handleBlur(item.id, 'profit_margin')}
+                                            className="h-9 pe-6"
+                                        />
+                                        <Percent className="absolute top-1/2 -translate-y-1/2 start-1.5 h-3 w-3 text-muted-foreground" />
+                                    </div>
+                                </div>
                             </TableCell>
                             <TableCell>
                                  <Input 
                                   type="date"
-                                  value={editableOrderItems[item.id]?.expiration_date || ''}
+                                  value={editableData.expiration_date || ''}
                                   onChange={e => handleOrderItemChange(item.id, 'expiration_date', e.target.value)}
                                   onBlur={() => handleBlur(item.id, 'expiration_date')}
                                   className="h-9"
@@ -316,7 +369,7 @@ export default function OrderRequestsPage() {
                             </TableCell>
                             <TableCell>
                                 <Select 
-                                    value={editableOrderItems[item.id]?.supplier_id || ''}
+                                    value={editableData.supplier_id || ''}
                                     onValueChange={value => {
                                         handleOrderItemChange(item.id, 'supplier_id', value)
                                         updateOrderRequestItem(item.id, { supplier_id: value });
@@ -328,7 +381,7 @@ export default function OrderRequestsPage() {
                             </TableCell>
                              <TableCell>
                                 <Input 
-                                  value={editableOrderItems[item.id]?.invoice_id || ''}
+                                  value={editableData.invoice_id || ''}
                                   onChange={e => handleOrderItemChange(item.id, 'invoice_id', e.target.value)}
                                   onBlur={() => handleBlur(item.id, 'invoice_id')}
                                   className="w-32 h-9"
@@ -351,7 +404,7 @@ export default function OrderRequestsPage() {
                                 </Button>
                             </TableCell>
                         </TableRow>
-                    ))}
+                    )})}
                 </TableBody>
               </Table>
               </div>
