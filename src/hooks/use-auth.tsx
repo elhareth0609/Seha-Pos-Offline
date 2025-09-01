@@ -1,8 +1,9 @@
 
+
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative, Notification, SupportRequestPayload, PatientPaymentPayload } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative, Notification, SupportRequestPayload, PatientPaymentPayload, SupportRequest } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 import { PinDialog } from '@/components/auth/PinDialog';
@@ -35,6 +36,7 @@ type AuthResponse = {
     all_users_in_pharmacy: User[];
     advertisements: Advertisement[];
     offers: Offer[];
+    support_requests: SupportRequest[];
 };
 
 export type ActiveInvoice = {
@@ -191,7 +193,11 @@ interface AuthContextType {
 
     // Notifications
     getNotifications: () => Promise<Notification[]>;
+    
+    // Support
+    supportRequests: SupportRequest[];
     addSupportRequest: (data: SupportRequestPayload) => Promise<boolean>;
+    updateSupportRequestStatus: (id: string, status: 'new' | 'contacted') => Promise<void>;
 }
 
 export interface ScopedDataContextType {
@@ -310,6 +316,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [activeTimeLogId, setActiveTimeLogId] = React.useState<string | null>(null);
     const [advertisements, setAdvertisements] = React.useState<Advertisement[]>([]);
     const [offers, setOffers] = React.useState<Offer[]>([]);
+    const [supportRequests, setSupportRequests] = React.useState<SupportRequest[]>([]);
     
     // Multi-invoice state
     const [activeInvoices, setActiveInvoices] = React.useState<ActiveInvoice[]>([initialActiveInvoice]);
@@ -432,6 +439,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUsers(data.all_users_in_pharmacy || []);
         setAdvertisements(data.advertisements || []);
         setOffers(data.offers || []);
+        setSupportRequests(data.support_requests || []);
         
         const pd = data.pharmacy_data;
         if(pd) {
@@ -1224,6 +1232,13 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             return false;
         }
     };
+    
+    const updateSupportRequestStatus = async (id: string, status: 'new' | 'contacted') => {
+        try {
+            const updatedRequest = await apiRequest(`/support-requests/${id}/status`, 'PUT', { status });
+            setSupportRequests(prev => prev.map(req => req.id === id ? updatedRequest : req));
+        } catch (e) {}
+    }
 
     const getNotifications = React.useCallback(async (): Promise<Notification[]> => {
         const generatedNotifications: Notification[] = [];
@@ -1356,7 +1371,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             getOrderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, updateOrderRequestItem, duplicateOrderRequestItem,
             purchaseDraft, setPurchaseDraft,
             getNotifications,
-            addSupportRequest
+            supportRequests, addSupportRequest, updateSupportRequestStatus
         }}>
             {children}
         </AuthContext.Provider>

@@ -16,18 +16,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import type { User, Advertisement, Offer } from '@/lib/types';
+import type { User, Advertisement, Offer, SupportRequest } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, Building, ImagePlus, Image as ImageIcon, LayoutDashboard, ShoppingCart,LockKeyhole, LockOpen, LockIcon, Boxes, BadgePercent, Phone, CalendarClock, Pencil } from 'lucide-react';
+import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, Building, ImagePlus, Image as ImageIcon, LayoutDashboard, ShoppingCart,LockKeyhole, LockOpen, LockIcon, Boxes, BadgePercent, Phone, CalendarClock, Pencil, LifeBuoy } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isAfter, parseISO } from 'date-fns';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format } from 'date-fns';
+import { ar } from 'date-fns/locale';
 
 const iraqProvinces = [
     "بغداد", "البصرة", "نينوى", "أربيل", "السليمانية", "دهوك", "كركوك", 
@@ -133,7 +135,8 @@ export default function SuperAdminPage() {
         advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement, 
         offers, addOffer, deleteOffer,
         getPaginatedUsers,
-        updateUser
+        updateUser,
+        supportRequests, updateSupportRequestStatus
     } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
@@ -537,6 +540,64 @@ export default function SuperAdminPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center gap-2">
+                        <LifeBuoy className="h-6 w-6 text-primary"/>
+                        <CardTitle>طلبات الدعم الفني</CardTitle>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>اسم الصيدلية</TableHead>
+                                <TableHead>رقم الهاتف</TableHead>
+                                <TableHead>القسم</TableHead>
+                                <TableHead>وقت التواصل</TableHead>
+                                <TableHead>تاريخ الطلب</TableHead>
+                                <TableHead>الحالة</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {(supportRequests || []).length > 0 ? supportRequests.map(req => (
+                                <TableRow key={req.id}>
+                                    <TableCell className="font-medium">{req.pharmacy_name}</TableCell>
+                                    <TableCell className="font-mono">{req.phone_number}</TableCell>
+                                    <TableCell>{req.problem_section}</TableCell>
+                                    <TableCell>{req.contact_time}</TableCell>
+                                    <TableCell>{format(new Date(req.created_at), 'Pp', { locale: ar })}</TableCell>
+                                    <TableCell>
+                                        <Select 
+                                            value={req.status} 
+                                            onValueChange={(status) => updateSupportRequestStatus(req.id, status as 'new' | 'contacted')}
+                                        >
+                                            <SelectTrigger className="w-32">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="new">
+                                                    <Badge variant="destructive">جديد</Badge>
+                                                </SelectItem>
+                                                <SelectItem value="contacted">
+                                                     <Badge variant="secondary" className="bg-green-100 text-green-800">تم التواصل</Badge>
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </TableCell>
+                                </TableRow>
+                            )) : (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center h-24">
+                                        لا توجد طلبات دعم حاليًا.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
             
             <div className="grid gap-6 lg:grid-cols-2">
                  <Card>
