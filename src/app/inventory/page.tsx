@@ -266,7 +266,6 @@ export default function InventoryPage() {
         });
     };
 
-  
   const openEditModal = (med: Medication) => {
       setEditingMed({
           ...med,
