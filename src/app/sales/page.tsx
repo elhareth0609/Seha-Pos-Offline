@@ -504,6 +504,7 @@ export default function SalesPage() {
   
   const handleScan = React.useCallback(async (result: string) => {
     const results = await searchAllInventory(result);
+    setAllInventory(results); // Make sure full inventory is available for checks
     const scannedMedication = results.find(med => (med.barcodes || []).includes(result));
     
     if (scannedMedication) {
@@ -513,13 +514,14 @@ export default function SalesPage() {
       toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'الباركود الممسوح ضوئيًا لا يتطابق مع أي منتج.' });
     }
     setIsScannerOpen(false);
-  }, [addToCart, searchAllInventory]);
+  }, [addToCart, searchAllInventory, toast]);
 
 
   React.useEffect(() => {
     const handler = setTimeout(async () => {
         if (searchTerm.length > 5 && suggestions.length === 0) {
             const results = await searchAllInventory(searchTerm);
+            setAllInventory(results); // Make sure full inventory is available for checks
             const medicationByBarcode = results.find(med => med.barcodes && med.barcodes.some(bc => bc.toLowerCase() === searchTerm.toLowerCase()));
             if (medicationByBarcode) {
                 addToCart(medicationByBarcode);
@@ -539,8 +541,8 @@ export default function SalesPage() {
 
     if (value.length > 0) {
         const results = await searchAllInventory(value);
+        setAllInventory(results); // Store all results for alternative check
         setSuggestions(results.slice(0, 5));
-        setAllInventory(results);
     } else {
         setSuggestions([]);
         setAllInventory([]);
@@ -557,6 +559,7 @@ export default function SalesPage() {
         }
         
         const results = await searchAllInventory(searchTerm);
+        setAllInventory(results); // Make sure full inventory is available for checks
         const lowercasedSearchTerm = searchTerm.toLowerCase();
         
         const medicationByBarcode = results.find(med => med.barcodes && med.barcodes.some(bc => bc.toLowerCase() === lowercasedSearchTerm));
@@ -922,12 +925,12 @@ export default function SalesPage() {
                 </CardHeader>
                 <CardContent className="p-0 flex-1 flex flex-col">
                      {alternativeExpiryAlert && (
-                        <Alert variant="destructive" className="m-2 rounded-lg">
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>تنبيه</AlertTitle>
-                            <AlertDescription>
+                        <Alert variant="default" className="m-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 border-yellow-400">
+                            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                            <AlertTitle className="text-yellow-800 dark:text-yellow-300">تنبيه</AlertTitle>
+                            <AlertDescription className="text-yellow-700 dark:text-yellow-400">
                                 {alternativeExpiryAlert.message}
-                                <Button variant="link" className="p-0 h-auto ms-2" onClick={() => setAlternativeExpiryAlert(null)}>إخفاء</Button>
+                                <Button variant="link" className="p-0 h-auto ms-2 text-yellow-700 dark:text-yellow-400" onClick={() => setAlternativeExpiryAlert(null)}>إخفاء</Button>
                             </AlertDescription>
                         </Alert>
                     )}
@@ -1215,29 +1218,29 @@ export default function SalesPage() {
                   </CardContent>
                   <CardFooter className="flex flex-col items-stretch gap-2">
                       <div className="flex gap-2">
-                          <Dialog open={isDosingAssistantOpen} onOpenChange={setIsDosingAssistantOpen}>
-                              <DialogTrigger asChild>
-                                  <Button size="icon" variant="outline" className="relative" disabled={!isOnline || cart.length === 0} aria-label="مساعد الجرعات">
-                                      <Thermometer />
-                                      {isOnline ? (
-                                          <Wifi className="absolute top-1 right-1 h-3 w-3 text-green-500" />
-                                      ) : (
-                                          <WifiOff className="absolute top-1 right-1 h-3 w-3 text-muted-foreground" />
-                                      )}
-                                  </Button>
-                              </DialogTrigger>
-                              <DosingAssistant cartItems={cart} />
-                          </Dialog>
-                           <Dialog>
+                            <Dialog open={isDosingAssistantOpen} onOpenChange={setIsDosingAssistantOpen}>
                                 <DialogTrigger asChild>
-                                    <Button variant="outline" size="icon">
-                                        <Calculator />
+                                    <Button size="icon" variant="outline" className="relative" disabled={!isOnline || cart.length === 0} aria-label="مساعد الجرعات">
+                                        <Thermometer />
+                                        {isOnline ? (
+                                            <Wifi className="absolute top-1 right-1 h-3 w-3 text-green-500" />
+                                        ) : (
+                                            <WifiOff className="absolute top-1 right-1 h-3 w-3 text-muted-foreground" />
+                                        )}
                                     </Button>
                                 </DialogTrigger>
-                                <DialogContent className="w-auto p-0 border-0 bg-transparent shadow-none">
-                                     <CalculatorComponent />
-                                </DialogContent>
+                                <DosingAssistant cartItems={cart} />
                             </Dialog>
+                             <Dialog>
+                                 <DialogTrigger asChild>
+                                     <Button variant="outline" size="icon">
+                                         <Calculator />
+                                     </Button>
+                                 </DialogTrigger>
+                                 <DialogContent className="w-auto p-0 border-0 bg-transparent shadow-none">
+                                      <CalculatorComponent />
+                                 </DialogContent>
+                             </Dialog>
                           <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
                               <DialogTrigger asChild>
                                   <Button size="lg" className="flex-1" onClick={handleCheckout} disabled={cart.length === 0} variant={saleIdToUpdate ? 'default' : 'success'}>
@@ -1281,16 +1284,16 @@ export default function SalesPage() {
                                           <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>{finalTotal.toLocaleString()}</span></div>
                                       </div>
                                       <Separator />
-                                       <RadioGroup defaultValue="cash" value={paymentMethod} onValueChange={handlePaymentMethodChange} className="flex gap-4 pt-2">
-                                            <Label htmlFor="payment-cash" className="flex items-center gap-2 cursor-pointer rounded-md border p-3 flex-1 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
+                                       <RadioGroup defaultValue="cash" value={paymentMethod} onValueChange={handlePaymentMethodChange} className="grid grid-cols-3 gap-4 pt-2">
+                                            <Label htmlFor="payment-cash" className="flex items-center justify-center gap-2 cursor-pointer rounded-md border p-3 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
                                                 <RadioGroupItem value="cash" id="payment-cash" />
-                                                الدفع نقداً
+                                                نقداً
                                             </Label>
-                                            <Label htmlFor="payment-card" className="flex items-center gap-2 cursor-pointer rounded-md border p-3 flex-1 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
+                                            <Label htmlFor="payment-card" className="flex items-center justify-center gap-2 cursor-pointer rounded-md border p-3 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
                                                 <RadioGroupItem value="card" id="payment-card" />
-                                                بطاقة إلكترونية
+                                                بطاقة
                                             </Label>
-                                             <Label htmlFor="payment-credit" className="flex items-center gap-2 cursor-pointer rounded-md border p-3 flex-1 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
+                                             <Label htmlFor="payment-credit" className="flex items-center justify-center gap-2 cursor-pointer rounded-md border p-3 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
                                                 <RadioGroupItem value="credit" id="payment-credit" />
                                                 آجل (دين)
                                             </Label>
@@ -1314,12 +1317,12 @@ export default function SalesPage() {
                                   </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
-                                  <AlertDialogHeader>
+                                  <DialogHeader>
                                       <DialogTitle>هل أنت متأكد؟</DialogTitle>
                                       <AlertDialogDescription>
                                           {saleIdToUpdate ? 'سيتم تجاهل جميع التغييرات التي قمت بها.' : 'سيتم حذف جميع الأصناف من السلة الحالية.'}
                                       </AlertDialogDescription>
-                                  </AlertDialogHeader>
+                                  </DialogHeader>
                                   <AlertDialogFooter>
                                       <AlertDialogCancel>تراجع</AlertDialogCancel>
                                       <AlertDialogAction onClick={() => closeInvoice(currentInvoiceIndex)} className={buttonVariants({ variant: "destructive" })}>نعم</AlertDialogAction>
@@ -1336,12 +1339,12 @@ export default function SalesPage() {
                                   </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
-                                  <AlertDialogHeader>
+                                  <DialogHeader>
                                       <DialogTitle>هل أنت متأكد من حذف الفاتورة؟</DialogTitle>
                                       <AlertDialogDescription>
                                           لا يمكن التراجع عن هذا الإجراء. سيتم إعادة كميات الأصناف المباعة إلى المخزون.
                                       </AlertDialogDescription>
-                                  </AlertDialogHeader>
+                                  </DialogHeader>
                                   <AlertDialogFooter>
                                       <AlertDialogCancel>تراجع</AlertDialogCancel>
                                       <AlertDialogAction onClick={handleDeleteCurrentSale} className={buttonVariants({ variant: "destructive" })}>نعم، قم بالحذف</AlertDialogAction>
@@ -1392,3 +1395,5 @@ export default function SalesPage() {
     </>
   )
 }
+
+    
