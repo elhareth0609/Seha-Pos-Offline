@@ -177,6 +177,7 @@ interface AuthContextType {
     removeFromOrderRequestCart: (orderItemId: string, skipToast?: boolean) => void;
     updateOrderRequestItem: (orderItemId: string, data: Partial<OrderRequestItem>) => Promise<void>;
     duplicateOrderRequestItem: (orderItemId: string) => Promise<void>;
+    updatePreferenceScore: (medicationId: string, preferred: boolean) => void;
 
     purchaseDraft: {
         invoiceId: string;
@@ -1304,17 +1305,16 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         }
 
         // Supplier Debt Limit (Admin only)
-        if (currentUser?.role === 'Admin') {
+        if (currentUser?.role === 'Admin' && payments && payments.supplierPayments) {
             suppliers.forEach(supplier => {
                 const purchases = purchaseOrders.filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.total_amount, 0);
                 const returns = supplierReturns.filter(r => r.supplier_id === supplier.id).reduce((sum, r) => sum + r.total_amount, 0);
-                if (payments && payments.supplierPayments) {
-                    const supplierPaymentsData = payments.supplierPayments.filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.amount, 0);
-                    const netDebt = purchases - returns - supplierPaymentsData;
+                
+                const supplierPaymentsData = payments.supplierPayments.filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.amount, 0);
+                const netDebt = purchases - returns - supplierPaymentsData;
 
-                    if(netDebt > DEBT_LIMIT) {
-                        generatedNotifications.push({ id: `debt_limit_${supplier.id}`, type: 'supplier_debt_limit', message: `تجاوز حد الدين للمورد ${supplier.name}. الدين الحالي: ${netDebt.toLocaleString()}`, data: { supplierId: supplier.id }, read: false, created_at: new Date().toISOString() });
-                    }
+                if(netDebt > DEBT_LIMIT) {
+                    generatedNotifications.push({ id: `debt_limit_${supplier.id}`, type: 'supplier_debt_limit', message: `تجاوز حد الدين للمورد ${supplier.name}. الدين الحالي: ${netDebt.toLocaleString()}`, data: { supplierId: supplier.id }, read: false, created_at: new Date().toISOString() });
                 }
             });
         }
@@ -1328,6 +1328,17 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     
         return Promise.resolve(generatedNotifications.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
     }, [inventory, sales, tasks, settings.expirationThresholdDays, currentUser, suppliers, purchaseOrders, supplierReturns, payments]);
+
+
+    const updatePreferenceScore = React.useCallback((medicationId: string, preferred: boolean) => {
+        const scoreChange = preferred ? 5 : -1;
+        setSettings(prev => {
+            const newScores = { ...(prev.suggestion_preference_score || {}) };
+            newScores[medicationId] = (newScores[medicationId] || 100) + scoreChange;
+            return { ...prev, suggestion_preference_score: newScores };
+        });
+        // In a real app, you would debounce this and save to the backend.
+    }, []);
 
 
     const setScopedSettings = async (value: AppSettings | ((val: AppSettings) => AppSettings)) => {
@@ -1381,7 +1392,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             addRepresentative,
             verifyPin, updateUserPinRequirement,
             getArchivedMonths, getArchivedMonthData,
-            getOrderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, updateOrderRequestItem, duplicateOrderRequestItem,
+            getOrderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, updateOrderRequestItem, duplicateOrderRequestItem, updatePreferenceScore,
             purchaseDraft, setPurchaseDraft,
             getNotifications,
             supportRequests, addSupportRequest, updateSupportRequestStatus
@@ -1398,3 +1409,4 @@ export function useAuth() {
   }
   return context;
 }
+

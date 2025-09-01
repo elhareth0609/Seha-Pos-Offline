@@ -45,7 +45,6 @@ export default function OrderRequestsPage() {
     updateOrderRequestItem,
     addPurchaseOrder,
     duplicateOrderRequestItem,
-    updatePreferenceScore,
   } = useAuth();
   
   const { suppliers: [suppliers], inventory: [inventory], sales: [sales], settings: [settings] } = scopedData;
@@ -321,10 +320,6 @@ const systemSuggestions = React.useMemo(() => {
         .map(s => s.med)
         .filter(med => selectedSuggestions.has(med.id));
     
-    // Update preference scores for all suggested items
-    systemSuggestions.forEach(({med}) => {
-        updatePreferenceScore(med.id, selectedSuggestions.has(med.id));
-    });
 
     const itemsToAddPromises = suggestionsToAdd
       .filter(med => !orderRequestCart.find(item => item.medication_id === med.id))

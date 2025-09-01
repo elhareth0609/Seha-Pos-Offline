@@ -426,3 +426,4 @@ export type PatientPaymentPayload = {
     amount: number;
     notes?: string;
 };
+
