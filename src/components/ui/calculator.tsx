@@ -49,7 +49,7 @@ export function CalculatorComponent() {
     <Card className="w-64 bg-background/80 backdrop-blur-sm">
       <CardContent className="p-4">
         <div className="mb-4 h-12 rounded-md border bg-muted p-2 text-right text-2xl font-mono">
-          {result ?? input || '0'}
+          {(result ?? input) || '0'}
         </div>
         <div className="grid grid-cols-4 gap-2">
             <Button variant="destructive" className="col-span-4" onClick={handleClear}>
