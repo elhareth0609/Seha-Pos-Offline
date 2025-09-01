@@ -262,9 +262,17 @@ export default function OrderRequestsPage() {
     }
 };
 
- const systemSuggestions = React.useMemo(() => {
-    const lowStock = inventory.filter(i => i.stock > 0 && i.stock <= i.reorder_point);
+const systemSuggestions = React.useMemo(() => {
+    const suggestionsMap = new Map<string, { med: Medication; reason: string }>();
 
+    // Low stock
+    inventory.forEach(i => {
+        if (i.stock > 0 && i.stock <= i.reorder_point) {
+            suggestionsMap.set(i.id, { med: i, reason: 'مخزون منخفض' });
+        }
+    });
+
+    // Sales stats
     const salesStats: { [medId: string]: { quantity: number; profit: number } } = {};
     sales.forEach(sale => {
       sale.items.forEach(item => {
@@ -282,49 +290,54 @@ export default function OrderRequestsPage() {
       .map(([medication_id]) => inventory.find(i => i.id === medication_id))
       .filter((i): i is Medication => !!i);
 
+    topSelling.forEach(med => {
+        if (!suggestionsMap.has(med.id)) {
+            suggestionsMap.set(med.id, { med, reason: 'الأكثر مبيعًا' });
+        }
+    });
+
     const topProfit = Object.entries(salesStats)
       .sort(([, a], [, b]) => b.profit - a.profit)
       .slice(0, 10)
       .map(([medication_id]) => inventory.find(i => i.id === medication_id))
       .filter((i): i is Medication => !!i);
-
+    
+    topProfit.forEach(med => {
+        if (!suggestionsMap.has(med.id)) {
+            suggestionsMap.set(med.id, { med, reason: 'الأكثر ربحية' });
+        }
+    });
+    
     const preferenceScores = settings.suggestion_preference_score || {};
-    const sortWithPreference = (a: Medication, b: Medication) => (preferenceScores[b.id] || 100) - (preferenceScores[a.id] || 100);
+    const sortWithPreference = (a: {med: Medication}, b: {med: Medication}) => (preferenceScores[b.med.id] || 100) - (preferenceScores[a.med.id] || 100);
       
-    return {
-        lowStock: lowStock.sort(sortWithPreference),
-        topSelling: topSelling.sort(sortWithPreference),
-        topProfit: topProfit.sort(sortWithPreference)
-    };
+    return Array.from(suggestionsMap.values()).sort(sortWithPreference);
+
 }, [inventory, sales, settings.suggestion_preference_score]);
 
 
  const handleAddSuggestionsToCart = () => {
-    const suggestionsToAdd = [
-      ...systemSuggestions.lowStock,
-      ...systemSuggestions.topSelling,
-      ...systemSuggestions.topProfit
-    ].filter(med => selectedSuggestions.has(med.id));
+    const suggestionsToAdd = systemSuggestions
+        .map(s => s.med)
+        .filter(med => selectedSuggestions.has(med.id));
     
-    // Update preference scores
-    const allSuggestedIds = new Set([...systemSuggestions.lowStock, ...systemSuggestions.topSelling, ...systemSuggestions.topProfit].map(i => i.id));
-    allSuggestedIds.forEach(medId => {
-        updatePreferenceScore(medId, selectedSuggestions.has(medId));
+    // Update preference scores for all suggested items
+    systemSuggestions.forEach(({med}) => {
+        updatePreferenceScore(med.id, selectedSuggestions.has(med.id));
     });
 
-    suggestionsToAdd.forEach(med => {
-        const orderItem = orderRequestCart.find(item => item.medication_id === med.id);
-        if (!orderItem) {
-            // This needs to be an async operation, but we'll do it optimistically
-             const newItemData = { medication_id: med.id, quantity: 1, is_new: true };
-             apiRequest('/order-requests', 'POST', newItemData).then(savedItem => {
-                setOrderRequestCart(prev => [...prev, savedItem]);
-             });
-        }
-    });
+    const itemsToAddPromises = suggestionsToAdd
+      .filter(med => !orderRequestCart.find(item => item.medication_id === med.id))
+      .map(med => {
+          const newItemData = { medication_id: med.id, quantity: 1, is_new: true };
+          return apiRequest('/order-requests', 'POST', newItemData);
+      });
 
-    toast({ title: `تم إضافة ${suggestionsToAdd.length} صنف إلى قائمة الطلبات` });
-    setSelectedSuggestions(new Set());
+    Promise.all(itemsToAddPromises).then(newItems => {
+        setOrderRequestCart(prev => [...prev, ...newItems]);
+        toast({ title: `تم إضافة ${suggestionsToAdd.length} صنف إلى قائمة الطلبات` });
+        setSelectedSuggestions(new Set());
+    });
 };
 
 const handleSuggestionSelection = (medId: string, checked: boolean) => {
@@ -339,25 +352,24 @@ const handleSuggestionSelection = (medId: string, checked: boolean) => {
     });
 };
 
-const SuggestionTable = ({ title, meds }: { title: string, meds: Medication[] }) => (
-    <Card>
-        <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
-        <CardContent>
-            <Table>
-                <TableHeader><TableRow><TableHead className="w-12"></TableHead><TableHead>الدواء</TableHead><TableHead>الرصيد الحالي</TableHead></TableRow></TableHeader>
-                <TableBody>
-                    {meds.map(med => (
-                        <TableRow key={med.id}>
-                            <TableCell><Checkbox checked={selectedSuggestions.has(med.id)} onCheckedChange={(checked) => handleSuggestionSelection(med.id, !!checked)}/></TableCell>
-                            <TableCell>{med.name}</TableCell>
-                            <TableCell>{med.stock}</TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </CardContent>
-    </Card>
-);
+const apiRequest = async (endpoint: string, method: 'POST' | 'DELETE', body: any) => {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
+        method,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify(body)
+    });
+    if (!response.ok) {
+        throw new Error('API request failed');
+    }
+    const result = await response.json();
+    return result.data ?? result;
+}
+
 
 return (
     <Tabs defaultValue="requests">
@@ -540,11 +552,28 @@ return (
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <SuggestionTable title="أدوية ذات مخزون منخفض" meds={systemSuggestions.lowStock} />
-                        <SuggestionTable title="الأدوية الأكثر مبيعًا" meds={systemSuggestions.topSelling} />
+                    <div className="border rounded-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-12"></TableHead>
+                                    <TableHead>الدواء</TableHead>
+                                    <TableHead>الرصيد الحالي</TableHead>
+                                    <TableHead>سبب الاقتراح</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {systemSuggestions.map(({ med, reason }) => (
+                                    <TableRow key={med.id}>
+                                        <TableCell><Checkbox checked={selectedSuggestions.has(med.id)} onCheckedChange={(checked) => handleSuggestionSelection(med.id, !!checked)}/></TableCell>
+                                        <TableCell>{med.name}</TableCell>
+                                        <TableCell>{med.stock}</TableCell>
+                                        <TableCell>{reason}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
                     </div>
-                     <SuggestionTable title="الأدوية الأكثر ربحية" meds={systemSuggestions.topProfit} />
 
                     <Button 
                         size="lg" 
@@ -560,3 +589,5 @@ return (
     </Tabs>
   )
 }
+
+    
