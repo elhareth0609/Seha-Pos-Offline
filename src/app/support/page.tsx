@@ -30,23 +30,30 @@ const contactTimes = [
 ];
 
 export default function SupportPage() {
-    const { currentUser, settings, addSupportRequest } = useAuth();
+    const { currentUser, scopedData, addSupportRequest } = useAuth();
     const { toast } = useToast();
 
     const [phoneNumber, setPhoneNumber] = React.useState('');
     const [problemSection, setProblemSection] = React.useState('');
     const [contactTime, setContactTime] = React.useState('');
     const [isSubmitting, setIsSubmitting] = React.useState(false);
-    
+    const [settings] = scopedData.settings;
     React.useEffect(() => {
         if (settings) {
             setPhoneNumber(settings.pharmacyPhone);
         }
     }, [settings]);
 
+    /**
+     * Handles form submission asynchronously
+     * @param e - React form event object
+     */
     const handleSubmit = async (e: React.FormEvent) => {
+        // Prevent default form submission behavior
         e.preventDefault();
+        // Validate all required fields are filled
         if (!phoneNumber || !problemSection || !contactTime) {
+            // Show error toast if any required field is missing
             toast({ variant: 'destructive', title: 'بيانات ناقصة', description: 'الرجاء تعبئة جميع الحقول.' });
             return;
         }

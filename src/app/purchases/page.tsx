@@ -149,10 +149,35 @@ export default function PurchasesPage() {
         return purchasePrice * (1 + margin / 100);
     };
 
-    const handlePriceChange = (setter: React.Dispatch<React.SetStateAction<PurchaseItemFormData | null>>, name: 'price' | 'profit_margin' | 'purchase_price', value: string) => {
+    
+    // const handlePriceChange = (setter: React.Dispatch<React.SetStateAction<PurchaseItemFormData | null>>, name: 'price' | 'profit_margin' | 'purchase_price', value: string) => {
+    //     const numericValue = parseFloat(value) || 0;
+    //     setter(prev => {
+    //         if (!prev) return null;
+    //         let { purchase_price = 0, price = 0, profit_margin = 0 } = prev;
+
+    //         if (name === 'price') {
+    //             price = numericValue;
+    //             profit_margin = calculateProfitMargin(purchase_price, price);
+    //         } else if (name === 'profit_margin') {
+    //             profit_margin = numericValue;
+    //             price = calculateSellPrice(purchase_price, profit_margin);
+    //         } else if (name === 'purchase_price') {
+    //             purchase_price = numericValue;
+    //             if (price > 0) { 
+    //                 profit_margin = calculateProfitMargin(purchase_price, price);
+    //             } else if (profit_margin > 0) {
+    //                 price = calculateSellPrice(purchase_price, profit_margin);
+    //             }
+    //         }
+    //         return { ...prev, purchase_price, price, profit_margin };
+    //     });
+    // };
+    const handlePriceChange = (setter: React.Dispatch<React.SetStateAction<PurchaseItemFormData>> | React.Dispatch<React.SetStateAction<PurchaseItemFormData | null>>, name: 'price' | 'profit_margin' | 'purchase_price' | 'expiration_date' | 'quantity', value: string) => {
         const numericValue = parseFloat(value) || 0;
-        setter(prev => {
-            if (!prev) return null;
+        setter((prev: PurchaseItemFormData | null) => {
+            if (!prev) return prev;
+            
             let { purchase_price = 0, price = 0, profit_margin = 0 } = prev;
 
             if (name === 'price') {
@@ -163,11 +188,15 @@ export default function PurchasesPage() {
                 price = calculateSellPrice(purchase_price, profit_margin);
             } else if (name === 'purchase_price') {
                 purchase_price = numericValue;
-                if (price > 0) { 
+                if (price > 0) { // Recalculate profit if sell price is already set
                     profit_margin = calculateProfitMargin(purchase_price, price);
-                } else if (profit_margin > 0) {
+                } else if (profit_margin > 0) { // Recalculate sell price if margin is set
                     price = calculateSellPrice(purchase_price, profit_margin);
                 }
+            } else if (name === 'expiration_date') {
+                return { ...prev, expiration_date: value };
+            } else if (name === 'quantity') {
+                return { ...prev, quantity: numericValue };
             }
             return { ...prev, purchase_price, price, profit_margin };
         });
@@ -275,9 +304,17 @@ export default function PurchasesPage() {
 
   const openNewMedModal = () => {
     setNewMedData({
-      barcodes: [], scientific_names: [], stock: 0, reorder_point: 10,
-      price: 0, purchase_price: 0, expiration_date: '',
-      dosage: '', dosage_form: '', image_url: '', profit_margin: 0
+        barcodes: [],
+        scientific_names: [], 
+        stock: 0, 
+        reorder_point: 10,
+        price: 0, 
+        purchase_price: 0, 
+        expiration_date: '',
+        dosage: '', 
+        dosage_form: '', 
+        image_url: '', 
+        profit_margin: 0
     });
     setNewMedImageFile(null);
     setNewMedImagePreview(null);
