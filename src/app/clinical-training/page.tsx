@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { HeartPulse, Heart, Wind, Activity, Bug, Scale } from 'lucide-react';
+import { HeartPulse, Heart, Wind, Activity, Bug, Scale, Pill } from 'lucide-react';
 import type { Medication, ClinicalTrainingContent } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -91,7 +91,7 @@ const clinicalContent: ClinicalTrainingContent[] = [
     },
     {
         system: 'الجهاز الهضمي',
-        icon: Activity, // Replaced Stomach with Activity
+        icon: Activity,
         diseases: [
             {
                 name: 'مرض الارتجاع المعدي المريئي (GERD)',
@@ -99,7 +99,6 @@ const clinicalContent: ClinicalTrainingContent[] = [
                 drugClasses: [
                     { name: 'مثبطات مضخة البروتون (PPIs)', mechanism: 'تقلل من إنتاج حمض المعدة بشكل فعال، وهي العلاج الأكثر شيوعاً.', scientific_names: ['omeprazole', 'esomeprazole', 'lansoprazole', 'pantoprazole'] },
                     { name: 'حاصرات H2', mechanism: 'تقلل من إنتاج الحمض ولكنها أقل قوة من PPIs.', scientific_names: ['ranitidine', 'famotidine'] },
-                    { name: 'مضادات الحموضة (Antacids)', mechanism: 'تعادل حمض المعدة الموجود وتوفر راحة سريعة ومؤقتة.', scientific_names: ['calcium carbonate', 'magnesium hydroxide', 'aluminum hydroxide'] },
                 ],
                 counselingPoints: [
                     'يُفضل تناول أدوية PPIs قبل 30-60 دقيقة من وجبة الإفطار.',
@@ -141,16 +140,60 @@ const clinicalContent: ClinicalTrainingContent[] = [
                 drugClasses: [
                     { name: 'غير انتقائية', mechanism: 'تثبط إنزيمات COX-1 و COX-2، مما قد يؤثر على المعدة.', scientific_names: ['ibuprofen', 'diclofenac', 'naproxen', 'piroxicam', 'mefenamic acid'] },
                     { name: 'انتقائية (COX-2 Inhibitors)', mechanism: 'تستهدف بشكل أساسي إنزيم COX-2 المسؤول عن الالتهاب، مما يقلل من التأثير على المعدة.', scientific_names: ['celecoxib', 'etoricoxib'] },
-                    { name: 'مسكنات أخرى', mechanism: 'يعمل بشكل مركزي في الدماغ لتخفيف الألم وخفض الحرارة، ولكن ليس له تأثير كبير كمضاد للالتهاب.', scientific_names: ['paracetamol', 'acetaminophen'] },
                 ],
                 counselingPoints: [
                     'تناول معظم أنواع الـ NSAIDs مع الطعام لحماية المعدة.',
-                    'لا تتجاوز الجرعة الموصى بها، خاصة مع الباراسيتامول لتجنب تلف الكبد.',
                     'استشر الطبيب قبل استخدامها إذا كنت تعاني من مشاكل في القلب، الكلى، أو قرحة في المعدة.',
+                    'لا تستخدم لفترات طويلة دون استشارة طبية.'
                 ]
             }
         ]
     },
+    {
+        system: 'أدوية بدون وصفة (OTC)',
+        icon: Pill,
+        diseases: [
+            {
+                name: 'مسكنات الألم وخافضات الحرارة',
+                overview: 'أدوية تستخدم للأوجاع البسيطة إلى المتوسطة مثل الصداع، آلام العضلات، ولخفض درجة الحرارة.',
+                drugClasses: [
+                    { name: 'Paracetamol / Acetaminophen', mechanism: 'يعمل بشكل مركزي في الدماغ لتخفيف الألم وخفض الحرارة. آمن على المعدة.', scientific_names: ['paracetamol', 'acetaminophen'] },
+                ],
+                counselingPoints: [
+                    'لا تتجاوز الجرعة اليومية القصوى (عادة 4 غرامات للبالغين) لتجنب تلف الكبد.',
+                    'تأكد من عدم تناول منتجات أخرى تحتوي على الباراسيتامول في نفس الوقت.',
+                    'آمن للاستخدام أثناء الحمل والرضاعة بالجرعات الموصى بها.',
+                ]
+            },
+            {
+                name: 'أدوية السعال والزكام',
+                overview: 'مجموعة متنوعة من الأدوية لتخفيف أعراض نزلات البرد الشائعة.',
+                drugClasses: [
+                    { name: 'مضادات الهيستامين (Antihistamines)', mechanism: 'تخفف أعراض الحساسية مثل العطاس، سيلان الأنف، والدموع.', scientific_names: ['chlorpheniramine', 'diphenhydramine', 'loratadine', 'cetirizine'] },
+                    { name: 'مزيلات الاحتقان (Decongestants)', mechanism: 'تقلل من تورم الأوعية الدموية في الأنف لتسهيل التنفس.', scientific_names: ['pseudoephedrine', 'phenylephrine', 'xylometazoline'] },
+                    { name: 'طاردات البلغم (Expectorants)', mechanism: 'تساعد على تليين البلغم وتسهيل خروجه من الشعب الهوائية.', scientific_names: ['guaifenesin'] },
+                    { name: 'مهدئات السعال (Antitussives)', mechanism: 'تعمل على تثبيط مركز السعال في الدماغ لتهدئة السعال الجاف وغير المنتج.', scientific_names: ['dextromethorphan'] },
+                ],
+                counselingPoints: [
+                    'بعض مضادات الهيستامين (الجيل الأول) تسبب النعاس، تجنب القيادة بعدها.',
+                    'لا تستخدم مزيلات الاحتقان الموضعية (بخاخات الأنف) لأكثر من 3-5 أيام.',
+                    'مرضى الضغط والسكري يجب أن يستشيروا الصيدلي قبل استخدام مزيلات الاحتقان.',
+                ]
+            },
+            {
+                name: 'مضادات الحموضة',
+                overview: 'أدوية لمعالجة حرقة المعدة وعسر الهضم عن طريق معادلة حمض المعدة.',
+                drugClasses: [
+                    { name: 'معادلات الحموضة (Antacids)', mechanism: 'تعمل بسرعة على معادلة حمض المعدة الموجود وتوفر راحة سريعة ومؤقتة.', scientific_names: ['calcium carbonate', 'magnesium hydroxide', 'aluminum hydroxide'] },
+                ],
+                counselingPoints: [
+                    'يتم تناولها عند الشعور بالحرقة للحصول على راحة سريعة.',
+                    'قد تؤثر على امتصاص أدوية أخرى، لذا يجب المباعدة بينها وبين الأدوية الأخرى بساعتين على الأقل.',
+                    'إذا استمرت الأعراض، يجب مراجعة الطبيب.',
+                ]
+            }
+        ]
+    }
 ];
 
 export default function ClinicalTrainingPage() {
