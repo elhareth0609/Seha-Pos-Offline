@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { HeartPulse, Stethoscope, Brain, Shield, TestTube, Bone, Droplets, Heart, Wind, LeafyGreen, Activity, Pill, User, Users, ShieldCheck, Bug, Microscope, Lung, Stomach, Scale } from 'lucide-react';
+import { HeartPulse, Heart, Wind, Activity, Bug, Scale } from 'lucide-react';
 import type { Medication, ClinicalTrainingContent } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -71,7 +71,7 @@ const clinicalContent: ClinicalTrainingContent[] = [
     },
     {
         system: 'الجهاز التنفسي',
-        icon: Lung,
+        icon: Wind,
         diseases: [
             {
                 name: 'الربو (Asthma)',
@@ -91,7 +91,7 @@ const clinicalContent: ClinicalTrainingContent[] = [
     },
     {
         system: 'الجهاز الهضمي',
-        icon: Stomach,
+        icon: Activity, // Replaced Stomach with Activity
         diseases: [
             {
                 name: 'مرض الارتجاع المعدي المريئي (GERD)',
@@ -254,4 +254,3 @@ export default function ClinicalTrainingPage() {
         </Card>
     );
 }
-
