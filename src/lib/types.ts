@@ -243,6 +243,7 @@ export type AppSettings = {
     expirationThresholdDays: number;
     invoiceFooterMessage?: string;
     suggestion_preference_score?: Record<string, number>;
+    controlled_substances?: string[];
 }
 
 export type TrashItem = {
