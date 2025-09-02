@@ -334,7 +334,7 @@ export default function Dashboard() {
                       <Button variant="outline">عرض المخزون</Button>
                   </Link>
               </CardHeader>
-              <CardContent>
+              <CardContent className="text-right">
                    <ScrollArea className="h-72">
                       <Table>
                           <TableHeader>
