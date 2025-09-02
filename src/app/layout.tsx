@@ -37,6 +37,7 @@ export default function RootLayout({
             defaultTheme="system"
             enableSystem
             disableTransitionOnChange
+            themes={['light', 'dark', 'theme-zinc', 'theme-rose', 'theme-blue', 'theme-green']}
         >
             <AuthProvider>
                 <AppLayoutClient>
