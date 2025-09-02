@@ -5,14 +5,14 @@ import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { HeartPulse, Stethoscope, Brain, Shield, TestTube, Bone, Droplets } from 'lucide-react';
+import { HeartPulse, Stethoscope, Brain, Shield, TestTube, Bone, Droplets, Heart, Wind, LeafyGreen, Activity, Pill, User, Users, ShieldCheck, Bug, Microscope, Lung, Stomach, Scale } from 'lucide-react';
 import type { Medication, ClinicalTrainingContent } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const clinicalContent: ClinicalTrainingContent[] = [
     {
         system: 'الجهاز القلبي الوعائي',
-        icon: HeartPulse,
+        icon: Heart,
         diseases: [
             {
                 name: 'ارتفاع ضغط الدم (Hypertension)',
@@ -35,7 +35,7 @@ const clinicalContent: ClinicalTrainingContent[] = [
     },
     {
         system: 'المضادات الحيوية والأمراض المعدية',
-        icon: Shield,
+        icon: Bug,
         diseases: [
             {
                 name: 'البنسلينات (Penicillins)',
@@ -52,9 +52,105 @@ const clinicalContent: ClinicalTrainingContent[] = [
                     'انتبه جيداً لأي علامات حساسية (طفح جلدي، صعوبة في التنفس) وأبلغ الطبيب فوراً.',
                     'قد تقلل من فعالية بعض أنواع حبوب منع الحمل.'
                 ]
+            },
+            {
+                name: 'السيفالوسبورينات (Cephalosporins)',
+                overview: 'مجموعة أخرى من المضادات الحيوية تشبه البنسلين في آلية عملها، ولكنها مقسمة إلى أجيال حسب طيف فعاليتها.',
+                drugClasses: [
+                    { name: 'الجيل الأول', mechanism: 'فعال بشكل أساسي ضد البكتيريا موجبة الجرام.', scientific_names: ['cephalexin', 'cefadroxil'] },
+                    { name: 'الجيل الثاني', mechanism: 'طيف أوسع يشمل بعض البكتيريا سالبة الجرام.', scientific_names: ['cefaclor', 'cefuroxime'] },
+                    { name: 'الجيل الثالث', mechanism: 'أكثر فعالية ضد البكتيريا سالبة الجرام، وتستخدم للعدوى الأكثر خطورة.', scientific_names: ['cefixime', 'ceftriaxone', 'cefdinir'] },
+                ],
+                counselingPoints: [
+                    'يجب إكمال كورس العلاج كاملاً.',
+                    'أبلغ الطبيب إذا كان لديك حساسية معروفة للبنسلين.',
+                    'تجنب تناول الكحول مع بعض أنواع السيفالوسبورينات.',
+                ]
             }
         ]
-    }
+    },
+    {
+        system: 'الجهاز التنفسي',
+        icon: Lung,
+        diseases: [
+            {
+                name: 'الربو (Asthma)',
+                overview: 'مرض مزمن يسبب التهاب وتضيق في المسالك الهوائية، مما يؤدي إلى صعوبة في التنفس، سعال، وصفير في الصدر.',
+                drugClasses: [
+                    { name: 'موسعات الشعب الهوائية قصيرة المفعول (SABAs)', mechanism: 'تعمل بسرعة على إرخاء العضلات حول الشعب الهوائية لتخفيف الأعراض الحادة.', scientific_names: ['salbutamol', 'albuterol'] },
+                    { name: 'الكورتيكوستيرويدات المستنشقة (ICS)', mechanism: 'تقلل من الالتهاب في المسالك الهوائية، وهي العلاج الأساسي للتحكم في الربو على المدى الطويل.', scientific_names: ['budesonide', 'fluticasone', 'beclomethasone'] },
+                    { name: 'مزيج ICS و LABA', mechanism: 'يجمع بين مضاد للالتهاب وموسع للشعب الهوائية طويل المفعول للتحكم المستمر.', scientific_names: ['budesonide/formoterol', 'fluticasone/salmeterol'] },
+                ],
+                counselingPoints: [
+                    'تعلم كيفية استخدام البخاخ بشكل صحيح.',
+                    'استخدم البخاخ الإنقاذي (SABA) فقط عند الحاجة، وليس بشكل منتظم.',
+                    'اغسل فمك بالماء بعد استخدام بخاخ الكورتيزون لمنع الفطريات.',
+                ]
+            }
+        ]
+    },
+    {
+        system: 'الجهاز الهضمي',
+        icon: Stomach,
+        diseases: [
+            {
+                name: 'مرض الارتجاع المعدي المريئي (GERD)',
+                overview: 'حالة يرتد فيها حمض المعدة بشكل متكرر إلى المريء، مما يسبب حرقة وأعراض أخرى.',
+                drugClasses: [
+                    { name: 'مثبطات مضخة البروتون (PPIs)', mechanism: 'تقلل من إنتاج حمض المعدة بشكل فعال، وهي العلاج الأكثر شيوعاً.', scientific_names: ['omeprazole', 'esomeprazole', 'lansoprazole', 'pantoprazole'] },
+                    { name: 'حاصرات H2', mechanism: 'تقلل من إنتاج الحمض ولكنها أقل قوة من PPIs.', scientific_names: ['ranitidine', 'famotidine'] },
+                    { name: 'مضادات الحموضة (Antacids)', mechanism: 'تعادل حمض المعدة الموجود وتوفر راحة سريعة ومؤقتة.', scientific_names: ['calcium carbonate', 'magnesium hydroxide', 'aluminum hydroxide'] },
+                ],
+                counselingPoints: [
+                    'يُفضل تناول أدوية PPIs قبل 30-60 دقيقة من وجبة الإفطار.',
+                    'تجنب الأطعمة والمشروبات التي تزيد من الأعراض (مثل الأطعمة الدهنية، القهوة، الشوكولاتة).',
+                    'حاول عدم الاستلقاء مباشرة بعد تناول الطعام.',
+                ]
+            }
+        ]
+    },
+    {
+        system: 'الغدد الصماء',
+        icon: Scale,
+        diseases: [
+            {
+                name: 'مرض السكري من النوع الثاني',
+                overview: 'مرض مزمن يؤثر على كيفية معالجة الجسم لسكر الدم (الجلوكوز)، إما بسبب عدم إنتاج كمية كافية من الأنسولين أو مقاومة الجسم للأنسولين.',
+                drugClasses: [
+                    { name: 'Biguanides', mechanism: 'يقلل من إنتاج الجلوكوز في الكبد ويحسن من حساسية الجسم للأنسولين.', scientific_names: ['metformin'] },
+                    { name: 'Sulfonylureas', mechanism: 'تحفز البنكرياس على إفراز المزيد من الأنسولين.', scientific_names: ['glibenclamide', 'gliclazide', 'glimepiride'] },
+                    { name: 'DPP-4 Inhibitors', mechanism: 'تزيد من مستويات هرمونات طبيعية تساعد على التحكم في سكر الدم.', scientific_names: ['sitagliptin', 'vildagliptin', 'saxagliptin'] },
+                    { name: 'SGLT2 Inhibitors', mechanism: 'تساعد الكلى على التخلص من الجلوكوز الزائد عن طريق البول.', scientific_names: ['dapagliflozin', 'empagliflozin', 'canagliflozin'] },
+                ],
+                counselingPoints: [
+                    'تناول دواء Metformin مع الطعام لتقليل اضطراب المعدة.',
+                    'راقب مستويات سكر الدم بانتظام كما نصحك الطبيب.',
+                    'انتبه لأعراض هبوط السكر (الدوخة، التعرق، الرعشة) خاصة مع أدوية السلفونيل يوريا.',
+                    'اتباع نظام غذائي صحي وممارسة الرياضة جزء أساسي من العلاج.',
+                ]
+            }
+        ]
+    },
+    {
+        system: 'الألم والالتهاب',
+        icon: Activity,
+        diseases: [
+            {
+                name: 'مضادات الالتهاب غير الستيرويدية (NSAIDs)',
+                overview: 'مجموعة من الأدوية تستخدم لتخفيف الألم، تقليل الالتهاب، وخفض الحمى.',
+                drugClasses: [
+                    { name: 'غير انتقائية', mechanism: 'تثبط إنزيمات COX-1 و COX-2، مما قد يؤثر على المعدة.', scientific_names: ['ibuprofen', 'diclofenac', 'naproxen', 'piroxicam', 'mefenamic acid'] },
+                    { name: 'انتقائية (COX-2 Inhibitors)', mechanism: 'تستهدف بشكل أساسي إنزيم COX-2 المسؤول عن الالتهاب، مما يقلل من التأثير على المعدة.', scientific_names: ['celecoxib', 'etoricoxib'] },
+                    { name: 'مسكنات أخرى', mechanism: 'يعمل بشكل مركزي في الدماغ لتخفيف الألم وخفض الحرارة، ولكن ليس له تأثير كبير كمضاد للالتهاب.', scientific_names: ['paracetamol', 'acetaminophen'] },
+                ],
+                counselingPoints: [
+                    'تناول معظم أنواع الـ NSAIDs مع الطعام لحماية المعدة.',
+                    'لا تتجاوز الجرعة الموصى بها، خاصة مع الباراسيتامول لتجنب تلف الكبد.',
+                    'استشر الطبيب قبل استخدامها إذا كنت تعاني من مشاكل في القلب، الكلى، أو قرحة في المعدة.',
+                ]
+            }
+        ]
+    },
 ];
 
 export default function ClinicalTrainingPage() {
