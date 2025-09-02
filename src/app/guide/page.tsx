@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -14,7 +15,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { HelpCircle, LayoutDashboard, ShoppingCart, Boxes, Truck, Landmark, FileText, Users, CalendarX2, Settings, Upload, KeyRound, LogIn, UserPlus, BrainCircuit, ListChecks } from "lucide-react"
+import { HelpCircle, LayoutDashboard, ShoppingCart, Boxes, Truck, Landmark, FileText, Users, CalendarX2, Settings, Upload, KeyRound, LogIn, UserPlus, BrainCircuit, ListChecks, HeartPulse } from "lucide-react"
 
 type BaseContentItem = {
     text: string;
@@ -75,6 +76,15 @@ const guideSections: GuideSection[] = [
                 subTitle: "مساعد الجرعات الذكي",
                 icon: BrainCircuit,
                 text: "في صفحة المبيعات، يمكنك استخدام 'مساعد الجرعات الذكي'. أدخل عمر المريض، وسيقوم الذكاء الاصطناعي بتحليل الأدوية في الفاتورة، ويقترح الجرعات المناسبة، ويكشف عن أي تفاعلات دوائية محتملة، ويقدم تحذيرات هامة.",
+            },
+        ],
+    },
+     {
+        icon: HeartPulse,
+        title: "التدريب السريري",
+        content: [
+            {
+                text: "وحدة تدريبية متكاملة لمساعدة الصيادلة على ربط المعلومات العلمية بالواقع العملي. تحتوي على شرح للأمراض الشائعة ومجموعات الأدوية المستخدمة، والأهم من ذلك، تعرض لك الأدوية المتوفرة حالياً في مخزونك والتي تنتمي لكل مجموعة دوائية، مما يجعل التدريب عملياً ومفيداً.",
             },
         ],
     },

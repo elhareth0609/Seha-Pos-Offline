@@ -37,6 +37,7 @@ import {
   Receipt,
   UserCog,
   LifeBuoy,
+  HeartPulse,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,6 +75,7 @@ const allNavItems = [
   { href: "/", icon: LayoutDashboard, label: "لوحة التحكم", group: 'main' },
   { href: "/sales", icon: ShoppingCart, label: "المبيعات", group: 'main' },
   { href: "/inventory", icon: Boxes, label: "المخزون", group: 'main' },
+  { href: "/clinical-training", icon: HeartPulse, label: "التدريب السريري", group: 'main' },
   { href: "/purchases", icon: Truck, label: "المشتريات", group: 'main' },
   { href: "/suppliers", icon: Landmark, label: "الموردون", group: 'main' },
   
@@ -344,6 +346,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         '/offers': 'manage_offers',
         '/hr': 'manage_hr',
         '/support': 'manage_support',
+        '/clinical-training': 'manage_guide' // Assuming guide permission covers this
     };
 
     return allNavItems.filter(item => {

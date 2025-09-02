@@ -427,3 +427,22 @@ export type PatientPaymentPayload = {
     notes?: string;
 };
 
+// Types for Clinical Training Module
+export type DrugClass = {
+    name: string;
+    mechanism: string;
+    scientific_names: string[];
+};
+
+export type DiseaseProfile = {
+    name: string;
+    overview: string;
+    drugClasses: DrugClass[];
+    counselingPoints: string[];
+};
+
+export type ClinicalTrainingContent = {
+    system: string;
+    icon: React.ComponentType<any>;
+    diseases: DiseaseProfile[];
+};
