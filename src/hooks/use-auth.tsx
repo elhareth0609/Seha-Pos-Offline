@@ -355,6 +355,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     const [addingToCart, setAddingToCart] = React.useState(false);
     const addToOrderRequestCart = async (item: Medication) => {
+        console.log(item)
         if (addingToCart) return;
         setAddingToCart(true);
         try {

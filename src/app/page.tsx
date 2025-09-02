@@ -410,52 +410,52 @@ export default function Dashboard() {
                 </ScrollArea>
               </CardContent>
           </Card>
-           <Card className="lg:col-span-1">
-            <Tabs defaultValue="top-selling">
-              <CardHeader>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="top-selling">الأكثر مبيعًا</TabsTrigger>
-                  <TabsTrigger value="most-profitable">الأكثر ربحًا</TabsTrigger>
-                </TabsList>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-72">
-                  <TabsContent value="top-selling">
-                    <Table>
-                      <TableBody>
-                        {topPerformingMedications.topByQuantity.length > 0 ? topPerformingMedications.topByQuantity.map((item) => (
-                            <TableRow key={item.medication_id}>
-                                <TableCell className="font-semibold text-base">{item.name}</TableCell>
-                                <TableCell className="text-left">
-                                    <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item as unknown as Medication)}>
-                                        <ShoppingBasket className="h-5 w-5 text-blue-600"/>
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                        )) : (<TableRow><TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد بيانات.</TableCell></TableRow>)}
-                      </TableBody>
-                    </Table>
-                  </TabsContent>
-                  <TabsContent value="most-profitable">
-                     <Table>
-                      <TableBody>
-                        {topPerformingMedications.topByProfit.length > 0 ? topPerformingMedications.topByProfit.map((item) => (
-                            <TableRow key={item.medication_id}>
-                                <TableCell className="font-semibold text-base">{item.name}</TableCell>
-                                <TableCell className="text-left">
-                                     <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item as unknown as Medication)}>
-                                        <ShoppingBasket className="h-5 w-5 text-blue-600"/>
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                        )) : (<TableRow><TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد بيانات.</TableCell></TableRow>)}
-                      </TableBody>
-                    </Table>
-                  </TabsContent>
-                </ScrollArea>
-              </CardContent>
-            </Tabs>
-          </Card>
+            <Card className="lg:col-span-1">
+                <Tabs defaultValue="top-selling">
+                    <CardHeader>
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="top-selling">الأكثر مبيعًا</TabsTrigger>
+                            <TabsTrigger value="most-profitable">الأكثر ربحًا</TabsTrigger>
+                        </TabsList>
+                    </CardHeader>
+                    <CardContent>
+                        <ScrollArea className="h-72">
+                            <TabsContent value="top-selling">
+                                <Table>
+                                    <TableBody>
+                                        {topPerformingMedications.topByQuantity.length > 0 ? topPerformingMedications.topByQuantity.map((item) => (
+                                            <TableRow key={item.medication_id}>
+                                                <TableCell className="font-semibold text-base">{item.name}</TableCell>
+                                                <TableCell className="text-left">
+                                                    <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item as unknown as Medication)} className="hover:text-blue-600 group">
+                                                        <ShoppingBasket className="h-5 w-5 text-blue-600 group-hover:text-white"/>
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        )) : (<TableRow><TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد بيانات.</TableCell></TableRow>)}
+                                    </TableBody>
+                                </Table>
+                            </TabsContent>
+                            <TabsContent value="most-profitable">
+                                    <Table>
+                                    <TableBody>
+                                        {topPerformingMedications.topByProfit.length > 0 ? topPerformingMedications.topByProfit.map((item) => (
+                                            <TableRow key={item.medication_id}>
+                                                <TableCell className="font-semibold text-base">{item.name}</TableCell>
+                                                <TableCell className="text-left">
+                                                    <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item as unknown as Medication)} className="hover:text-blue-600 group">
+                                                        <ShoppingBasket className="h-5 w-5 text-blue-600 group-hover:text-white"/>
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        )) : (<TableRow><TableCell colSpan={2} className="text-center h-24 text-muted-foreground">لا توجد بيانات.</TableCell></TableRow>)}
+                                    </TableBody>
+                                </Table>
+                            </TabsContent>
+                        </ScrollArea>
+                    </CardContent>
+                </Tabs>
+            </Card>
           <Card className="lg:col-span-2">
             <CardHeader>
                 <CardTitle>الأدوية الأقل مبيعًا (الراكدة)</CardTitle>
