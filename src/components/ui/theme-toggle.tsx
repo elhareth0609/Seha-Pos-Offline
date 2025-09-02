@@ -7,7 +7,7 @@ import { useTheme } from "next-themes"
 
 import { Button } from "@/components/ui/button"
 
-const themes = ['light', 'dark', 'theme-zinc', 'theme-rose', 'theme-blue', 'theme-green'];
+const themes = ['light', 'dark', 'theme-blue', 'theme-green', 'theme-rose', 'theme-black', 'theme-violet'];
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
