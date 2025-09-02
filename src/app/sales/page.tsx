@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -401,6 +402,8 @@ export default function SalesPage() {
   const printComponentRef = React.useRef(null);
 
   const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
+  const [isControlledDrugPinOpen, setIsControlledDrugPinOpen] = React.useState(false);
+
 
     const handlePrint = () => {
         if (printComponentRef.current && saleToPrint) {
@@ -698,8 +701,19 @@ export default function SalesPage() {
             }
         }
     }
+    
+    const controlledSubstances = settings.controlled_substances || [];
+    const hasControlledDrug = cart.some(item => 
+        !item.is_return && item.scientific_names?.some(scName => 
+            controlledSubstances.map(cs => cs.toLowerCase()).includes(scName.toLowerCase())
+        )
+    );
 
-    setIsCheckoutOpen(true);
+    if (hasControlledDrug) {
+        setIsControlledDrugPinOpen(true);
+    } else {
+        setIsCheckoutOpen(true);
+    }
   }
   
   const handleFinalizeSale = async () => {
@@ -729,6 +743,16 @@ export default function SalesPage() {
         const latestSales = await searchAllSales();
         setSortedSales(latestSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         setAlternativeExpiryAlert(null);
+    }
+  }
+
+  const handleControlledDrugPinConfirm = async (pin: string) => {
+    const isValid = await verifyPin(pin);
+    if(isValid) {
+        setIsControlledDrugPinOpen(false);
+        setIsCheckoutOpen(true);
+    } else {
+        toast({ variant: 'destructive', title: "رمز PIN غير صحيح" });
     }
   }
 
@@ -1434,11 +1458,18 @@ export default function SalesPage() {
             open={isPinDialogOpen}
             onOpenChange={setIsPinDialogOpen}
             onConfirm={handlePinConfirmDelete}
+            title="تأكيد الحذف"
+            description="هذه العملية تتطلب تأكيدًا. الرجاء إدخال رمز PIN الخاص بك للمتابعة."
+        />
+        <PinDialog
+            open={isControlledDrugPinOpen}
+            onOpenChange={setIsControlledDrugPinOpen}
+            onConfirm={handleControlledDrugPinConfirm}
+            title="دواء خاضع للرقابة"
+            description="هذه الفاتورة تحتوي على مادة خاضعة للرقابة. يتطلب صرفها إدخال رمز PIN. صرف هذه المادة بدون وصفة طبية يعرضك للمساءلة القانونية التي قد تصل إلى السجن حسب أحكام القانون العراقي."
         />
     </div>
     </TooltipProvider>
     </>
   )
 }
-
-    

@@ -42,7 +42,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { useAuth } from '@/hooks/use-auth'
-import { Trash2, ShieldCheck, User as UserIcon } from 'lucide-react'
+import { Trash2, ShieldCheck, User as UserIcon, XIcon, PlusCircle } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import Image from 'next/image'
 import { appSettings as fallbackSettings } from '@/lib/data'
@@ -168,6 +168,7 @@ export default function SettingsPage() {
 
     const [isClient, setIsClient] = React.useState(false);
     const [isSecurityDialogOpen, setIsSecurityDialogOpen] = React.useState(false);
+    const [newSubstance, setNewSubstance] = React.useState('');
 
     const settingsForm = useForm<SettingsFormValues>({
         resolver: zodResolver(settingsSchema),
@@ -204,6 +205,23 @@ export default function SettingsPage() {
     const handlePinRequirementChange = (userId: string, requirePin: boolean) => {
         updateUserPinRequirement(userId, requirePin);
     };
+
+    const handleAddControlledSubstance = () => {
+        if (!newSubstance.trim()) return;
+        const currentList = settings.controlled_substances || [];
+        if (currentList.map(s => s.toLowerCase()).includes(newSubstance.trim().toLowerCase())) {
+            toast({ variant: 'destructive', title: 'مادة مكررة', description: 'هذه المادة العلمية موجودة بالفعل في القائمة.' });
+            return;
+        }
+        const updatedList = [...currentList, newSubstance.trim()];
+        setSettings({ ...settings, controlled_substances: updatedList });
+        setNewSubstance('');
+    }
+
+    const handleRemoveControlledSubstance = (substanceToRemove: string) => {
+        const updatedList = (settings.controlled_substances || []).filter(s => s !== substanceToRemove);
+        setSettings({ ...settings, controlled_substances: updatedList });
+    }
 
     const pharmacyUsers = users.filter(u => u.pharmacy_id === currentUser?.pharmacy_id && u.role !== 'SuperAdmin');
 
@@ -271,6 +289,44 @@ export default function SettingsPage() {
                 </Card>
             </form>
         </Form>
+        
+        {currentUser.role === 'Admin' && (
+             <Card>
+                <CardHeader>
+                    <CardTitle>إدارة الأدوية الخاضعة للرقابة</CardTitle>
+                    <CardDescription>
+                        أضف الأسماء العلمية للأدوية التي تتطلب إدخال رمز PIN عند بيعها. سيتم تطبيق هذه القاعدة على كل دواء تجاري يحتوي على هذه المادة الفعالة.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div className="flex gap-2">
+                        <Input 
+                            placeholder="مثال: Pregabalin"
+                            value={newSubstance}
+                            onChange={(e) => setNewSubstance(e.target.value)}
+                        />
+                        <Button onClick={handleAddControlledSubstance} variant="outline">
+                             <PlusCircle className="me-2 h-4 w-4"/> إضافة
+                        </Button>
+                    </div>
+                    {(settings.controlled_substances && settings.controlled_substances.length > 0) && (
+                        <div className="space-y-2">
+                            <Label>القائمة الحالية:</Label>
+                            <div className="flex flex-wrap gap-2">
+                                {settings.controlled_substances.map(substance => (
+                                    <div key={substance} className="flex items-center gap-1 bg-muted rounded-full px-3 py-1 text-sm">
+                                        <span>{substance}</span>
+                                        <button onClick={() => handleRemoveControlledSubstance(substance)} className="text-muted-foreground hover:text-destructive">
+                                            <XIcon className="h-3 w-3" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        )}
         
         {currentUser.role === 'Admin' && (
             <Card>
