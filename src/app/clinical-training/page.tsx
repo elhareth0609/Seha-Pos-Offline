@@ -59,7 +59,7 @@ const clinicalContent: ClinicalTrainingContent[] = [
                 drugClasses: [
                     { name: 'الجيل الأول', mechanism: 'فعال بشكل أساسي ضد البكتيريا موجبة الجرام.', scientific_names: ['cephalexin', 'cefadroxil'] },
                     { name: 'الجيل الثاني', mechanism: 'طيف أوسع يشمل بعض البكتيريا سالبة الجرام.', scientific_names: ['cefaclor', 'cefuroxime'] },
-                    { name: 'الجيل الثالث', mechanism: 'أكثر فعالية ضد البكتيريا سالبة الجرام، وتستخدم للعدوى الأكثر خطورة.', scientific_names: ['cefixime', 'ceftriaxone', 'cefdinir'] },
+                    { name: 'الجيل الثالث', mechanism: 'أكثر فعالية ضد البكتیيريا سالبة الجرام، وتستخدم للعدوى الأكثر خطورة.', scientific_names: ['cefixime', 'ceftriaxone', 'cefdinir'] },
                 ],
                 counselingPoints: [
                     'يجب إكمال كورس العلاج كاملاً.',
@@ -135,16 +135,52 @@ const clinicalContent: ClinicalTrainingContent[] = [
         icon: Activity,
         diseases: [
             {
+                name: 'مسكنات الألم الشائعة',
+                overview: 'أدوية تستخدم للأوجاع البسيطة إلى المتوسطة مثل الصداع، آلام العضلات، ولخفض درجة الحرارة.',
+                drugClasses: [
+                    { name: 'Paracetamol / Acetaminophen', mechanism: 'يعمل بشكل مركزي في الدماغ لتخفيف الألم وخفض الحرارة. آمن على المعدة.', scientific_names: ['paracetamol', 'acetaminophen'] },
+                ],
+                counselingPoints: [
+                    'لا تتجاوز الجرعة اليومية القصوى (عادة 4 غرامات للبالغين) لتجنب تلف الكبد.',
+                    'تأكد من عدم تناول منتجات أخرى تحتوي على الباراسيتامول في نفس الوقت.',
+                ]
+            },
+            {
                 name: 'مضادات الالتهاب غير الستيرويدية (NSAIDs)',
                 overview: 'مجموعة من الأدوية تستخدم لتخفيف الألم، تقليل الالتهاب، وخفض الحمى.',
                 drugClasses: [
-                    { name: 'غير انتقائية', mechanism: 'تثبط إنزيمات COX-1 و COX-2، مما قد يؤثر على المعدة.', scientific_names: ['ibuprofen', 'diclofenac', 'naproxen', 'piroxicam', 'mefenamic acid'] },
+                    { name: 'غير انتقائية (Non-selective)', mechanism: 'تثبط إنزيمات COX-1 و COX-2، مما قد يؤثر على المعدة.', scientific_names: ['ibuprofen', 'diclofenac', 'naproxen', 'piroxicam', 'mefenamic acid'] },
                     { name: 'انتقائية (COX-2 Inhibitors)', mechanism: 'تستهدف بشكل أساسي إنزيم COX-2 المسؤول عن الالتهاب، مما يقلل من التأثير على المعدة.', scientific_names: ['celecoxib', 'etoricoxib'] },
                 ],
                 counselingPoints: [
                     'تناول معظم أنواع الـ NSAIDs مع الطعام لحماية المعدة.',
                     'استشر الطبيب قبل استخدامها إذا كنت تعاني من مشاكل في القلب، الكلى، أو قرحة في المعدة.',
                     'لا تستخدم لفترات طويلة دون استشارة طبية.'
+                ]
+            },
+            {
+                name: 'أدوية النقرس (Gout)',
+                overview: 'أدوية تستخدم لعلاج نوبات النقرس الحادة أو للوقاية منها عن طريق تقليل مستويات حمض اليوريك في الدم.',
+                drugClasses: [
+                     { name: 'للعلاج الحاد (Acute Attack)', mechanism: 'يقلل الالتهاب والألم أثناء نوبة النقرس.', scientific_names: ['colchicine'] },
+                     { name: 'للوقاية (Prevention)', mechanism: 'يمنع إنتاج حمض اليوريك في الجسم.', scientific_names: ['allopurinol', 'febuxostat'] },
+                ],
+                counselingPoints: [
+                     'يجب شرب كميات كبيرة من الماء مع أدوية الوقاية.',
+                     'قد تحدث نوبات نقرس في بداية العلاج الوقائي، قد يصف الطبيب علاجاً إضافياً لهذه الفترة.',
+                     'يجب تناول الكولشيسين عند أول علامة للنوبة الحادة.'
+                ]
+            },
+            {
+                name: 'مرخيات العضلات (Muscle Relaxants)',
+                overview: 'تستخدم لتخفيف التشنجات العضلية والألم المصاحب لها.',
+                drugClasses: [
+                     { name: 'مرخيات العضلات', mechanism: 'تعمل مركزياً على الجهاز العصبي لتقليل التوتر العضلي.', scientific_names: ['orphenadrine', 'carisoprodol', 'cyclobenzaprine', 'tizanidine'] },
+                ],
+                counselingPoints: [
+                    'قد تسبب النعاس والدوخة، لذا يجب تجنب القيادة أو تشغيل الآلات الثقيلة.',
+                    'يُفضل استخدامها لفترات قصيرة.',
+                    'لا تتناولها مع الكحول أو المهدئات الأخرى.'
                 ]
             }
         ]
@@ -153,18 +189,6 @@ const clinicalContent: ClinicalTrainingContent[] = [
         system: 'أدوية بدون وصفة (OTC)',
         icon: Pill,
         diseases: [
-            {
-                name: 'مسكنات الألم وخافضات الحرارة',
-                overview: 'أدوية تستخدم للأوجاع البسيطة إلى المتوسطة مثل الصداع، آلام العضلات، ولخفض درجة الحرارة.',
-                drugClasses: [
-                    { name: 'Paracetamol / Acetaminophen', mechanism: 'يعمل بشكل مركزي في الدماغ لتخفيف الألم وخفض الحرارة. آمن على المعدة.', scientific_names: ['paracetamol', 'acetaminophen'] },
-                ],
-                counselingPoints: [
-                    'لا تتجاوز الجرعة اليومية القصوى (عادة 4 غرامات للبالغين) لتجنب تلف الكبد.',
-                    'تأكد من عدم تناول منتجات أخرى تحتوي على الباراسيتامول في نفس الوقت.',
-                    'آمن للاستخدام أثناء الحمل والرضاعة بالجرعات الموصى بها.',
-                ]
-            },
             {
                 name: 'أدوية السعال والزكام',
                 overview: 'مجموعة متنوعة من الأدوية لتخفيف أعراض نزلات البرد الشائعة.',
