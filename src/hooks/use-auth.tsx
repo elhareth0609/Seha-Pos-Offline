@@ -354,12 +354,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     
     const [addingToCart, setAddingToCart] = React.useState(false);
-    const addToOrderRequestCart = async (item: Medication) => {
-        console.log(item)
+    const addToOrderRequestCart = async (item: Medication | { medication_id: string; name: string }) => {
         if (addingToCart) return;
         setAddingToCart(true);
         try {
-            const newItemData = { medication_id: item.id, quantity: 1, is_new: true };
+            // Check if the item has 'id' property (from Medication type) or use 'medication_id' directly
+            const medicationId = 'id' in item ? item.id : item.medication_id;
+            console.log(medicationId);
+            const newItemData = { medication_id: medicationId, quantity: 1, is_new: true };
             const savedItem = await apiRequest('/order-requests', 'POST', newItemData);
             setOrderRequestCart(prev => [...prev, savedItem]);
             toast({ title: 'تمت الإضافة إلى الطلبات', description: `تمت إضافة ${item.name} إلى قائمة الطلبات.` });
