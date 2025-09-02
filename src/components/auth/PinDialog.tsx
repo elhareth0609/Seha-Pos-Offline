@@ -19,9 +19,11 @@ interface PinDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (pin: string) => void;
+  title?: string;
+  description?: string;
 }
 
-export function PinDialog({ open, onOpenChange, onConfirm }: PinDialogProps) {
+export function PinDialog({ open, onOpenChange, onConfirm, title, description }: PinDialogProps) {
   const [pin, setPin] = React.useState('');
 
   const handleConfirm = () => {
@@ -40,9 +42,9 @@ export function PinDialog({ open, onOpenChange, onConfirm }: PinDialogProps) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>التحقق من الهوية</DialogTitle>
+          <DialogTitle>{title || 'التحقق من الهوية'}</DialogTitle>
           <DialogDescription>
-            هذه العملية تتطلب تأكيدًا. الرجاء إدخال رمز PIN الخاص بك للمتابعة.
+            {description || 'هذه العملية تتطلب تأكيدًا. الرجاء إدخال رمز PIN الخاص بك للمتابعة.'}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -58,6 +60,12 @@ export function PinDialog({ open, onOpenChange, onConfirm }: PinDialogProps) {
               className="col-span-3"
               maxLength={6}
               autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleConfirm();
+                }
+              }}
             />
           </div>
         </div>
@@ -68,7 +76,7 @@ export function PinDialog({ open, onOpenChange, onConfirm }: PinDialogProps) {
             </Button>
           </DialogClose>
           <Button type="button" onClick={handleConfirm} disabled={!pin}>
-            تأكيد الحذف
+            تأكيد
           </Button>
         </DialogFooter>
       </DialogContent>
