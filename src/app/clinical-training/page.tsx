@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { HeartPulse, Baby, Brain, Wind, Activity, Bug, Scale, Pill, Droplets, Shield, Stethoscope, Bone } from 'lucide-react';
+import { HeartPulse, Baby, Brain, Wind, Activity, Bug, Scale, Pill, Droplets, Shield, Stethoscope, Bone, SmilePlus, Microscope, Ear } from 'lucide-react';
 import type { Medication } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -347,3 +347,5 @@ export default function ContinuingEducationPage() {
         </Card>
     );
 }
+
+    
