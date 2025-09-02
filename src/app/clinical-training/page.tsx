@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { HeartPulse, Baby, Pregnant, Brain, Wind, Activity, Bug, Scale, Pill, Droplets, Shield, Stethoscope, Bone } from 'lucide-react';
+import { HeartPulse, Baby, Brain, Wind, Activity, Bug, Scale, Pill, Droplets, Shield, Stethoscope, Bone } from 'lucide-react';
 import type { Medication } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -64,7 +64,7 @@ const clinicalContent: ClinicalSystem[] = [
     },
     {
         system: 'صحة المرأة (الحمل والرضاعة)',
-        icon: Pregnant,
+        icon: HeartPulse,
         diseases: [
             {
                 name: 'الأدوية الآمنة أثناء الحمل',
