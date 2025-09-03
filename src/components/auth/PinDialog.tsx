@@ -38,15 +38,17 @@ export function PinDialog({ open, onOpenChange, onConfirm, title, description }:
     onOpenChange(isOpen);
   };
 
+  const hasCustomTitle = title !== undefined && title !== '';
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>{title || 'التحقق من الهوية'}</DialogTitle>
-          <DialogDescription>
-            {description || 'هذه العملية تتطلب تأكيدًا. الرجاء إدخال رمز PIN الخاص بك للمتابعة.'}
-          </DialogDescription>
-        </DialogHeader>
+        {hasCustomTitle && (
+            <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+            {description && <DialogDescription>{description}</DialogDescription>}
+            </DialogHeader>
+        )}
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="pin-confirm" className="text-right">

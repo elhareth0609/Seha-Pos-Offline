@@ -1394,13 +1394,23 @@ export default function SalesPage() {
             title="تأكيد الحذف"
             description="هذه العملية تتطلب تأكيدًا. الرجاء إدخال رمز PIN الخاص بك للمتابعة."
         />
-        <PinDialog
-            open={isControlledDrugPinOpen}
-            onOpenChange={setIsControlledDrugPinOpen}
-            onConfirm={handleControlledDrugPinConfirm}
-            title="دواء خاضع للرقابة"
-            description="هذه الفاتورة تحتوي على مادة خاضعة للرقابة. يتطلب صرفها إدخال رمز PIN. صرف هذه المادة بدون وصفة طبية يعرضك للمساءلة القانونية التي قد تصل إلى السجن حسب أحكام القانون العراقي."
-        />
+        <Dialog open={isControlledDrugPinOpen} onOpenChange={setIsControlledDrugPinOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>دواء خاضع للرقابة</DialogTitle>
+              <DialogDescription>
+                هذه الفاتورة تحتوي على مادة خاضعة للرقابة. يتطلب صرفها إدخال رمز PIN. صرف هذه المادة بدون وصفة طبية يعرضك للمساءلة القانونية التي قد تصل إلى السجن حسب أحكام القانون العراقي.
+              </DialogDescription>
+            </DialogHeader>
+            <PinDialog
+              open={isControlledDrugPinOpen}
+              onOpenChange={setIsControlledDrugPinOpen}
+              onConfirm={handleControlledDrugPinConfirm}
+              title=""
+              description=""
+            />
+          </DialogContent>
+        </Dialog>
     </div>
     </TooltipProvider>
     </>
