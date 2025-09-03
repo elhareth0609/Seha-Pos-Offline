@@ -431,21 +431,21 @@ export type PatientPaymentPayload = {
 };
 
 // Types for Clinical Training Module
-export type DrugClass = {
+export type DrugClassInfo = {
     name: string;
-    mechanism: string;
+    mechanism?: string;
     scientific_names: string[];
 };
 
-export type DiseaseProfile = {
+export type DiseaseInfo = {
     name: string;
     overview: string;
-    drugClasses: DrugClass[];
+    drugClasses: DrugClassInfo[];
     counselingPoints: string[];
 };
 
-export type ClinicalTrainingContent = {
+export type ClinicalSystem = {
     system: string;
     icon: React.ComponentType<any>;
-    diseases: DiseaseProfile[];
+    diseases: DiseaseInfo[];
 };
