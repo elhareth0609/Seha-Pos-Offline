@@ -97,7 +97,7 @@ const clinicalContent: ClinicalSystem[] = [
         ]
     },
     {
-        system: 'الجهاز القلبي الوعائي',
+        system: 'الجهاز القلبي الوعائي وأمراض الدم',
         icon: HeartPulse,
         diseases: [
             {
@@ -115,6 +115,25 @@ const clinicalContent: ClinicalSystem[] = [
                     'قلل من تناول الملح.',
                     'لا تتوقف عن تناول الدواء فجأة.'
                 ]
+            },
+            {
+                name: 'الأدوية المضادة للتخثر (Anticoagulants/Antiplatelets)',
+                overview: 'تستخدم لمنع تكون الجلطات الدموية.',
+                drugClasses: [
+                    { name: 'مضادات الصفيحات (Antiplatelets)', scientific_names: ['Aspirin (low dose)', 'clopidogrel'] },
+                    { name: 'مضادات التخثر (Anticoagulants)', scientific_names: ['warfarin', 'rivaroxaban', 'apixaban', 'dabigatran'] },
+                ],
+                counselingPoints: ['انتبه لعلامات النزيف غير المعتاد.', 'تجنب تناولها مع مضادات الالتهاب غير الستيرويدية (NSAIDs) دون استشارة طبية.', 'Warfarin يتطلب مراقبة مستمرة (INR).']
+            },
+            {
+                name: 'علاج فقر الدم (Anemia)',
+                overview: 'يعالج حسب سبب فقر الدم، وأشهره نقص الحديد.',
+                drugClasses: [
+                    { name: 'مكملات الحديد (Iron Supplements)', scientific_names: ['ferrous sulfate', 'ferrous fumarate', 'ferrous gluconate'] },
+                    { name: 'حمض الفوليك (Folic Acid)', scientific_names: ['folic acid'] },
+                    { name: 'فيتامين B12', scientific_names: ['cyanocobalamin', 'methylcobalamin'] },
+                ],
+                counselingPoints: ['تناول مكملات الحديد مع فيتامين C لزيادة الامتصاص.', 'قد تسبب مكملات الحديد إمساكاً أو برازاً داكن اللون.']
             }
         ]
     },
@@ -140,6 +159,14 @@ const clinicalContent: ClinicalSystem[] = [
                     { name: 'الجيل الثالث', scientific_names: ['cefixime', 'ceftriaxone'] },
                 ],
                 counselingPoints: ['أبلغ الطبيب إذا كان لديك حساسية للبنسلين.']
+            },
+             {
+                name: 'الماكروليدات (Macrolides)',
+                overview: 'مضادات حيوية تستخدم غالباً في التهابات الجهاز التنفسي.',
+                drugClasses: [
+                    { name: 'ماكروليدات', scientific_names: ['azithromycin', 'clarithromycin', 'erythromycin'] },
+                ],
+                counselingPoints: ['تناولها قبل الأكل بساعة أو بعده بساعتين لزيادة الامتصاص (باستثناء clarithromycin).', 'انتبه للتفاعلات الدوائية العديدة لهذه المجموعة.']
             },
         ]
     },
@@ -181,6 +208,16 @@ const clinicalContent: ClinicalSystem[] = [
                     { name: 'مزيج ICS و LABA', scientific_names: ['budesonide/formoterol', 'fluticasone/salmeterol'] },
                 ],
                 counselingPoints: ['تعلم كيفية استخدام البخاخ بشكل صحيح.', 'اغسل فمك بالماء بعد استخدام بخاخ الكورتيزون.']
+            },
+            {
+                name: 'السعال (Cough)',
+                overview: 'عرض شائع له أسباب عديدة. العلاج يعتمد على نوع السعال.',
+                drugClasses: [
+                    { name: 'مهدئات السعال الجاف (Antitussives)', scientific_names: ['dextromethorphan', 'pholcodine'] },
+                    { name: 'طاردات البلغم (Expectorants)', scientific_names: ['guaifenesin'] },
+                    { name: 'مذيبات البلغم (Mucolytics)', scientific_names: ['bromhexine', 'ambroxol', 'acetylcysteine'] },
+                ],
+                counselingPoints: ['لا تستخدم مهدئات السعال للسعال المنتج للبلغم.', 'شرب الكثير من السوائل يساعد على تخفيف البلغم.']
             }
         ]
     },
@@ -196,11 +233,31 @@ const clinicalContent: ClinicalSystem[] = [
                     { name: 'حاصرات H2', scientific_names: ['famotidine', 'ranitidine (تم سحبه في بعض المناطق)'] },
                 ],
                 counselingPoints: ['تناول أدوية PPIs قبل 30-60 دقيقة من الإفطار.', 'تجنب الأطعمة التي تزيد الأعراض.']
+            },
+            {
+                name: 'الإمساك (Constipation)',
+                overview: 'صعوبة في التبرز. العلاج يتضمن تغييرات في نمط الحياة والأدوية الملينة.',
+                drugClasses: [
+                    { name: 'ملينات الكتلة (Bulk-forming)', scientific_names: ['psyllium', 'methylcellulose'] },
+                    { name: 'الملينات التناضحية (Osmotic laxatives)', scientific_names: ['lactulose', 'macrogol (PEG)'] },
+                    { name: 'الملينات المنشطة (Stimulant laxatives)', scientific_names: ['bisacodyl', 'senna'] },
+                ],
+                counselingPoints: ['اشرب الكثير من الماء مع الملينات.', 'لا تستخدم الملينات المنشطة لفترات طويلة.']
+            },
+            {
+                name: 'الإسهال (Diarrhea)',
+                overview: 'زيادة في تكرار وسيولة البراز. الأهم هو تعويض السوائل والأملاح.',
+                drugClasses: [
+                    { name: 'محلول معالجة الجفاف (ORS)', scientific_names: ['Oral Rehydration Salts'] },
+                    { name: 'مضادات الحركة (Antimotility agents)', scientific_names: ['loperamide'] },
+                    { name: 'الممتزات (Adsorbents)', scientific_names: ['kaolin and pectin'] },
+                ],
+                counselingPoints: ['Loperamide لا يستخدم في حالة الإسهال الدموي أو الحمى الشديدة.', 'ORS ضروري جداً خاصة للأطفال وكبار السن.']
             }
         ]
     },
      {
-        system: 'الغدد الصماء',
+        system: 'الغدد الصماء والسكري',
         icon: Scale,
         diseases: [
             {
@@ -213,6 +270,18 @@ const clinicalContent: ClinicalSystem[] = [
                     { name: 'SGLT2 Inhibitors', scientific_names: ['dapagliflozin', 'empagliflozin'] },
                 ],
                 counselingPoints: ['تناول Metformin مع الطعام.', 'راقب مستويات سكر الدم بانتظام.', 'انتبه لأعراض هبوط السكر.']
+            },
+            {
+                name: 'الأنسولين (Insulin)',
+                overview: 'علاج أساسي لمرضى السكري من النوع الأول وقد يستخدم في النوع الثاني.',
+                drugClasses: [
+                    { name: 'أنسولين سريع المفعول', scientific_names: ['insulin lispro', 'insulin aspart'] },
+                    { name: 'أنسولين قصير المفعول (Regular)', scientific_names: ['regular insulin'] },
+                    { name: 'أنسولين متوسط المفعول (NPH)', scientific_names: ['NPH insulin'] },
+                    { name: 'أنسولين طويل المفعول', scientific_names: ['insulin glargine', 'insulin detemir', 'insulin degludec'] },
+                    { name: 'أنسولين مخلوط (Premixed)', scientific_names: ['e.g., 70/30'] },
+                ],
+                counselingPoints: ['تعلم تقنية الحقن الصحيحة وتدوير أماكن الحقن.', 'خزن الأقلام غير المستخدمة في الثلاجة (وليس الفريزر).', 'القلم قيد الاستخدام يمكن حفظه في درجة حرارة الغرفة.']
             },
             {
                 name: 'أمراض الغدة الدرقية',
@@ -255,6 +324,83 @@ const clinicalContent: ClinicalSystem[] = [
                     { name: 'مرخيات العضلات', scientific_names: ['orphenadrine', 'carisoprodol', 'cyclobenzaprine', 'tizanidine'] },
                 ],
                 counselingPoints: ['قد تسبب النعاس، تجنب القيادة.', 'لا تتناولها مع الكحول.']
+            }
+        ]
+    },
+    {
+        system: 'مضادات الطفيليات',
+        icon: Microscope,
+        diseases: [
+            {
+                name: 'الديدان المعوية (Helminthic Infections)',
+                overview: 'تستخدم لعلاج الإصابات بالديدان المختلفة مثل الديدان الدبوسية والإسكارس.',
+                drugClasses: [
+                    { name: 'Benzimidazoles', scientific_names: ['albendazole', 'mebendazole'] },
+                ],
+                counselingPoints: ['عادة ما يتم تكرار الجرعة بعد أسبوعين لضمان القضاء على جميع الديدان.', 'يفضل أن تعالج جميع أفراد الأسرة في نفس الوقت.']
+            },
+        ]
+    },
+    {
+        system: 'صحة الفم والأسنان',
+        icon: SmilePlus,
+        diseases: [
+            {
+                name: 'التهاب اللثة وألم الأسنان',
+                overview: 'العناية بصحة الفم تتضمن استخدام غسولات مطهرة ومسكنات للألم.',
+                drugClasses: [
+                    { name: 'غسولات فم مطهرة', scientific_names: ['chlorhexidine gluconate'] },
+                    { name: 'مسكنات موضعية', scientific_names: ['lidocaine gel'] },
+                ],
+                counselingPoints: ['لا تبلع غسول الفم.', 'استخدام غسول الكلورهيكسيدين لفترات طويلة قد يسبب تصبغ الأسنان.']
+            },
+        ]
+    },
+    {
+        system: 'أمراض الجلد والشعر',
+        icon: Droplets,
+        diseases: [
+            {
+                name: 'حب الشباب (Acne)',
+                overview: 'علاج حب الشباب يعتمد على شدته ويتضمن علاجات موضعية وجهازية.',
+                drugClasses: [
+                    { name: 'مضادات حيوية موضعية', scientific_names: ['clindamycin', 'erythromycin'] },
+                    { name: 'Retinoids', scientific_names: ['adapalene', 'tretinoin'] },
+                    { name: 'علاجات أخرى', scientific_names: ['benzoyl peroxide', 'salicylic acid'] },
+                ],
+                counselingPoints: ['قد تزيد هذه العلاجات من حساسية البشرة للشمس، استخدم واقي شمسي.', 'قد يستغرق ظهور النتائج عدة أسابيع.']
+            },
+            {
+                name: 'تساقط الشعر وقشرة الرأس',
+                overview: 'علاجات لتحفيز نمو الشعر ومكافحة القشرة.',
+                drugClasses: [
+                    { name: 'محفزات نمو الشعر', scientific_names: ['minoxidil'] },
+                    { name: 'مضادات الفطريات للقشرة', scientific_names: ['ketoconazole shampoo'] },
+                ],
+                counselingPoints: ['يجب استخدام Minoxidil بانتظام لرؤية النتائج والحفاظ عليها.', 'اترك شامبو الكيتوكونازول على فروة الرأس لبضع دقائق قبل شطفه.']
+            }
+        ]
+    },
+    {
+        system: 'أمراض العين والأذن',
+        icon: Ear,
+        diseases: [
+            {
+                name: 'التهاب الملتحمة (Conjunctivitis)',
+                overview: 'يعالج حسب السبب (بكتيري، فيروسي، تحسسي).',
+                drugClasses: [
+                    { name: 'قطرات مضاد حيوي', scientific_names: ['chloramphenicol', 'ofloxacin'] },
+                    { name: 'قطرات مضادة للهيستامين', scientific_names: ['olopatadine'] },
+                ],
+                counselingPoints: ['تجنب لمس طرف القطارة للعين لمنع التلوث.', 'إذا كنت تستخدم أكثر من نوع من القطرات، انتظر 5 دقائق بين كل نوع.']
+            },
+            {
+                name: 'التهاب الأذن الخارجية',
+                overview: 'غالباً ما يعالج بقطرات للأذن تحتوي على مضاد حيوي أو مضاد للالتهاب.',
+                drugClasses: [
+                    { name: 'قطرات الأذن', scientific_names: ['ciprofloxacin/dexamethasone'] },
+                ],
+                counselingPoints: ['قم بتدفئة القطرة في يدك قبل وضعها لتقليل الدوار.', 'استلقِ على جانبك لبضع دقائق بعد وضع القطرة.']
             }
         ]
     },
