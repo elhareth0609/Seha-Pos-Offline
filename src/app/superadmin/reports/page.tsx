@@ -140,8 +140,18 @@ export default function SuperAdminReportsPage() {
         return Object.keys(allPharmacySettings).map(pharmacyId => {
             const settings = allPharmacySettings[pharmacyId];
             const sales = filterByDateRange(allPharmacySales[pharmacyId] || [], performanceDateFrom, performanceDateTo);
-            const total_sales = sales.reduce((acc, sale) => acc + (sale.total || 0), 0);
-            const total_profit = sales.reduce((acc, sale) => acc + ((sale.profit || 0) - (sale.discount || 0)), 0);
+            // const total_sales = sales.reduce((acc, sale) => acc + (sale.total || 0), 0);
+            const total_sales= sales.reduce((acc, sale) => {
+                const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
+                return acc + (isNaN(total) ? 0 : total);
+            }, 0);
+
+            const total_profit = sales.reduce((acc, sale) => {
+                const profit = typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0));
+                const discount = typeof sale.discount === 'number' ? sale.discount : parseFloat(String(sale.discount || 0));
+                const netProfit = profit - discount;
+                return acc + (isNaN(netProfit) ? 0 : netProfit);
+            }, 0);
             const pharmacyUsers = users.filter(u => String(u.pharmacy_id) === pharmacyId && u.role !== 'SuperAdmin');
             const pharmacyAdmin = pharmacyUsers.find(u => u.role === 'Admin');
 
@@ -236,7 +246,7 @@ export default function SuperAdminReportsPage() {
                 </CardHeader>
             </Card>
 
-            <Tabs defaultValue="performance">
+            <Tabs defaultValue="performance" dir="rtl">
                 <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
                     <TabsTrigger value="performance">أداء الصيدليات</TabsTrigger>
                     <TabsTrigger value="topSelling">الأكثر مبيعًا</TabsTrigger>
@@ -279,7 +289,9 @@ export default function SuperAdminReportsPage() {
                                     {performanceData.length > 0 ? performanceData.map(p => (
                                         <TableRow key={p.pharmacy_id}>
                                             <TableCell className="font-medium">{p.pharmacy_name}</TableCell>
-                                            <TableCell><Badge variant="outline">{p.province}</Badge></TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline">{p.province}</Badge>
+                                            </TableCell>
                                             <TableCell className="font-mono">{p.total_sales.toLocaleString()}</TableCell>
                                             <TableCell className="font-mono text-green-600">{p.total_profit.toLocaleString()}</TableCell>
                                             <TableCell className="font-mono text-center">{p.employee_count}</TableCell>
@@ -311,14 +323,26 @@ export default function SuperAdminReportsPage() {
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent><Table>
-                            <TableHeader><TableRow><TableHead>الدواء</TableHead><TableHead className="text-left">الكمية المباعة</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {topSellingMedications.length > 0 ? topSellingMedications.map((med, index) => (
-                                    <TableRow key={index}><TableCell className="font-medium">{med.name}</TableCell><TableCell className="text-left font-mono">{med.quantity.toLocaleString()}</TableCell></TableRow>
-                                )) : <TableRow><TableCell colSpan={2} className="text-center h-24">لا توجد بيانات</TableCell></TableRow>}
-                            </TableBody>
-                        </Table></CardContent>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>الدواء</TableHead>
+                                        <TableHead>الكمية المباعة</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {topSellingMedications.length > 0 ? topSellingMedications.map((med, index) => (
+                                        <TableRow key={index}>
+                                            <TableCell className="font-medium">{med.name}</TableCell>
+                                            <TableCell className="font-mono">{med.quantity.toLocaleString()}</TableCell>
+                                        </TableRow>
+                                    )) : <TableRow>
+                                            <TableCell colSpan={2} className="text-center h-24">لا توجد بيانات</TableCell>
+                                        </TableRow>}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
                     </Card>
                 </TabsContent>
 
@@ -384,14 +408,26 @@ export default function SuperAdminReportsPage() {
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent><Table>
-                            <TableHeader><TableRow><TableHead>الدواء</TableHead><TableHead className="text-left">الكمية المشتراة</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {topPurchasedItems.length > 0 ? topPurchasedItems.map((item, index) => (
-                                    <TableRow key={index}><TableCell className="font-medium">{item.name}</TableCell><TableCell className="text-left font-mono">{item.quantity.toLocaleString()}</TableCell></TableRow>
-                                )) : <TableRow><TableCell colSpan={2} className="text-center h-24">لا توجد بيانات</TableCell></TableRow>}
-                            </TableBody>
-                        </Table></CardContent>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>الدواء</TableHead>
+                                        <TableHead>الكمية المشتراة</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {topPurchasedItems.length > 0 ? topPurchasedItems.map((item, index) => (
+                                        <TableRow key={index}>
+                                            <TableCell className="font-medium">{item.name}</TableCell>
+                                            <TableCell className="font-mono">{item.quantity.toLocaleString()}</TableCell>
+                                        </TableRow>
+                                    )) : <TableRow>
+                                            <TableCell colSpan={2} className="text-center h-24">لا توجد بيانات</TableCell>
+                                        </TableRow>}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
                     </Card>
                 </TabsContent>
             </Tabs>
