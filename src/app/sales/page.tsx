@@ -938,6 +938,12 @@ export default function SalesPage() {
                             <Button variant="outline" size="icon" className="shrink-0"><Search/></Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-4xl h-[80vh] flex flex-col p-2">
+                             <DialogHeader className="p-4 pb-0">
+                                <DialogTitle>البحث في DawaSeek</DialogTitle>
+                                <DialogDescription>
+                                    ابحث عن معلومات الأدوية مباشرة من موقع dawaseek.com.
+                                </DialogDescription>
+                            </DialogHeader>
                              <iframe src="https://dawaseek.com/" className="w-full h-full border-0 rounded-md"></iframe>
                         </DialogContent>
                     </Dialog>
