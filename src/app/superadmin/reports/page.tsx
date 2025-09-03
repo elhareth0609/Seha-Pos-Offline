@@ -140,7 +140,6 @@ export default function SuperAdminReportsPage() {
         return Object.keys(allPharmacySettings).map(pharmacyId => {
             const settings = allPharmacySettings[pharmacyId];
             const sales = filterByDateRange(allPharmacySales[pharmacyId] || [], performanceDateFrom, performanceDateTo);
-            // const total_sales = sales.reduce((acc, sale) => acc + (sale.total || 0), 0);
             const total_sales= sales.reduce((acc, sale) => {
                 const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
                 return acc + (isNaN(total) ? 0 : total);
