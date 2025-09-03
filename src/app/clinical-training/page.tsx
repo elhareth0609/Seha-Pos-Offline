@@ -5,12 +5,12 @@ import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { HeartPulse, Baby, Brain, Wind, Activity, Bug, Scale, Pill, Droplets, Shield, Stethoscope, Bone, SmilePlus, Microscope, Ear, Gem, Syringe, Leaf, PersonStanding } from 'lucide-react';
+import { HeartPulse, Baby, Brain, Wind, Activity, Bug, Scale, Pill, Droplets, Shield, Stethoscope, Bone, SmilePlus, Microscope, Ear, Gem, Syringe, PersonStanding, Leaf, Footprints, Radiation, BrainCircuit, EarOff, ThermometerSnowflake } from 'lucide-react';
 import type { Medication } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Custom Icon for cold chain
-const ThermometerSnowflake = (props: React.SVGProps<SVGSVGElement>) => (
+const ThermometerSnowflakeIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
         <path d="M10 12.4V4.5a3 3 0 0 1 3-3a3 3 0 0 1 3 3v7.9a5 5 0 1 1-6 0Z" />
         <path d="M8 9h1" /><path d="m15 9-1-1" /><path d="m15 13-1-1" />
@@ -40,7 +40,7 @@ type ClinicalSystem = {
 };
 
 const clinicalContent: ClinicalSystem[] = [
-     {
+    {
         system: 'الحالات الطارئة والإسعافات الأولية',
         icon: Shield,
         diseases: [
@@ -120,35 +120,21 @@ const clinicalContent: ClinicalSystem[] = [
         ]
     },
     {
-        system: 'صحة المرأة',
+        system: 'صحة المرأة والرجل',
         icon: PersonStanding,
         diseases: [
             {
-                name: 'الأدوية الآمنة أثناء الحمل',
-                overview: 'قائمة ببعض الأدوية التي تعتبر آمنة بشكل عام خلال فترة الحمل، ولكن يجب دائماً استشارة الطبيب أولاً.',
+                name: 'الأدوية الآمنة أثناء الحمل والرضاعة',
+                overview: 'قائمة ببعض الأدوية التي تعتبر آمنة بشكل عام خلال فترة الحمل والرضاعة، ولكن يجب دائماً استشارة الطبيب أولاً.',
                 drugClasses: [
-                    { name: 'مسكنات الألم', scientific_names: ['Paracetamol (آمن)', 'Ibuprofen (يجب تجنبه خاصة في الثلث الأخير)'] },
+                    { name: 'مسكنات الألم', scientific_names: ['Paracetamol (آمن)', 'Ibuprofen (يجب تجنبه في الحمل خاصة في الثلث الأخير)'] },
                     { name: 'مضادات الحموضة', scientific_names: ['Calcium Carbonate', 'Magnesium Hydroxide'] },
                     { name: 'مضادات الهيستامين', scientific_names: ['Loratadine', 'Cetirizine'] },
-                    { name: 'مضادات حيوية', scientific_names: ['Amoxicillin', 'Cephalexin', 'Azithromycin'] },
                 ],
                 counselingPoints: [
                     'لا تتناولي أي دواء دون استشارة طبيبك أو الصيدلي.',
-                    'المكملات الغذائية مثل حمض الفوليك والحديد والكالسيوم ضرورية جداً.',
-                    'أبلغي الصيدلي دائماً بأنك حامل قبل صرف أي دواء.',
-                ]
-            },
-             {
-                name: 'الأدوية الآمنة أثناء الرضاعة',
-                overview: 'العديد من الأدوية تنتقل إلى حليب الأم. هذه قائمة ببعض الخيارات الآمنة.',
-                drugClasses: [
-                    { name: 'مسكنات الألم', scientific_names: ['Paracetamol', 'Ibuprofen'] },
-                    { name: 'مضادات الهيستامين', scientific_names: ['Loratadine', 'Fexofenadine'] },
-                    { name: 'مزيلات الاحتقان', scientific_names: ['Pseudoephedrine (قد يقلل إدرار الحليب)'] },
-                ],
-                counselingPoints: [
-                    'يُفضل تناول الدواء مباشرة بعد جلسة الرضاعة لإعطاء أطول فترة ممكنة قبل الرضعة التالية.',
-                    'راقبي طفلك لأي تغييرات غير عادية (نعاس، تهيج).',
+                    'المكملات الغذائية مثل حمض الفوليك والحديد والكالسيوم ضرورية جداً للحامل.',
+                    'أبلغي الصيدلي دائماً بحالتك (حمل أو رضاعة) قبل صرف أي دواء.',
                 ]
             },
              {
@@ -164,8 +150,8 @@ const clinicalContent: ClinicalSystem[] = [
                 ]
             },
             {
-                name: 'وسائل منع الحمل (Contraception)',
-                overview: 'طرق مختلفة لمنع الحمل، تتطلب استشارة طبية لاختيار الأنسب.',
+                name: 'وسائل منع الحمل (Contraception) والحمل المنتبذ',
+                overview: 'طرق مختلفة لمنع الحمل، تتطلب استشارة طبية لاختيار الأنسب. الحمل المنتبذ (Ectopic Pregnancy) حالة طبية طارئة حيث تُزرع البويضة المخصبة خارج الرحم، ويتطلب وعياً بأعراضه.',
                 drugClasses: [
                     { name: 'حبوب منع الحمل المركبة (COCPs)', scientific_names: ['Ethinylestradiol/Levonorgestrel', 'Ethinylestradiol/Drospirenone'] },
                     { name: 'حبوب منع الحمل التي تحتوي على بروجستين فقط (POPs)', scientific_names: ['Desogestrel'] },
@@ -173,16 +159,36 @@ const clinicalContent: ClinicalSystem[] = [
                 counselingPoints: [
                     'يجب تناول الحبوب في نفس الموعد كل يوم.',
                     'بعض الأدوية (مثل بعض المضادات الحيوية) قد تقلل من فعالية حبوب منع الحمل.',
-                    'الحمل المنتبذ (Ectopic Pregnancy) حالة طبية طارئة حيث تُزرع البويضة المخصبة خارج الرحم، وعادة في قناة فالوب. لا علاقة له بوسائل منع الحمل بشكل مباشر لكنه يتطلب وعياً بأعراضه (ألم حاد في البطن، نزيف) والتوجه للطوارئ فوراً.',
+                    'أعراض الحمل المنتبذ: ألم حاد ومفاجئ في جانب واحد من البطن، نزيف مهبلي غير طبيعي. يجب التوجه للطوارئ فوراً عند الشك.',
                 ]
-            }
-        ]
-    },
-     {
-        system: 'صحة الرجل',
-        icon: PersonStanding,
-        diseases: [
+            },
             {
+                name: 'متلازمة المبيض متعدد الكيسات (PCOS)',
+                overview: 'اضطراب هرموني شائع يؤثر على النساء في سن الإنجاب، وقد يسبب عدم انتظام الدورة الشهرية، زيادة في نمو الشعر، وحب الشباب. العلاج يركز على التحكم في الأعراض.',
+                drugClasses: [
+                    { name: 'لتنظيم الدورة الشهرية', scientific_names: ['حبوب منع الحمل المركبة', 'Medroxyprogesterone'] },
+                    { name: 'لمقاومة الأنسولين', scientific_names: ['Metformin'] },
+                    { name: 'لعلاج الشعر الزائد', scientific_names: ['Spironolactone'] },
+                ],
+                counselingPoints: [
+                    'فقدان الوزن واتباع نظام غذائي صحي يلعب دوراً كبيراً في التحكم بالأعراض.',
+                    'مراقبة مستويات السكر في الدم مهمة للمرضى الذين يتناولون Metformin.',
+                ]
+            },
+            {
+                name: 'متلازمة ما قبل الطمث (PMS)',
+                overview: 'مجموعة من الأعراض الجسدية والنفسية التي تحدث قبل الدورة الشهرية. العلاج يهدف لتخفيف الأعراض.',
+                drugClasses: [
+                    { name: 'لتخفيف الألم', scientific_names: ['Ibuprofen', 'Naproxen'] },
+                    { name: 'للأعراض النفسية الشديدة', scientific_names: ['SSRIs (مثل Fluoxetine, Sertraline)'] },
+                    { name: 'مدرات البول (لاحتشاء السوائل)', scientific_names: ['Spironolactone'] },
+                ],
+                counselingPoints: [
+                    'تقليل الملح والكافيين قد يساعد في تخفيف الأعراض.',
+                    'ممارسة الرياضة بانتظام يمكن أن تحسن المزاج وتقلل من الأعراض.',
+                ]
+            },
+             {
                 name: 'ضعف الانتصاب (Erectile Dysfunction)',
                 overview: 'عدم القدرة على تحقيق أو الحفاظ على الانتصاب الكافي للأداء الجنسي.',
                 drugClasses: [
@@ -193,7 +199,7 @@ const clinicalContent: ClinicalSystem[] = [
                     'يجب تناول Sildenafil على معدة فارغة قبل ساعة من النشاط.',
                     'Tadalafil له مفعول أطول ويمكن تناوله بجرعة يومية صغيرة.',
                 ]
-            }
+            },
         ]
     },
     {
@@ -210,10 +216,21 @@ const clinicalContent: ClinicalSystem[] = [
                     { name: 'حاصرات قنوات الكالسيوم (CCBs)', scientific_names: ['amlodipine', 'nifedipine', 'diltiazem'] },
                     { name: 'المدررات (Diuretics)', scientific_names: ['hydrochlorothiazide', 'furosemide', 'spironolactone'] },
                 ],
+                counselingPoints: ['قِس ضغطك بانتظام.', 'قلل من تناول الملح.', 'لا تتوقف عن تناول الدواء فجأة.']
+            },
+            {
+                name: 'فشل القلب الاحتقاني (Congestive Heart Failure)',
+                overview: 'حالة لا يستطيع فيها القلب ضخ الدم بكفاءة كافية لتلبية احتياجات الجسم. العلاج يهدف لتحسين وظيفة القلب وتقليل الأعراض.',
+                drugClasses: [
+                    { name: 'مثبطات ACE و ARBs', scientific_names: ['Enalapril', 'Lisinopril', 'Valsartan'] },
+                    { name: 'حاصرات بيتا', scientific_names: ['Carvedilol', 'Bisoprolol', 'Metoprolol Succinate'] },
+                    { name: 'المدررات', scientific_names: ['Furosemide', 'Spironolactone'] },
+                    { name: 'أدوية أخرى', scientific_names: ['Digoxin', 'Sacubitril/Valsartan'] },
+                ],
                 counselingPoints: [
-                    'قِس ضغطك بانتظام.',
-                    'قلل من تناول الملح.',
-                    'لا تتوقف عن تناول الدواء فجأة.'
+                    'وزن نفسك يومياً، أي زيادة سريعة في الوزن قد تعني احتباس السوائل.',
+                    'اتبع نظاماً غذائياً قليل الملح.',
+                    'الالتزام بالأدوية ضروري جداً.',
                 ]
             },
             {
@@ -223,10 +240,7 @@ const clinicalContent: ClinicalSystem[] = [
                     { name: 'الستاتينات (Statins)', scientific_names: ['Atorvastatin', 'Rosuvastatin', 'Simvastatin'] },
                     { name: 'الفايبرات (Fibrates)', scientific_names: ['Fenofibrate', 'Gemfibrozil'] },
                 ],
-                counselingPoints: [
-                    'يُفضل تناول أدوية الستاتين في المساء.',
-                    'تجنب عصير الجريب فروت مع بعض أنواع الستاتين (مثل Atorvastatin).',
-                ]
+                counselingPoints: ['يُفضل تناول أدوية الستاتين في المساء.', 'تجنب عصير الجريب فروت مع بعض أنواع الستاتين (مثل Atorvastatin).']
             },
             {
                 name: 'الأدوية المضادة للتخثر (Anticoagulants/Antiplatelets)',
@@ -238,7 +252,7 @@ const clinicalContent: ClinicalSystem[] = [
                 counselingPoints: ['انتبه لعلامات النزيف غير المعتاد.', 'تجنب تناولها مع مضادات الالتهاب غير الستيرويدية (NSAIDs) دون استشارة طبية.', 'Warfarin يتطلب مراقبة مستمرة (INR).']
             },
             {
-                name: 'علاج فقر الدم (Anemia)',
+                name: 'فقر الدم (Anemia)',
                 overview: 'يعالج حسب سبب فقر الدم، وأشهره نقص الحديد.',
                 drugClasses: [
                     { name: 'مكملات الحديد (Iron Supplements)', scientific_names: ['ferrous sulfate', 'ferrous fumarate', 'ferrous gluconate'] },
@@ -246,46 +260,39 @@ const clinicalContent: ClinicalSystem[] = [
                     { name: 'فيتامين B12', scientific_names: ['cyanocobalamin', 'methylcobalamin'] },
                 ],
                 counselingPoints: ['تناول مكملات الحديد مع فيتامين C لزيادة الامتصاص.', 'قد تسبب مكملات الحديد إمساكاً أو برازاً داكن اللون.']
+            },
+            {
+                name: 'دوالي الأوردة (Varicose Veins)',
+                overview: 'أوردة متضخمة وملتوية، تظهر عادة في الساقين. العلاج يهدف لتخفيف الأعراض ومنع المضاعفات.',
+                drugClasses: [
+                    { name: 'أدوية مقوية للأوعية (Phlebotonics)', scientific_names: ['Diosmin/Hesperidin'] },
+                    { name: 'كريمات موضعية', scientific_names: ['Heparinoid cream'] },
+                ],
+                counselingPoints: [
+                    'ارتداء الجوارب الضاغطة هو العلاج الأساسي.',
+                    'تجنب الوقوف أو الجلوس لفترات طويلة.',
+                    'رفع الساقين عند الجلوس أو الاستلقاء.',
+                ]
             }
         ]
     },
-     {
-        system: 'المضادات الحيوية والأمراض المعدية',
-        icon: Bug,
-        diseases: [
-            {
-                name: 'البنسلينات (Penicillins)',
-                overview: 'مجموعة واسعة من المضادات الحيوية الفعالة ضد العديد من أنواع البكتيريا.',
-                drugClasses: [
-                    { name: 'أمينوبنسلينات', scientific_names: ['amoxicillin', 'ampicillin'] },
-                    { name: 'مع مثبطات البيتا-لاكتاميز', scientific_names: ['amoxicillin/clavulanic acid', 'ampicillin/sulbactam'] },
-                ],
-                counselingPoints: ['يجب إكمال كورس العلاج كاملاً.', 'انتبه لعلامات الحساسية.']
-            },
-            {
-                name: 'السيفالوسبورينات (Cephalosporins)',
-                overview: 'مجموعة أخرى من المضادات الحيوية مقسمة إلى أجيال.',
-                drugClasses: [
-                    { name: 'الجيل الأول', scientific_names: ['cephalexin', 'cefadroxil'] },
-                    { name: 'الجيل الثاني', scientific_names: ['cefaclor', 'cefuroxime'] },
-                    { name: 'الجيل الثالث', scientific_names: ['cefixime', 'ceftriaxone'] },
-                ],
-                counselingPoints: ['أبلغ الطبيب إذا كان لديك حساسية للبنسلين.']
-            },
-             {
-                name: 'الماكروليدات (Macrolides)',
-                overview: 'مضادات حيوية تستخدم غالباً في التهابات الجهاز التنفسي.',
-                drugClasses: [
-                    { name: 'ماكروليدات', scientific_names: ['azithromycin', 'clarithromycin', 'erythromycin'] },
-                ],
-                counselingPoints: ['تناولها قبل الأكل بساعة أو بعده بساعتين لزيادة الامتصاص (باستثناء clarithromycin).', 'انتبه للتفاعلات الدوائية العديدة لهذه المجموعة.']
-            },
-        ]
-    },
-     {
-        system: 'الجهاز العصبي المركزي',
+    {
+        system: 'الجهاز العصبي والصحة النفسية',
         icon: Brain,
         diseases: [
+            {
+                name: 'الشقيقة (Migraine)',
+                overview: 'صداع شديد نابض، غالباً في جانب واحد من الرأس، قد يصاحبه غثيان وحساسية للضوء والصوت. العلاج ينقسم إلى حاد (للنوبة) ووقائي.',
+                drugClasses: [
+                    { name: 'للنوبة الحادة', scientific_names: ['Sumatriptan', 'Zolmitriptan', 'Rizatriptan', 'NSAIDs (Ibuprofen, Naproxen)', 'Paracetamol'] },
+                    { name: 'للوقاية', scientific_names: ['Propranolol', 'Topiramate', 'Amitriptyline', 'Valproic Acid'] },
+                ],
+                counselingPoints: [
+                    'تناول دواء النوبة الحادة عند أول علامة للشقيقة.',
+                    'استرح في غرفة هادئة ومظلمة أثناء النوبة.',
+                    'الأدوية الوقائية تؤخذ يومياً لمنع حدوث النوبات.',
+                ]
+            },
             {
                 name: 'الاكتئاب والقلق (Depression & Anxiety)',
                 overview: 'حالات نفسية شائعة تؤثر على المزاج والحياة اليومية، وتعالج بأدوية تعمل على نواقل عصبية في الدماغ.',
@@ -304,13 +311,95 @@ const clinicalContent: ClinicalSystem[] = [
                     { name: 'أدوية الصرع الحديثة', scientific_names: ['levetiracetam', 'lamotrigine', 'topiramate', 'gabapentin', 'pregabalin'] },
                 ],
                 counselingPoints: ['الالتزام بمواعيد الدواء ضروري جداً للتحكم في النوبات.', 'بعض الأدوية تتفاعل مع أدوية أخرى، يجب إبلاغ الصيدلي بجميع الأدوية المتناولة.', 'تجنب التوقف المفاجئ عن الدواء.']
-            }
+            },
+            {
+                name: 'داء باركنسون (Parkinson\'s Disease)',
+                overview: 'اضطراب تنكسي عصبي يؤثر بشكل رئيسي على الحركة، ويتميز بأعراض مثل الرعاش، تصلب العضلات، وبطء الحركة.',
+                drugClasses: [
+                    { name: 'أدوية الدوبامين', scientific_names: ['Levodopa/Carbidopa', 'Levodopa/Benserazide'] },
+                    { name: 'محفزات مستقبلات الدوبامين', scientific_names: ['Pramipexole', 'Ropinirole', 'Bromocriptine'] },
+                    { name: 'مثبطات MAO-B', scientific_names: ['Selegiline', 'Rasagiline'] },
+                ],
+                counselingPoints: [
+                    'تناول ليفودوبا على معدة فارغة لزيادة الامتصاص، ولكن يمكن تناوله مع الطعام لتقليل الغثيان.',
+                    'قد يسبب الدواء حركات لا إرادية (dyskinesia) بعد فترة طويلة من الاستخدام.',
+                ]
+            },
+             {
+                name: 'السكتة الدماغية (Stroke)',
+                overview: 'تحدث عندما ينقطع تدفق الدم إلى جزء من الدماغ. العلاج ما بعد السكتة يركز على منع حدوث سكتة أخرى وإعادة التأهيل.',
+                drugClasses: [
+                    { name: 'مضادات الصفيحات', scientific_names: ['Aspirin', 'Clopidogrel'] },
+                    { name: 'مضادات التخثر (في حالة الرجفان الأذيني)', scientific_names: ['Warfarin', 'Rivaroxaban', 'Apixaban'] },
+                    { name: 'الستاتينات (لخفض الكوليسترول)', scientific_names: ['Atorvastatin', 'Rosuvastatin'] },
+                    { name: 'أدوية ضغط الدم', scientific_names: ['Lisinopril', 'Amlodipine'] },
+                ],
+                counselingPoints: [
+                    'الالتزام بأدوية الوقاية الثانوية أمر حيوي.',
+                    'التحكم بعوامل الخطر مثل ارتفاع ضغط الدم والسكري والكوليسترول مهم جداً.',
+                ]
+            },
+            {
+                name: 'التصلب المتعدد (Multiple Sclerosis)',
+                overview: 'مرض مناعي ذاتي مزمن يصيب الجهاز العصبي المركزي (الدماغ والحبل الشوكي)، ويسبب مجموعة واسعة من الأعراض.',
+                drugClasses: [
+                    { name: 'لتعديل مسار المرض (DMTs)', scientific_names: ['Interferon beta', 'Glatiramer acetate', 'Fingolimod', 'Natalizumab'] },
+                    { name: 'لعلاج الهجمات الحادة', scientific_names: ['Methylprednisolone (corticosteroids)'] },
+                    { name: 'للأعراض (مثل التشنج العضلي)', scientific_names: ['Baclofen', 'Tizanidine'] },
+                ],
+                counselingPoints: [
+                    'الأدوية المعدلة لمسار المرض تتطلب متابعة دقيقة مع الطبيب المختص.',
+                    'إدارة الأعراض جزء مهم من العلاج لتحسين جودة الحياة.',
+                ]
+            },
+             {
+                name: 'متلازمة تململ الساقين (Restless Legs Syndrome)',
+                overview: 'رغبة لا تقاوم لتحريك الساقين، عادة بسبب إحساس غير مريح. تزداد سوءًا في المساء أو أثناء الراحة.',
+                drugClasses: [
+                    { name: 'محفزات مستقبلات الدوبامين', scientific_names: ['Pramipexole', 'Ropinirole'] },
+                    { name: 'مكملات الحديد (إذا كان هناك نقص)', scientific_names: ['Ferrous Sulfate'] },
+                    { name: 'أخرى', scientific_names: ['Gabapentin', 'Pregabalin'] },
+                ],
+                counselingPoints: [
+                    'تجنب الكافيين والكحول والتدخين.',
+                    'ممارسة التمارين الرياضية بانتظام قد يساعد.',
+                ]
+            },
         ]
     },
-    {
-        system: 'الجهاز التنفسي والحساسية',
-        icon: Wind,
+     {
+        system: 'الجهاز التنفسي والأمراض المعدية',
+        icon: Bug,
         diseases: [
+            {
+                name: 'الزكام والإنفلونزا (Common Cold & Influenza)',
+                overview: 'أمراض فيروسية تصيب الجهاز التنفسي. الزكام أخف، بينما الإنفلونزا أشد وتسبب حمى وآلام في الجسم.',
+                drugClasses: [
+                    { name: 'مسكنات ومخفضات حرارة', scientific_names: ['Paracetamol', 'Ibuprofen'] },
+                    { name: 'مزيلات الاحتقان', scientific_names: ['Pseudoephedrine', 'Phenylephrine', 'Oxymetazoline (nasal spray)'] },
+                    { name: 'مضادات الهيستامين (لأعراض الحساسية المصاحبة)', scientific_names: ['Loratadine', 'Chlorpheniramine'] },
+                    { name: 'مضادات الفيروسات (للإنفلونزا)', scientific_names: ['Oseltamivir'], mechanism: 'يجب أن يبدأ في غضون 48 ساعة من بدء الأعراض ليكون فعالاً.' },
+                ],
+                counselingPoints: [
+                    'الراحة وشرب الكثير من السوائل هي أساس العلاج.',
+                    'المضادات الحيوية لا تعالج الزكام أو الإنفلونزا لأنها أمراض فيروسية.',
+                    'لا تستخدم مزيلات الاحتقان الموضعية (البخاخات) لأكثر من 3-5 أيام.',
+                ]
+            },
+            {
+                name: 'التهاب الجيوب الأنفية (Sinusitis)',
+                overview: 'التهاب أو تورم في الأنسجة المبطنة للجيوب الأنفية. يمكن أن يكون حاداً أو مزمناً.',
+                drugClasses: [
+                    { name: 'مزيلات الاحتقان', scientific_names: ['Pseudoephedrine'] },
+                    { name: 'بخاخات الأنف الستيرويدية', scientific_names: ['Mometasone furoate', 'Fluticasone propionate'] },
+                    { name: 'مسكنات الألم', scientific_names: ['Paracetamol', 'Ibuprofen'] },
+                    { name: 'مضادات حيوية (إذا كان السبب بكتيرياً)', scientific_names: ['Amoxicillin', 'Amoxicillin/clavulanic acid'] },
+                ],
+                counselingPoints: [
+                    'استخدام غسول الأنف الملحي يمكن أن يساعد في تخفيف الأعراض.',
+                    'بخاخات الستيرويد هي العلاج الأساسي للالتهاب المزمن وتحتاج إلى استخدام منتظم.',
+                ]
+            },
             {
                 name: 'الربو (Asthma)',
                 overview: 'مرض مزمن يسبب التهاب وتضيق في المسالك الهوائية.',
@@ -334,50 +423,57 @@ const clinicalContent: ClinicalSystem[] = [
                 ]
             },
             {
-                name: 'السعال (Cough) والإنفلونزا',
+                name: 'السعال (Cough)',
                 overview: 'عرض شائع له أسباب عديدة. العلاج يعتمد على نوع السعال.',
                 drugClasses: [
                     { name: 'مهدئات السعال الجاف (Antitussives)', scientific_names: ['dextromethorphan', 'pholcodine'] },
                     { name: 'طاردات البلغم (Expectorants)', scientific_names: ['guaifenesin'] },
                     { name: 'مذيبات البلغم (Mucolytics)', scientific_names: ['bromhexine', 'ambroxol', 'acetylcysteine'] },
-                    { name: 'مضادات الفيروسات (للإنفلونزا)', scientific_names: ['oseltamivir'], mechanism: 'يجب أن يبدأ في غضون 48 ساعة من بدء الأعراض.' },
                 ],
                 counselingPoints: ['لا تستخدم مهدئات السعال للسعال المنتج للبلغم.', 'شرب الكثير من السوائل يساعد على تخفيف البلغم.']
             }
         ]
     },
     {
-        system: 'الجهاز الهضمي',
+        system: 'الجهاز الهضمي والكلى',
         icon: Activity,
         diseases: [
             {
-                name: 'الارتجاع المعدي المريئي (GERD)',
-                overview: 'حالة يرتد فيها حمض المعدة إلى المريء مسبباً حرقة.',
+                name: 'الارتجاع المعدي المريئي (GERD) والقرحة الهضمية',
+                overview: 'حالات تنتج عن زيادة حمض المعدة أو ضعف الطبقة الواقية للمعدة والمريء.',
                 drugClasses: [
-                    { name: 'مثبطات مضخة البروتون (PPIs)', scientific_names: ['omeprazole', 'esomeprazole', 'lansoprazole'] },
+                    { name: 'مثبطات مضخة البروتون (PPIs)', scientific_names: ['omeprazole', 'esomeprazole', 'lansoprazole', 'pantoprazole'] },
                     { name: 'حاصرات H2', scientific_names: ['famotidine', 'ranitidine (تم سحبه في بعض المناطق)'] },
+                    { name: 'مضادات الحموضة (Antacids)', scientific_names: ['Calcium carbonate', 'Magnesium hydroxide', 'Aluminum hydroxide'] },
+                    { name: 'لجرثومة المعدة (H. pylori)', scientific_names: ['Clarithromycin', 'Amoxicillin', 'Metronidazole'] },
                 ],
                 counselingPoints: ['تناول أدوية PPIs قبل 30-60 دقيقة من الإفطار.', 'تجنب الأطعمة التي تزيد الأعراض.']
             },
             {
-                name: 'الإمساك (Constipation)',
-                overview: 'صعوبة في التبرز. العلاج يتضمن تغييرات في نمط الحياة والأدوية الملينة.',
+                name: 'الإمساك والإسهال',
+                overview: 'اضطرابات شائعة في حركة الأمعاء. علاج الإمساك يركز على التليين، وعلاج الإسهال يركز على تعويض السوائل.',
                 drugClasses: [
-                    { name: 'ملينات الكتلة (Bulk-forming)', scientific_names: ['psyllium', 'methylcellulose'] },
-                    { name: 'الملينات التناضحية (Osmotic laxatives)', scientific_names: ['lactulose', 'macrogol (PEG)'] },
-                    { name: 'الملينات المنشطة (Stimulant laxatives)', scientific_names: ['bisacodyl', 'senna'] },
+                    { name: 'ملينات للإمساك', scientific_names: ['Lactulose', 'Bisacodyl', 'Psyllium husk', 'Macrogol (PEG)'] },
+                    { name: 'مضادات للإسهال', scientific_names: ['Loperamide', 'ORS (Oral Rehydration Salts)'] },
                 ],
-                counselingPoints: ['اشرب الكثير من الماء مع الملينات.', 'لا تستخدم الملينات المنشطة لفترات طويلة.']
+                counselingPoints: [
+                    'شرب كميات كافية من الماء ضروري عند استخدام الملينات.',
+                    'لا يستخدم Loperamide في حالة الإسهال الدموي أو الحمى الشديدة.',
+                    'ORS ضروري جداً خاصة للأطفال وكبار السن لمنع الجفاف.'
+                ]
             },
             {
-                name: 'الإسهال (Diarrhea)',
-                overview: 'زيادة في تكرار وسيولة البراز. الأهم هو تعويض السوائل والأملاح.',
+                name: 'داء كرون (Crohn\'s Disease) والتهاب القولون التقرحي',
+                overview: 'أمراض التهاب الأمعاء (IBD) هي حالات مزمنة تسبب التهاباً في الجهاز الهضمي.',
                 drugClasses: [
-                    { name: 'محلول معالجة الجفاف (ORS)', scientific_names: ['Oral Rehydration Salts'] },
-                    { name: 'مضادات الحركة (Antimotility agents)', scientific_names: ['loperamide'] },
-                    { name: 'الممتزات (Adsorbents)', scientific_names: ['kaolin and pectin'] },
+                    { name: 'أمينوساليسيلات (5-ASA)', scientific_names: ['Mesalazine (Mesalamine)', 'Sulfasalazine'] },
+                    { name: 'الكورتيكوستيرويدات', scientific_names: ['Prednisone', 'Budesonide'] },
+                    { name: 'معدلات المناعة', scientific_names: ['Azathioprine', 'Mercaptopurine', 'Methotrexate'] },
                 ],
-                counselingPoints: ['Loperamide لا يستخدم في حالة الإسهال الدموي أو الحمى الشديدة.', 'ORS ضروري جداً خاصة للأطفال وكبار السن.']
+                counselingPoints: [
+                    'العلاج يهدف للسيطرة على الالتهاب ومنع الانتكاسات.',
+                    'Sulfasalazine قد يلون البول والدموع باللون البرتقالي.',
+                ]
             },
             {
                 name: 'البواسير (Hemorrhoids)',
@@ -386,15 +482,25 @@ const clinicalContent: ClinicalSystem[] = [
                     { name: 'تحاميل وكريمات موضعية', scientific_names: ['Hydrocortisone/Lidocaine', 'Cinchocaine/Policresulen'] },
                     { name: 'ملينات البراز', scientific_names: ['Docusate Sodium'] },
                 ],
+                counselingPoints: ['زيادة تناول الألياف والسوائل لمنع الإمساك.', 'تجنب الجلوس لفترات طويلة على المرحاض.']
+            },
+            {
+                name: 'حصوات الكلى (Kidney Stones)',
+                overview: 'رواسب صلبة تتكون من المعادن والأملاح داخل الكلى. تسبب ألماً شديداً عند مرورها.',
+                drugClasses: [
+                    { name: 'مسكنات الألم', scientific_names: ['Ibuprofen', 'Diclofenac', 'Ketorolac'] },
+                    { name: 'حاصرات ألفا (لتسهيل مرور الحصوة)', scientific_names: ['Tamsulosin'] },
+                    { name: 'للوقاية', scientific_names: ['Potassium citrate', 'Hydrochlorothiazide (لبعض الأنواع)'] },
+                ],
                 counselingPoints: [
-                    'زيادة تناول الألياف والسوائل لمنع الإمساك.',
-                    'تجنب الجلوس لفترات طويلة على المرحاض.',
+                    'شرب كميات كبيرة من الماء (2-3 لتر يومياً) هو أهم إجراء.',
+                    'مسكنات NSAIDs فعالة جداً في تخفيف ألم المغص الكلوي.',
                 ]
             }
         ]
     },
      {
-        system: 'الغدد الصماء والسكري',
+        system: 'الغدد الصماء والسكري والسمنة',
         icon: Scale,
         diseases: [
             {
@@ -416,7 +522,6 @@ const clinicalContent: ClinicalSystem[] = [
                     { name: 'أنسولين قصير المفعول (Regular)', scientific_names: ['regular insulin'] },
                     { name: 'أنسولين متوسط المفعول (NPH)', scientific_names: ['NPH insulin'] },
                     { name: 'أنسولين طويل المفعول', scientific_names: ['insulin glargine', 'insulin detemir', 'insulin degludec'] },
-                    { name: 'أنسولين مخلوط (Premixed)', scientific_names: ['e.g., 70/30'] },
                 ],
                 counselingPoints: ['تعلم تقنية الحقن الصحيحة وتدوير أماكن الحقن.', 'خزن الأقلام غير المستخدمة في الثلاجة (وليس الفريزر).', 'القلم قيد الاستخدام يمكن حفظه في درجة حرارة الغرفة.']
             },
@@ -428,11 +533,24 @@ const clinicalContent: ClinicalSystem[] = [
                     { name: 'لعلاج فرط نشاط الغدة (Hyperthyroidism)', scientific_names: ['carbimazole', 'methimazole', 'propylthiouracil'] },
                 ],
                 counselingPoints: ['يجب تناول Levothyroxine على معدة فارغة في الصباح.', 'أدوية الغدة الدرقية تتطلب متابعة دورية مع الطبيب.']
+            },
+            {
+                name: 'السمنة (Obesity) والتخسيس',
+                overview: 'حالة طبية تتميز بزيادة الدهون في الجسم. العلاج يتضمن تغيير نمط الحياة وفي بعض الحالات الأدوية.',
+                drugClasses: [
+                    { name: 'مثبطات الليباز (تقلل امتصاص الدهون)', scientific_names: ['Orlistat'] },
+                    { name: 'محفزات مستقبلات GLP-1', scientific_names: ['Liraglutide', 'Semaglutide'] },
+                ],
+                counselingPoints: [
+                    'يجب استخدام هذه الأدوية مع نظام غذائي صحي وممارسة الرياضة.',
+                    'Orlistat قد يسبب آثارًا جانبية دهنية في البراز ويتطلب تناول فيتامينات ذائبة في الدهون.',
+                    'أدوية GLP-1 قد تسبب غثيانًا في بداية العلاج.',
+                ]
             }
         ]
     },
     {
-        system: 'الألم والالتهاب',
+        system: 'الألم والالتهاب وأمراض العظام والمفاصل',
         icon: Bone,
         diseases: [
             {
@@ -444,6 +562,19 @@ const clinicalContent: ClinicalSystem[] = [
                     { name: 'مسكنات أفيونية ضعيفة (Weak Opioids)', scientific_names: ['tramadol', 'codeine (غالباً في مركبات)'] },
                 ],
                 counselingPoints: ['لا تتجاوز الجرعة اليومية القصوى للباراسيتامول.', 'تناول NSAIDs مع الطعام لحماية المعدة.']
+            },
+            {
+                name: 'الفصال العظمي (Osteoarthritis)',
+                overview: 'الشكل الأكثر شيوعاً لالتهاب المفاصل، يحدث بسبب تآكل الغضروف الواقي في نهايات العظام.',
+                drugClasses: [
+                    { name: 'مسكنات الألم', scientific_names: ['Paracetamol', 'Ibuprofen (oral/topical)', 'Diclofenac (oral/topical)'] },
+                    { name: 'مكملات غذائية', scientific_names: ['Glucosamine/Chondroitin'] },
+                    { name: 'حقن موضعية', scientific_names: ['Corticosteroids', 'Hyaluronic acid'] },
+                ],
+                counselingPoints: [
+                    'فقدان الوزن يقلل الضغط على المفاصل الحاملة للوزن مثل الركبتين.',
+                    'العلاج الطبيعي والتمارين الخفيفة يمكن أن تقوي العضلات حول المفصل.',
+                ]
             },
             {
                 name: 'النقرس (Gout)',
@@ -465,49 +596,7 @@ const clinicalContent: ClinicalSystem[] = [
         ]
     },
     {
-        system: 'مضادات الطفيليات',
-        icon: Microscope,
-        diseases: [
-            {
-                name: 'الديدان المعوية (Helminthic Infections)',
-                overview: 'تستخدم لعلاج الإصابات بالديدان المختلفة مثل الديدان الدبوسية والإسكارس.',
-                drugClasses: [
-                    { name: 'Benzimidazoles', scientific_names: ['albendazole', 'mebendazole'] },
-                ],
-                counselingPoints: ['عادة ما يتم تكرار الجرعة بعد أسبوعين لضمان القضاء على جميع الديدان.', 'يفضل أن تعالج جميع أفراد الأسرة في نفس الوقت.']
-            },
-        ]
-    },
-    {
-        system: 'صحة الفم والأسنان',
-        icon: SmilePlus,
-        diseases: [
-            {
-                name: 'التهاب اللثة وألم الأسنان',
-                overview: 'العناية بصحة الفم تتضمن استخدام غسولات مطهرة ومسكنات للألم.',
-                drugClasses: [
-                    { name: 'غسولات فم مطهرة', scientific_names: ['chlorhexidine gluconate'] },
-                    { name: 'مسكنات موضعية', scientific_names: ['lidocaine gel'] },
-                ],
-                counselingPoints: ['لا تبلع غسول الفم.', 'استخدام غسول الكلورهيكسيدين لفترات طويلة قد يسبب تصبغ الأسنان.']
-            },
-             {
-                name: 'تسوس الأسنان (Dental Caries)',
-                overview: 'تلف في بنية السن ناتج عن الأحماض التي تنتجها بكتيريا البلاك.',
-                drugClasses: [
-                    { name: 'معاجين أسنان بالفلورايد', scientific_names: ['Sodium Fluoride'] },
-                    { name: 'غسولات فم بالفلورايد', scientific_names: ['Sodium Fluoride mouthwash'] },
-                ],
-                counselingPoints: [
-                    'نظّف أسنانك بالفرشاة والمعجون مرتين يومياً.',
-                    'قلل من تناول السكريات والمشروبات الحمضية.',
-                    'استخدم خيط الأسنان يومياً.',
-                ]
-            }
-        ]
-    },
-    {
-        system: 'أمراض الجلد والشعر',
+        system: 'أمراض الجلد والشعر والأظافر',
         icon: Droplets,
         diseases: [
             {
@@ -520,6 +609,33 @@ const clinicalContent: ClinicalSystem[] = [
                 ],
                 counselingPoints: ['قد تزيد هذه العلاجات من حساسية البشرة للشمس، استخدم واقي شمسي.', 'قد يستغرق ظهور النتائج عدة أسابيع.', 'Isotretinoin دواء فعال ولكنه يتطلب إشرافاً طبياً دقيقاً بسبب آثاره الجانبية المحتملة.']
             },
+             {
+                name: 'الصدفية (Psoriasis)',
+                overview: 'مرض جلدي مزمن يسرّع دورة حياة خلايا الجلد، مما يؤدي إلى تراكمها بسرعة على سطح الجلد.',
+                drugClasses: [
+                    { name: 'كورتيكوستيرويدات موضعية', scientific_names: ['Clobetasol', 'Betamethasone', 'Hydrocortisone'] },
+                    { name: 'نظائر فيتامين D', scientific_names: ['Calcipotriol', 'Calcitriol'] },
+                    { name: 'Retinoids', scientific_names: ['Tazarotene'] },
+                    { name: 'علاجات جهازية', scientific_names: ['Methotrexate', 'Ciclosporin', 'Acitretin'] },
+                ],
+                counselingPoints: [
+                    'الترطيب المستمر للجلد يساعد في تقليل الحكة والتقشر.',
+                    'تجنب المحفزات المعروفة مثل التوتر وبعض الأدوية.',
+                ]
+            },
+             {
+                name: 'فطريات القدم (Athlete\'s Foot)',
+                overview: 'عدوى فطرية شائعة تصيب جلد القدمين، خاصة بين أصابع القدم.',
+                drugClasses: [
+                    { name: 'مضادات الفطريات الموضعية (Azoles)', scientific_names: ['Clotrimazole', 'Miconazole', 'Ketoconazole'] },
+                    { name: 'مضادات الفطريات الموضعية (Allylamines)', scientific_names: ['Terbinafine'] },
+                ],
+                counselingPoints: [
+                    'جفف قدميك جيداً بعد الاستحمام، خاصة بين الأصابع.',
+                    'ارتدِ جوارب قطنية وغيّرها يومياً.',
+                    'استمر في استخدام العلاج لمدة أسبوع إلى أسبوعين بعد اختفاء الأعراض لمنع عودتها.',
+                ]
+            },
             {
                 name: 'تساقط الشعر وقشرة الرأس',
                 overview: 'علاجات لتحفيز نمو الشعر ومكافحة القشرة.',
@@ -531,7 +647,194 @@ const clinicalContent: ClinicalSystem[] = [
             }
         ]
     },
+    {
+        system: 'أمراض العين والأذن والحنجرة',
+        icon: Ear,
+        diseases: [
+            {
+                name: 'التهاب الملتحمة (Conjunctivitis)',
+                overview: 'يعالج حسب السبب (بكتيري، فيروسي، تحسسي).',
+                drugClasses: [
+                    { name: 'قطرات مضاد حيوي', scientific_names: ['chloramphenicol', 'ofloxacin', 'tobramycin'] },
+                    { name: 'قطرات مضادة للهيستامين', scientific_names: ['olopatadine', 'ketotifen'] },
+                ],
+                counselingPoints: ['تجنب لمس طرف القطارة للعين لمنع التلوث.', 'إذا كنت تستخدم أكثر من نوع من القطرات، انتظر 5 دقائق بين كل نوع.']
+            },
+            {
+                name: 'الساد (Cataract)',
+                overview: 'إعتام عدسة العين، مما يسبب ضبابية في الرؤية. العلاج الوحيد الفعال هو الجراحة.',
+                drugClasses: [
+                    { name: 'لا يوجد علاج دوائي', scientific_names: [], mechanism: 'الجراحة هي الحل الوحيد لاستبدال العدسة المعتمة.' },
+                ],
+                counselingPoints: [
+                    'ارتداء النظارات الشمسية قد يساعد في إبطاء تطور الساد.',
+                    'النصيحة الرئيسية هي توجيه المريض إلى طبيب العيون لتقييم الحاجة للجراحة.',
+                ]
+            },
+             {
+                name: 'إنتانات الأذن (Ear Infections)',
+                overview: 'التهاب الأذن الوسطى (Otitis Media) هو الأكثر شيوعاً، خاصة عند الأطفال.',
+                drugClasses: [
+                    { name: 'مسكنات الألم', scientific_names: ['Paracetamol', 'Ibuprofen'] },
+                    { name: 'مضادات حيوية فموية', scientific_names: ['Amoxicillin', 'Amoxicillin/clavulanic acid'] },
+                    { name: 'قطرات أذن (في حالات معينة)', scientific_names: ['Ciprofloxacin/Dexamethasone'] },
+                ],
+                counselingPoints: [
+                    'غالباً ما تُوصف المضادات الحيوية إذا لم تتحسن الأعراض بعد 48-72 ساعة.',
+                    'تسكين الألم مهم جداً في بداية العلاج.',
+                ]
+            },
+            {
+                name: 'طنين الأذن (Tinnitus)',
+                overview: 'سماع صوت في الأذن (مثل رنين أو أزيز) دون وجود مصدر صوت خارجي. لا يوجد علاج شافٍ، ولكن يمكن التحكم في الأعراض.',
+                drugClasses: [
+                    { name: 'لا يوجد علاج دوائي معتمد بشكل عام', scientific_names: [] },
+                    { name: 'أحياناً تستخدم', scientific_names: ['Alprazolam (للقلق المصاحب)', 'Amitriptyline (بجرعات منخفضة)'] },
+                ],
+                counselingPoints: [
+                    'تجنب الضوضاء العالية.',
+                    'تقليل التوتر والكافيين يمكن أن يساعد.',
+                    'العلاج السلوكي المعرفي (CBT) وأجهزة إخفاء الصوت (Masking devices) هي من أكثر الطرق فعالية.',
+                ]
+            }
+        ]
+    },
+    {
+        system: 'صحة الفم والأسنان',
+        icon: SmilePlus,
+        diseases: [
+            {
+                name: 'تسوس الأسنان (Dental Caries)',
+                overview: 'تلف في بنية السن ناتج عن الأحماض التي تنتجها بكتيريا البلاك.',
+                drugClasses: [
+                    { name: 'معاجين أسنان بالفلورايد', scientific_names: ['Sodium Fluoride'] },
+                    { name: 'غسولات فم بالفلورايد', scientific_names: ['Sodium Fluoride mouthwash'] },
+                ],
+                counselingPoints: [
+                    'نظّف أسنانك بالفرشاة والمعجون مرتين يومياً.',
+                    'قلل من تناول السكريات والمشروبات الحمضية.',
+                    'استخدم خيط الأسنان يومياً.',
+                ]
+            },
+            {
+                name: 'التهاب اللثة (Gingivitis) ومرض دواعم السن (Periodontitis)',
+                overview: 'التهاب اللثة هو المرحلة الأولى، وإذا لم يعالج قد يتطور إلى مرض دواعم السن الذي يؤثر على العظم الداعم للأسنان.',
+                drugClasses: [
+                    { name: 'غسولات فم مطهرة', scientific_names: ['Chlorhexidine gluconate'] },
+                    { name: 'مضادات حيوية (في الحالات المتقدمة)', scientific_names: ['Metronidazole', 'Doxycycline'] },
+                ],
+                counselingPoints: [
+                    'العناية بنظافة الفم هي حجر الزاوية في الوقاية والعلاج.',
+                    'استخدام غسول الكلورهيكسيدين لفترات طويلة قد يسبب تصبغ الأسنان.',
+                    'زيارة طبيب الأسنان بانتظام ضرورية.',
+                ]
+            },
+            {
+                name: 'السلاق الفموي (Oral Thrush)',
+                overview: 'عدوى فطرية (Candida albicans) تسبب بقعاً بيضاء كريمية على اللسان وداخل الفم.',
+                drugClasses: [
+                    { name: 'مضادات الفطريات الموضعية', scientific_names: ['Miconazole (oral gel)', 'Nystatin (suspension)'] },
+                    { name: 'مضادات الفطريات الجهازية (للحالات الشديدة)', scientific_names: ['Fluconazole'] },
+                ],
+                counselingPoints: [
+                    'يجب وضع الجل أو المضمضة في الفم لأطول فترة ممكنة قبل البلع.',
+                    'من المهم علاج السبب الأساسي إن وجد (مثل استخدام البخاخات الكورتيزونية دون مضمضة الفم).',
+                ]
+            }
+        ]
+    },
+    {
+        system: 'أمراض المناعة الذاتية',
+        icon: BrainCircuit,
+        diseases: [
+            {
+                name: 'داء الذئبة (Lupus)',
+                overview: 'مرض مناعي ذاتي مزمن يمكن أن يؤثر على العديد من أجزاء الجسم، بما في ذلك المفاصل والجلد والكلى والدم والدماغ.',
+                drugClasses: [
+                    { name: 'مضادات الالتهاب غير الستيرويدية (NSAIDs)', scientific_names: ['Ibuprofen', 'Naproxen'] },
+                    { name: 'مضادات الملاريا', scientific_names: ['Hydroxychloroquine'] },
+                    { name: 'الكورتيكوستيرويدات', scientific_names: ['Prednisone'] },
+                    { name: 'مثبطات المناعة', scientific_names: ['Azathioprine', 'Mycophenolate mofetil', 'Belimumab'] },
+                ],
+                counselingPoints: [
+                    'الوقاية من الشمس ضرورية جداً لأنها قد تثير نوبات المرض.',
+                    'Hydroxychloroquine يتطلب فحصاً دورياً للعين.',
+                ]
+            },
+        ]
+    },
      {
+        system: 'الأورام (Oncology)',
+        icon: Radiation,
+        diseases: [
+            {
+                name: 'السرطان (Cancer)',
+                overview: 'مجموعة واسعة من الأمراض التي تتميز بنمو الخلايا غير الطبيعي. دور الصيدلي يركز على إدارة الأعراض الجانبية للعلاج الكيميائي وتقديم الدعم.',
+                drugClasses: [
+                    { name: 'مضادات الغثيان والقيء', scientific_names: ['Ondansetron', 'Granisetron', 'Aprepitant', 'Dexamethasone'] },
+                    { name: 'محفزات خلايا الدم البيضاء (لمنع العدوى)', scientific_names: ['Filgrastim', 'Pegfilgrastim'] },
+                    { name: 'مسكنات الألم', scientific_names: ['Morphine', 'Oxycodone', 'Fentanyl'] },
+                ],
+                counselingPoints: [
+                    'الدعم النفسي للمريض وعائلته جزء مهم من الرعاية.',
+                    'التعامل مع الآثار الجانبية (مثل تقرحات الفم، الإسهال) بشكل فعال يحسن جودة حياة المريض.',
+                    'يجب توجيه المرضى دائماً إلى فريقهم الطبي المختص لأي استفسارات حول علاج السرطان نفسه.',
+                ]
+            },
+        ]
+    },
+    {
+        system: 'الفيتامينات واللقاحات وأدوية التخزين البارد',
+        icon: Syringe,
+        diseases: [
+            {
+                name: 'الفيتامينات والمعادن',
+                overview: 'مغذيات دقيقة ضرورية لوظائف الجسم. تنقسم إلى ذائبة في الدهون (A, D, E, K) وذائبة في الماء (B complex, C).',
+                drugClasses: [
+                    { name: 'Vitamin D', scientific_names: ['Cholecalciferol (D3)'], mechanism: 'صحة العظام والمناعة' },
+                    { name: 'Vitamin B12', scientific_names: ['Cyanocobalamin', 'Methylcobalamin'], mechanism: 'صحة الأعصاب وتكوين الدم' },
+                    { name: 'Iron', scientific_names: ['Ferrous Sulfate'], mechanism: 'علاج فقر الدم' },
+                    { name: 'Folic Acid (B9)', scientific_names: ['Folic Acid'], mechanism: 'مهم للحمل ونمو الخلايا' },
+                ],
+                counselingPoints: [
+                    'تناول الفيتامينات الذائبة في الدهون مع وجبة دهنية لزيادة الامتصاص.',
+                    'فيتامين B12 ضروري لكبار السن والنباتيين.',
+                    'حمض الفوليك حيوي للنساء في سن الإنجاب.',
+                ]
+            },
+            {
+                name: 'اللقاحات الأساسية للأطفال',
+                overview: 'اللقاحات هي الطريقة الأكثر فعالية لحماية الأطفال من الأمراض الخطيرة والمعدية.',
+                drugClasses: [],
+                counselingPoints: [
+                    'عند الولادة: BCG (السل)، OPV (شلل الأطفال الفموي)، التهاب الكبد B.',
+                    'عمر شهرين: اللقاح الخماسي (DTP, Hib, HepB)، شلل الأطفال الفموي (OPV)، لقاح الروتا.',
+                    'عمر 4 أشهر: جرعة ثانية من الخماسي و OPV والروتا.',
+                    'عمر 6 أشهر: جرعة ثالثة من الخماسي و OPV.',
+                    'عمر 9 أشهر: لقاح الحصبة (Measles).',
+                    'عمر 18 شهرًا: جرعة منشطة من DTP و OPV.',
+                    'من المهم الالتزام بمواعيد اللقاحات لضمان أفضل حماية للطفل.'
+                ]
+            },
+            {
+                name: 'أدوية السلسلة الباردة (Cold Chain)',
+                overview: 'بعض الأدوية، وخاصة البيولوجية منها، تفقد فعاليتها إذا لم يتم تخزينها في درجات حرارة مناسبة (عادة بين 2-8 درجات مئوية).',
+                drugClasses: [
+                    { name: 'الأنسولين (Insulin)', scientific_names: ['All types'] },
+                    { name: 'بعض اللقاحات (Vaccines)', scientific_names: [] },
+                    { name: 'قطرات العين', scientific_names: ['Latanoprost'] },
+                    { name: 'الأدوية البيولوجية', scientific_names: ['Adalimumab', 'Etanercept'] },
+                ],
+                counselingPoints: [
+                    'يجب تخزين هذه الأدوية في الثلاجة، وليس في باب الثلاجة أو الفريزر.',
+                    'عند السفر، استخدم حافظة مبردة مع عبوات ثلج.',
+                    'قلم الأنسولين قيد الاستخدام يمكن حفظه في درجة حرارة الغرفة (أقل من 25-30 درجة) لمدة تصل إلى شهر.',
+                    'لا تستخدم أي دواء من هذه الفئة إذا كنت تشك في أنه تعرض لحرارة زائدة أو تجمّد.'
+                ]
+            }
+        ]
+    },
+    {
         system: 'مستحضرات التجميل والعناية بالبشرة',
         icon: Leaf,
         diseases: [
@@ -578,29 +881,6 @@ const clinicalContent: ClinicalSystem[] = [
         ]
     },
     {
-        system: 'أمراض العين والأذن',
-        icon: Ear,
-        diseases: [
-            {
-                name: 'التهاب الملتحمة (Conjunctivitis)',
-                overview: 'يعالج حسب السبب (بكتيري، فيروسي، تحسسي).',
-                drugClasses: [
-                    { name: 'قطرات مضاد حيوي', scientific_names: ['chloramphenicol', 'ofloxacin'] },
-                    { name: 'قطرات مضادة للهيستامين', scientific_names: ['olopatadine'] },
-                ],
-                counselingPoints: ['تجنب لمس طرف القطارة للعين لمنع التلوث.', 'إذا كنت تستخدم أكثر من نوع من القطرات، انتظر 5 دقائق بين كل نوع.']
-            },
-            {
-                name: 'التهاب الأذن الخارجية',
-                overview: 'غالباً ما يعالج بقطرات للأذن تحتوي على مضاد حيوي أو مضاد للالتهاب.',
-                drugClasses: [
-                    { name: 'قطرات الأذن', scientific_names: ['ciprofloxacin/dexamethasone'] },
-                ],
-                counselingPoints: ['قم بتدفئة القطرة في يدك قبل وضعها لتقليل الدوار.', 'استلقِ على جانبك لبضع دقائق بعد وضع القطرة.']
-            }
-        ]
-    },
-    {
         system: 'أدوية بدون وصفة (OTC)',
         icon: Pill,
         diseases: [
@@ -625,80 +905,7 @@ const clinicalContent: ClinicalSystem[] = [
             }
         ]
     },
-    {
-        system: 'الفيتامينات والمعادن',
-        icon: Gem,
-        diseases: [
-            {
-                name: 'الفيتامينات الذائبة في الدهون',
-                overview: 'هي فيتامينات تُخزن في الأنسجة الدهنية بالجسم. وهي A, D, E, K.',
-                drugClasses: [
-                    { name: 'Vitamin A (Retinol)', scientific_names: ['Retinol'], mechanism: 'ضروري للرؤية، وظيفة المناعة، والتكاثر.' },
-                    { name: 'Vitamin D (Calciferol)', scientific_names: ['Cholecalciferol (D3)', 'Ergocalciferol (D2)'], mechanism: 'يساعد على امتصاص الكالسيوم، وهو حيوي لصحة العظام.' },
-                    { name: 'Vitamin E (Tocopherol)', scientific_names: ['Tocopherol'], mechanism: 'يعمل كمضاد للأكسدة لحماية الخلايا من التلف.' },
-                    { name: 'Vitamin K (Phytonadione)', scientific_names: ['Phytonadione'], mechanism: 'يلعب دورًا رئيسيًا في تخثر الدم.' },
-                ],
-                counselingPoints: [
-                    'يجب تناولها مع وجبة تحتوي على دهون لزيادة الامتصاص.',
-                    'الجرعات العالية من هذه الفيتامينات يمكن أن تكون سامة لأنها تتراكم في الجسم.',
-                ]
-            },
-            {
-                name: 'الفيتامينات الذائبة في الماء',
-                overview: 'لا تُخزن في الجسم ويجب تناولها بانتظام. تشمل فيتامين C ومجموعة فيتامينات B.',
-                drugClasses: [
-                    { name: 'Vitamin C (Ascorbic Acid)', scientific_names: ['Ascorbic Acid'], mechanism: 'مضاد للأكسدة ومهم لإنتاج الكولاجين وصحة الجلد.' },
-                    { name: 'Vitamin B Complex', scientific_names: ['B1 (Thiamine)', 'B2 (Riboflavin)', 'B3 (Niacin)', 'B5 (Pantothenic acid)', 'B6 (Pyridoxine)', 'B7 (Biotin)', 'B9 (Folic Acid)', 'B12 (Cobalamin)'], mechanism: 'مجموعة فيتامينات تلعب أدواراً حيوية في استقلاب الطاقة ووظائف الخلايا.' },
-                ],
-                counselingPoints: [
-                    'فيتامين B12 ضروري لكبار السن والنباتيين.',
-                    'حمض الفوليك (B9) حيوي للنساء في سن الإنجاب للوقاية من عيوب الأنبوب العصبي للجنين.',
-                ]
-            }
-        ]
-    },
-    {
-        system: 'اللقاحات الأساسية للأطفال',
-        icon: Syringe,
-        diseases: [
-            {
-                name: 'جدول اللقاحات الوطني',
-                overview: 'اللقاحات هي الطريقة الأكثر فعالة لحماية الأطفال من الأمراض الخطيرة والمعدية.',
-                drugClasses: [],
-                counselingPoints: [
-                    'عند الولادة: BCG (السل)، OPV (شلل الأطفال الفموي)، التهاب الكبد B.',
-                    'عمر شهرين: اللقاح الخماسي (DTP, Hib, HepB)، شلل الأطفال الفموي (OPV)، لقاح الروتا.',
-                    'عمر 4 أشهر: جرعة ثانية من الخماسي و OPV والروتا.',
-                    'عمر 6 أشهر: جرعة ثالثة من الخماسي و OPV.',
-                    'عمر 9 أشهر: لقاح الحصبة (Measles).',
-                    'عمر 18 شهرًا: جرعة منشطة من DTP و OPV.',
-                    'من المهم الالتزام بمواعيد اللقاحات لضمان أفضل حماية للطفل.'
-                ]
-            }
-        ]
-    },
-    {
-        system: 'أدوية السلسلة الباردة (Cold Chain)',
-        icon: ThermometerSnowflake,
-        diseases: [
-            {
-                name: 'أهمية التخزين البارد',
-                overview: 'بعض الأدوية، وخاصة البيولوجية منها، تفقد فعاليتها إذا لم يتم تخزينها في درجات حرارة مناسبة (عادة بين 2-8 درجات مئوية).',
-                drugClasses: [
-                    { name: 'الأنسولين (Insulin)', scientific_names: ['All types'], mechanism: '' },
-                    { name: 'بعض اللقاحات (Vaccines)', scientific_names: [], mechanism: '' },
-                    { name: 'قطرات العين', scientific_names: ['Latanoprost'], mechanism: '' },
-                    { name: 'الأدوية البيولوجية', scientific_names: ['Adalimumab', 'Etanercept'], mechanism: '' },
-                ],
-                counselingPoints: [
-                    'يجب تخزين هذه الأدوية في الثلاجة، وليس في باب الثلاجة أو الفريزر.',
-                    'عند السفر، استخدم حافظة مبردة مع عبوات ثلج.',
-                    'قلم الأنسولين قيد الاستخدام يمكن حفظه في درجة حرارة الغرفة (أقل من 25-30 درجة) لمدة تصل إلى شهر.',
-                    'لا تستخدم أي دواء من هذه الفئة إذا كنت تشك في أنه تعرض لحرارة زائدة أو تجمّد.'
-                ]
-            }
-        ]
-    }
+    
 ];
 
 export default function ContinuingEducationPage() {
