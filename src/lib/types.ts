@@ -331,16 +331,18 @@ const MedicationInfoSchema = z.object({
 });
 
 export const DoseCalculationInputSchema = z.object({
-  patientAge: z.number().describe('The age of the patient in years.'),
+  patientAge: z.number().describe("The age of the patient in years."),
+  patientNotes: z.string().optional().describe("Optional notes about the patient's condition, such as 'diabetic', 'pregnant', or 'hypertensive'."),
   medications: z.array(MedicationInfoSchema).describe('A list of medications in the current transaction.'),
 });
+
 export type DoseCalculationInput = z.infer<typeof DoseCalculationInputSchema>;
 
 export const MedicationAnalysisSchema = z.object({
     tradeName: z.string().describe('The trade name of the medication being analyzed.'),
     suggestedDose: z.string().describe('The suggested dose, frequency, and duration for the patient. For example: "نصف حبة (250mg) مرتين يوميًا لمدة 5 أيام". Be specific and clear.'),
     usageInstructions: z.string().describe('Important instructions on how to take the medication, such as with or without food.'),
-    warning: z.string().optional().describe('Any critical warnings or contraindications for this age group, if applicable. For example: "لا يستخدم للأطفال أقل من سنتين".'),
+    warning: z.string().optional().describe('Any critical warnings or contraindications for this age group OR based on the provided clinical notes. For example: "لا يستخدم لمرضى السكري", "يجب استشارة الطبيب للحامل".'),
 });
 
 export const DoseCalculationOutputSchema = z.object({

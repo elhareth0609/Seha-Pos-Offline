@@ -70,6 +70,7 @@ import { useRouter } from "next/navigation"
 import { PinDialog } from "@/components/auth/PinDialog"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { CalculatorComponent } from "@/components/ui/calculator"
+import { Textarea } from "@/components/ui/textarea"
 
 const printElement = (element: HTMLElement, title: string = 'Print') => {
   const printWindow = window.open('', '_blank');
@@ -191,6 +192,7 @@ function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => 
 
 function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
     const [patientAge, setPatientAge] = React.useState('');
+    const [patientNotes, setPatientNotes] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
     const [results, setResults] = React.useState<DoseCalculationOutput | null>(null);
     const { toast } = useToast();
@@ -215,7 +217,11 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
             }));
             
         try {
-            const response = await calculateDose({ patientAge: age, medications: medicationsInput });
+            const response = await calculateDose({ 
+                patientAge: age, 
+                medications: medicationsInput,
+                patientNotes: patientNotes || undefined,
+            });
             setResults(response);
         } catch (error) {
             console.error(error);
@@ -230,20 +236,24 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
             <DialogHeader>
                 <DialogTitle>مساعد الجرعات الذكي</DialogTitle>
                 <DialogDescription>
-                   أدخل عمر المريض للحصول على اقتراحات للجرعات، تعليمات الاستخدام، وكشف التفاعلات الدوائية.
+                   أدخل عمر المريض وأي ملاحظات إضافية للحصول على اقتراحات للجرعات وكشف التفاعلات الدوائية.
                 </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-                <div className="flex items-end gap-2">
-                    <div className="flex-1 space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div className="space-y-2">
                         <Label htmlFor="patient-age">عمر المريض (بالسنوات)</Label>
                         <Input id="patient-age" type="number" value={patientAge} onChange={(e) => setPatientAge(e.target.value)} placeholder="مثال: 5" />
                     </div>
-                    <Button onClick={handleCalculate} disabled={isLoading || cartItems.length === 0}>
-                        {isLoading ? <BrainCircuit className="me-2 h-4 w-4 animate-spin" /> : <Thermometer className="me-2 h-4 w-4" />}
-                        حساب وتحليل
-                    </Button>
+                     <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="patient-notes">ملاحظات إضافية عن المريض (اختياري)</Label>
+                        <Input id="patient-notes" value={patientNotes} onChange={(e) => setPatientNotes(e.target.value)} placeholder="مثال: حامل، مريض سكر، يعاني من الضغط" />
+                    </div>
                 </div>
+                 <Button onClick={handleCalculate} disabled={isLoading || cartItems.length === 0} className="w-full">
+                    {isLoading ? <BrainCircuit className="me-2 h-4 w-4 animate-spin" /> : <Thermometer className="me-2 h-4 w-4" />}
+                    حساب وتحليل
+                </Button>
                 
                 {isLoading && (
                     <div className="space-y-2 pt-4">
