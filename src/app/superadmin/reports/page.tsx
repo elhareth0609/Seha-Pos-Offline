@@ -323,9 +323,9 @@ export default function SuperAdminReportsPage() {
                 </TabsContent>
 
                 <TabsContent value="topPurchasingPharma">
-                     <Card>
+                    <Card>
                         <CardHeader>
-                             <div className="flex justify-between items-center">
+                            <div className="flex justify-between items-center">
                                 <CardTitle>الصيدليات الأكثر شراءً</CardTitle>
                                 <Button onClick={() => downloadAsCSV(topPurchasingPharmacies.map(p => ({'اسم الصيدلية': p.name, 'عدد قوائم الشراء': p.count})), 'top_purchasing_pharmacies')}>
                                     <Download className="me-2"/> تنزيل CSV
@@ -342,27 +342,38 @@ export default function SuperAdminReportsPage() {
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent><Table>
-                            <TableHeader><TableRow><TableHead>اسم الصيدلية</TableHead><TableHead className="text-left">عدد قوائم الشراء</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {topPurchasingPharmacies.length > 0 ? topPurchasingPharmacies.map(p => (
-                                    <TableRow key={p.pharmacy_id}><TableCell className="font-medium">{p.name}</TableCell><TableCell className="font-mono text-left">{p.count}</TableCell></TableRow>
-                                )) : <TableRow><TableCell colSpan={2} className="text-center h-24">لا توجد بيانات</TableCell></TableRow>}
-                            </TableBody>
-                        </Table></CardContent>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>اسم الصيدلية</TableHead>
+                                        <TableHead>عدد قوائم الشراء</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                <TableBody>
+                                    {topPurchasingPharmacies.length > 0 ? topPurchasingPharmacies.map(p => (
+                                        <TableRow key={p.pharmacy_id}>
+                                            <TableCell className="font-medium">{p.name}</TableCell>
+                                            <TableCell className="font-mono ">{p.count}</TableCell>
+                                        </TableRow>
+                                    )) : <TableRow>
+                                        <TableCell colSpan={2} className="text-center h-24">لا توجد بيانات</TableCell></TableRow>}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
                     </Card>
                 </TabsContent>
 
                 <TabsContent value="topPurchasingItems">
                     <Card>
                         <CardHeader>
-                             <div className="flex justify-between items-center">
+                            <div className="flex justify-between items-center">
                                 <CardTitle>الأصناف الأكثر شراءً (كل الفروع)</CardTitle>
-                                 <Button onClick={() => downloadAsCSV(topPurchasedItems, 'top_purchased_items')}>
+                                <Button onClick={() => downloadAsCSV(topPurchasedItems, 'top_purchased_items')}>
                                     <Download className="me-2"/> تنزيل CSV
                                 </Button>
                             </div>
-                             <div className="pt-4 flex gap-4 items-end">
+                            <div className="pt-4 flex gap-4 items-end">
                                 <div className="flex-1 space-y-2">
                                     <Label htmlFor="top-items-date-from">من تاريخ</Label>
                                     <Input id="top-items-date-from" type="date" value={topPurchaseItemsDateFrom} onChange={e => setTopPurchaseItemsDateFrom(e.target.value)} />
