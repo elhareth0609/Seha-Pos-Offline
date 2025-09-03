@@ -5,9 +5,20 @@ import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { HeartPulse, Baby, Brain, Wind, Activity, Bug, Scale, Pill, Droplets, Shield, Stethoscope, Bone, SmilePlus, Microscope, Ear } from 'lucide-react';
+import { HeartPulse, Baby, Brain, Wind, Activity, Bug, Scale, Pill, Droplets, Shield, Stethoscope, Bone, SmilePlus, Microscope, Ear, Gem, Syringe } from 'lucide-react';
 import type { Medication } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+
+// Custom Icon for cold chain
+const ThermometerSnowflake = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <path d="M10 12.4V4.5a3 3 0 0 1 3-3a3 3 0 0 1 3 3v7.9a5 5 0 1 1-6 0Z" />
+        <path d="M8 9h1" /><path d="m15 9-1-1" /><path d="m15 13-1-1" />
+        <path d="m14 11 1-1" /><path d="M8 17a3 3 0 0 1 3-3h0a3 3 0 0 1 3 3" />
+        <path d="m11 2-1-1" /><path d="M11 6V5" />
+    </svg>
+);
+
 
 type DrugClassInfo = {
     name: string;
@@ -29,6 +40,52 @@ type ClinicalSystem = {
 };
 
 const clinicalContent: ClinicalSystem[] = [
+     {
+        system: 'الحالات الطارئة والإسعافات الأولية',
+        icon: Shield,
+        diseases: [
+            {
+                name: 'الحروق (Burns)',
+                overview: 'التعامل الأولي مع الحروق يعتمد على درجتها. الهدف هو تبريد المنطقة ومنع التلوث.',
+                drugClasses: [
+                    { name: 'كريمات الحروق', scientific_names: ['Mebo (beta-sitosterol)', 'Silver Sulfadiazine'], mechanism: 'توفر بيئة رطبة للشفاء وتمنع العدوى البكتيرية.' },
+                    { name: 'مسكنات الألم', scientific_names: ['Paracetamol', 'Ibuprofen'], mechanism: 'لتخفيف الألم المصاحب للحرق.' },
+                ],
+                counselingPoints: [
+                    'برد الحرق فوراً بماء جارٍ (غير مثلج) لمدة 10-20 دقيقة.',
+                    'لا تضع معجون أسنان أو مواد أخرى على الحرق.',
+                    'غطِّ الحرق بضمادة نظيفة وغير لاصقة.',
+                    'في الحروق الشديدة أو الكبيرة، اطلب المساعدة الطبية فوراً.'
+                ]
+            },
+            {
+                name: 'عضات الحيوانات (Animal Bites)',
+                overview: 'الأولوية هي تنظيف الجرح جيداً وتقييم الحاجة لمضاد حيوي أو لقاح الكزاز أو داء الكلب.',
+                drugClasses: [
+                    { name: 'مضادات حيوية وقائية', scientific_names: ['Amoxicillin/clavulanic acid'], mechanism: 'يغطي مجموعة واسعة من البكتيريا الموجودة في فم الحيوانات.' },
+                    { name: 'مطهّرات موضعية', scientific_names: ['Povidone-iodine', 'Chlorhexidine'], mechanism: 'لتنظيف الجرح وتقليل خطر العدوى.' },
+                ],
+                counselingPoints: [
+                    'اغسل الجرح جيداً بالماء والصابون لمدة لا تقل عن 5 دقائق.',
+                    'يجب مراجعة الطبيب لتقييم الجرح والحاجة إلى إجراءات إضافية، خاصةً مع عضات الكلاب والقطط.',
+                ]
+            },
+            {
+                name: 'لسعات الحشرات والعقارب',
+                overview: 'العلاج يركز على تخفيف الأعراض الموضعية مثل الألم، التورم، والحكة.',
+                drugClasses: [
+                    { name: 'مضادات الهيستامين الموضعية', scientific_names: ['Diphenhydramine cream'], mechanism: 'لتخفيف الحكة والتورم.' },
+                    { name: 'كورتيزون موضعي خفيف', scientific_names: ['Hydrocortisone cream 1%'], mechanism: 'لتقليل الالتهاب والحكة.' },
+                    { name: 'مسكنات الألم', scientific_names: ['Paracetamol'], mechanism: 'لتخفيف الألم.' },
+                ],
+                counselingPoints: [
+                    'ضع كمادات باردة على مكان اللسعة.',
+                    'في حالة لسعة العقرب، يجب التوجه إلى أقرب مركز طوارئ فوراً.',
+                    'انتبه لعلامات التحسس الشديد (صعوبة في التنفس، تورم في الوجه أو الحلق) واطلب المساعدة الطبية الطارئة.',
+                ]
+            },
+        ]
+    },
     {
         system: 'صحة الأطفال والرضع',
         icon: Baby,
@@ -428,6 +485,80 @@ const clinicalContent: ClinicalSystem[] = [
                 counselingPoints: ['توفر راحة سريعة ومؤقتة.', 'قد تؤثر على امتصاص أدوية أخرى.']
             }
         ]
+    },
+    {
+        system: 'الفيتامينات والمعادن',
+        icon: Gem,
+        diseases: [
+            {
+                name: 'الفيتامينات الذائبة في الدهون',
+                overview: 'هي فيتامينات تُخزن في الأنسجة الدهنية بالجسم. وهي A, D, E, K.',
+                drugClasses: [
+                    { name: 'Vitamin A (Retinol)', scientific_names: ['Retinol'], mechanism: 'ضروري للرؤية، وظيفة المناعة، والتكاثر.' },
+                    { name: 'Vitamin D (Calciferol)', scientific_names: ['Cholecalciferol (D3)', 'Ergocalciferol (D2)'], mechanism: 'يساعد على امتصاص الكالسيوم، وهو حيوي لصحة العظام.' },
+                    { name: 'Vitamin E (Tocopherol)', scientific_names: ['Tocopherol'], mechanism: 'يعمل كمضاد للأكسدة لحماية الخلايا من التلف.' },
+                    { name: 'Vitamin K (Phytonadione)', scientific_names: ['Phytonadione'], mechanism: 'يلعب دورًا رئيسيًا في تخثر الدم.' },
+                ],
+                counselingPoints: [
+                    'يجب تناولها مع وجبة تحتوي على دهون لزيادة الامتصاص.',
+                    'الجرعات العالية من هذه الفيتامينات يمكن أن تكون سامة لأنها تتراكم في الجسم.',
+                ]
+            },
+            {
+                name: 'الفيتامينات الذائبة في الماء',
+                overview: 'لا تُخزن في الجسم ويجب تناولها بانتظام. تشمل فيتامين C ومجموعة فيتامينات B.',
+                drugClasses: [
+                    { name: 'Vitamin C (Ascorbic Acid)', scientific_names: ['Ascorbic Acid'], mechanism: 'مضاد للأكسدة ومهم لإنتاج الكولاجين وصحة الجلد.' },
+                    { name: 'Vitamin B Complex', scientific_names: ['B1 (Thiamine)', 'B2 (Riboflavin)', 'B3 (Niacin)', 'B5 (Pantothenic acid)', 'B6 (Pyridoxine)', 'B7 (Biotin)', 'B9 (Folic Acid)', 'B12 (Cobalamin)'], mechanism: 'مجموعة فيتامينات تلعب أدواراً حيوية في استقلاب الطاقة ووظائف الخلايا.' },
+                ],
+                counselingPoints: [
+                    'فيتامين B12 ضروري لكبار السن والنباتيين.',
+                    'حمض الفوليك (B9) حيوي للنساء في سن الإنجاب للوقاية من عيوب الأنبوب العصبي للجنين.',
+                ]
+            }
+        ]
+    },
+    {
+        system: 'اللقاحات الأساسية للأطفال',
+        icon: Syringe,
+        diseases: [
+            {
+                name: 'جدول اللقاحات الوطني',
+                overview: 'اللقاحات هي الطريقة الأكثر فعالية لحماية الأطفال من الأمراض الخطيرة والمعدية.',
+                drugClasses: [],
+                counselingPoints: [
+                    'عند الولادة: BCG (السل)، OPV (شلل الأطفال الفموي)، التهاب الكبد B.',
+                    'عمر شهرين: اللقاح الخماسي (DTP, Hib, HepB)، شلل الأطفال الفموي (OPV)، لقاح الروتا.',
+                    'عمر 4 أشهر: جرعة ثانية من الخماسي و OPV والروتا.',
+                    'عمر 6 أشهر: جرعة ثالثة من الخماسي و OPV.',
+                    'عمر 9 أشهر: لقاح الحصبة (Measles).',
+                    'عمر 18 شهرًا: جرعة منشطة من DTP و OPV.',
+                    'من المهم الالتزام بمواعيد اللقاحات لضمان أفضل حماية للطفل.'
+                ]
+            }
+        ]
+    },
+    {
+        system: 'أدوية السلسلة الباردة (Cold Chain)',
+        icon: ThermometerSnowflake,
+        diseases: [
+            {
+                name: 'أهمية التخزين البارد',
+                overview: 'بعض الأدوية، وخاصة البيولوجية منها، تفقد فعاليتها إذا لم يتم تخزينها في درجات حرارة مناسبة (عادة بين 2-8 درجات مئوية).',
+                drugClasses: [
+                    { name: 'الأنسولين (Insulin)', scientific_names: ['All types'], mechanism: '' },
+                    { name: 'بعض اللقاحات (Vaccines)', scientific_names: [], mechanism: '' },
+                    { name: 'قطرات العين', scientific_names: ['Latanoprost'], mechanism: '' },
+                    { name: 'الأدوية البيولوجية', scientific_names: ['Adalimumab', 'Etanercept'], mechanism: '' },
+                ],
+                counselingPoints: [
+                    'يجب تخزين هذه الأدوية في الثلاجة، وليس في باب الثلاجة أو الفريزر.',
+                    'عند السفر، استخدم حافظة مبردة مع عبوات ثلج.',
+                    'قلم الأنسولين قيد الاستخدام يمكن حفظه في درجة حرارة الغرفة (أقل من 25-30 درجة) لمدة تصل إلى شهر.',
+                    'لا تستخدم أي دواء من هذه الفئة إذا كنت تشك في أنه تعرض لحرارة زائدة أو تجمّد.'
+                ]
+            }
+        ]
     }
 ];
 
@@ -462,27 +593,35 @@ export default function ContinuingEducationPage() {
                                         <h3 className="text-lg font-bold mb-2 text-primary/90">{disease.name}</h3>
                                         <p className="text-muted-foreground mb-4">{disease.overview}</p>
                                         
-                                        <h4 className="font-semibold mb-2">مجموعات الأدوية وأهم الأسماء العلمية:</h4>
-                                        <div className="space-y-3">
-                                            {disease.drugClasses.map((dClass, cIndex) => (
-                                                <div key={cIndex} className="p-3 border rounded-md bg-background">
-                                                    <p className="font-semibold">{dClass.name}</p>
-                                                    {dClass.mechanism && <p className="text-xs text-muted-foreground mb-2">{dClass.mechanism}</p>}
-                                                    <div className="flex flex-wrap gap-2 text-xs">
-                                                        {dClass.scientific_names.map(name => (
-                                                            <div key={name} className="font-mono bg-blue-100 text-blue-800 px-2 py-1 rounded-full dark:bg-blue-900/50 dark:text-blue-300">{name}</div>
-                                                        ))}
+                                        {disease.drugClasses.length > 0 && (
+                                            <>
+                                            <h4 className="font-semibold mb-2">مجموعات الأدوية وأهم الأسماء العلمية:</h4>
+                                            <div className="space-y-3">
+                                                {disease.drugClasses.map((dClass, cIndex) => (
+                                                    <div key={cIndex} className="p-3 border rounded-md bg-background">
+                                                        <p className="font-semibold">{dClass.name}</p>
+                                                        {dClass.mechanism && <p className="text-xs text-muted-foreground mb-2">{dClass.mechanism}</p>}
+                                                        <div className="flex flex-wrap gap-2 text-xs">
+                                                            {dClass.scientific_names.map(name => (
+                                                                <div key={name} className="font-mono bg-blue-100 text-blue-800 px-2 py-1 rounded-full dark:bg-blue-900/50 dark:text-blue-300">{name}</div>
+                                                            ))}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))}
-                                        </div>
+                                                ))}
+                                            </div>
+                                            </>
+                                        )}
                                         
-                                        <h4 className="font-semibold mt-4 mb-2">أهم النصائح للمريض:</h4>
-                                        <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                                            {disease.counselingPoints.map((point, pIndex) => (
-                                                <li key={pIndex}>{point}</li>
-                                            ))}
-                                        </ul>
+                                        {disease.counselingPoints.length > 0 && (
+                                            <>
+                                            <h4 className="font-semibold mt-4 mb-2">أهم النصائح للمريض:</h4>
+                                            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                                                {disease.counselingPoints.map((point, pIndex) => (
+                                                    <li key={pIndex}>{point}</li>
+                                                ))}
+                                            </ul>
+                                            </>
+                                        )}
                                     </div>
                                 ))}
                             </AccordionContent>
@@ -493,5 +632,3 @@ export default function ContinuingEducationPage() {
         </Card>
     );
 }
-
-    
