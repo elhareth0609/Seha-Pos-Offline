@@ -50,8 +50,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput, Notification } from "@/lib/types"
-import { PlusCircle, X, PackageSearch, ScanLine, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText, Calculator, Search } from "lucide-react"
-import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
+import { PlusCircle, X, PackageSearch, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText, Calculator, Search } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
@@ -126,69 +125,6 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
     }, 250);
   };
 };
-
-function BarcodeScanner({ onScan, onOpenChange }: { onScan: (result: string) => void; onOpenChange: (isOpen: boolean) => void }) {
-  const videoRef = React.useRef<HTMLVideoElement>(null);
-  const [hasCameraPermission, setHasCameraPermission] = React.useState<boolean | null>(null);
-  const { toast } = useToast();
-
-  React.useEffect(() => {
-    const codeReader = new BrowserMultiFormatReader();
-    let selectedDeviceId: string;
-
-    const getCameraPermission = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        setHasCameraPermission(true);
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-
-        const videoInputDevices = await codeReader.listVideoInputDevices();
-        if (videoInputDevices.length > 0) {
-          selectedDeviceId = videoInputDevices[0].deviceId;
-          codeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.current, (result, err) => {
-            if (result) {
-              onScan(result.getText());
-              onOpenChange(false);
-            }
-            if (err && !(err instanceof NotFoundException)) {
-              console.error(err);
-              toast({ variant: 'destructive', title: 'خطأ في المسح', description: 'حدث خطأ أثناء محاولة مسح الباركود.' });
-            }
-          });
-        } else {
-            setHasCameraPermission(false);
-        }
-      } catch (error) {
-        console.error('Error accessing camera:', error);
-        setHasCameraPermission(false);
-      }
-    };
-
-    getCameraPermission();
-
-    return () => {
-      codeReader.reset();
-    };
-  }, [onScan, onOpenChange, toast]);
-
-  return (
-    <div>
-        <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted playsInline />
-        {hasCameraPermission === false && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertTitle>الكاميرا مطلوبة</AlertTitle>
-              <AlertDescription>
-                الرجاء السماح بالوصول إلى الكاميرا لاستخدام هذه الميزة.
-              </AlertDescription>
-            </Alert>
-        )}
-    </div>
-  );
-}
-
-
 
 function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
     const [patientAge, setPatientAge] = React.useState('');
@@ -386,7 +322,6 @@ export default function SalesPage() {
   
   const [searchTerm, setSearchTerm] = React.useState("")
   const [suggestions, setSuggestions] = React.useState<Medication[]>([])
-  const [isScannerOpen, setIsScannerOpen] = React.useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = React.useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = React.useState(false);
   const [saleToPrint, setSaleToPrint] = React.useState<Sale | null>(null);
@@ -539,21 +474,6 @@ export default function SalesPage() {
         }
     };
   
-  const handleScan = React.useCallback(async (result: string) => {
-    const results = await searchAllInventory(result);
-    setAllInventory(results); // Make sure full inventory is available for checks
-    const scannedMedication = results.find(med => (med.barcodes || []).includes(result));
-    
-    if (scannedMedication) {
-      addToCart(scannedMedication);
-      toast({ title: 'تمت الإضافة إلى السلة', description: `تمت إضافة ${scannedMedication.name} بنجاح.` });
-    } else {
-      toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'الباركود الممسوح ضوئيًا لا يتطابق مع أي منتج.' });
-    }
-    setIsScannerOpen(false);
-  }, [addToCart, searchAllInventory, toast]);
-
-
   React.useEffect(() => {
     const handler = setTimeout(async () => {
         if (searchTerm.length > 5 && suggestions.length === 0) {
@@ -945,17 +865,6 @@ export default function SalesPage() {
                                 </DialogDescription>
                             </DialogHeader>
                              <iframe src="https://dawaseek.com/" className="w-full h-full border-0 rounded-md"></iframe>
-                        </DialogContent>
-                    </Dialog>
-                    <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" className="shrink-0"><ScanLine className="me-2"/> مسح</Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>مسح باركود المنتج</DialogTitle>
-                            </DialogHeader>
-                            <BarcodeScanner onScan={handleScan} onOpenChange={setIsScannerOpen}/>
                         </DialogContent>
                     </Dialog>
                      <Button variant="secondary" onClick={handleReviewClick}>
