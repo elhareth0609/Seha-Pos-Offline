@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { HeartPulse, Baby, Brain, Wind, Activity, Bug, Scale, Pill, Droplets, Shield, Stethoscope, Bone, SmilePlus, Microscope, Ear, Gem, Syringe, Female, Male, Leaf } from 'lucide-react';
+import { HeartPulse, Baby, Brain, Wind, Activity, Bug, Scale, Pill, Droplets, Shield, Stethoscope, Bone, SmilePlus, Microscope, Ear, Gem, Syringe, Leaf, PersonStanding } from 'lucide-react';
 import type { Medication } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -121,7 +121,7 @@ const clinicalContent: ClinicalSystem[] = [
     },
     {
         system: 'صحة المرأة',
-        icon: Female,
+        icon: PersonStanding,
         diseases: [
             {
                 name: 'الأدوية الآمنة أثناء الحمل',
@@ -180,7 +180,7 @@ const clinicalContent: ClinicalSystem[] = [
     },
      {
         system: 'صحة الرجل',
-        icon: Male,
+        icon: PersonStanding,
         diseases: [
             {
                 name: 'ضعف الانتصاب (Erectile Dysfunction)',
@@ -531,6 +531,52 @@ const clinicalContent: ClinicalSystem[] = [
             }
         ]
     },
+     {
+        system: 'مستحضرات التجميل والعناية بالبشرة',
+        icon: Leaf,
+        diseases: [
+            {
+                name: 'أساسيات العناية بالبشرة',
+                overview: 'روتين العناية بالبشرة الفعال يتكون من خطوات أساسية: التنظيف، الترطيب، والحماية. الهدف هو الحفاظ على صحة حاجز البشرة.',
+                drugClasses: [
+                    { name: 'المنظفات (Cleansers)', scientific_names: ['Glycerin', 'Ceramides', 'Salicylic Acid', 'Benzoyl Peroxide'], mechanism: 'إزالة الأوساخ والزيوت والشوائب. يتم اختيارها حسب نوع البشرة (جافة، دهنية، حساسة).' },
+                    { name: 'المرطبات (Moisturizers)', scientific_names: ['Hyaluronic Acid', 'Glycerin', 'Ceramides', 'Dimethicone', 'Urea'], mechanism: 'تعمل على حبس الرطوبة داخل البشرة وتقوية حاجز الحماية الطبيعي.' },
+                    { name: 'واقيات الشمس (Sunscreens)', scientific_names: ['Zinc Oxide', 'Titanium Dioxide', 'Avobenzone', 'Octocrylene'], mechanism: 'حماية البشرة من أضرار الأشعة فوق البنفسجية (UVA/UVB) التي تسبب الشيخوخة المبكرة وسرطان الجلد.' },
+                ],
+                counselingPoints: [
+                    'نظّف بشرتك مرتين يومياً.',
+                    'استخدم مرطباً مناسباً لنوع بشرتك حتى لو كانت دهنية.',
+                    'استخدم واقي الشمس يومياً، حتى في الأيام الغائمة، وجدده كل ساعتين عند التعرض المباشر للشمس.',
+                ]
+            },
+            {
+                name: 'مكونات فعالة شائعة',
+                overview: 'مكونات نشطة تُضاف لمنتجات العناية بالبشرة لاستهداف مشاكل معينة مثل التجاعيد، التصبغات، وحب الشباب.',
+                drugClasses: [
+                    { name: 'Vitamin C (Ascorbic Acid)', scientific_names: ['L-Ascorbic Acid', 'Magnesium Ascorbyl Phosphate'], mechanism: 'مضاد أكسدة قوي، يحفز إنتاج الكولاجين، ويوحّد لون البشرة.' },
+                    { name: 'Niacinamide (Vitamin B3)', scientific_names: ['Niacinamide'], mechanism: 'يحسن من وظيفة حاجز البشرة، يقلل الاحمرار، ينظم إفراز الدهون، ويقلل من ظهور المسام.' },
+                    { name: 'Retinoids', scientific_names: ['Retinol', 'Retinaldehyde', 'Adapalene'], mechanism: 'تسرّع من عملية تجدد الخلايا، تحفز الكولاجين، وتعالج حب الشباب والتجاعيد.' },
+                ],
+                counselingPoints: [
+                    'ابدأ باستخدام الرتينويدات بتركيز منخفض وتدريجياً.',
+                    'استخدم فيتامين C في الصباح للحماية من الأكسدة، والرتينويدات في المساء.',
+                    'النياسيناميد مكون متعدد الاستخدامات ويمكن دمجه مع معظم المكونات الأخرى.',
+                ]
+            },
+             {
+                name: 'علاج التصبغات وتفتيح البشرة',
+                overview: 'تهدف هذه المنتجات إلى تقليل ظهور البقع الداكنة وتوحيد لون البشرة عن طريق تثبيط إنتاج صبغة الميلانين أو تقشير الجلد.',
+                drugClasses: [
+                    { name: 'مثبطات التيروزيناز', scientific_names: ['Hydroquinone (بوصفة طبية)', 'Arbutin', 'Kojic Acid', 'Azelaic Acid'], mechanism: 'تمنع الإنزيم المسؤول عن إنتاج الميلانين.' },
+                    { name: 'مقشرات كيميائية', scientific_names: ['Glycolic Acid (AHA)', 'Lactic Acid (AHA)', 'Salicylic Acid (BHA)'], mechanism: 'تزيل خلايا الجلد الميتة وتكشف عن بشرة أفتح وأكثر إشراقاً.' },
+                ],
+                counselingPoints: [
+                    'استخدام واقي الشمس ضروري جداً عند استخدام منتجات التفتيح لمنع نتائج عكسية.',
+                    'قد تسبب بعض المكونات تهيجاً في البداية، استخدمها تدريجياً.',
+                ]
+            },
+        ]
+    },
     {
         system: 'أمراض العين والأذن',
         icon: Ear,
@@ -617,7 +663,7 @@ const clinicalContent: ClinicalSystem[] = [
         diseases: [
             {
                 name: 'جدول اللقاحات الوطني',
-                overview: 'اللقاحات هي الطريقة الأكثر فعالية لحماية الأطفال من الأمراض الخطيرة والمعدية.',
+                overview: 'اللقاحات هي الطريقة الأكثر فعالة لحماية الأطفال من الأمراض الخطيرة والمعدية.',
                 drugClasses: [],
                 counselingPoints: [
                     'عند الولادة: BCG (السل)، OPV (شلل الأطفال الفموي)، التهاب الكبد B.',
