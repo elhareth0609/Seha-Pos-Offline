@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { HeartPulse, Baby, Brain, Wind, Activity, Bug, Scale, Pill, Droplets, Shield, Stethoscope, Bone, SmilePlus, Microscope, Ear, Gem, Syringe } from 'lucide-react';
+import { HeartPulse, Baby, Brain, Wind, Activity, Bug, Scale, Pill, Droplets, Shield, Stethoscope, Bone, SmilePlus, Microscope, Ear, Gem, Syringe, Female, Male, Leaf } from 'lucide-react';
 import type { Medication } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -120,8 +120,8 @@ const clinicalContent: ClinicalSystem[] = [
         ]
     },
     {
-        system: 'صحة المرأة (الحمل والرضاعة)',
-        icon: HeartPulse,
+        system: 'صحة المرأة',
+        icon: Female,
         diseases: [
             {
                 name: 'الأدوية الآمنة أثناء الحمل',
@@ -151,6 +151,49 @@ const clinicalContent: ClinicalSystem[] = [
                     'راقبي طفلك لأي تغييرات غير عادية (نعاس، تهيج).',
                 ]
             },
+             {
+                name: 'آلام الدورة الشهرية (Dysmenorrhea)',
+                overview: 'ألم يصاحب الدورة الشهرية، ويمكن علاجه بمسكنات الألم ومضادات الالتهاب.',
+                drugClasses: [
+                    { name: 'مضادات الالتهاب غير الستيرويدية (NSAIDs)', scientific_names: ['Ibuprofen', 'Naproxen', 'Mefenamic Acid'] },
+                    { name: 'مسكنات أخرى', scientific_names: ['Paracetamol'] },
+                ],
+                counselingPoints: [
+                    'تناولي الدواء مع بداية الشعور بالألم، لا تنتظري حتى يشتد.',
+                    'استخدام الكمادات الدافئة قد يساعد في تخفيف الألم.',
+                ]
+            },
+            {
+                name: 'وسائل منع الحمل (Contraception)',
+                overview: 'طرق مختلفة لمنع الحمل، تتطلب استشارة طبية لاختيار الأنسب.',
+                drugClasses: [
+                    { name: 'حبوب منع الحمل المركبة (COCPs)', scientific_names: ['Ethinylestradiol/Levonorgestrel', 'Ethinylestradiol/Drospirenone'] },
+                    { name: 'حبوب منع الحمل التي تحتوي على بروجستين فقط (POPs)', scientific_names: ['Desogestrel'] },
+                ],
+                counselingPoints: [
+                    'يجب تناول الحبوب في نفس الموعد كل يوم.',
+                    'بعض الأدوية (مثل بعض المضادات الحيوية) قد تقلل من فعالية حبوب منع الحمل.',
+                    'الحمل المنتبذ (Ectopic Pregnancy) حالة طبية طارئة حيث تُزرع البويضة المخصبة خارج الرحم، وعادة في قناة فالوب. لا علاقة له بوسائل منع الحمل بشكل مباشر لكنه يتطلب وعياً بأعراضه (ألم حاد في البطن، نزيف) والتوجه للطوارئ فوراً.',
+                ]
+            }
+        ]
+    },
+     {
+        system: 'صحة الرجل',
+        icon: Male,
+        diseases: [
+            {
+                name: 'ضعف الانتصاب (Erectile Dysfunction)',
+                overview: 'عدم القدرة على تحقيق أو الحفاظ على الانتصاب الكافي للأداء الجنسي.',
+                drugClasses: [
+                    { name: 'مثبطات PDE5', scientific_names: ['Sildenafil', 'Tadalafil', 'Vardenafil'] },
+                ],
+                counselingPoints: [
+                    'يجب عدم تناول هذه الأدوية مع أدوية النترات (Nitrates) المستخدمة لأمراض القلب.',
+                    'يجب تناول Sildenafil على معدة فارغة قبل ساعة من النشاط.',
+                    'Tadalafil له مفعول أطول ويمكن تناوله بجرعة يومية صغيرة.',
+                ]
+            }
         ]
     },
     {
@@ -171,6 +214,18 @@ const clinicalContent: ClinicalSystem[] = [
                     'قِس ضغطك بانتظام.',
                     'قلل من تناول الملح.',
                     'لا تتوقف عن تناول الدواء فجأة.'
+                ]
+            },
+            {
+                name: 'ارتفاع الكوليسترول في الدم (Hyperlipidemia)',
+                overview: 'زيادة مستويات الدهون (مثل الكوليسترول والدهون الثلاثية) في الدم.',
+                drugClasses: [
+                    { name: 'الستاتينات (Statins)', scientific_names: ['Atorvastatin', 'Rosuvastatin', 'Simvastatin'] },
+                    { name: 'الفايبرات (Fibrates)', scientific_names: ['Fenofibrate', 'Gemfibrozil'] },
+                ],
+                counselingPoints: [
+                    'يُفضل تناول أدوية الستاتين في المساء.',
+                    'تجنب عصير الجريب فروت مع بعض أنواع الستاتين (مثل Atorvastatin).',
                 ]
             },
             {
@@ -253,7 +308,7 @@ const clinicalContent: ClinicalSystem[] = [
         ]
     },
     {
-        system: 'الجهاز التنفسي',
+        system: 'الجهاز التنفسي والحساسية',
         icon: Wind,
         diseases: [
             {
@@ -267,12 +322,25 @@ const clinicalContent: ClinicalSystem[] = [
                 counselingPoints: ['تعلم كيفية استخدام البخاخ بشكل صحيح.', 'اغسل فمك بالماء بعد استخدام بخاخ الكورتيزون.']
             },
             {
-                name: 'السعال (Cough)',
+                name: 'التهاب الأنف التحسسي (Allergic Rhinitis)',
+                overview: 'حساسية موسمية أو دائمة تسبب أعراضًا مثل العطاس، سيلان الأنف، وحكة العينين.',
+                drugClasses: [
+                    { name: 'مضادات الهيستامين الفموية', scientific_names: ['Loratadine', 'Cetirizine', 'Fexofenadine'] },
+                    { name: 'بخاخات الأنف الستيرويدية', scientific_names: ['Fluticasone propionate', 'Mometasone furoate'] },
+                ],
+                counselingPoints: [
+                    'بخاخات الأنف الستيرويدية هي الأكثر فعالية وتحتاج إلى استخدام منتظم.',
+                    'بعض مضادات الهيستامين (الجيل الأول) قد تسبب النعاس.',
+                ]
+            },
+            {
+                name: 'السعال (Cough) والإنفلونزا',
                 overview: 'عرض شائع له أسباب عديدة. العلاج يعتمد على نوع السعال.',
                 drugClasses: [
                     { name: 'مهدئات السعال الجاف (Antitussives)', scientific_names: ['dextromethorphan', 'pholcodine'] },
                     { name: 'طاردات البلغم (Expectorants)', scientific_names: ['guaifenesin'] },
                     { name: 'مذيبات البلغم (Mucolytics)', scientific_names: ['bromhexine', 'ambroxol', 'acetylcysteine'] },
+                    { name: 'مضادات الفيروسات (للإنفلونزا)', scientific_names: ['oseltamivir'], mechanism: 'يجب أن يبدأ في غضون 48 ساعة من بدء الأعراض.' },
                 ],
                 counselingPoints: ['لا تستخدم مهدئات السعال للسعال المنتج للبلغم.', 'شرب الكثير من السوائل يساعد على تخفيف البلغم.']
             }
@@ -310,6 +378,18 @@ const clinicalContent: ClinicalSystem[] = [
                     { name: 'الممتزات (Adsorbents)', scientific_names: ['kaolin and pectin'] },
                 ],
                 counselingPoints: ['Loperamide لا يستخدم في حالة الإسهال الدموي أو الحمى الشديدة.', 'ORS ضروري جداً خاصة للأطفال وكبار السن.']
+            },
+            {
+                name: 'البواسير (Hemorrhoids)',
+                overview: 'أوردة متورمة في الجزء السفلي من المستقيم والشرج.',
+                drugClasses: [
+                    { name: 'تحاميل وكريمات موضعية', scientific_names: ['Hydrocortisone/Lidocaine', 'Cinchocaine/Policresulen'] },
+                    { name: 'ملينات البراز', scientific_names: ['Docusate Sodium'] },
+                ],
+                counselingPoints: [
+                    'زيادة تناول الألياف والسوائل لمنع الإمساك.',
+                    'تجنب الجلوس لفترات طويلة على المرحاض.',
+                ]
             }
         ]
     },
@@ -411,6 +491,19 @@ const clinicalContent: ClinicalSystem[] = [
                 ],
                 counselingPoints: ['لا تبلع غسول الفم.', 'استخدام غسول الكلورهيكسيدين لفترات طويلة قد يسبب تصبغ الأسنان.']
             },
+             {
+                name: 'تسوس الأسنان (Dental Caries)',
+                overview: 'تلف في بنية السن ناتج عن الأحماض التي تنتجها بكتيريا البلاك.',
+                drugClasses: [
+                    { name: 'معاجين أسنان بالفلورايد', scientific_names: ['Sodium Fluoride'] },
+                    { name: 'غسولات فم بالفلورايد', scientific_names: ['Sodium Fluoride mouthwash'] },
+                ],
+                counselingPoints: [
+                    'نظّف أسنانك بالفرشاة والمعجون مرتين يومياً.',
+                    'قلل من تناول السكريات والمشروبات الحمضية.',
+                    'استخدم خيط الأسنان يومياً.',
+                ]
+            }
         ]
     },
     {
@@ -422,17 +515,17 @@ const clinicalContent: ClinicalSystem[] = [
                 overview: 'علاج حب الشباب يعتمد على شدته ويتضمن علاجات موضعية وجهازية.',
                 drugClasses: [
                     { name: 'مضادات حيوية موضعية', scientific_names: ['clindamycin', 'erythromycin'] },
-                    { name: 'Retinoids', scientific_names: ['adapalene', 'tretinoin'] },
+                    { name: 'Retinoids', scientific_names: ['adapalene', 'tretinoin', 'isotretinoin (oral)'] },
                     { name: 'علاجات أخرى', scientific_names: ['benzoyl peroxide', 'salicylic acid'] },
                 ],
-                counselingPoints: ['قد تزيد هذه العلاجات من حساسية البشرة للشمس، استخدم واقي شمسي.', 'قد يستغرق ظهور النتائج عدة أسابيع.']
+                counselingPoints: ['قد تزيد هذه العلاجات من حساسية البشرة للشمس، استخدم واقي شمسي.', 'قد يستغرق ظهور النتائج عدة أسابيع.', 'Isotretinoin دواء فعال ولكنه يتطلب إشرافاً طبياً دقيقاً بسبب آثاره الجانبية المحتملة.']
             },
             {
                 name: 'تساقط الشعر وقشرة الرأس',
                 overview: 'علاجات لتحفيز نمو الشعر ومكافحة القشرة.',
                 drugClasses: [
                     { name: 'محفزات نمو الشعر', scientific_names: ['minoxidil'] },
-                    { name: 'مضادات الفطريات للقشرة', scientific_names: ['ketoconazole shampoo'] },
+                    { name: 'مضادات الفطريات للقشرة', scientific_names: ['ketoconazole shampoo', 'selenium sulfide shampoo'] },
                 ],
                 counselingPoints: ['يجب استخدام Minoxidil بانتظام لرؤية النتائج والحفاظ عليها.', 'اترك شامبو الكيتوكونازول على فروة الرأس لبضع دقائق قبل شطفه.']
             }
