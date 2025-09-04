@@ -349,6 +349,7 @@ export default function SalesPage() {
   const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
   const [isControlledDrugPinOpen, setIsControlledDrugPinOpen] = React.useState(false);
   const [controlledDrugPin, setControlledDrugPin] = React.useState('');
+  const [controlledDrugsInCart, setControlledDrugsInCart] = React.useState<string[]>([]);
 
 
     const handlePrint = () => {
@@ -634,13 +635,14 @@ export default function SalesPage() {
     }
     
     const controlledSubstances = settings.controlled_substances || [];
-    const hasControlledDrug = cart.some(item => 
+    const drugsInCart = cart.filter(item => 
         !item.is_return && item.scientific_names?.some(scName => 
             controlledSubstances.map(cs => cs.toLowerCase()).includes(scName.toLowerCase())
         )
     );
 
-    if (hasControlledDrug) {
+    if (drugsInCart.length > 0) {
+        setControlledDrugsInCart(drugsInCart.map(d => d.name));
         setIsControlledDrugPinOpen(true);
     } else {
         setIsCheckoutOpen(true);
@@ -1399,6 +1401,11 @@ export default function SalesPage() {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>دواء خاضع للرقابة</DialogTitle>
+                    {controlledDrugsInCart.length > 0 && (
+                        <div className="text-sm font-semibold text-center text-destructive py-2">
+                            المادة: {controlledDrugsInCart.join(', ')}
+                        </div>
+                    )}
                     <DialogDescription>
                         هذه الفاتورة تحتوي على مادة خاضعة للرقابة. يتطلب صرفها إدخال كلمة مرور. صرف هذه المادة بدون وصفة طبية يعرضك للمساءلة القانونية التي قد تصل إلى السجن حسب أحكام القانون العراقي. لا تنسى ترحيل المادة في سجل المؤثرات العقلية.
                     </DialogDescription>
