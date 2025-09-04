@@ -367,13 +367,13 @@ const apiRequest = async (endpoint: string, method: 'POST' | 'DELETE', body: any
 
 
 return (
-    <Tabs defaultValue="requests">
+    <Tabs defaultValue="requests" dir="rtl">
         <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="requests">قائمة الطلبات اليدوية</TabsTrigger>
-            <TabsTrigger value="suggestions">اقتراحات النظام <BrainCircuit className="me-2"/></TabsTrigger>
+            <TabsTrigger value="suggestions">اقتراحات النظام</TabsTrigger>
         </TabsList>
         <TabsContent value="requests">
-             <Card>
+            <Card>
                 <CardHeader>
                     <CardTitle>طلبات الأدوية</CardTitle>
                     <CardDescription>
