@@ -348,6 +348,7 @@ export default function SalesPage() {
 
   const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
   const [isControlledDrugPinOpen, setIsControlledDrugPinOpen] = React.useState(false);
+  const [controlledDrugPin, setControlledDrugPin] = React.useState('');
 
 
     const handlePrint = () => {
@@ -1395,21 +1396,34 @@ export default function SalesPage() {
             description="هذه العملية تتطلب تأكيدًا. الرجاء إدخال رمز PIN الخاص بك للمتابعة."
         />
         <Dialog open={isControlledDrugPinOpen} onOpenChange={setIsControlledDrugPinOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>دواء خاضع للرقابة</DialogTitle>
-              <DialogDescription>
-                هذه الفاتورة تحتوي على مادة خاضعة للرقابة. يتطلب صرفها إدخال رمز PIN. صرف هذه المادة بدون وصفة طبية يعرضك للمساءلة القانونية التي قد تصل إلى السجن حسب أحكام القانون العراقي.
-              </DialogDescription>
-            </DialogHeader>
-            <PinDialog
-              open={isControlledDrugPinOpen}
-              onOpenChange={setIsControlledDrugPinOpen}
-              onConfirm={handleControlledDrugPinConfirm}
-              title=""
-              description=""
-            />
-          </DialogContent>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>دواء خاضع للرقابة</DialogTitle>
+                    <DialogDescription>
+                        هذه الفاتورة تحتوي على مادة خاضعة للرقابة. يتطلب صرفها إدخال رمز PIN. صرف هذه المادة بدون وصفة طبية يعرضك للمساءلة القانونية التي قد تصل إلى السجن حسب أحكام القانون العراقي.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2 py-4">
+                    <Label htmlFor="controlled-drug-pin">رمز PIN</Label>
+                    <Input
+                        id="controlled-drug-pin"
+                        type="password"
+                        value={controlledDrugPin}
+                        onChange={(e) => setControlledDrugPin(e.target.value)}
+                        autoFocus
+                        onKeyDown={(e) => {
+                            if(e.key === 'Enter' && controlledDrugPin) {
+                                e.preventDefault();
+                                handleControlledDrugPinConfirm(controlledDrugPin);
+                            }
+                        }}
+                    />
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
+                    <Button variant="destructive" onClick={() => handleControlledDrugPinConfirm(controlledDrugPin)} disabled={!controlledDrugPin}>تأكيد ومتابعة</Button>
+                </DialogFooter>
+            </DialogContent>
         </Dialog>
     </div>
     </TooltipProvider>
