@@ -683,7 +683,7 @@ export default function SalesPage() {
         setIsControlledDrugPinOpen(false);
         setIsCheckoutOpen(true);
     } else {
-        toast({ variant: 'destructive', title: "رمز PIN غير صحيح" });
+        toast({ variant: 'destructive', title: "كلمة المرور غير صحيحة" });
     }
   }
 
@@ -713,7 +713,7 @@ export default function SalesPage() {
             toast({ title: "تم حذف الفاتورة" });
         }
     } else {
-        toast({ variant: 'destructive', title: "رمز PIN غير صحيح" });
+        toast({ variant: 'destructive', title: "كلمة المرور غير صحيحة" });
     }
   };
 
@@ -1393,18 +1393,18 @@ export default function SalesPage() {
             onOpenChange={setIsPinDialogOpen}
             onConfirm={handlePinConfirmDelete}
             title="تأكيد الحذف"
-            description="هذه العملية تتطلب تأكيدًا. الرجاء إدخال رمز PIN الخاص بك للمتابعة."
+            description="هذه العملية تتطلب تأكيدًا. الرجاء إدخال كلمة مرور للمتابعة."
         />
         <Dialog open={isControlledDrugPinOpen} onOpenChange={setIsControlledDrugPinOpen}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>دواء خاضع للرقابة</DialogTitle>
                     <DialogDescription>
-                        هذه الفاتورة تحتوي على مادة خاضعة للرقابة. يتطلب صرفها إدخال رمز PIN. صرف هذه المادة بدون وصفة طبية يعرضك للمساءلة القانونية التي قد تصل إلى السجن حسب أحكام القانون العراقي.
+                        هذه الفاتورة تحتوي على مادة خاضعة للرقابة. يتطلب صرفها إدخال كلمة مرور. صرف هذه المادة بدون وصفة طبية يعرضك للمساءلة القانونية التي قد تصل إلى السجن حسب أحكام القانون العراقي. لا تنسى ترحيل المادة في سجل المؤثرات العقلية.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-2 py-4">
-                    <Label htmlFor="controlled-drug-pin">رمز PIN</Label>
+                    <Label htmlFor="controlled-drug-pin">كلمة المرور</Label>
                     <Input
                         id="controlled-drug-pin"
                         type="password"
