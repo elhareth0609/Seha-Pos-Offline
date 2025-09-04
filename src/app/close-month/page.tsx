@@ -99,12 +99,14 @@ export default function CloseMonthPage() {
                     return sum + (isNaN(amount) ? 0 : amount);
                 }, 0);
                 
-            const totalPayments = payments[0].supplierPayments
-                .filter(p => p.supplier_id === supplier.id)
-                .reduce((sum, p) => {
-                    const amount = typeof p.amount === 'number' ? p.amount : parseFloat(String(p.amount || 0));
-                    return sum + (isNaN(amount) ? 0 : amount);
-                }, 0);
+            const totalPayments = (payments[0] && payments[0].supplierPayments)
+                ? payments[0].supplierPayments
+                    .filter(p => p.supplier_id === supplier.id)
+                    .reduce((sum, p) => {
+                        const amount = typeof p.amount === 'number' ? p.amount : parseFloat(String(p.amount || 0));
+                        return sum + (isNaN(amount) ? 0 : amount);
+                    }, 0)
+                : 0;
                 
             return acc + (totalPurchases - totalReturns - totalPayments);
         }, 0);
