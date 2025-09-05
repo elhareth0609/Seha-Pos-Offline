@@ -575,9 +575,8 @@ export default function InventoryPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>المعرف</TableHead>
-                <TableHead>الباركود</TableHead>
                 <TableHead>الاسم</TableHead>
+                <TableHead>الباركود</TableHead>
                 <TableHead className="text-center">المخزون</TableHead>
                 <TableHead className="text-center">نقطة إعادة الطلب</TableHead>
                 <TableHead>تاريخ الانتهاء</TableHead>
@@ -589,9 +588,8 @@ export default function InventoryPage() {
             <TableBody>
               {loading ? Array.from({ length: perPage }).map((_, i) => (
                   <TableRow key={`skel-${i}`}>
-                      <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                       <TableCell><div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-sm" /><div className="space-y-2"><Skeleton className="h-4 w-40" /><Skeleton className="h-3 w-24" /></div></div></TableCell>
+                      <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-24" /></TableCell>
@@ -601,8 +599,6 @@ export default function InventoryPage() {
                   </TableRow>
               )) : paginatedInventory.length > 0 ? paginatedInventory.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="font-mono text-xs">{item.id}</TableCell>
-                  <TableCell className="font-mono text-xs">{item.barcodes?.join(', ')}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
                         {typeof item.image_url === 'string' && item.image_url !== "" ? (
@@ -618,6 +614,7 @@ export default function InventoryPage() {
                         </div>
                     </div>
                   </TableCell>
+                  <TableCell className="font-mono text-xs">{item.barcodes?.join(', ')}</TableCell>
                   <TableCell className="text-center font-mono">{item.stock}</TableCell>
                   <TableCell className="text-center font-mono">{item.reorder_point}</TableCell>
                   <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('ar-EG')}</TableCell>
