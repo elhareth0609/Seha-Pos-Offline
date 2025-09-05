@@ -1011,7 +1011,12 @@ export default function PurchasesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label>الباركود (يفصل بفاصلة ,)</Label>
-                        <Input value={newMedData.barcodes?.join(',') || ''} onChange={e => setNewMedData(p => ({...p, barcodes: e.target.value.split(',').map(s => s.trim())}))} />
+                        <div className="relative">
+                            <Input value={newMedData.barcodes?.join(',') || ''} onChange={e => setNewMedData(p => ({...p, barcodes: e.target.value.split(',').map(s => s.trim())}))} />
+                             <Button type="button" size="icon" variant="ghost" className="absolute top-1/2 -translate-y-1/2 left-1 h-7 w-7" onClick={() => setNewMedData(p => ({...p, barcodes: [...(p.barcodes || []), '']}))}>
+                                <PlusCircle className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
                      <div className="space-y-2">
                         <Label>الاسم التجاري</Label>
@@ -1020,7 +1025,12 @@ export default function PurchasesPage() {
                 </div>
                 <div className="space-y-2">
                     <Label>الاسم العلمي (يفصل بفاصلة ,)</Label>
-                    <Input value={newMedData.scientific_names?.join(',') || ''} onChange={e => setNewMedData(p => ({...p, scientific_names: e.target.value.split(',').map(s => s.trim())}))} />
+                    <div className="relative">
+                        <Input value={newMedData.scientific_names?.join(',') || ''} onChange={e => setNewMedData(p => ({...p, scientific_names: e.target.value.split(',').map(s => s.trim())}))} />
+                        <Button type="button" size="icon" variant="ghost" className="absolute top-1/2 -translate-y-1/2 left-1 h-7 w-7" onClick={() => setNewMedData(p => ({...p, scientific_names: [...(p.scientific_names || []), '']}))}>
+                            <PlusCircle className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="space-y-2">
@@ -1091,7 +1101,12 @@ export default function PurchasesPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label>الباركود (يفصل بفاصلة ,)</Label>
-                                        <Input value={editingPurchaseItem.barcodes?.join(',') || ''} onChange={e => setEditingPurchaseItem(p => p ? {...p, barcodes: e.target.value.split(',').map(s => s.trim())} : null)} />
+                                        <div className="relative">
+                                            <Input value={editingPurchaseItem.barcodes?.join(',') || ''} onChange={e => setEditingPurchaseItem(p => p ? {...p, barcodes: e.target.value.split(',').map(s => s.trim())} : null)} />
+                                            <Button type="button" size="icon" variant="ghost" className="absolute top-1/2 -translate-y-1/2 left-1 h-7 w-7" onClick={() => setEditingPurchaseItem(p => p ? {...p, barcodes: [...(p.barcodes || []), '']} : null)}>
+                                                <PlusCircle className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                     <div className="space-y-2">
                                         <Label>الاسم التجاري</Label>
@@ -1100,7 +1115,12 @@ export default function PurchasesPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label>الاسم العلمي (يفصل بفاصلة ,)</Label>
-                                    <Input value={editingPurchaseItem.scientific_names?.join(',') || ''} onChange={e => setEditingPurchaseItem(p => p ? {...p, scientific_names: e.target.value.split(',').map(s => s.trim())} : null)} />
+                                    <div className="relative">
+                                        <Input value={editingPurchaseItem.scientific_names?.join(',') || ''} onChange={e => setEditingPurchaseItem(p => p ? {...p, scientific_names: e.target.value.split(',').map(s => s.trim())} : null)} />
+                                        <Button type="button" size="icon" variant="ghost" className="absolute top-1/2 -translate-y-1/2 left-1 h-7 w-7" onClick={() => setEditingPurchaseItem(p => p ? {...p, scientific_names: [...(p.scientific_names || []), '']} : null)}>
+                                            <PlusCircle className="h-4 w-4" />
+                                        </Button>
+                                    </div>
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <div className="space-y-2">
