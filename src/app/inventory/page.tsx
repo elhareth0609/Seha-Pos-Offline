@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -51,7 +52,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
 import type { Medication, AppSettings } from "@/lib/types"
-import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package, Plus, X, Filter, ShoppingBasket, Percent, PlusCircle } from "lucide-react"
+import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package, Plus, X, Filter, ShoppingBasket, Percent, PlusCircle, Copy } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import Barcode from '@/components/ui/barcode';
@@ -324,6 +325,20 @@ export default function InventoryPage() {
     setIsAddModalOpen(true);
   };
   
+    const openDuplicateModal = (medToDuplicate: Medication) => {
+        setNewMed({
+            ...medToDuplicate,
+            id: '', // Clear the ID to ensure it's a new item
+            name: `${medToDuplicate.name}`,
+            stock: 0, // Reset stock for the new batch
+            expiration_date: '', // Force user to enter new expiration date
+            profit_margin: calculateProfitMargin(medToDuplicate.purchase_price, medToDuplicate.price),
+        });
+        setAddImageFile(null);
+        setAddImagePreview(medToDuplicate.image_url || '');
+        setIsAddModalOpen(true);
+    };
+
   const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
@@ -642,6 +657,10 @@ export default function InventoryPage() {
                               <DropdownMenuItem onSelect={() => openEditModal(item)}>
                                   <Pencil className="me-2 h-4 w-4" />
                                   تعديل
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => openDuplicateModal(item)}>
+                                  <Copy className="me-2 h-4 w-4" />
+                                  تكرار
                               </DropdownMenuItem>
                               <DropdownMenuItem onSelect={() => triggerPrint(item)}>
                                   <Printer className="me-2 h-4 w-4" />
