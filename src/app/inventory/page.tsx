@@ -51,7 +51,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
 import type { Medication, AppSettings } from "@/lib/types"
-import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package, Plus, X, Filter, ShoppingBasket, Percent, PlusCircle } from "lucide-react"
+import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package, Plus, X, Filter, ShoppingBasket, Percent, PlusCircle, Copy } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import Barcode from '@/components/ui/barcode';
@@ -313,14 +313,25 @@ export default function InventoryPage() {
       }
   }
   
-  const openAddModal = () => {
-    setNewMed({
-      id: '', name: '', barcodes: [], scientific_names: [], stock: 0,
-      reorder_point: 10, price: 0, purchase_price: 0, expiration_date: '',
-      dosage: '', dosage_form: '', image_url: '', profit_margin: 0
-    });
+  const openAddModal = (medToDuplicate: Medication | null = null) => {
+    if (medToDuplicate) {
+        setNewMed({
+            ...medToDuplicate,
+            id: '', // Clear ID for new entry
+            name: `${medToDuplicate.name} - `, // Prompt user to add date
+            stock: 0,
+            expiration_date: '',
+            profit_margin: calculateProfitMargin(medToDuplicate.purchase_price, medToDuplicate.price)
+        });
+    } else {
+        setNewMed({
+          id: '', name: '', barcodes: [], scientific_names: [], stock: 0,
+          reorder_point: 10, price: 0, purchase_price: 0, expiration_date: '',
+          dosage: '', dosage_form: '', image_url: '', profit_margin: 0
+        });
+    }
     setAddImageFile(null);
-    setAddImagePreview('');
+    setAddImagePreview(medToDuplicate?.image_url || '');
     setIsAddModalOpen(true);
   };
   
@@ -487,7 +498,7 @@ export default function InventoryPage() {
                 className="max-w-sm"
               />
               <div className="flex gap-2">
-                <Button variant="success" onClick={openAddModal}>
+                <Button variant="success" onClick={() => openAddModal()}>
                   <Plus className="me-2 h-4 w-4" />
                   إضافة دواء
                 </Button>
@@ -642,6 +653,10 @@ export default function InventoryPage() {
                               <DropdownMenuItem onSelect={() => openEditModal(item)}>
                                   <Pencil className="me-2 h-4 w-4" />
                                   تعديل
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => openAddModal(item)}>
+                                  <Copy className="me-2 h-4 w-4" />
+                                  تكرار
                               </DropdownMenuItem>
                               <DropdownMenuItem onSelect={() => triggerPrint(item)}>
                                   <Printer className="me-2 h-4 w-4" />
