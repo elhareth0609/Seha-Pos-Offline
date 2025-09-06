@@ -167,7 +167,7 @@ export default function ExpiringSoonPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-xs"
             />
-             <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <Label htmlFor="per-page" className="shrink-0">لكل صفحة:</Label>
               <Select value={String(perPage)} onValueChange={(val) => setPerPage(Number(val))}>
                 <SelectTrigger id="per-page" className="w-20 h-9">
@@ -181,17 +181,17 @@ export default function ExpiringSoonPage() {
                 </SelectContent>
               </Select>
             </div>
-             <div className="flex items-end gap-2 border-s ps-4">
-                 <div className="space-y-1">
+            <div className="flex items-end gap-2 border-s ps-4">
+                <div className="space-y-1">
                     <Label htmlFor="expiration-threshold">تنبيه خلال (يوم)</Label>
                     <Input id="expiration-threshold" type="number" value={threshold} onChange={(e) => setThreshold(Number(e.target.value))} className="w-28 h-9"/>
-                 </div>
+                </div>
                 <Button onClick={handleSaveThreshold} className="h-9">حفظ</Button>
             </div>
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="expiring" onValueChange={setActiveTab}>
+        <Tabs defaultValue="expiring" onValueChange={setActiveTab} dir="rtl">
             <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="expiring">قريب الانتهاء ({expiringMedicationsLength})</TabsTrigger>
                 <TabsTrigger value="expired">منتهي الصلاحية ({expiredMedicationsLength})</TabsTrigger>
