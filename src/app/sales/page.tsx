@@ -273,6 +273,44 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
     );
 }
 
+function BarcodeConflictDialog({ open, onOpenChange, conflictingMeds, onSelect }: { open: boolean, onOpenChange: (open: boolean) => void, conflictingMeds: Medication[], onSelect: (med: Medication) => void }) {
+    const sortedMeds = React.useMemo(() => {
+        return [...conflictingMeds].sort((a,b) => {
+            if (!a.expiration_date) return 1;
+            if (!b.expiration_date) return -1;
+            return new Date(a.expiration_date).getTime() - new Date(b.expiration_date).getTime();
+        });
+    }, [conflictingMeds]);
+
+    return (
+         <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>باركود مشترك</DialogTitle>
+                    <DialogDescription>هذا الباركود مسجل لأكثر من دفعة. الرجاء اختيار الدفعة الصحيحة لإضافتها للفاتورة.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2 py-4 max-h-96 overflow-y-auto">
+                    {sortedMeds.map(med => (
+                        <Card key={med.id} className="cursor-pointer hover:bg-muted" onClick={() => onSelect(med)}>
+                            <CardContent className="p-3 flex justify-between items-center">
+                                <div>
+                                    <div className="font-semibold">{med.name}</div>
+                                    <div className="text-sm text-muted-foreground">
+                                        تاريخ الانتهاء: <span className="font-mono">{new Date(med.expiration_date).toLocaleDateString('ar-EG')}</span>
+                                    </div>
+                                </div>
+                                <div className="text-sm">
+                                    الرصيد: <span className="font-mono">{med.stock}</span>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 const getExpirationBadge = (expiration_date: string | undefined, threshold: number) => {
     if (!expiration_date) return null;
     const today = startOfToday();
@@ -326,6 +364,8 @@ export default function SalesPage() {
   const [isReceiptOpen, setIsReceiptOpen] = React.useState(false);
   const [saleToPrint, setSaleToPrint] = React.useState<Sale | null>(null);
   const [alternativeExpiryAlert, setAlternativeExpiryAlert] = React.useState<Notification | null>(null);
+  const [barcodeConflictMeds, setBarcodeConflictMeds] = React.useState<Medication[]>([]);
+  const [isBarcodeConflictDialogOpen, setIsBarcodeConflictDialogOpen] = React.useState(false);
   
   const [isDosingAssistantOpen, setIsDosingAssistantOpen] = React.useState(false);
 
@@ -476,22 +516,35 @@ export default function SalesPage() {
         }
     };
   
-  React.useEffect(() => {
-    const handler = setTimeout(async () => {
-        if (searchTerm.length > 5 && suggestions.length === 0) {
-            const results = await searchAllInventory(searchTerm);
-            setAllInventory(results); // Make sure full inventory is available for checks
-            const medicationByBarcode = results.find(med => med.barcodes && med.barcodes.some(bc => bc.toLowerCase() === searchTerm.toLowerCase()));
-            if (medicationByBarcode) {
-                addToCart(medicationByBarcode);
-            }
-        }
-    }, 100);
+    const processBarcode = async (barcode: string) => {
+        const results = await searchAllInventory(barcode);
+        setAllInventory(results); // Make sure full inventory is available for checks
 
-    return () => {
-        clearTimeout(handler);
+        const matchingMeds = results.filter(med => 
+            med.barcodes && med.barcodes.some(bc => bc && bc.toLowerCase() === barcode.toLowerCase())
+        );
+
+        if (matchingMeds.length === 1) {
+            addToCart(matchingMeds[0]);
+        } else if (matchingMeds.length > 1) {
+            setBarcodeConflictMeds(matchingMeds);
+            setIsBarcodeConflictDialogOpen(true);
+        } else {
+             toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'يرجى التأكد من الباركود أو البحث بالاسم.' });
+        }
     };
-  }, [searchTerm, suggestions, addToCart, searchAllInventory]);
+  
+    React.useEffect(() => {
+        const handler = setTimeout(async () => {
+            if (searchTerm.length > 5 && suggestions.length === 0) {
+                await processBarcode(searchTerm);
+            }
+        }, 100);
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [searchTerm, suggestions.length]);
 
 
   React.useEffect(() => {
@@ -520,33 +573,11 @@ export default function SalesPage() {
   const handleSearchKeyDown = React.useCallback(async (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
         event.preventDefault();
-
-        if (suggestions.length > 0) {
-            addToCart(suggestions[0]);
-            return;
-        }
-        
-        const results = await searchAllInventory(searchTerm);
-        setAllInventory(results); // Make sure full inventory is available for checks
-        const lowercasedSearchTerm = searchTerm.toLowerCase();
-        
-        const medicationByBarcode = results.find(med => med.barcodes && med.barcodes.some(bc => bc.toLowerCase() === lowercasedSearchTerm));
-        if (medicationByBarcode) {
-            addToCart(medicationByBarcode);
-            return;
-        }
-        
-        const medicationByName = results.find(med => med.name && med.name.toLowerCase() === lowercasedSearchTerm);
-        if (medicationByName) {
-            addToCart(medicationByName);
-            return;
-        }
-
-        if (searchTerm) {
-            toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'يرجى التأكد من المعرف أو البحث بالاسم.' });
+        if(searchTerm) {
+            await processBarcode(searchTerm);
         }
     }
-  }, [suggestions, searchTerm, addToCart, toast, searchAllInventory]);
+  }, [searchTerm, processBarcode]);
 
   const updateQuantity = (id: string, isReturn: boolean | undefined, newQuantityStr: string) => {
     const newQuantity = parseFloat(newQuantityStr);
@@ -802,6 +833,15 @@ export default function SalesPage() {
         <div className="hidden">
             <InvoiceTemplate ref={printComponentRef} sale={saleToPrint} settings={settings || null} />
         </div>
+        <BarcodeConflictDialog 
+            open={isBarcodeConflictDialogOpen}
+            onOpenChange={setIsBarcodeConflictDialogOpen}
+            conflictingMeds={barcodeConflictMeds}
+            onSelect={(med) => {
+                addToCart(med);
+                setIsBarcodeConflictDialogOpen(false);
+            }}
+        />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:h-[calc(100vh-6rem)]">
             <div className="lg:col-span-2 flex flex-col gap-4">
                 <div className="flex gap-2">
