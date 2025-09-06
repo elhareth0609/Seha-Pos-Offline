@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -49,7 +50,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput, Notification } from "@/lib/types"
-import { PlusCircle, X, PackageSearch, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText, Calculator, Search } from "lucide-react"
+import { PlusCircle, X, PackageSearch, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText, Calculator, Search, Plus, Minus } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
@@ -987,7 +988,15 @@ export default function SalesPage() {
                                             <div className="grid grid-cols-2 gap-3 items-end">
                                                 <div className="space-y-1">
                                                     <Label htmlFor={`quantity-sm-${item.id}`} className="text-xs">الكمية</Label>
-                                                    <Input id={`quantity-sm-${item.id}`} type="number" value={item.quantity || 1} min={0} onChange={(e) => updateQuantity(item.id, item.is_return, e.target.value)} className="h-9 text-center font-mono" />
+                                                    <div className="flex items-center">
+                                                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-e-none" onClick={() => updateQuantity(item.id, item.is_return, String((item.quantity || 0) + 1))}>
+                                                            <Plus className="h-4 w-4" />
+                                                        </Button>
+                                                        <Input id={`quantity-sm-${item.id}`} type="number" value={item.quantity || 1} min={0} onChange={(e) => updateQuantity(item.id, item.is_return, e.target.value)} className="h-9 w-14 text-center font-mono rounded-none border-x-0" />
+                                                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-s-none" onClick={() => updateQuantity(item.id, item.is_return, String(Math.max(0, (item.quantity || 0) - 1)))}>
+                                                            <Minus className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                                 <div className="space-y-1">
                                                     <Label htmlFor={`price-sm-${item.id}`} className="text-xs">السعر الإجمالي</Label>
@@ -1022,7 +1031,7 @@ export default function SalesPage() {
                               <TableHeader className="sticky top-0 bg-background z-10">
                                   <TableRow>
                                       <TableHead>المنتج</TableHead>
-                                      <TableHead className="w-[120px] text-center">الكمية</TableHead>
+                                      <TableHead className="w-[150px] text-center">الكمية</TableHead>
                                       <TableHead className="w-[120px] text-center">السعر</TableHead>
                                       <TableHead className="w-12"></TableHead>
                                   </TableRow>
@@ -1085,14 +1094,15 @@ export default function SalesPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                             <Input
-                                                id={`quantity-${item.id}`}
-                                                type="number"
-                                                value={item.quantity || 1}
-                                                onChange={(e) => updateQuantity(item.id, item.is_return, e.target.value)}
-                                                min={0}
-                                                className="w-20 h-9 text-center font-mono"
-                                             />
+                                             <div className="flex items-center justify-center">
+                                                <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-e-none" onClick={() => updateQuantity(item.id, item.is_return, String((item.quantity || 0) + 1))}>
+                                                    <Plus className="h-4 w-4" />
+                                                </Button>
+                                                <Input id={`quantity-${item.id}`} type="number" value={item.quantity || 1} onChange={(e) => updateQuantity(item.id, item.is_return, e.target.value)} min={0} className="w-16 h-9 text-center font-mono rounded-none border-x-0" />
+                                                <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-s-none" onClick={() => updateQuantity(item.id, item.is_return, String(Math.max(0, (item.quantity || 0) - 1)))}>
+                                                    <Minus className="h-4 w-4" />
+                                                </Button>
+                                             </div>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="relative">
