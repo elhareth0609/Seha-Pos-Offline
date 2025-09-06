@@ -41,7 +41,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import type { PurchaseOrder, Medication, Supplier, ReturnOrder, PurchaseOrderItem, ReturnOrderItem, PaginatedResponse } from "@/lib/types"
-import { PlusCircle, ChevronDown, Trash2, X, Pencil, Percent } from "lucide-react"
+import { PlusCircle, ChevronDown, Trash2, X, Pencil, Percent, FilePlus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -295,11 +295,24 @@ export default function PurchasesPage() {
     }
   };
 
-  const handleSelectMed = (med: Medication) => {
-    setNewMedData({ ...med, profit_margin: calculateProfitMargin(med.purchase_price, med.price) });
+  const handleSelectMed = (med: Medication, asNewBatch: boolean = false) => {
+    const medData: PurchaseItemFormData = {
+        ...med,
+        id: asNewBatch ? `new-${Date.now()}` : med.id, // Use a temporary unique ID for new batches
+        medication_id: med.id,
+        profit_margin: calculateProfitMargin(med.purchase_price, med.price),
+        is_new: asNewBatch,
+        name: asNewBatch ? `${med.name} (دفعة جديدة)` : med.name,
+    };
+    if (asNewBatch) {
+        medData.stock = 0; // New batch starts with 0 stock until quantity is entered
+        medData.expiration_date = '';
+    }
+    setNewMedData(medData);
     setPurchaseItemSearchTerm(med.name);
     setPurchaseItemSuggestions([]);
-  };
+    document.getElementById("quantity")?.focus();
+};
 
   const openNewMedModal = () => {
     setNewMedData({
@@ -313,7 +326,8 @@ export default function PurchasesPage() {
         dosage: '', 
         dosage_form: '', 
         image_url: '', 
-        profit_margin: 0
+        profit_margin: 0,
+        is_new: true, // Mark as a completely new medication
     });
     setNewMedImageFile(null);
     setNewMedImagePreview(null);
@@ -371,8 +385,7 @@ export default function PurchasesPage() {
     const newItem = {
       ...itemData,
       id: itemData.id!,
-      medication_id: itemData.id!,
-      is_new: false,
+      medication_id: itemData.medication_id!,
     };
     
     setPurchaseItems(prev => [...prev, newItem as PurchaseOrderItem]);
@@ -615,15 +628,18 @@ export default function PurchasesPage() {
                                 <CardContent className="p-0">
                                     <ul className="divide-y divide-border">
                                         {purchaseItemSuggestions.map(med => (
-                                            <li key={med.id} 
-                                                onMouseDown={() => handleSelectMed(med)}
-                                                className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
-                                            >
-                                                <div>
-                                                  <div>{med.name}</div>
-                                                  <div className="text-xs text-muted-foreground">{med.scientific_names?.join(', ')}</div>
+                                            <li key={med.id}>
+                                                <div className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center" onMouseDown={() => handleSelectMed(med)}>
+                                                    <div>
+                                                      <div>{med.name}</div>
+                                                      <div className="text-xs text-muted-foreground">{med.scientific_names?.join(', ')}</div>
+                                                    </div>
+                                                    <span className="text-sm text-muted-foreground font-mono">الرصيد: {med.stock}</span>
                                                 </div>
-                                                <span className="text-sm text-muted-foreground font-mono">الرصيد: {med.stock}</span>
+                                                <Button variant="link" size="sm" className="w-full justify-start text-xs h-auto px-3 py-1" onMouseDown={() => handleSelectMed(med, true)}>
+                                                    <FilePlus className="me-2 h-3 w-3" />
+                                                    هل هذه دفعة جديدة بتاريخ انتهاء مختلف؟ اضغط هنا
+                                                </Button>
                                             </li>
                                         ))}
                                     </ul>
@@ -634,8 +650,8 @@ export default function PurchasesPage() {
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
-                            <Label>الكمية</Label>
-                            <Input type="number" value={newMedData.quantity || ''} onChange={e => handlePriceChange(setNewMedData, 'quantity', e.target.value)} required />
+                            <Label htmlFor="quantity">الكمية</Label>
+                            <Input id="quantity" type="number" value={newMedData.quantity || ''} onChange={e => handlePriceChange(setNewMedData, 'quantity', e.target.value)} required />
                         </div>
                          <div>
                             <Label>سعر الشراء</Label>
