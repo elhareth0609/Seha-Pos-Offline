@@ -59,15 +59,13 @@ const calculateDoseFlow = ai.defineFlow(
     outputSchema: DoseCalculationOutputSchema,
   },
   async (input) => {
-    // Use the execute method from our new prompt implementation
-    const result = await prompt.execute(input);
-    return result.output;
+    const { output } = await prompt(input);
+    return output!;
   }
 );
 
 export async function calculateDose(input: DoseCalculationInput): Promise<DoseCalculationOutput> {
-  // Use the execute method from our new flow implementation
-  return calculateDoseFlow.execute(input);
+  return calculateDoseFlow(input);
 }
 
 export type { DoseCalculationInput, DoseCalculationOutput };
