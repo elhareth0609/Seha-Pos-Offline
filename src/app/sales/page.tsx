@@ -167,11 +167,11 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
     };
 
     return (
-        <DialogContent className="sm:max-w-3xl">
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>مساعد الجرعات الذكي</DialogTitle>
                 <DialogDescription>
-                   أدخل عمر المريض وأي ملاحظات إضافية للحصول على اقتراحات للجرعات وكشف التفاعلات الدوائية.
+                    أدخل عمر المريض وأي ملاحظات إضافية للحصول على اقتراحات للجرعات وكشف التفاعلات الدوائية.
                 </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -199,7 +199,7 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
                 )}
                 
                 {results && (
-                     <div className="space-y-4 pt-4">
+                    <div className="space-y-4 pt-4">
                         <Alert variant="destructive">
                             <AlertTitle>تنبيه هام</AlertTitle>
                             <AlertDescription>
@@ -260,10 +260,10 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
                                 ))}
                             </TableBody>
                         </Table>
-                     </div>
+                    </div>
                 )}
             </div>
-             <DialogFooter>
+            <DialogFooter>
                 <DialogClose asChild>
                     <Button variant="outline">إغلاق</Button>
                 </DialogClose>
