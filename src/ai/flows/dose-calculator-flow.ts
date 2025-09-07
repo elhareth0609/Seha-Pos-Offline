@@ -15,24 +15,24 @@ async function calculateDoseWithOpenRouter(input: DoseCalculationInput): Promise
     `- ${med.tradeName} (${med.scientific_names ? med.scientific_names.join(', ') : 'N/A'})`
   ).join('\n');
 
-  const prompt = `You are a master Iraqi pharmacist assistant. Provide a dosage analysis in Arabic for the given medications based on the patient's age and notes. Your response MUST be a valid JSON object with the following structure:
+  const prompt = `أنت مساعد صيدلي عراقي خبير. قدم تحليل جرعات باللغة العربية للأدوية المعطاة بناءً على عمر المريض وملاحظاته. يجب أن يكون ردك بصيغة JSON صالحة تماماً.
+
 {
-  "interactions": ["array of interaction descriptions"],
   "medicationAnalysis": [
     {
-      "tradeName": "medication name",
-      "suggestedDose": "VERY brief and direct dose and frequency. Example: '50-100 mg every 6 hours'. Do NOT mention patient age or usage instructions here.",
-      "instructions": "VERY short usage instructions or warnings, 10 words or less. Example: 'After food', 'Risk of allergy', 'Avoid with dairy'."
+      "tradeName": "اسم الدواء",
+      "suggestedDose": "جرعة مباشرة ومختصرة جداً مع التكرار. مثال: 'قرص واحد يومياً'. لا تذكر عمر المريض أو تعليمات الاستخدام هنا.",
+      "instructions": "تعليمات استخدام أو تحذيرات قصيرة جداً، 10 كلمات أو أقل. مثال: 'بعد الطعام'، 'خطر الحساسية'، 'تجنب مع مشتقات الألبان'."
     }
   ]
 }
 
-Patient Age: ${input.patientAge}
-${input.patientNotes ? `Notes: ${input.patientNotes}` : ''}
-Medications:
+عمر المريض: ${input.patientAge}
+${input.patientNotes ? `ملاحظات: ${input.patientNotes}` : ''}
+الأدوية:
 ${medicationsText}
 
-IMPORTANT: Keep your response extremely concise. For suggestedDose, provide only the dosage and frequency without any explanations. For instructions, use maximum 10 words.
+مهم جداً: كن مبدعاً في إجاباتك ولا تقم بنسخ الأمثلة المذكورة أعلاه. حافظ على إجاباتك موجزة للغاية.
 `;
 
   try {
@@ -81,7 +81,6 @@ IMPORTANT: Keep your response extremely concise. For suggestedDose, provide only
         console.error('Raw content:', content);
         // If parsing fails, return a default response
         return {
-          interactions: ["فشل تحليل استجابة الذكاء الاصطناعي."],
           medicationAnalysis: input.medications.map(med => ({
             tradeName: med.tradeName,
             suggestedDose: "الرجاء استشارة الصيدلي",
@@ -93,7 +92,6 @@ IMPORTANT: Keep your response extremely concise. For suggestedDose, provide only
     console.error('Error calculating dose:', error);
     // Return a default response in case of error
     return {
-      interactions: [],
       medicationAnalysis: input.medications.map(med => ({
         tradeName: med.tradeName,
         suggestedDose: "الرجاء استشارة الصيدلي",
