@@ -6,7 +6,7 @@ const nextConfiguration = {
   },
   
   // Add webpack configuration to fix the Handlebars warning
-  webpack: (config: any, { isServer }: { isServer: boolean }) => {
+  webpack: (config, { isServer }) => {
     // Add a fallback for the problematic module
     config.resolve = config.resolve || {};
     config.resolve.fallback = config.resolve.fallback || {};
@@ -27,4 +27,5 @@ const nextConfiguration = {
   },
 };
 
+require('dotenv').config();
 module.exports = nextConfiguration;
