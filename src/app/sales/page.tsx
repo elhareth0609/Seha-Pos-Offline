@@ -224,7 +224,7 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
                                 <TableRow>
                                     <TableHead>الدواء</TableHead>
                                     <TableHead>الجرعة المقترحة</TableHead>
-                                    <TableHead>تحذيرات / تعليمات</TableHead>
+                                    <TableHead>تعليمات</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
