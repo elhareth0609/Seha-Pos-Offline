@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import * as React from "react"
@@ -208,17 +209,6 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
                             </AlertDescription>
                         </Alert>
                         
-                        {results.interactions && results.interactions.length > 0 && (
-                            <div className="mt-4">
-                                <h3 className="font-semibold text-lg text-destructive mb-2">تفاعلات دوائية محتملة:</h3>
-                                <ul className="list-disc list-inside space-y-1 rounded-md border border-destructive/50 bg-destructive/5 p-4 text-destructive">
-                                    {results.interactions.map((interaction, index) => (
-                                        <li key={index}>{interaction}</li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -472,13 +462,15 @@ export default function SalesPage() {
     }, [mode, updateActiveInvoice, toast, checkAlternativeExpiry])
     
     const removeFromCart = React.useCallback((id: string, isReturn: boolean | undefined) => {
-        updateActiveInvoice(invoice => ({
-            ...invoice,
-            cart: invoice.cart.filter(item => !(item.id === id && item.is_return === isReturn))
-        }));
-        if(alternativeExpiryAlert?.data?.originalMedication?.id === id) {
-            setAlternativeExpiryAlert(null);
-        }
+        updateActiveInvoice(invoice => {
+            if (alternativeExpiryAlert?.data?.originalMedication?.id === id) {
+                setAlternativeExpiryAlert(null);
+            }
+            return {
+                ...invoice,
+                cart: invoice.cart.filter(item => !(item.id === id && item.is_return === isReturn))
+            };
+        });
     }, [updateActiveInvoice, alternativeExpiryAlert]);
 
     const handleSwapAndAddToCart = () => {
@@ -1252,6 +1244,9 @@ export default function SalesPage() {
                                    </Button>
                                </DialogTrigger>
                                <DialogContent className="w-auto p-0 border-0 bg-transparent shadow-none">
+                                    <DialogHeader>
+                                      <DialogTitle className="sr-only">Calculator</DialogTitle>
+                                    </DialogHeader>
                                     <CalculatorComponent />
                                </DialogContent>
                            </Dialog>
