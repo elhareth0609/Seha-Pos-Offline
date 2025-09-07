@@ -45,7 +45,7 @@ IMPORTANT: Keep your response extremely concise. For suggestedDose, provide only
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5-nano',
+        model: 'openai/gpt-5-mini',
         messages: [
           {
             role: 'user',
@@ -62,6 +62,7 @@ IMPORTANT: Keep your response extremely concise. For suggestedDose, provide only
     const data = await response.json();
     let content = data.choices[0].message.content;
 
+    console.log('OpenRouter response:', content);
     // Clean up content to handle potential formatting issues
     content = content.trim();
 
