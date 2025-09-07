@@ -230,35 +230,11 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
                             <TableBody>
                                 {results.medicationAnalysis.map((res, index) => (
                                     <TableRow key={index}>
-                                        <TableCell className="font-medium">{res.tradeName}</TableCell>
-                                        <TableCell>{res.suggestedDose}</TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-destructive font-medium">{res.warning}</span>
-                                                <Popover>
-                                                    <PopoverTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                                                            <AlertTriangle className="text-yellow-500" />
-                                                        </Button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-80">
-                                                        <DialogHeader>
-                                                            <DialogTitle>تعليمات الاستخدام</DialogTitle>
-                                                        </DialogHeader>
-                                                        <div className="grid gap-4">
-                                                            <div className="space-y-2">
-                                                                
-                                                                <p className="text-sm text-muted-foreground">
-                                                                    {res.usageInstructions}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </PopoverContent>
-                                                </Popover>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
+                                    <TableCell className="font-medium">{res.tradeName}</TableCell>
+                                    <TableCell>{res.suggestedDose}</TableCell>
+                                    <TableCell>{res.instructions}</TableCell>
+                                </TableRow>    
+                            ))}
                             </TableBody>
                         </Table>
                     </div>
