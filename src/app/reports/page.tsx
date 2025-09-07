@@ -105,7 +105,7 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
 };
 
 export default function ReportsPage() {
-    const { currentUser, users, scopedData, deleteSale, updateActiveInvoice, getPaginatedSales, verifyPin } = useAuth();
+    const { currentUser, users, scopedData, deleteSale, updateActiveInvoice, getPaginatedSales, verifyPin, switchToInvoice } = useAuth();
     const [settings] = scopedData.settings;
     
     const [sales, setSales] = React.useState<Sale[]>([]);
@@ -230,8 +230,8 @@ export default function ReportsPage() {
     const handleEditSale = (sale: Sale) => {
         const saleToEdit = sales.find(s => s.id === sale.id);
         if (saleToEdit) {
-            // This will replace the *first* invoice tab with the one being edited
-            updateActiveInvoice(() => ({
+            switchToInvoice(0); // Switch to the first invoice tab
+            updateActiveInvoice(() => ({ // Replace its content
                 cart: saleToEdit.items.map((i: SaleItem) => ({ ...i, id: i.medication_id })),
                 discountValue: (saleToEdit.discount || 0).toString(),
                 discountType: 'fixed',

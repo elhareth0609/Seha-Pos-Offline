@@ -202,8 +202,7 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
                 
                 {results && (
                     <div className="space-y-4 pt-4">
-                        <Alert variant="destructive">
-                            <AlertTitle>تنبيه هام</AlertTitle>
+                        <Alert variant="default">
                             <AlertDescription>
                                 هذه النتائج هي مجرد اقتراحات من الذكاء الاصطناعي ولا تغني عن خبرة الصيدلي وقراره النهائي. يجب التحقق من الجرعات والتفاعلات دائمًا.
                             </AlertDescription>
@@ -462,15 +461,13 @@ export default function SalesPage() {
     }, [mode, updateActiveInvoice, toast, checkAlternativeExpiry])
     
     const removeFromCart = React.useCallback((id: string, isReturn: boolean | undefined) => {
-        updateActiveInvoice(invoice => {
-            if (alternativeExpiryAlert?.data?.originalMedication?.id === id) {
-                setAlternativeExpiryAlert(null);
-            }
-            return {
-                ...invoice,
-                cart: invoice.cart.filter(item => !(item.id === id && item.is_return === isReturn))
-            };
-        });
+        if (alternativeExpiryAlert?.data?.originalMedication?.id === id) {
+            setAlternativeExpiryAlert(null);
+        }
+        updateActiveInvoice(invoice => ({
+            ...invoice,
+            cart: invoice.cart.filter(item => !(item.id === id && item.is_return === isReturn))
+        }));
     }, [updateActiveInvoice, alternativeExpiryAlert]);
 
     const handleSwapAndAddToCart = () => {
@@ -736,6 +733,16 @@ export default function SalesPage() {
   };
   
   const handleReviewClick = () => {
+    if(activeInvoices[0].cart.length > 0) {
+        const firstInvoiceToSave = { ...activeInvoices[0], reviewIndex: 0 };
+        const otherInvoices = activeInvoices.slice(1);
+        const invoicesToSave = [firstInvoiceToSave, ...otherInvoices];
+        localStorage.setItem('savedInvoices', JSON.stringify(invoicesToSave));
+    } else if (activeInvoices.length > 1) {
+        const invoicesToSave = activeInvoices.slice(1).map((inv, idx) => ({ ...inv, reviewIndex: idx + 1 }));
+        localStorage.setItem('savedInvoices', JSON.stringify(invoicesToSave));
+    }
+
     router.push('/reports');
   }
 
@@ -922,8 +929,6 @@ export default function SalesPage() {
                 <CardContent className="p-0 flex-1 flex flex-col">
                      {alternativeExpiryAlert && (
                         <Alert variant="default" className="m-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 border-yellow-400">
-                            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                            <AlertTitle className="text-yellow-800 dark:text-yellow-300">تنبيه بديل</AlertTitle>
                             <AlertDescription className="text-yellow-700 dark:text-yellow-400 flex items-center justify-between">
                                 <span>{alternativeExpiryAlert.message}</span>
                                 <div>
