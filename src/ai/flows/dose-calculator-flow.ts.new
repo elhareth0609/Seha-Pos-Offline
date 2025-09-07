@@ -13,7 +13,8 @@ async function calculateDoseWithOpenRouter(input: DoseCalculationInput): Promise
   // Format the prompt based on the input
   const medicationsText = input.medications.map(med => 
     `- ${med.tradeName} (${med.scientific_names ? med.scientific_names.join(', ') : 'N/A'})`
-  ).join('');
+  ).join('
+');
 
   const prompt = `You are a master Iraqi pharmacist assistant. Provide a dosage analysis in Arabic for the given medications based on the patient's age and notes. Your response MUST be a valid JSON object with the following structure:
 {
