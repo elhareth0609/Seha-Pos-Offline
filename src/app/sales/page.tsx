@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -350,10 +351,7 @@ export default function SalesPage() {
   const [isControlledDrugPinOpen, setIsControlledDrugPinOpen] = React.useState(false);
   const [controlledDrugPin, setControlledDrugPin] = React.useState('');
   const [controlledDrugsInCart, setControlledDrugsInCart] = React.useState<string[]>([]);
-  const [isReferenceDialogOpen, setIsReferenceDialogOpen] = React.useState(false);
-  const [currentReferenceSite, setCurrentReferenceSite] = React.useState<{name: string, url: string} | null>(null);
-
-
+  
     const handlePrint = () => {
         if (printComponentRef.current && saleToPrint) {
             printElement(printComponentRef.current, `invoice-${saleToPrint?.id}`);
@@ -886,12 +884,9 @@ export default function SalesPage() {
                                     key={site.name}
                                     variant="ghost"
                                     className="justify-start"
-                                    onClick={() => {
-                                        setCurrentReferenceSite(site);
-                                        setIsReferenceDialogOpen(true);
-                                    }}
+                                    asChild
                                     >
-                                    {site.name}
+                                    <a href={site.url} target="_blank" rel="noopener noreferrer">{site.name}</a>
                                     </Button>
                                 ))}
                                 </div>
@@ -1480,18 +1475,6 @@ export default function SalesPage() {
                     <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
                     <Button variant="destructive" onClick={() => handleControlledDrugPinConfirm(controlledDrugPin)} disabled={!controlledDrugPin}>تأكيد ومتابعة</Button>
                 </DialogFooter>
-            </DialogContent>
-        </Dialog>
-        <Dialog open={isReferenceDialogOpen} onOpenChange={setIsReferenceDialogOpen}>
-            <DialogContent className="sm:max-w-md h-[80vh] flex flex-col p-2">
-                <DialogHeader>
-                  <DialogTitle className="sr-only">
-                    {currentReferenceSite?.name || 'Reference Site'}
-                  </DialogTitle>
-                </DialogHeader>
-                {currentReferenceSite && (
-                    <iframe src={currentReferenceSite.url} className="w-full h-full border-0 rounded-md"></iframe>
-                )}
             </DialogContent>
         </Dialog>
     </div>
