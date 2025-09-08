@@ -129,7 +129,6 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
 
 function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
     const [patientAge, setPatientAge] = React.useState('');
-    const [patientNotes, setPatientNotes] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
     const [results, setResults] = React.useState<DoseCalculationOutput | null>(null);
     const { toast } = useToast();
@@ -156,8 +155,7 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
         try {
             const response = await calculateDose({ 
                 patientAge: age, 
-                medications: medicationsInput,
-                patientNotes: patientNotes || undefined,
+                medications: medicationsInput
             });
             setResults(response);
         } catch (error) {
@@ -169,11 +167,11 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
     };
 
     return (
-        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>مساعد الجرعات الذكي</DialogTitle>
                 <DialogDescription>
-                    أدخل عمر المريض وأي ملاحظات إضافية للحصول على اقتراحات للجرعات وكشف التفاعلات الدوائية.
+                    أدخل عمر المريض للحصول على اقتراحات للجرعات.
                 </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -182,19 +180,16 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
                         <Label htmlFor="patient-age">عمر المريض (بالسنوات)</Label>
                         <Input id="patient-age" type="number" value={patientAge} onChange={(e) => setPatientAge(e.target.value)} placeholder="مثال: 5" />
                     </div>
-                     <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="patient-notes">ملاحظات إضافية عن المريض (اختياري)</Label>
-                        <Input id="patient-notes" value={patientNotes} onChange={(e) => setPatientNotes(e.target.value)} placeholder="مثال: حامل، مريض سكر، يعاني من الضغط" />
+                     <div className="md:col-span-2">
+                         <Button onClick={handleCalculate} disabled={isLoading || cartItems.length === 0} className="w-full">
+                            {isLoading ? <BrainCircuit className="me-2 h-4 w-4 animate-spin" /> : <Thermometer className="me-2 h-4 w-4" />}
+                            حساب وتحليل
+                        </Button>
                     </div>
                 </div>
-                 <Button onClick={handleCalculate} disabled={isLoading || cartItems.length === 0} className="w-full">
-                    {isLoading ? <BrainCircuit className="me-2 h-4 w-4 animate-spin" /> : <Thermometer className="me-2 h-4 w-4" />}
-                    حساب وتحليل
-                </Button>
                 
                 {isLoading && (
                     <div className="space-y-2 pt-4">
-                        <Skeleton className="h-8 w-full" />
                         <Skeleton className="h-8 w-full" />
                         <Skeleton className="h-8 w-full" />
                     </div>
@@ -213,17 +208,15 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
                                 <TableRow>
                                     <TableHead>الدواء</TableHead>
                                     <TableHead>الجرعة المقترحة</TableHead>
-                                    <TableHead>تعليمات</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {results.medicationAnalysis.map((res, index) => (
                                     <TableRow key={index}>
-                                    <TableCell className="font-medium">{res.tradeName}</TableCell>
-                                    <TableCell>{res.suggestedDose}</TableCell>
-                                    <TableCell>{res.instructions}</TableCell>
-                                </TableRow>    
-                            ))}
+                                        <TableCell className="font-medium">{res.tradeName}</TableCell>
+                                        <TableCell>{res.suggestedDose}</TableCell>
+                                    </TableRow>    
+                                ))}
                             </TableBody>
                         </Table>
                     </div>

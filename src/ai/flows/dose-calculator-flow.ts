@@ -15,7 +15,7 @@ async function calculateDoseWithOpenRouter(input: DoseCalculationInput): Promise
     `- ${med.tradeName} (${med.scientific_names ? med.scientific_names.join(', ') : 'N/A'})`
   ).join('\n');
 
-  const prompt = `أنت مساعد صيدلي عراقي خبير. قدم تحليل جرعات باللغة العربية للأدوية المعطاة بناءً على عمر المريض وملاحظاته. يجب أن يكون ردك بصيغة JSON صالحة تماماً.
+  const prompt = `أنت مساعد صيدلي عراقي خبير. قدم تحليل جرعات باللغة العربية للأدوية المعطاة بناءً على عمر المريض. يجب أن يكون ردك بصيغة JSON صالحة تماماً.
 
 {
   "medicationAnalysis": [
@@ -27,11 +27,10 @@ async function calculateDoseWithOpenRouter(input: DoseCalculationInput): Promise
 }
 
 عمر المريض: ${input.patientAge}
-${input.patientNotes ? `ملاحظات: ${input.patientNotes}` : ''}
 الأدوية:
 ${medicationsText}
 
-مهم جداً: كن مبدعاً في إجاباتك ولا تقم بنسخ الأمثلة المذكورة أعلاه. حافظ على إجاباتك موجزة للغاية.
+مهم جداً: كن مبدعاً في إجاباتك ولا تقم بنسخ الأمثلة المذكورة أعلاه. حافظ على إجاباتك موجزة للغاية. يجب أن تعطي جرعة محددة دائماً ولا تستخدم أبداً عبارة 'الرجاء استشارة الصيدلي'.
 `;
 
   try {
@@ -83,7 +82,7 @@ ${medicationsText}
         return {
           medicationAnalysis: input.medications.map(med => ({
             tradeName: med.tradeName,
-            suggestedDose: "الرجاء استشارة الصيدلي"
+            suggestedDose: "حدث خطأ في المعالجة"
           }))
         };
     }

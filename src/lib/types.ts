@@ -332,7 +332,6 @@ const MedicationInfoSchema = z.object({
 
 export const DoseCalculationInputSchema = z.object({
   patientAge: z.number().describe("The age of the patient in years."),
-  patientNotes: z.string().optional().describe("Optional notes about the patient's condition, such as 'diabetic', 'pregnant', or 'hypertensive'."),
   medications: z.array(MedicationInfoSchema).describe('A list of medications in the current transaction.'),
 });
 
