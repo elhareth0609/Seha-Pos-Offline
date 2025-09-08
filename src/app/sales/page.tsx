@@ -285,9 +285,9 @@ const getExpirationBadge = (expiration_date: string | undefined, threshold: numb
 };
 
 const referenceSites = [
-    { name: "DawaSeek", url: "https://www.dawaseek.com/" },
     { name: "PedDose", url: "https://www.peddose.com/" },
     { name: "Drugs.com", url: "https://www.drugs.com/" },
+    { name: "DawaSeek", url: "https://www.dawaseek.com/" },
 ];
 
 export default function SalesPage() {
@@ -675,6 +675,7 @@ export default function SalesPage() {
   const handleControlledDrugPinConfirm = async (pin: string) => {
     const isValid = await verifyPin(pin);
     if(isValid) {
+        setControlledDrugPin('');
         setIsControlledDrugPinOpen(false);
         setIsCheckoutOpen(true);
     } else {
@@ -872,26 +873,18 @@ export default function SalesPage() {
                         <PopoverTrigger asChild>
                             <Button variant="outline" size="icon" className="shrink-0"><BrainCircuit /></Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-64 p-2">
-                            <div className="grid gap-2">
-                                <div className="space-y-2">
-                                    <h4 className="font-medium leading-none">مراجع علمية</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                    ابحث في المواقع الموثوقة للمعلومات الدوائية.
-                                    </p>
-                                </div>
-                                <div className="grid gap-1">
+                        <PopoverContent className="w-auto p-0 border-0" align="start">
+                            <div className="flex flex-col gap-2">
                                 {referenceSites.map((site) => (
                                     <Button
                                     key={site.name}
-                                    variant="ghost"
+                                    variant="outline"
                                     className="justify-start"
                                     asChild
                                     >
                                     <a href={site.url} target="_blank" rel="noopener noreferrer">{site.name}</a>
                                     </Button>
                                 ))}
-                                </div>
                             </div>
                         </PopoverContent>
                     </Popover>
@@ -1444,7 +1437,7 @@ export default function SalesPage() {
             title="تأكيد الحذف"
             description="هذه العملية تتطلب تأكيدًا. الرجاء إدخال كلمة مرور للمتابعة."
         />
-        <Dialog open={isControlledDrugPinOpen} onOpenChange={setIsControlledDrugPinOpen}>
+        <Dialog open={isControlledDrugPinOpen} onOpenChange={(open) => { if (!open) setControlledDrugPin(''); setIsControlledDrugPinOpen(open);}}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>دواء خاضع للرقابة</DialogTitle>
