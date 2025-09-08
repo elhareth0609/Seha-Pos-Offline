@@ -1485,12 +1485,6 @@ export default function SalesPage() {
         </Dialog>
         <Dialog open={isReferenceDialogOpen} onOpenChange={setIsReferenceDialogOpen}>
             <DialogContent className="sm:max-w-md h-[80vh] flex flex-col p-2">
-                <DialogHeader className="p-4 pb-0">
-                <DialogTitle>مرجع علمي: {currentReferenceSite?.name}</DialogTitle>
-                <DialogDescription>
-                    تصفح الموقع للمعلومات الدوائية.
-                </DialogDescription>
-                </DialogHeader>
                 {currentReferenceSite && (
                     <iframe src={currentReferenceSite.url} className="w-full h-full border-0 rounded-md"></iframe>
                 )}
