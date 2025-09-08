@@ -96,8 +96,7 @@ ${medicationsText}
             const partialResponse = JSON.parse(content);
             if (partialResponse.medicationAnalysis) {
               return {
-                medicationAnalysis: partialResponse.medicationAnalysis,
-                interactions: []
+                medicationAnalysis: partialResponse.medicationAnalysis
               };
             }
           } catch (e) {
