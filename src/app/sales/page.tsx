@@ -1485,6 +1485,11 @@ export default function SalesPage() {
         </Dialog>
         <Dialog open={isReferenceDialogOpen} onOpenChange={setIsReferenceDialogOpen}>
             <DialogContent className="sm:max-w-md h-[80vh] flex flex-col p-2">
+                 <DialogHeader>
+                  <DialogTitle className="sr-only">
+                    {currentReferenceSite?.name || 'Reference Site'}
+                  </DialogTitle>
+                </DialogHeader>
                 {currentReferenceSite && (
                     <iframe src={currentReferenceSite.url} className="w-full h-full border-0 rounded-md"></iframe>
                 )}
