@@ -1484,7 +1484,7 @@ export default function SalesPage() {
             </DialogContent>
         </Dialog>
         <Dialog open={isReferenceDialogOpen} onOpenChange={setIsReferenceDialogOpen}>
-            <DialogContent className="sm:max-w-4xl h-[80vh] flex flex-col p-2">
+            <DialogContent className="sm:max-w-md h-[80vh] flex flex-col p-2">
                 <DialogHeader className="p-4 pb-0">
                 <DialogTitle>مرجع علمي: {currentReferenceSite?.name}</DialogTitle>
                 <DialogDescription>
