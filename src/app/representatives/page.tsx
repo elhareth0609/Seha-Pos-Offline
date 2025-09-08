@@ -7,10 +7,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Contact, Phone, Building, MapPin, Search } from 'lucide-react';
+import { Contact, Phone, Building, MapPin, Search, AlertTriangle } from 'lucide-react';
 import type { MedicalRepresentative } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // API Endpoint for representatives
 const REPS_API_URL = 'https://us-central1-midgram-e4985.cloudfunctions.net/getRepresentatives'; 
@@ -27,7 +28,7 @@ export default function RepresentativesPage() {
         try {
             const params = new URLSearchParams({
                 page: String(page),
-                limit: '50', // Fetch 20 reps per page
+                limit: '50', // Fetch 50 reps per page
                 ...(search && { name: search })
             });
 
@@ -79,6 +80,13 @@ export default function RepresentativesPage() {
                             </div>
                         </div>
                     </div>
+                     <Alert variant="default" className="mt-4 bg-yellow-50 border-yellow-300 dark:bg-yellow-900/20 dark:border-yellow-700">
+                        <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                        <AlertTitle className="font-bold text-yellow-800 dark:text-yellow-300">إخلاء مسؤولية هام</AlertTitle>
+                        <AlertDescription className="text-yellow-700 dark:text-yellow-500">
+                            ميدجرام غير مسؤول عن أي تعاملات تتم خارج الصيدلية. هذه الميزة هي وسيلة مساعدة تهدف لتسهيل تواصلك مع المندوبين لغرض زيارة صيدليتك والاطلاع على المنتجات أو العروض.
+                        </AlertDescription>
+                    </Alert>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col sm:flex-row gap-4">
@@ -104,7 +112,6 @@ export default function RepresentativesPage() {
                                 <TableHead>الشركة / المكتب</TableHead>
                                 <TableHead>المدينة</TableHead>
                                 <TableHead>رقم الهاتف</TableHead>
-                                {/* <TableHead>الحالة</TableHead> */}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -115,7 +122,6 @@ export default function RepresentativesPage() {
                                         <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                                         <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                                         <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-                                        {/* <TableCell><Skeleton className="h-6 w-16" /></TableCell> */}
                                     </TableRow>
                                 ))
                             ) : reps.length > 0 ? (
@@ -123,29 +129,17 @@ export default function RepresentativesPage() {
                                     <TableRow key={rep.id}>
                                         <TableCell>
                                             <div className="flex items-center gap-3">
-                                                {/* <Image 
-                                                    src={rep.image_url || '/placeholder-user.png'} 
-                                                    alt={rep.comm_name} 
-                                                    width={40}
-                                                    height={40}
-                                                    className="rounded-full bg-muted object-cover h-10 w-10"
-                                                /> */}
                                                 <span className="font-medium">{rep.comm_name}</span>
                                             </div>
                                         </TableCell>
                                         <TableCell>{rep.office_name}</TableCell>
                                         <TableCell>{rep.city}</TableCell>
                                         <TableCell className="font-mono text-right" dir="ltr">{rep.phone_number}</TableCell>
-                                        {/* <TableCell>
-                                            <Badge variant={rep.status === 'active' ? 'secondary' : 'destructive'} className={rep.status === 'active' ? 'bg-green-100 text-green-800' : ''}>
-                                                {rep.status === 'active' ? 'فعال' : 'محذوف'}
-                                            </Badge>
-                                        </TableCell> */}
                                     </TableRow>
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center h-24">
+                                    <TableCell colSpan={4} className="text-center h-24">
                                         لا توجد بيانات لعرضها.
                                     </TableCell>
                                 </TableRow>
