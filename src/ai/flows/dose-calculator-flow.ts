@@ -52,7 +52,8 @@ ${medicationsText}
             content: prompt,
           },
         ],
-        response_format: { type: 'json_object' }
+        response_format: { type: 'json_object' },
+        max_tokens: 256
       }),
     });
 
