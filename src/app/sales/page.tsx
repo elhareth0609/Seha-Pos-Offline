@@ -148,14 +148,12 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
             .map(item => ({
                 tradeName: item.name,
                 scientific_names: item.scientific_names || [],
-                dosage: item.dosage || 'N/A',
-                dosage_form: item.dosage_form || 'N/A'
             }));
             
         try {
             const response = await calculateDose({ 
                 patientAge: age, 
-                medications: medicationsInput
+                medications: medicationsInput,
             });
             setResults(response);
         } catch (error) {
@@ -285,6 +283,13 @@ const getExpirationBadge = (expiration_date: string | undefined, threshold: numb
     return null;
 };
 
+const referenceSites = [
+    { name: "DawaSeek", url: "https://dawaseek.com/" },
+    { name: "Drugs.com", url: "https://www.drugs.com/" },
+    { name: "WebMD", url: "https://www.webmd.com/" },
+    { name: "RxList", url: "https://www.rxlist.com/" },
+];
+
 export default function SalesPage() {
   const { 
     currentUser, 
@@ -348,6 +353,8 @@ export default function SalesPage() {
   const [isControlledDrugPinOpen, setIsControlledDrugPinOpen] = React.useState(false);
   const [controlledDrugPin, setControlledDrugPin] = React.useState('');
   const [controlledDrugsInCart, setControlledDrugsInCart] = React.useState<string[]>([]);
+  const [isReferenceDialogOpen, setIsReferenceDialogOpen] = React.useState(false);
+  const [currentReferenceSite, setCurrentReferenceSite] = React.useState<{name: string, url: string} | null>(null);
 
 
     const handlePrint = () => {
@@ -864,20 +871,36 @@ export default function SalesPage() {
                             </Card>
                         )}
                     </div>
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" size="icon" className="shrink-0"><Search/></Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-4xl h-[80vh] flex flex-col p-2">
-                             <DialogHeader className="p-4 pb-0">
-                                <DialogTitle>البحث في DawaSeek</DialogTitle>
-                                <DialogDescription>
-                                    ابحث عن معلومات الأدوية مباشرة من موقع dawaseek.com.
-                                </DialogDescription>
-                            </DialogHeader>
-                             <iframe src="https://dawaseek.com/" className="w-full h-full border-0 rounded-md"></iframe>
-                        </DialogContent>
-                    </Dialog>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" size="icon" className="shrink-0"><BrainCircuit /></Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-2">
+                            <div className="grid gap-2">
+                                <div className="space-y-2">
+                                    <h4 className="font-medium leading-none">مراجع علمية</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                    ابحث في المواقع الموثوقة للمعلومات الدوائية.
+                                    </p>
+                                </div>
+                                <div className="grid gap-1">
+                                {referenceSites.map((site) => (
+                                    <Button
+                                    key={site.name}
+                                    variant="ghost"
+                                    className="justify-start"
+                                    onClick={() => {
+                                        setCurrentReferenceSite(site);
+                                        setIsReferenceDialogOpen(true);
+                                    }}
+                                    >
+                                    {site.name}
+                                    </Button>
+                                ))}
+                                </div>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                      <Button variant="secondary" onClick={handleReviewClick}>
                         <FileText className="me-2"/>
                         مراجعة الفواتير
@@ -1448,6 +1471,19 @@ export default function SalesPage() {
                     <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
                     <Button variant="destructive" onClick={() => handleControlledDrugPinConfirm(controlledDrugPin)} disabled={!controlledDrugPin}>تأكيد ومتابعة</Button>
                 </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        <Dialog open={isReferenceDialogOpen} onOpenChange={setIsReferenceDialogOpen}>
+            <DialogContent className="sm:max-w-4xl h-[80vh] flex flex-col p-2">
+                <DialogHeader className="p-4 pb-0">
+                <DialogTitle>مرجع علمي: {currentReferenceSite?.name}</DialogTitle>
+                <DialogDescription>
+                    تصفح الموقع للمعلومات الدوائية.
+                </DialogDescription>
+                </DialogHeader>
+                {currentReferenceSite && (
+                    <iframe src={currentReferenceSite.url} className="w-full h-full border-0 rounded-md"></iframe>
+                )}
             </DialogContent>
         </Dialog>
     </div>
