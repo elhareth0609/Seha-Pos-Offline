@@ -147,6 +147,8 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
             .map(item => ({
                 tradeName: item.name,
                 scientific_names: item.scientific_names || [],
+                dosage: item.dosage || '',
+                dosage_form: item.dosage_form || '',
             }));
             
         try {
