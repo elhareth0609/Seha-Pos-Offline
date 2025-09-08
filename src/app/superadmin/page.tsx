@@ -570,7 +570,7 @@ export default function SuperAdminPage() {
                         <TableBody>
                             {(supportRequests || []).length > 0 ? supportRequests.map(req => (
                                 <TableRow key={req.id}>
-                                    <TableCell className="font-medium">{req.pharmacy_name}</TableCell>
+                                    <TableCell className="font-medium">{pharmacySettings[req.pharmacy_id]?.pharmacyName}</TableCell>
                                     <TableCell className="font-mono">{req.phone_number}</TableCell>
                                     <TableCell>{req.problem_section}</TableCell>
                                     <TableCell>{req.contact_time}</TableCell>
