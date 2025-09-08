@@ -1022,7 +1022,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     const addPayment = async (supplier_id: string, amount: number, notes?: string) => {
         try {
             const newPayment = await apiRequest('/payments/supplier', 'POST', { supplier_id: supplier_id, amount, notes });
-            setPayments(prev => ({...prev, supplierPayments: [...prev.supplierPayments, newPayment]}));
+            setPayments(prev => ({...prev, supplierPayments: [...(prev.supplierPayments || []), newPayment]}));
             toast({ title: `تم تسجيل دفعة بمبلغ ${amount.toLocaleString()}` });
             return true;
         } catch (e) { return false; }
@@ -1031,7 +1031,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     const addPatientPayment = async (patient_id: string, amount: number, notes?: string) => {
         try {
             const newPayment = await apiRequest('/payments/patient', 'POST', { patient_id, amount, notes });
-            setPayments(prev => ({...prev, patientPayments: [...prev.patientPayments, newPayment]}));
+            setPayments(prev => ({...prev, patientPayments: [...(prev.patientPayments || []), newPayment]}));
             toast({ title: `تم تسجيل دفعة بمبلغ ${amount.toLocaleString()}` });
             return true;
         } catch(e) { return false; }
