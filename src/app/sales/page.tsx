@@ -284,6 +284,7 @@ const getExpirationBadge = (expiration_date: string | undefined, threshold: numb
 };
 
 const referenceSites = [
+    { name: "DawaSeek", url: "https://www.dawaseek.com/" },
     { name: "PedDose", url: "https://www.peddose.com/" },
     { name: "Drugs.com", url: "https://www.drugs.com/" },
     { name: "Medscape", url: "https://reference.medscape.com/" },
