@@ -419,7 +419,7 @@ export default function SuperAdminReportsPage() {
                                     {topPurchasedItems.length > 0 ? topPurchasedItems.map((item, index) => (
                                         <TableRow key={index}>
                                             <TableCell className="font-medium">{item.name}</TableCell>
-                                            <TableCell className="font-mono">{item.quantity.toLocaleString()}</TableCell>
+                                            <TableCell className="font-mono">{Number(item.quantity).toLocaleString()}</TableCell>
                                         </TableRow>
                                     )) : <TableRow>
                                             <TableCell colSpan={2} className="text-center h-24">لا توجد بيانات</TableCell>
