@@ -66,12 +66,12 @@ const fileToDataUri = (file: File): Promise<string> => {
     });
 };
 
-function AdminRow({ admin, onDelete, onToggleStatus, onEdit }: { admin: User, onDelete: (user: User) => void, onToggleStatus: (user: User) => void, onEdit: (user: User) => void }) {
+function AdminRow({ admin, onDelete, onToggleStatus, onEdit, pharmacySettings }: { admin: User, onDelete: (user: User) => void, onToggleStatus: (user: User) => void, onEdit: (user: User) => void, pharmacySettings: Record<string, any> }) {
     const [showPin, setShowPin] = React.useState(false);
 
     return (
         <TableRow>
-            <TableCell className="font-medium">{admin.name}</TableCell>
+            <TableCell className="font-medium">{pharmacySettings[admin.pharmacy_id]?.pharmacyName || "صيدلية " + admin.name}</TableCell>
             <TableCell className="hidden sm:table-cell">{admin.email}</TableCell>
             <TableCell className="hidden lg:table-cell">
                 <div className="flex items-center gap-2">
@@ -136,7 +136,8 @@ export default function SuperAdminPage() {
         offers, addOffer, deleteOffer,
         getPaginatedUsers,
         updateUser,
-        supportRequests, updateSupportRequestStatus
+        supportRequests, updateSupportRequestStatus,
+        getAllPharmacySettings
     } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
@@ -147,6 +148,7 @@ export default function SuperAdminPage() {
     const [perPage, setPerPage] = React.useState(10);
     const [loading, setLoading] = React.useState(true);
     const [searchTerm, setSearchTerm] = React.useState("");
+    const [pharmacySettings, setPharmacySettings] = React.useState<Record<string, any>>({});
     const [statusFilter, setStatusFilter] = React.useState("all");
     const [provinceFilter, setProvinceFilter] = React.useState("all");
 
@@ -190,6 +192,10 @@ export default function SuperAdminPage() {
             setPharmacyAdmins(data.data);
             setTotalPages(data.last_page);
             setCurrentPage(data.current_page);
+            
+            // جلب إعدادات الصيدليات
+            const settings = await getAllPharmacySettings();
+            setPharmacySettings(settings);
         } catch (error) {
             console.error("Failed to fetch admins", error);
         } finally {
@@ -413,16 +419,16 @@ export default function SuperAdminPage() {
                             </div>
                             <Dialog open={isAddAdminOpen} onOpenChange={setIsAddAdminOpen}>
                                 <DialogTrigger asChild>
-                                    <Button><PlusCircle className="me-2"/> إنشاء حساب مدير</Button>
+                                    <Button><PlusCircle className="me-2"/> إنشاء حساب صيدلية</Button>
                                 </DialogTrigger>
                                 <DialogContent>
                                     <DialogHeader>
-                                        <DialogTitle>إنشاء حساب مدير صيدلية</DialogTitle>
+                                        <DialogTitle>إنشاء حساب صيدلية</DialogTitle>
                                     </DialogHeader>
                                     <Form {...addAdminForm}>
                                         <form onSubmit={addAdminForm.handleSubmit(handleAddAdmin)} className="space-y-4 py-2">
                                             <FormField control={addAdminForm.control} name="name" render={({ field }) => (
-                                                <FormItem><FormLabel>اسم المدير</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                                <FormItem><FormLabel>اسم الصيدلية</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                             )} />
                                             <FormField control={addAdminForm.control} name="email" render={({ field }) => (
                                                 <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
@@ -484,7 +490,7 @@ export default function SuperAdminPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>اسم المدير</TableHead>
+                                    <TableHead>اسم الصيدلية</TableHead>
                                     <TableHead className="hidden sm:table-cell">البريد الإلكتروني</TableHead>
                                     <TableHead className="hidden lg:table-cell">رمز PIN</TableHead>
                                     <TableHead className="hidden md:table-cell">المحافظة</TableHead>
@@ -509,6 +515,7 @@ export default function SuperAdminPage() {
                                         onDelete={handleDeleteAdmin} 
                                         onToggleStatus={handleToggleStatus}
                                         onEdit={openEditDialog}
+                                        pharmacySettings={pharmacySettings}
                                     />
                                 ))}
                             </TableBody>
@@ -789,7 +796,7 @@ export default function SuperAdminPage() {
                     <Form {...editAdminForm}>
                         <form onSubmit={editAdminForm.handleSubmit(handleEditAdmin)} className="space-y-4 py-2">
                             <FormField control={editAdminForm.control} name="name" render={({ field }) => (
-                                <FormItem><FormLabel>اسم المدير</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>اسم الصيدلية</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
                             <FormField control={editAdminForm.control} name="email" render={({ field }) => (
                                 <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
