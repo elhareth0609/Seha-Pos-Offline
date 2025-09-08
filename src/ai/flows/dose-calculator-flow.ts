@@ -21,8 +21,7 @@ async function calculateDoseWithOpenRouter(input: DoseCalculationInput): Promise
   "medicationAnalysis": [
     {
       "tradeName": "اسم الدواء",
-      "suggestedDose": "جرعة مباشرة ومختصرة جداً مع التكرار. مثال: 'قرص واحد يومياً'. لا تذكر عمر المريض أو تعليمات الاستخدام هنا.",
-      "instructions": "تعليمات استخدام أو تحذيرات قصيرة جداً، 10 كلمات أو أقل. مثال: 'بعد الطعام'، 'خطر الحساسية'، 'تجنب مع مشتقات الألبان'."
+      "suggestedDose": "جرعة مباشرة ومختصرة جداً مع التكرار وتعليمات بسيطة. مثال: 'قرص واحد يومياً بعد الطعام'."
     }
   ]
 }
@@ -84,8 +83,7 @@ ${medicationsText}
         return {
           medicationAnalysis: input.medications.map(med => ({
             tradeName: med.tradeName,
-            suggestedDose: "الرجاء استشارة الصيدلي",
-            instructions: "لا توجد معلومات كافية"
+            suggestedDose: "الرجاء استشارة الصيدلي"
           }))
         };
     }
@@ -95,8 +93,7 @@ ${medicationsText}
     return {
       medicationAnalysis: input.medications.map(med => ({
         tradeName: med.tradeName,
-        suggestedDose: "الرجاء استشارة الصيدلي",
-        instructions: "حدث خطأ في المعالجة"
+        suggestedDose: "حدث خطأ في المعالجة"
       }))
     };
   }

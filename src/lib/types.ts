@@ -340,16 +340,10 @@ export type DoseCalculationInput = z.infer<typeof DoseCalculationInputSchema>;
 
 export const MedicationAnalysisSchema = z.object({
     tradeName: z.string().describe('The trade name of the medication being analyzed.'),
-    // suggestedDose: z.string().describe('The suggested dose, frequency, and duration for the patient. For example: "نصف حبة (250mg) مرتين يوميًا لمدة 5 أيام". Be specific and clear.'),
-    // usageInstructions: z.string().describe('Important instructions on how to take the medication, such as with or without food.'),
-    // warning: z.string().optional().describe('Any critical warnings or contraindications for this age group OR based on the provided clinical notes. For example: "لا يستخدم لمرضى السكري", "يجب استشارة الطبيب للحامل".'),
-    suggestedDose: z.string().describe('VERY brief and direct dose and frequency. Example: "50-100 mg every 6 hours". Do NOT mention patient age or usage instructions here.'),
-    instructions: z.string().optional().describe("VERY short usage instructions or warnings, 10 words or less. Example: 'After food', 'Risk of allergy', 'Avoid with dairy'."),
-
+    suggestedDose: z.string().describe('VERY brief and direct dose, frequency, and simple instructions. Example: "one tablet daily after food".'),
 });
 
 export const DoseCalculationOutputSchema = z.object({
-    interactions: z.array(z.string()).describe('A list of strings, each describing a potential interaction between the provided drugs. Empty if no interactions are found.'),
     medicationAnalysis: z.array(MedicationAnalysisSchema).describe('An array containing the analysis for each individual medication.'),
 });
 export type DoseCalculationOutput = z.infer<typeof DoseCalculationOutputSchema>;
