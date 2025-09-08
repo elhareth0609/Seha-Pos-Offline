@@ -188,14 +188,14 @@ export default function PatientsPage() {
 
     sales.forEach(sale => {
         if (sale.patient_id && sale.payment_method === 'credit') {
-            debts[sale.patient_id] = (debts[sale.patient_id] || 0) + sale.total;
+            debts[sale.patient_id] = (debts[sale.patient_id] || 0) + Number(sale.total);
         }
     });
 
     if (allPayments.patientPayments) {
         allPayments.patientPayments.forEach(payment => {
             if (debts[payment.patient_id]) {
-                debts[payment.patient_id] -= payment.amount;
+                debts[payment.patient_id] -= Number(payment.amount);
             }
         });
     }

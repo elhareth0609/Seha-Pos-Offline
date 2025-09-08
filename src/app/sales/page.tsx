@@ -353,6 +353,7 @@ export default function SalesPage() {
   const [isControlledDrugPinOpen, setIsControlledDrugPinOpen] = React.useState(false);
   const [controlledDrugPin, setControlledDrugPin] = React.useState('');
   const [controlledDrugsInCart, setControlledDrugsInCart] = React.useState<string[]>([]);
+  const [isControlledDrugConfirmed, setIsControlledDrugConfirmed] = React.useState(false);
   
     const handlePrint = () => {
         if (printComponentRef.current && saleToPrint) {
@@ -635,8 +636,16 @@ export default function SalesPage() {
     );
 
     if (drugsInCart.length > 0) {
-        setControlledDrugsInCart(drugsInCart.map(d => d.name));
-        setIsControlledDrugPinOpen(true);
+        // تحقق إذا كان الرمز قد تم تأكيده بالفعل
+        if (isControlledDrugConfirmed) {
+            setIsCheckoutOpen(true);
+            setIsControlledDrugConfirmed(false); // إعادة تعيين الحالة للاستخدام المستقبلي
+        } else {
+            setControlledDrugsInCart(drugsInCart.map(d => d.name));
+            setIsControlledDrugPinOpen(true);
+            // لا تفتح نافذة الدفع مباشرة، انتظر تأكيد الرمز
+            return;
+        }
     } else {
         setIsCheckoutOpen(true);
     }
@@ -676,6 +685,7 @@ export default function SalesPage() {
     const isValid = await verifyPin(pin);
     if(isValid) {
         setIsControlledDrugPinOpen(false);
+        setIsControlledDrugConfirmed(true);
         setIsCheckoutOpen(true);
     } else {
         toast({ variant: 'destructive', title: "كلمة المرور غير صحيحة" });
@@ -1444,7 +1454,14 @@ export default function SalesPage() {
             title="تأكيد الحذف"
             description="هذه العملية تتطلب تأكيدًا. الرجاء إدخال كلمة مرور للمتابعة."
         />
-        <Dialog open={isControlledDrugPinOpen} onOpenChange={setIsControlledDrugPinOpen}>
+        <Dialog open={isControlledDrugPinOpen} onOpenChange={(open) => {
+            if (!open) {
+                // تم إغلاق النافذة بدون تأكيد
+                setControlledDrugPin('');
+                setIsControlledDrugConfirmed(false);
+            }
+            setIsControlledDrugPinOpen(open);
+        }}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>دواء خاضع للرقابة</DialogTitle>

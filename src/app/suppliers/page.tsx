@@ -258,10 +258,10 @@ export default function SuppliersPage() {
 
   const supplierAccounts = React.useMemo(() => {
     return suppliers.map(supplier => {
-      const purchases = purchaseOrders.filter(po => po.supplier_id === supplier.id);
-      const returns = supplierReturns.filter(ret => ret.supplier_id === supplier.id);
-      const payments = supplierPayments?.supplierPayments?.filter(p => p.supplier_id === supplier.id) || [];
-
+        const purchases = purchaseOrders.filter(po => po.supplier_id == supplier.id);
+        const returns = supplierReturns.filter(ret => ret.supplier_id == supplier.id);
+        const payments = supplierPayments?.supplierPayments?.filter(p => p.supplier_id == supplier.id) || [];
+        console.log(purchases,returns,payments)
         const totalPurchases = purchases.reduce((acc, po) => {
             const total_amount = typeof po.total_amount === 'number' ? po.total_amount : parseFloat(String(po.total_amount || 0));
             return acc + (isNaN(total_amount) ? 0 : total_amount);
