@@ -1183,40 +1183,52 @@ export default function SalesPage() {
                       <div className="mb-2">
                         <AdCarousel page="sales"/>
                       </div>
-                       <div className="space-y-2">
-                          <Dialog open={isPatientModalOpen} onOpenChange={setIsPatientModalOpen}>
-                              <DialogTrigger asChild>
-                                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                                      <UserIcon className="me-2 text-muted-foreground" />
-                                      {selectedPatient ? selectedPatient.name : "تحديد صديق الصيدلية (الزبون)"}
-                                  </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                  <DialogHeader>
-                                      <DialogTitle>تحديد أو إضافة صديق للصيدلية</DialogTitle>
-                                  </DialogHeader>
-                                  <div className="space-y-4">
-                                      <Input placeholder="ابحث بالاسم..." value={patientSearchTerm} onChange={(e) => handlePatientSearch(e.target.value)} />
-                                      <ScrollArea className="h-48 border rounded-md">
-                                          {patientSuggestions.map(p => (
-                                              <div key={p.id} onClick={() => { updateActiveInvoice(prev => ({...prev, patientId: p.id})); setIsPatientModalOpen(false); }}
-                                                  className="p-2 hover:bg-accent cursor-pointer">
-                                                  {p.name}
-                                              </div>
-                                          ))}
-                                      </ScrollArea>
-                                      <Separator />
-                                      <div className="space-y-2">
-                                          <h4 className="font-medium">أو إضافة جديد</h4>
-                                          <Input placeholder="اسم المريض الجديد" value={newPatientName} onChange={e => setNewPatientName(e.target.value)} />
-                                          <Input placeholder="رقم الهاتف (اختياري)" value={newPatientPhone} onChange={e => setNewPatientPhone(e.target.value)} />
-                                          <Button onClick={handleAddNewPatient} className="w-full" variant="success">
-                                              <UserPlus className="me-2" /> إضافة وتحديد
-                                          </Button>
-                                      </div>
-                                  </div>
-                              </DialogContent>
-                          </Dialog>
+                       <div className="space-y-2 relative">
+                            <Dialog open={isPatientModalOpen} onOpenChange={setIsPatientModalOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" className="w-full justify-between text-left font-normal">
+                                        <span className="flex items-center gap-2">
+                                            <UserIcon className="text-muted-foreground" />
+                                            {selectedPatient ? selectedPatient.name : "تحديد صديق الصيدلية"}
+                                        </span>
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>تحديد أو إضافة صديق للصيدلية</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-4">
+                                        <Input placeholder="ابحث بالاسم..." value={patientSearchTerm} onChange={(e) => handlePatientSearch(e.target.value)} />
+                                        <ScrollArea className="h-48 border rounded-md">
+                                            {patientSuggestions.map(p => (
+                                                <div key={p.id} onClick={() => { updateActiveInvoice(prev => ({...prev, patientId: p.id})); setIsPatientModalOpen(false); }}
+                                                    className="p-2 hover:bg-accent cursor-pointer">
+                                                    {p.name}
+                                                </div>
+                                            ))}
+                                        </ScrollArea>
+                                        <Separator />
+                                        <div className="space-y-2">
+                                            <h4 className="font-medium">أو إضافة جديد</h4>
+                                            <Input placeholder="اسم المريض الجديد" value={newPatientName} onChange={e => setNewPatientName(e.target.value)} />
+                                            <Input placeholder="رقم الهاتف (اختياري)" value={newPatientPhone} onChange={e => setNewPatientPhone(e.target.value)} />
+                                            <Button onClick={handleAddNewPatient} className="w-full" variant="success">
+                                                <UserPlus className="me-2" /> إضافة وتحديد
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                            {selectedPatient && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute top-1/2 left-1 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-destructive"
+                                    onClick={() => updateActiveInvoice(prev => ({...prev, patientId: null}))}
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            )}
                        </div>
                       <Separator />
 
