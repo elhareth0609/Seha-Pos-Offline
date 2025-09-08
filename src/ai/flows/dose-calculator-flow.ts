@@ -1,4 +1,3 @@
- 
 'use server';
 
 import {
@@ -17,13 +16,15 @@ async function calculateDoseWithOpenRouter(input: DoseCalculationInput): Promise
 
   const prompt = `أنت مساعد صيدلي عراقي خبير. قدم تحليل جرعات باللغة العربية للأدوية المعطاة بناءً على عمر المريض. يجب أن يكون ردك بصيغة JSON صالحة تماماً.
 
+المطلوب منك إرجاع JSON بالتنسيق التالي بالضبط:
 {
   "medicationAnalysis": [
     {
       "tradeName": "اسم الدواء",
       "suggestedDose": "جرعة مباشرة ومختصرة جداً مع التكرار وتعليمات بسيطة. مثال: 'قرص واحد يومياً بعد الطعام'."
     }
-  ]
+  ],
+  "interactions": []
 }
 
 عمر المريض: ${input.patientAge}
@@ -62,6 +63,8 @@ ${medicationsText}
     const data = await response.json();
     let content = data.choices[0].message.content;
 
+    console.log('OpenRouter response:', content);
+    
     // Clean up content to handle potential formatting issues
     content = content.trim();
 
@@ -74,15 +77,40 @@ ${medicationsText}
     // Try to parse the response as JSON
     try {
       const parsedResponse = JSON.parse(content);
-        return DoseCalculationOutputSchema.parse(parsedResponse);
+      
+      // Ensure the response has the required structure
+      if (!parsedResponse.interactions) {
+        parsedResponse.interactions = [];
+      }
+      
+      // Validate the response structure
+      const validatedResponse = DoseCalculationOutputSchema.parse(parsedResponse);
+      return validatedResponse;
     } catch (parseError) {
         console.error('Failed to parse API response as JSON:', parseError);
         console.error('Raw content:', content);
-        // If parsing fails, return a default response
+        
+        // If parsing fails, try to construct a valid response from the partial data
+        if (content.includes('medicationAnalysis')) {
+          try {
+            const partialResponse = JSON.parse(content);
+            if (partialResponse.medicationAnalysis) {
+              return {
+                medicationAnalysis: partialResponse.medicationAnalysis,
+                interactions: []
+              };
+            }
+          } catch (e) {
+            console.error('Failed to parse partial response:', e);
+          }
+        }
+        
+        // If all parsing attempts fail, return a default response
         return {
           medicationAnalysis: input.medications.map(med => ({
             tradeName: med.tradeName,
-            suggestedDose: "حدث خطأ في المعالجة"
+            suggestedDose: "الرجاء استشارة الصيدلي",
+            instructions: "لا توجد معلومات كافية"
           }))
         };
     }
@@ -92,7 +120,8 @@ ${medicationsText}
     return {
       medicationAnalysis: input.medications.map(med => ({
         tradeName: med.tradeName,
-        suggestedDose: "حدث خطأ في المعالجة"
+        suggestedDose: "الرجاء استشارة الصيدلي",
+        instructions: "حدث خطأ في المعالجة"
       }))
     };
   }
