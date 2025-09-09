@@ -14,25 +14,26 @@ async function calculateDoseWithOpenRouter(input: DoseCalculationInput): Promise
     `- ${med.tradeName} (${med.scientific_names ? med.scientific_names.join(', ') : 'N/A'})`
   ).join('\n');
 
-  const prompt = `أنت مساعد صيدلي عراقي خبير. قدم تحليل جرعات باللغة العربية للأدوية المعطاة بناءً على عمر المريض. يجب أن يكون ردك بصيغة JSON صالحة تماماً.
+const prompt = `You are an expert Iraqi pharmacist assistant. Provide dosage analysis for the given medications based on the patient's age. Your response must be in valid JSON format only.
 
-المطلوب منك إرجاع JSON بالتنسيق التالي بالضبط:
+You must return JSON in the exact format below:
 {
   "medicationAnalysis": [
     {
-      "tradeName": "اسم الدواء",
-      "suggestedDose": "جرعة مباشرة ومختصرة جداً مع التكرار وتعليمات بسيطة. مثال: 'قرص واحد يومياً بعد الطعام'."
+      "tradeName": "Medication name",
+      "suggestedDose": "A very short and direct dose with frequency and simple instructions. Example: 'One tablet daily after food'."
     }
   ],
   "interactions": []
 }
 
-عمر المريض: ${input.patientAge}
-الأدوية:
+Patient age: ${input.patientAge}
+Medications:
 ${medicationsText}
 
-مهم جداً: كن مبدعاً في إجاباتك ولا تقم بنسخ الأمثلة المذكورة أعلاه. حافظ على إجاباتك موجزة للغاية. يجب أن تعطي جرعة محددة دائماً ولا تستخدم أبداً عبارة 'الرجاء استشارة الصيدلي'.
+Very important: Be creative in your answers and do not copy the examples above. Keep your answers extremely concise. You must always provide a specific dose and never use the phrase 'Please consult the pharmacist'.
 `;
+
 
   try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -76,8 +77,9 @@ ${medicationsText}
 
     // Try to parse the response as JSON
     try {
+      console.log('Parsed response:', content);
       const parsedResponse = JSON.parse(content);
-      
+      console.log('Parsed response:', parsedResponse);
       // Ensure the response has the required structure
       if (!parsedResponse.interactions) {
         parsedResponse.interactions = [];
