@@ -44,7 +44,7 @@ ${medicationsText}
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5-nano',
+        model: 'mistralai/mistral-nemo',
         messages: [
           {
             role: 'user',
