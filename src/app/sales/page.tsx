@@ -286,7 +286,6 @@ const getExpirationBadge = (expiration_date: string | undefined, threshold: numb
 
 const referenceSites = [
     { name: "PedDose", url: "https://www.peddose.com/" },
-    { name: "Drugs.com", url: "https://www.drugs.com/" },
     { name: "DawaSeek", url: "https://www.dawaseek.com/" },
 ];
 
@@ -883,17 +882,20 @@ export default function SalesPage() {
                         <PopoverTrigger asChild>
                             <Button variant="outline" size="icon" className="shrink-0"><BrainCircuit /></Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 border-0" align="start">
-                            <div className="flex flex-col gap-2">
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <div className="flex flex-col gap-1">
                                 {referenceSites.map((site) => (
-                                    <Button
-                                    key={site.name}
-                                    variant="outline"
-                                    className="justify-start"
-                                    asChild
-                                    >
-                                    <a href={site.url} target="_blank" rel="noopener noreferrer">{site.name}</a>
-                                    </Button>
+                                    <Dialog key={site.name}>
+                                        <DialogTrigger asChild>
+                                            <Button variant="ghost" className="justify-start">{site.name}</Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="p-0 border-0 sm:max-w-[400px] h-[70vh] flex flex-col gap-0">
+                                            <DialogHeader className="sr-only">
+                                                <DialogTitle>{site.name}</DialogTitle>
+                                            </DialogHeader>
+                                            <iframe src={site.url} title={site.name} className="w-full h-full" />
+                                        </DialogContent>
+                                    </Dialog>
                                 ))}
                             </div>
                         </PopoverContent>
