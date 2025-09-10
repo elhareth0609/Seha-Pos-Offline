@@ -355,7 +355,7 @@ export default function SuperAdminPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                     <Button variant="outline" asChild>
-                        <Link href="/superadmin/reports"><FileText className="me-2"/> عرض الفواتير</Link>
+                        <Link href="/superadmin/reports"><FileText className="me-2"/> عرض التقارير</Link>
                     </Button>
                     <Button variant="outline" asChild>
                         <Link href="/superadmin/account">
