@@ -63,9 +63,9 @@ interface AuthContextType {
     updateUser: (userId: string, data: Partial<User>) => Promise<boolean>;
     updateUserPermissions: (userId: string, permissions: UserPermissions) => Promise<boolean>;
     updateUserHourlyRate: (userId: string, rate: number) => Promise<boolean>;
-    toggleUserStatus: (userId: string) => Promise<boolean>;
+    toggleUserStatus: (user: User) => Promise<boolean>;
     getAllPharmacySettings: () => Promise<Record<string, AppSettings>>;
-    getPharmacyData: (pharmacyId: string) => Promise<{ users: User[], sales: Sale[], inventory: Medication[], purchaseOrders: PurchaseOrder[] }>;
+    getPharmacyData: (pharmacyId: string) => Promise<{ users: User[], sales: Sale[], inventory: Medication[], purchaseOrders: PurchaseOrder[], suppliers: Supplier[], payments: any, supplierReturns: ReturnOrder[] }>;
     
     advertisements: Advertisement[];
     addAdvertisement: (title: string, image_url: string) => Promise<void>;
@@ -155,7 +155,7 @@ interface AuthContextType {
     // Users (for SuperAdmin)
     getPaginatedUsers: (role: 'Admin' | 'Employee', page: number, perPage: number, search: string, filters?: { status?: string, province?: string }) => Promise<PaginatedResponse<User>>;
     
-    getPaginatedItemMovements: (page: number, perPage: number, search: string, medication_id: string) => Promise<PaginatedResponse<TransactionHistoryItem>>;
+    getPaginatedItemMovements: (page: number, perPage: number, search: string, medication_id: string, scientificName?: string) => Promise<PaginatedResponse<TransactionHistoryItem>>;
     getMedicationMovements: (medId: string) => Promise<TransactionHistoryItem[]>;
 
     // Multi-invoice state
@@ -549,10 +549,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error: any) { return false; }
     };
     
-    const toggleUserStatus = async (userId: string) => {
+    const toggleUserStatus = async (user: User) => {
         try {
-            const { status } = await apiRequest(`/users/${userId}/status`, 'PUT');
-            setUsers(prev => prev.map(u => u.id === userId ? { ...u, status } : u));
+            const { status } = await apiRequest(`/users/${user.id}/status`, 'PUT');
+            // In SuperAdmin, we don't have access to all users, so just toast
+            toast({title: `تم تغيير حالة حساب ${user.name} إلى ${status === 'active' ? 'فعال' : 'معلق'}`});
             return true;
         } catch (error: any) { return false; }
     };
@@ -589,9 +590,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 inventory: data.inventory || [],
                 users: data.users || [],
                 purchaseOrders: data.purchaseOrders || [],
+                suppliers: data.suppliers || [],
+                payments: data.payments || { supplierPayments: [], patientPayments: [] },
+                supplierReturns: data.supplierReturns || [],
             };
         } catch(e: any) { 
-            return { sales: [], inventory: [], users: [], purchaseOrders: [] }; 
+            return { sales: [], inventory: [], users: [], purchaseOrders: [], suppliers:[], payments:{}, supplierReturns:[] }; 
         }
     };
     
@@ -731,15 +735,17 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     }, []);
 
     // Update getPaginatedItemMovements to handle medication_id
-    const getPaginatedItemMovements = React.useCallback(async (page: number, perPage: number, search: string, medicationId?: string) => {
+    const getPaginatedItemMovements = React.useCallback(async (page: number, perPage: number, search: string, medicationId?: string, scientificName?: string) => {
         try {
             const params = new URLSearchParams({
                 paginate: "true",
                 page: String(page),
                 per_page: String(perPage),
                 search: search,
-                ...(medicationId && { medication_id: medicationId })
             });
+            if (medicationId) params.append('medication_id', medicationId);
+            if (scientificName) params.append('scientific_name', scientificName);
+
             const data = await apiRequest(`/item-movements?${params.toString()}`);
             return data;
         } catch (e) {

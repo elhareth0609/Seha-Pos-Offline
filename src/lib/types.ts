@@ -446,3 +446,12 @@ export type ClinicalSystem = {
     icon: React.ComponentType<any>;
     diseases: DiseaseInfo[];
 };
+
+export type SupplierAnalyticsData = {
+    supplier_id: string;
+    supplier_name: string;
+    total_purchases: number;
+    total_sales: number;
+    total_profit: number;
+    net_debt: number;
+};
