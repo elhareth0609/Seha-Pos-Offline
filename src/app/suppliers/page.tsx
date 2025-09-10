@@ -436,7 +436,25 @@ export default function SuppliersPage() {
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm flex-grow">
+                             <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground flex items-center gap-2">
+                                    <Truck className="h-4 w-4 text-blue-700" /> إجمالي المشتريات:
+                                </span>
+                                <span className="font-mono font-medium">{account.totalPurchases.toLocaleString()}</span>
+                            </div>
                             <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground flex items-center gap-2">
+                                    <Undo2 className="h-4 w-4 text-orange-700" /> إجمالي المرتجعات:
+                                </span>
+                                <span className="font-mono font-medium">{account.totalReturns.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground flex items-center gap-2">
+                                    <Wallet className="h-4 w-4" /> إجمالي المدفوعات:
+                                </span>
+                                <span className="font-mono font-medium">{account.totalPayments.toLocaleString()}</span>
+                            </div>
+                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground flex items-center gap-2">
                                     <TrendingUp className="h-4 w-4 text-green-700" /> صافي الربح من المورد:
                                 </span>
