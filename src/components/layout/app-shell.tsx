@@ -88,7 +88,7 @@ const allNavItems = [
   { href: "/order-requests", icon: ShoppingBasket, label: "طلبات الشراء", group: 'tools' },
   { href: "/patients", icon: Users, label: "أصدقاء الصيدلية", group: 'tools' },
   { href: "/tasks", icon: ListChecks, label: "المهام", group: 'tools' },
-  { href: "/representatives", icon: Contact, label: "دليل المندوبين", group: 'tools' },
+  // { href: "/representatives", icon: Contact, label: "دليل المندوبين", group: 'tools' },
   
   { href: "/offers", icon: BadgePercent, label: "عروض ميدجرام", group: 'external' },
 
