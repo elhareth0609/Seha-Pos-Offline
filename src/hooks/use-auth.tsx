@@ -1258,7 +1258,6 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     const getNotifications = React.useCallback(async (): Promise<Notification[]> => {
         const generatedNotifications: Notification[] = [];
         const today = startOfToday();
-        const DEBT_LIMIT = 1000000; // 1 Million IQD, can be moved to settings
     
         // Inventory Notifications
         inventory.forEach(med => {
@@ -1310,13 +1309,15 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         // Supplier Debt Limit (Admin only)
         if (currentUser?.role === 'Admin' && payments && payments.supplierPayments) {
             suppliers.forEach(supplier => {
+                if (!supplier.debt_limit || supplier.debt_limit <= 0) return;
+
                 const purchases = purchaseOrders.filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.total_amount, 0);
                 const returns = supplierReturns.filter(r => r.supplier_id === supplier.id).reduce((sum, r) => sum + r.total_amount, 0);
                 
                 const supplierPaymentsData = payments.supplierPayments.filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.amount, 0);
                 const netDebt = purchases - returns - supplierPaymentsData;
 
-                if(netDebt > DEBT_LIMIT) {
+                if(netDebt > supplier.debt_limit) {
                     generatedNotifications.push({ id: `debt_limit_${supplier.id}`, type: 'supplier_debt_limit', message: `تجاوز حد الدين للمورد ${supplier.name}. الدين الحالي: ${netDebt.toLocaleString()}`, data: { supplierId: supplier.id }, read: false, created_at: new Date().toISOString() });
                 }
             });
@@ -1412,4 +1413,3 @@ export function useAuth() {
   }
   return context;
 }
-

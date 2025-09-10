@@ -199,6 +199,7 @@ export type Supplier = {
   id: string;
   name: string;
   contact_person?: string;
+  debt_limit?: number;
 };
 
 export type User = {

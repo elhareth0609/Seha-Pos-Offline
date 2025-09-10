@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import * as React from "react"
@@ -47,12 +48,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Textarea } from "@/components/ui/textarea"
-import { DollarSign, FileText, Truck, Undo2, Wallet, Scale, MoreHorizontal, Pencil, Trash2, PlusCircle, ChevronDown, TrendingUp } from "lucide-react"
+import { DollarSign, FileText, Truck, Undo2, Wallet, Scale, MoreHorizontal, Pencil, Trash2, PlusCircle, ChevronDown, TrendingUp, AlertTriangle } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PinDialog } from "@/components/auth/PinDialog"
+import { Progress } from "@/components/ui/progress"
 
 
 type StatementItem = {
@@ -131,8 +133,10 @@ export default function SuppliersPage() {
     const formData = new FormData(event.currentTarget);
     const name = formData.get("supplier_name") as string;
     const contact_person = formData.get("supplierContact") as string;
+    const debt_limit_str = formData.get("debt_limit") as string;
+    const debt_limit = debt_limit_str ? parseFloat(debt_limit_str) : undefined;
     
-    const newSupplier = await addSupplier({ name, contact_person });
+    const newSupplier = await addSupplier({ name, contact_person, debt_limit });
     if(newSupplier) {
         fetchData(1, perPage, "");
         setIsAddDialogOpen(false);
@@ -146,8 +150,10 @@ export default function SuppliersPage() {
     const formData = new FormData(event.currentTarget);
     const name = formData.get('name') as string;
     const contact_person = formData.get('contact_person') as string;
+    const debt_limit_str = formData.get("debt_limit") as string;
+    const debt_limit = debt_limit_str ? parseFloat(debt_limit_str) : undefined;
 
-    const success = await updateSupplier(editingSupplier.id, { name, contact_person });
+    const success = await updateSupplier(editingSupplier.id, { name, contact_person, debt_limit });
     if(success) {
         fetchData(currentPage, perPage, supplierSearchTerm);
         setIsEditDialogOpen(false);
@@ -269,7 +275,6 @@ export default function SuppliersPage() {
 
         const netDebt = totalPurchases - totalReturns - totalPayments;
         
-        // Calculate profit from this supplier's products
         const supplierProductIds = new Set(purchases.flatMap(po => po.items.map(item => item.medication_id)));
         
         const profitFromSupplier = sales.flatMap(sale => sale.items)
@@ -344,6 +349,10 @@ export default function SuppliersPage() {
                             <Label htmlFor="supplierContact">الشخص المسؤول (اختياري)</Label>
                             <Input id="supplierContact" name="supplierContact" />
                         </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="debt_limit">حد الدين (اختياري)</Label>
+                            <Input id="debt_limit" name="debt_limit" type="number" placeholder="مثال: 1000000" />
+                        </div>
                         <DialogFooter className="pt-2">
                             <DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose>
                             <Button type="submit" variant="success">إضافة</Button>
@@ -375,97 +384,92 @@ export default function SuppliersPage() {
             </div>
         </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {supplierAccounts.map(account => (
-                <Card key={account.id} className="flex flex-col">
-                    <CardHeader>
-                        <div className="flex justify-between items-start">
-                           <div>
-                                <CardTitle>{account.name}</CardTitle>
-                                <CardDescription>{account.contact_person || 'لا يوجد جهة اتصال'}</CardDescription>
-                           </div>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onSelect={() => { setEditingSupplier(account); setIsEditDialogOpen(true); }}>
-                                        <Pencil className="me-2 h-4 w-4" />
-                                        تعديل
-                                    </DropdownMenuItem>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <button 
-                                                className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive"
-                                                onClick={() => setItemToDelete(account)}
-                                            >
-                                                <Trash2 className="me-2 h-4 w-4" />
-                                                حذف
-                                            </button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>هل أنت متأكد من حذف {account.name}؟</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    سيتم حذف هذا المورد نهائياً.
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter className='sm:space-x-reverse'>
-                                                <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                                <AlertDialogAction onClick={handleDeleteSupplier} className="bg-destructive hover:bg-destructive/90">
-                                                    نعم، قم بالحذف
-                                                </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3 text-sm flex-grow">
-                        <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-2">
-                                <Truck className="h-4 w-4" /> إجمالي المشتريات:
-                            </span>
-                            <span className="font-mono font-medium">{account.totalPurchases.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-2">
-                                <Undo2 className="h-4 w-4 text-green-600" /> إجمالي الاسترجاع:
-                            </span>
-                            <span className="font-mono font-medium text-green-600">-{account.totalReturns.toLocaleString()}</span>
-                        </div>
-                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-2">
-                                <Wallet className="h-4 w-4 text-blue-600" /> إجمالي المدفوعات:
-                            </span>
-                            <span className="font-mono font-medium text-blue-600">-{account.totalPayments.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between items-center pt-2 border-t font-semibold">
-                            <span className="flex items-center gap-2">
-                                <TrendingUp className="h-4 w-4 text-green-700" /> صافي الربح من المورد:
-                            </span>
-                            <span className="font-mono text-green-700">{account.profitFromSupplier.toLocaleString()}</span>
-                        </div>
-                         <div className="flex justify-between items-center pt-2 border-t font-bold text-base">
-                            <span className="flex items-center gap-2">
-                                <Scale className="h-4 w-4" /> إجمالي الديون:
-                            </span>
-                            <span className="font-mono text-destructive">{account.netDebt.toLocaleString()}</span>
-                        </div>
-                    </CardContent>
-                    <CardFooter className="flex-col sm:flex-row gap-2">
-                        <Button variant="outline" className="w-full" onClick={() => handleShowStatement(account)}>
-                           <FileText className="me-2 h-4 w-4" /> كشف حساب
-                        </Button>
-                        <Button variant="success" onClick={() => { setSelectedSupplier(account); setIsPaymentDialogOpen(true); }} className="w-full">
-                            <DollarSign className="me-2 h-4 w-4" />
-                            تسديد دفعة
-                        </Button>
-                    </CardFooter>
-                </Card>
-            ))}
+            {supplierAccounts.map(account => {
+                const debtPercentage = (account.debt_limit && account.debt_limit > 0) ? (account.netDebt / account.debt_limit) * 100 : 0;
+                return (
+                    <Card key={account.id} className="flex flex-col">
+                        <CardHeader>
+                            <div className="flex justify-between items-start">
+                               <div>
+                                    <CardTitle>{account.name}</CardTitle>
+                                    <CardDescription>{account.contact_person || 'لا يوجد جهة اتصال'}</CardDescription>
+                               </div>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                            <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onSelect={() => { setEditingSupplier(account); setIsEditDialogOpen(true); }}>
+                                            <Pencil className="me-2 h-4 w-4" />
+                                            تعديل
+                                        </DropdownMenuItem>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <button 
+                                                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive"
+                                                    onClick={() => setItemToDelete(account)}
+                                                >
+                                                    <Trash2 className="me-2 h-4 w-4" />
+                                                    حذف
+                                                </button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>هل أنت متأكد من حذف {account.name}؟</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        سيتم حذف هذا المورد نهائياً.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter className='sm:space-x-reverse'>
+                                                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={handleDeleteSupplier} className="bg-destructive hover:bg-destructive/90">
+                                                        نعم، قم بالحذف
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-sm flex-grow">
+                            <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground flex items-center gap-2">
+                                    <TrendingUp className="h-4 w-4 text-green-700" /> صافي الربح من المورد:
+                                </span>
+                                <span className="font-mono font-medium text-green-700">{account.profitFromSupplier.toLocaleString()}</span>
+                            </div>
+                             <Separator />
+                            <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground flex items-center gap-2">
+                                    <Scale className="h-4 w-4" /> إجمالي الديون:
+                                </span>
+                                <span className="font-mono text-destructive font-bold text-lg">{account.netDebt.toLocaleString()}</span>
+                            </div>
+                             {account.debt_limit && account.debt_limit > 0 && (
+                                <div className="space-y-2">
+                                    <Progress value={debtPercentage} className={cn("h-2", debtPercentage > 85 && "bg-destructive/20 [&>*]:bg-destructive", debtPercentage > 60 && debtPercentage <= 85 && "bg-yellow-400/20 [&>*]:bg-yellow-400")}/>
+                                    <div className="text-xs text-muted-foreground flex justify-between">
+                                        <span>تجاوز الحد بنسبة {debtPercentage.toFixed(0)}%</span>
+                                        <span>الحد: {account.debt_limit.toLocaleString()}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                        <CardFooter className="flex-col sm:flex-row gap-2">
+                            <Button variant="outline" className="w-full" onClick={() => handleShowStatement(account)}>
+                               <FileText className="me-2 h-4 w-4" /> كشف حساب
+                            </Button>
+                            <Button variant="success" onClick={() => { setSelectedSupplier(account); setIsPaymentDialogOpen(true); }} className="w-full">
+                                <DollarSign className="me-2 h-4 w-4" />
+                                تسديد دفعة
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                )
+            })}
         </div>
          <div className="flex items-center justify-between pt-4">
               <span className="text-sm text-muted-foreground">
@@ -529,6 +533,10 @@ export default function SuppliersPage() {
                     <div className="space-y-2">
                         <Label htmlFor="edit-supplier-contact">الشخص المسؤول (اختياري)</Label>
                         <Input id="edit-supplier-contact" name="contact_person" defaultValue={editingSupplier.contact_person || ''} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-debt-limit">حد الدين (اختياري)</Label>
+                        <Input id="edit-debt-limit" name="debt_limit" type="number" defaultValue={editingSupplier.debt_limit || ''} placeholder="اتركه فارغاً لإلغاء الحد" />
                     </div>
                     <DialogFooter className="pt-2">
                         <DialogClose asChild>
