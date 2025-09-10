@@ -20,7 +20,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import type { Medication, Sale, AppSettings, Task } from "@/lib/types";
-import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle, Coins, ListChecks, ShoppingBasket, Package } from "lucide-react";
+import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle, Coins, ListChecks, ShoppingBasket, Package, Users } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, isWithinInterval, isToday, endOfMonth, endOfWeek, subMonths, startOfYear, endOfYear } from 'date-fns';
 import Link from "next/link";
@@ -98,23 +98,7 @@ export default function Dashboard() {
     }
   }
 
-  const totalRevenue = sales.reduce((acc, sale) => {
-    const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
-    return acc + (isNaN(total) ? 0 : total);
-  }, 0);
-  const totalProfit = sales.reduce((acc, sale) => {
-      const  total = (typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0))) -
-      (typeof sale.discount === 'number' ? sale.discount : parseFloat(String(sale.discount || 0)));
-      return acc + (isNaN(total) ? 0 : total);
-  }, 0);
-  // const totalProfit = sales.reduce((acc, sale) => acc + (sale.profit || 0) - (sale.discount || 0), 0);
-  const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
-
   const lowStockItems = inventory.filter(
-    (item) => item.stock < item.reorder_point
-  );
-
-  const reorder_pointItems = inventory.filter(
     (item) => item.stock > 0 && item.stock <= item.reorder_point
   );
   
@@ -185,42 +169,34 @@ export default function Dashboard() {
 
   }, [sales, inventory, leastSoldDays]);
 
-  const salesPerformance = React.useMemo(() => {
-    if (!isClient) return { totalRevenue: 0, totalProfit: 0, profitMargin: 0, invoiceCount: 0, totalExpenses: 0 };
+  const dashboardStats = React.useMemo(() => {
+    if (!isClient) return { totalRevenue: 0, totalProfit: 0, profitMargin: 0, invoiceCount: 0, totalExpenses: 0, dailyCustomers: 0, expiringRatio: 0 };
     
-    let filteredSales = sales;
-    let filteredExpenses = expenses;
+    const from = dateFrom ? new Date(dateFrom) : null;
+    const to = dateTo ? new Date(dateTo) : null;
+    if (to) to.setHours(23, 59, 59, 999);
 
-    if (dateFrom && dateTo) {
-        const from = new Date(dateFrom);
-        const to = new Date(dateTo);
-        to.setHours(23, 59, 59, 999);
-        const interval = { start: from, end: to };
-        filteredSales = sales.filter(sale => isWithinInterval(parseISO(sale.date), interval));
-        filteredExpenses = expenses.filter(expense => isWithinInterval(parseISO(expense.created_at), interval));
-    }
+    const interval = from && to ? { start: from, end: to } : null;
 
-    const currentTotalRevenue = filteredSales.reduce((acc, sale) => {
-        const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
-        return acc + (isNaN(total) ? 0 : total);
-    }, 0);
+    const filteredSales = interval ? sales.filter(sale => isWithinInterval(parseISO(sale.date), interval)) : sales;
+    const filteredExpenses = interval ? expenses.filter(expense => isWithinInterval(parseISO(expense.created_at), interval)) : expenses;
 
-    const currentTotalProfit = filteredSales.reduce((acc, sale) => {
-        const total = (typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0))) - (typeof sale.discount === 'number' ? sale.discount : parseFloat(String(sale.discount || 0)));
-        return acc + (isNaN(total) ? 0 : total);
-    }, 0);
-    
-    const totalExpenses = filteredExpenses.reduce((acc, expense) => {
-    const amount = typeof expense.amount === 'number' ? expense.amount : parseFloat(String(expense.amount || 0));
-        return acc + (isNaN(amount) ? 0 : amount);
-    }, 0);
+    const currentTotalRevenue = filteredSales.reduce((acc, sale) => acc + (sale.total || 0), 0);
+    const currentTotalProfit = filteredSales.reduce((acc, sale) => acc + ((sale.profit || 0) - (sale.discount || 0)), 0);
+    const totalExpensesAmount = filteredExpenses.reduce((acc, expense) => acc + expense.amount, 0);
 
-    const netProfit = currentTotalProfit - totalExpenses;
+    const netProfit = currentTotalProfit - totalExpensesAmount;
     const currentProfitMargin = currentTotalRevenue > 0 ? (netProfit / currentTotalRevenue) * 100 : 0;
     const invoiceCount = filteredSales.length;
 
-    return { totalRevenue: currentTotalRevenue, totalProfit: netProfit, profitMargin: currentProfitMargin, invoiceCount, totalExpenses };
-  }, [sales, expenses, dateFrom, dateTo, isClient]);
+    const dailyCustomers = sales.filter(sale => isToday(parseISO(sale.date))).length;
+
+    const totalInventoryValue = inventory.reduce((acc, item) => acc + (item.purchase_price * item.stock), 0);
+    const expiringSoonValue = expiringSoonItems.reduce((acc, item) => acc + (item.purchase_price * item.stock), 0);
+    const expiringRatio = totalInventoryValue > 0 ? (expiringSoonValue / totalInventoryValue) * 100 : 0;
+
+    return { totalRevenue: currentTotalRevenue, totalProfit: netProfit, profitMargin: currentProfitMargin, invoiceCount, totalExpenses: totalExpensesAmount, dailyCustomers, expiringRatio };
+  }, [sales, expenses, inventory, expiringSoonItems, dateFrom, dateTo, isClient]);
 
 
   if (!isClient) {
@@ -281,16 +257,16 @@ export default function Dashboard() {
                     </div>
                 </div>
             </CardHeader>
-            <CardContent className="grid gap-6 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+            <CardContent className="grid gap-6 pt-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
                     <div className="flex items-center justify-between text-muted-foreground">
                         <span className="text-sm font-medium">إجمالي المبيعات</span>
                         <DollarSign className="h-5 w-5" />
                     </div>
                     <div className="text-3xl font-bold font-mono">
-                          {salesPerformance.totalRevenue.toLocaleString()}
+                          {dashboardStats.totalRevenue.toLocaleString()}
                     </div>
-                    <p className="text-xs text-muted-foreground font-mono">من {salesPerformance.invoiceCount} فاتورة</p>
+                    <p className="text-xs text-muted-foreground font-mono">من {dashboardStats.invoiceCount} فاتورة</p>
                 </div>
                 <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
                     <div className="flex items-center justify-between text-muted-foreground">
@@ -298,7 +274,7 @@ export default function Dashboard() {
                         <Coins className="h-5 w-5 text-destructive" />
                     </div>
                     <div className="text-3xl font-bold text-destructive font-mono">
-                        {salesPerformance.totalExpenses.toLocaleString()}
+                        {dashboardStats.totalExpenses.toLocaleString()}
                     </div>
                     <p className="text-xs text-muted-foreground">مجموع النفقات المسجلة</p>
                 </div>
@@ -308,19 +284,38 @@ export default function Dashboard() {
                         <TrendingUp className="h-5 w-5 text-green-600" />
                     </div>
                     <div className="text-3xl font-bold text-green-600 font-mono">
-                        {salesPerformance.totalProfit.toLocaleString()}
+                        {dashboardStats.totalProfit.toLocaleString()}
                     </div>
                     <p className="text-xs text-muted-foreground">الربح بعد طرح الخصومات والصرفيات</p>
                 </div>
+            </CardContent>
+             <CardContent className="grid gap-6 pt-2 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
                     <div className="flex items-center justify-between text-muted-foreground">
                         <span className="text-sm font-medium">هامش الربح</span>
                         <PieChart className="h-5 w-5" />
                     </div>
                     <div className="text-3xl font-bold font-mono">
-                        {salesPerformance.profitMargin.toFixed(1)}%
+                        {dashboardStats.profitMargin.toFixed(1)}%
                     </div>
-                    <p className="text-xs text-muted-foreground">نسبة الربح الصافي من الإيرادات</p>
+                </div>
+                <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
+                    <div className="flex items-center justify-between text-muted-foreground">
+                        <span className="text-sm font-medium">زبائن اليوم</span>
+                        <Users className="h-5 w-5" />
+                    </div>
+                    <div className="text-3xl font-bold font-mono">
+                        {dashboardStats.dailyCustomers}
+                    </div>
+                </div>
+                <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
+                    <div className="flex items-center justify-between text-muted-foreground">
+                        <span className="text-sm font-medium">خطر المخزون</span>
+                        <AlertTriangle className="h-5 w-5 text-destructive" />
+                    </div>
+                    <div className="text-3xl font-bold text-destructive font-mono">
+                        {dashboardStats.expiringRatio.toFixed(1)}%
+                    </div>
                 </div>
             </CardContent>
         </Card>
@@ -345,11 +340,11 @@ export default function Dashboard() {
                               </TableRow>
                           </TableHeader>
                           <TableBody>
-                              {reorder_pointItems.length > 0 ? reorder_pointItems.map(item => (
+                              {lowStockItems.length > 0 ? lowStockItems.map(item => (
                                   <TableRow key={item.id} className="text-right">
-                                      <TableCell className="font-medium text-base">{item.name}</TableCell>
+                                      <TableCell className="font-medium">{item.name}</TableCell>
                                       <TableCell>
-                                        <Badge variant="destructive" className="font-mono text-base">{item.stock}</Badge>
+                                        <Badge variant="destructive" className="font-mono">{item.stock}</Badge>
                                       </TableCell>
                                       <TableCell className="text-left">
                                         <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item)} className="hover:text-blue-600 group">
@@ -386,7 +381,7 @@ export default function Dashboard() {
                       <TableBody>
                           {expiredItems.length > 0 && expiredItems.map(item => (
                               <TableRow key={item.id}>
-                                  <TableCell className="font-medium text-base">{item.name}</TableCell>
+                                  <TableCell className="font-medium">{item.name}</TableCell>
                                   <TableCell >
                                     <Badge variant="destructive">منتهي الصلاحية</Badge>
                                   </TableCell>
@@ -394,7 +389,7 @@ export default function Dashboard() {
                           ))}
                           {expiringSoonItems.length > 0 && expiringSoonItems.map(item => (
                               <TableRow key={item.id}>
-                                  <TableCell className="font-medium text-base">{item.name}</TableCell>
+                                  <TableCell className="font-medium">{item.name}</TableCell>
                                   <TableCell>
                                     <Badge variant="secondary" className="bg-yellow-400 text-yellow-900 font-mono text-sm">{differenceInDays(parseISO(item.expiration_date), new Date())} يوم</Badge>
                                   </TableCell>
@@ -425,7 +420,7 @@ export default function Dashboard() {
                                     <TableBody>
                                         {topPerformingMedications.topByQuantity.length > 0 ? topPerformingMedications.topByQuantity.map((item) => (
                                             <TableRow key={item.medication_id}>
-                                                <TableCell className="font-semibold text-base">{item.name}</TableCell>
+                                                <TableCell className="font-semibold">{item.name}</TableCell>
                                                 <TableCell className="text-left">
                                                     <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item as unknown as Medication)} className="hover:text-blue-600 group">
                                                         <ShoppingBasket className="h-5 w-5 text-blue-600 group-hover:text-white"/>
@@ -441,7 +436,7 @@ export default function Dashboard() {
                                     <TableBody>
                                         {topPerformingMedications.topByProfit.length > 0 ? topPerformingMedications.topByProfit.map((item) => (
                                             <TableRow key={item.medication_id}>
-                                                <TableCell className="font-semibold text-base">{item.name}</TableCell>
+                                                <TableCell className="font-semibold">{item.name}</TableCell>
                                                 <TableCell className="text-left">
                                                     <Button variant="ghost" size="icon" onClick={() => addToOrderRequestCart(item as unknown as Medication)} className="hover:text-blue-600 group">
                                                         <ShoppingBasket className="h-5 w-5 text-blue-600 group-hover:text-white"/>
@@ -472,12 +467,12 @@ export default function Dashboard() {
                             {leastSellingMedications.map(item => (
                                 <div key={item.id} className="flex items-center justify-between p-3 rounded-md hover:bg-muted">
                                     <div>
-                                        <p className="font-semibold text-base">{item.name}</p>
+                                        <p className="font-semibold">{item.name}</p>
                                         <p className="text-xs text-muted-foreground">
                                             {item.scientific_names?.join(', ')}
                                         </p>
                                     </div>
-                                    <div className="flex items-center gap-2 text-base">
+                                    <div className="flex items-center gap-2">
                                         <span className="font-mono font-semibold">{item.stock}</span>
                                         <span className="text-muted-foreground">الرصيد</span>
                                         <Package className="h-4 w-4 text-muted-foreground" />
@@ -497,5 +492,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    

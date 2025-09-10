@@ -47,7 +47,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Textarea } from "@/components/ui/textarea"
-import { DollarSign, FileText, Truck, Undo2, Wallet, Scale, MoreHorizontal, Pencil, Trash2, PlusCircle, ChevronDown } from "lucide-react"
+import { DollarSign, FileText, Truck, Undo2, Wallet, Scale, MoreHorizontal, Pencil, Trash2, PlusCircle, ChevronDown, TrendingUp } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -81,6 +81,7 @@ export default function SuppliersPage() {
   const [purchaseOrders] = scopedData.purchaseOrders;
   const [supplierReturns] = scopedData.supplierReturns;
   const [supplierPayments] = scopedData.payments;
+  const [sales] = scopedData.sales;
 
   const [suppliers, setSuppliers] = React.useState<Supplier[]>([]);
   const [totalPages, setTotalPages] = React.useState(1);
@@ -261,35 +262,30 @@ export default function SuppliersPage() {
         const purchases = purchaseOrders.filter(po => po.supplier_id == supplier.id);
         const returns = supplierReturns.filter(ret => ret.supplier_id == supplier.id);
         const payments = supplierPayments?.supplierPayments?.filter(p => p.supplier_id == supplier.id) || [];
-        console.log(purchases,returns,payments)
-        const totalPurchases = purchases.reduce((acc, po) => {
-            const total_amount = typeof po.total_amount === 'number' ? po.total_amount : parseFloat(String(po.total_amount || 0));
-            return acc + (isNaN(total_amount) ? 0 : total_amount);
-        }, 0);
-        const totalReturns = returns.reduce((acc, ret) => {
-            const total_amount = typeof ret.total_amount === 'number' ? ret.total_amount : parseFloat(String(ret.total_amount || 0));
-            return acc + (isNaN(total_amount) ? 0 : total_amount);
-        }, 0);
-        const totalPayments = payments.reduce((acc: number, p: SupplierPayment) => {
-            const amount = typeof p.amount === 'number' ? p.amount : parseFloat(String(p.amount || 0));
-            return acc + (isNaN(amount) ? 0 : amount);
-        }, 0);
+        
+        const totalPurchases = purchases.reduce((acc, po) => acc + (po.total_amount || 0), 0);
+        const totalReturns = returns.reduce((acc, ret) => acc + (ret.total_amount || 0), 0);
+        const totalPayments = payments.reduce((acc, p) => acc + p.amount, 0);
 
+        const netDebt = totalPurchases - totalReturns - totalPayments;
+        
+        // Calculate profit from this supplier's products
+        const supplierProductIds = new Set(purchases.flatMap(po => po.items.map(item => item.medication_id)));
+        
+        const profitFromSupplier = sales.flatMap(sale => sale.items)
+            .filter(item => supplierProductIds.has(item.medication_id))
+            .reduce((acc, item) => acc + (item.price - item.purchase_price) * item.quantity, 0);
 
-      const netDebt = totalPurchases - totalReturns - totalPayments;
-
-      return {
-        ...supplier,
-        totalPurchases,
-        totalReturns,
-        totalPayments,
-        netDebt,
-      };
+        return {
+            ...supplier,
+            totalPurchases,
+            totalReturns,
+            totalPayments,
+            netDebt,
+            profitFromSupplier
+        };
     });
-  }, [suppliers, purchaseOrders, supplierReturns, supplierPayments]);
-  
-  const filteredSupplierAccounts = supplierAccounts;
-
+  }, [suppliers, purchaseOrders, supplierReturns, supplierPayments, sales]);
 
   if (loading && suppliers.length === 0) {
       return (
@@ -379,7 +375,7 @@ export default function SuppliersPage() {
             </div>
         </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredSupplierAccounts.map(account => (
+            {supplierAccounts.map(account => (
                 <Card key={account.id} className="flex flex-col">
                     <CardHeader>
                         <div className="flex justify-between items-start">
@@ -445,6 +441,12 @@ export default function SuppliersPage() {
                                 <Wallet className="h-4 w-4 text-blue-600" /> إجمالي المدفوعات:
                             </span>
                             <span className="font-mono font-medium text-blue-600">-{account.totalPayments.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t font-semibold">
+                            <span className="flex items-center gap-2">
+                                <TrendingUp className="h-4 w-4 text-green-700" /> صافي الربح من المورد:
+                            </span>
+                            <span className="font-mono text-green-700">{account.profitFromSupplier.toLocaleString()}</span>
                         </div>
                          <div className="flex justify-between items-center pt-2 border-t font-bold text-base">
                             <span className="flex items-center gap-2">
