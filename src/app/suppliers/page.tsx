@@ -55,6 +55,7 @@ import { cn } from "@/lib/utils"
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PinDialog } from "@/components/auth/PinDialog"
 import { Progress } from "@/components/ui/progress"
+import { Separator } from "@/components/ui/separator"
 
 
 type StatementItem = {
