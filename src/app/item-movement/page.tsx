@@ -1,3 +1,4 @@
+
 "use client"
 import * as React from "react"
 import {
@@ -28,25 +29,24 @@ export default function ItemMovementPage() {
     const { 
         scopedData, 
         getPaginatedItemMovements,
-        getMedicationMovements
     } = useAuth();
     
     const [inventory] = scopedData.inventory;
     const [currentPage, setCurrentPage] = React.useState(1);
     const [perPage, setPerPage] = React.useState(10);
-    const [loading, setLoading] = React.useState(true);
+    const [loading, setLoading] = React.useState(false);
     const [totalPages, setTotalPages] = React.useState(1);
     const [isClient, setIsClient] = React.useState(false);
     const [searchTerm, setSearchTerm] = React.useState("");
     const [suggestions, setSuggestions] = React.useState<Medication[]>([]);
     const [selectedMed, setSelectedMed] = React.useState<Medication | null>(null);
     const [transactions, setTransactions] = React.useState<TransactionHistoryItem[]>([]);
+    const [searchByScientificName, setSearchByScientificName] = React.useState(false);
     
-    // Function to fetch medication movements from API
-    const fetchMedicationMovements = React.useCallback(async (medicationId: string, page: number, limit: number) => {
+    const fetchMedicationMovements = React.useCallback(async (medicationId: string | null, page: number, limit: number, scientificName?: string) => {
         setLoading(true);
         try {
-            const response = await getPaginatedItemMovements(page, limit, "", medicationId);
+            const response = await getPaginatedItemMovements(page, limit, "", medicationId, scientificName);
             setTransactions(response.data);
             setTotalPages(response.last_page);
             setCurrentPage(response.current_page);
@@ -92,11 +92,13 @@ export default function ItemMovementPage() {
         }
     }
     
-    // Function to fetch inventory (all medications)
-    const fetchInventory = React.useCallback(async (search: string) => {
+    const fetchSuggestions = React.useCallback(async (search: string) => {
+        if (search.length < 2) {
+            setSuggestions([]);
+            return;
+        }
         setLoading(true);
         try {
-            // Use the inventory endpoint instead of item movements
             const params = new URLSearchParams({
                 paginate: "true",
                 page: "1",
@@ -105,10 +107,13 @@ export default function ItemMovementPage() {
             });
             const response = await apiRequest(`/medications?${params.toString()}`);
             
-            // Check if response contains medication data
-            if (response.data && response.data.length > 0 && response.data[0].name) {
-                // This is inventory data
-                setSuggestions(response.data.slice(0, 5));
+            if (response.data && response.data.length > 0) {
+                 const uniqueSuggestions = Array.from(new Map(response.data.map((item: Medication) => 
+                    [searchByScientificName && item.scientific_names ? item.scientific_names[0] : item.name, item]
+                )).values());
+                setSuggestions(uniqueSuggestions);
+            } else {
+                setSuggestions([]);
             }
         } catch (error) {
             console.error("Failed to fetch inventory", error);
@@ -116,7 +121,7 @@ export default function ItemMovementPage() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [searchByScientificName]);
     
     React.useEffect(() => {
         setIsClient(true);
@@ -125,41 +130,40 @@ export default function ItemMovementPage() {
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setSearchTerm(value);
-        
-        if (value.length > 0) {
-            fetchInventory(value);
-        } else {
-            setSuggestions([]);
-        }
+        fetchSuggestions(value);
     };
     
-    const handleSelectMed = async (med: Medication) => {
-        setSelectedMed(med);
-        setSearchTerm("");
-        setSuggestions([]);
-        
-        // Reset to first page when selecting a new medication
-        setCurrentPage(1);
-        
-        // Fetch data for the selected medication using its ID
-        const response = await getPaginatedItemMovements(1, perPage, "", med.id.toString());
-        setTransactions(response.data);
-        setTotalPages(response.last_page);
-        setCurrentPage(response.current_page);
+    const handleSelectSuggestion = async (suggestion: Medication) => {
+        if (searchByScientificName) {
+            const scientificName = suggestion.scientific_names?.[0];
+            if (!scientificName) return;
+            setSearchTerm(scientificName);
+            setSelectedMed(null); // Clear single med selection
+            setSuggestions([]);
+            await fetchMedicationMovements(null, 1, perPage, scientificName);
+        } else {
+            setSelectedMed(suggestion);
+            setSearchTerm("");
+            setSuggestions([]);
+            await fetchMedicationMovements(suggestion.id.toString(), 1, perPage);
+        }
     };
     
     const handleClearSelection = () => {
         setSelectedMed(null);
         setSearchTerm("");
         setTransactions([]);
+        setTotalPages(1);
+        setCurrentPage(1);
     };
     
-    // Handle pagination - only run when selectedMed, currentPage, or perPage changes
     React.useEffect(() => {
         if (selectedMed) {
             fetchMedicationMovements(selectedMed.id.toString(), currentPage, perPage);
+        } else if (searchByScientificName && searchTerm) {
+            fetchMedicationMovements(null, currentPage, perPage, searchTerm);
         }
-    }, [currentPage, perPage, selectedMed]); // Removed fetchMedicationMovements from dependencies to prevent infinite loop
+    }, [currentPage, perPage]);
     
     const getTypeBadge = (type: TransactionHistoryItem['type']) => {
         switch (type) {
@@ -174,6 +178,14 @@ export default function ItemMovementPage() {
             default:
                 return <Badge>{type}</Badge>;
         }
+    };
+
+    const getAggregatedStock = () => {
+        if (!searchByScientificName || !searchTerm) return null;
+        const totalStock = inventory
+            .filter(med => med.scientific_names?.some(sn => sn.toLowerCase() === searchTerm.toLowerCase()))
+            .reduce((sum, med) => sum + med.stock, 0);
+        return totalStock;
     };
     
     if (!isClient) {
@@ -201,49 +213,55 @@ export default function ItemMovementPage() {
                     <div>
                         <CardTitle>تتبع حركة المادة</CardTitle>
                         <CardDescription>
-                            ابحث عن أي دواء بالاسم التجاري، العلمي أو الباركود لعرض سجله الكامل.
+                            ابحث بالاسم التجاري، العلمي أو الباركود لعرض السجل الكامل.
                         </CardDescription>
                     </div>
                 </div>
-                <div className="pt-4 relative">
-                    <div className="flex gap-2">
-                        <Input 
-                            placeholder="ابحث بالاسم التجاري، العلمي أو الباركود..."
-                            value={searchTerm}
-                            onChange={handleSearchChange}
-                            className="max-w-lg"
-                            disabled={!!selectedMed}
-                        />
-                        {selectedMed && (
-                            <Button variant="outline" onClick={handleClearSelection}>
-                                إلغاء الاختيار
-                            </Button>
+                <div className="pt-4 space-y-2">
+                     <div className="flex gap-2 items-center">
+                        <input type="checkbox" id="search-by-scientific" checked={searchByScientificName} onChange={() => setSearchByScientificName(!searchByScientificName)} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"/>
+                        <label htmlFor="search-by-scientific" className="text-sm font-medium">بحث بالاسم العلمي</label>
+                    </div>
+                    <div className="relative">
+                        <div className="flex gap-2">
+                            <Input 
+                                placeholder={searchByScientificName ? "ابحث بالاسم العلمي..." : "ابحث بالاسم التجاري أو الباركود..."}
+                                value={searchTerm}
+                                onChange={handleSearchChange}
+                                className="max-w-lg"
+                                disabled={!!selectedMed && !searchByScientificName}
+                            />
+                            {(selectedMed || (searchByScientificName && searchTerm)) && (
+                                <Button variant="outline" onClick={handleClearSelection}>
+                                    إلغاء الاختيار
+                                </Button>
+                            )}
+                        </div>
+                        {suggestions.length > 0 && (
+                            <Card className="absolute z-50 w-full mt-1 bg-background shadow-lg border max-w-lg">
+                                <CardContent className="p-0">
+                                    <ul className="divide-y divide-border">
+                                        {suggestions.map((med, index) => (
+                                            <li key={med.id + index} 
+                                                onMouseDown={() => handleSelectSuggestion(med)}
+                                                className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
+                                            >
+                                                <div>
+                                                    <div>{searchByScientificName ? med.scientific_names?.[0] : med.name}</div>
+                                                    {!searchByScientificName && <div className="text-xs text-muted-foreground">{med.scientific_names?.join(', ')}</div>}
+                                                </div>
+                                                <span className="text-sm text-muted-foreground font-mono">الرصيد: {med.stock}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </CardContent>
+                            </Card>
                         )}
                     </div>
-                    {suggestions.length > 0 && (
-                        <Card className="absolute z-50 w-full mt-1 bg-background shadow-lg border max-w-lg">
-                            <CardContent className="p-0">
-                                <ul className="divide-y divide-border">
-                                    {suggestions.map(med => (
-                                        <li key={med.id} 
-                                            onMouseDown={() => handleSelectMed(med)}
-                                            className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
-                                        >
-                                            <div>
-                                                <div>{med.name}</div>
-                                                <div className="text-xs text-muted-foreground">{med.scientific_names?.join(', ')}</div>
-                                            </div>
-                                            <span className="text-sm text-muted-foreground font-mono">الرصيد: {med.stock}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </CardContent>
-                        </Card>
-                    )}
                 </div>
             </CardHeader>
             <CardContent>
-                {!selectedMed ? (
+                {!(selectedMed || (searchByScientificName && searchTerm)) ? (
                     <div className="text-center py-16 text-muted-foreground">
                         <PackageSearch className="h-16 w-16 mx-auto mb-4" />
                         <p>الرجاء اختيار دواء لعرض سجله.</p>
@@ -253,14 +271,15 @@ export default function ItemMovementPage() {
                         <div className="space-y-6">
                             <Card className="bg-muted/50">
                                 <CardHeader>
-                                    <CardTitle>{selectedMed.name}</CardTitle>
-                                    <CardDescription>الرصيد الحالي في المخزون: <span className="font-bold text-foreground font-mono">{selectedMed.stock}</span></CardDescription>
+                                    <CardTitle>{selectedMed ? selectedMed.name : `الأدوية التي تحتوي على ${searchTerm}`}</CardTitle>
+                                    <CardDescription>الرصيد الحالي في المخزون: <span className="font-bold text-foreground font-mono">{selectedMed ? selectedMed.stock : getAggregatedStock()}</span></CardDescription>
                                 </CardHeader>
                             </Card>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>التاريخ</TableHead>
+                                        {!selectedMed && <TableHead>الاسم التجاري</TableHead>}
                                         <TableHead>النوع</TableHead>
                                         <TableHead>الكمية</TableHead>
                                         <TableHead>رصيد المخزون</TableHead>
@@ -272,19 +291,19 @@ export default function ItemMovementPage() {
                                 <TableBody>
                                 {loading ? Array.from({ length: perPage }).map((_, i) => (
                                     <TableRow key={`skel-${i}`}>
-                                        <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                                        <TableCell><div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-sm" /><div className="space-y-2"><Skeleton className="h-4 w-40" /><Skeleton className="h-3 w-24" /></div></div></TableCell>
-                                        <TableCell><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
-                                        <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
-                                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                                        <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
-                                        <TableCell><Skeleton className="h-6 w-28" /></TableCell>
-                                        <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                                        {!selectedMed && <TableCell><Skeleton className="h-5 w-full" /></TableCell>}
+                                        <TableCell><Skeleton className="h-5 w-full" /></TableCell>
                                     </TableRow>
                                 )) : transactions.length > 0 ? transactions.map((item) => (
                                         <TableRow key={item.id}>
                                             <TableCell className="font-mono">{new Date(item.date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</TableCell>
+                                            {!selectedMed && <TableCell>{item.actor}</TableCell>}
                                             <TableCell>{getTypeBadge(item.type)}</TableCell>
                                             <TableCell className={`font-medium font-mono ${item.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
                                                 <div className="flex items-center gap-1">
@@ -299,8 +318,8 @@ export default function ItemMovementPage() {
                                         </TableRow>
                                     )) : (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                                                لا توجد حركات مسجلة لهذا الدواء.
+                                            <TableCell colSpan={selectedMed ? 7 : 8} className="text-center text-muted-foreground py-8">
+                                                لا توجد حركات مسجلة.
                                             </TableCell>
                                         </TableRow>
                                     )}
