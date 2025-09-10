@@ -6,7 +6,7 @@ const nextConfiguration = {
   },
   
   // Add webpack configuration to fix the Handlebars warning
-  webpack: (config, { isServer }) => {
+  webpack: (config: any, { _isServer }: { _isServer: boolean }) => {
     // Add a fallback for the problematic module
     config.resolve = config.resolve || {};
     config.resolve.fallback = config.resolve.fallback || {};
