@@ -2,6 +2,7 @@
 "use client"
 
 import * as React from "react"
+import * as XLSX from 'xlsx';
 import {
   Card,
   CardContent,
@@ -29,7 +30,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import type { OrderRequestItem, Supplier, PurchaseOrderItem, Medication } from "@/lib/types"
-import { Trash2, Send, ShoppingBasket, ArrowLeft, Copy, Percent, BrainCircuit } from "lucide-react"
+import { Trash2, Send, ShoppingBasket, ArrowLeft, Copy, Percent, BrainCircuit, Download } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -365,6 +366,27 @@ const apiRequest = async (endpoint: string, method: 'POST' | 'DELETE', body: any
     return result.data ?? result;
 }
 
+const handleDownloadOrder = () => {
+    if (orderRequestCart.length === 0) {
+        toast({ variant: 'destructive', title: "القائمة فارغة", description: "لا توجد طلبات لتنزيلها." });
+        return;
+    }
+
+    const dataToExport = orderRequestCart.map(item => ({
+        'اسم الدواء': item.name,
+        'الكمية': editableOrderItems[item.id]?.quantity || item.quantity || 1,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Order Request");
+
+    // Set column widths
+    worksheet['!cols'] = [ { wch: 40 }, { wch: 10 } ];
+
+    XLSX.writeFile(workbook, "order_request.xlsx");
+};
+
 
 return (
     <Tabs defaultValue="requests" dir="rtl">
@@ -405,7 +427,13 @@ return (
                             </div>
                         </div>
                         <div className="space-y-3">
-                        <h3 className="text-lg font-semibold flex items-center gap-2"><ShoppingBasket /> قائمة الطلبات ({orderRequestCart.length})</h3>
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-lg font-semibold flex items-center gap-2"><ShoppingBasket /> قائمة الطلبات ({orderRequestCart.length})</h3>
+                            <Button variant="outline" onClick={handleDownloadOrder}>
+                                <Download className="me-2 h-4 w-4"/>
+                                تنزيل كملف Excel
+                            </Button>
+                        </div>
                         <div className="border rounded-md overflow-x-auto">
                         <Table>
                             <TableHeader>
@@ -584,5 +612,7 @@ return (
     </Tabs>
   )
 }
+
+    
 
     
