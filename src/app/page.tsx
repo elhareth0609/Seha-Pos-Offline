@@ -170,7 +170,7 @@ export default function Dashboard() {
   }, [sales, inventory, leastSoldDays]);
 
   const dashboardStats = React.useMemo(() => {
-    if (!isClient) return { totalRevenue: 0, totalProfit: 0, profitMargin: 0, invoiceCount: 0, totalExpenses: 0, dailyCustomers: 0, expiringRatio: 0 };
+    if (!isClient) return { totalRevenue: 0, totalProfit: 0, profitMargin: 0, invoiceCount: 0, totalExpenses: 0, dailyCustomers: 0, expiringRatio: 0, totalProducts: 0 };
     
     const from = dateFrom ? new Date(dateFrom) : null;
     const to = dateTo ? new Date(dateTo) : null;
@@ -195,7 +195,9 @@ export default function Dashboard() {
     const expiringSoonValue = expiringSoonItems.reduce((acc, item) => acc + (item.purchase_price * item.stock), 0);
     const expiringRatio = totalInventoryValue > 0 ? (expiringSoonValue / totalInventoryValue) * 100 : 0;
 
-    return { totalRevenue: currentTotalRevenue, totalProfit: netProfit, profitMargin: currentProfitMargin, invoiceCount, totalExpenses: totalExpensesAmount, dailyCustomers, expiringRatio };
+    const totalProducts = inventory.length;
+
+    return { totalRevenue: currentTotalRevenue, totalProfit: netProfit, profitMargin: currentProfitMargin, invoiceCount, totalExpenses: totalExpensesAmount, dailyCustomers, expiringRatio, totalProducts };
   }, [sales, expenses, inventory, expiringSoonItems, dateFrom, dateTo, isClient]);
 
 
@@ -289,7 +291,7 @@ export default function Dashboard() {
                     <p className="text-xs text-muted-foreground">الربح بعد طرح الخصومات والصرفيات</p>
                 </div>
             </CardContent>
-             <CardContent className="grid gap-6 pt-2 sm:grid-cols-2 lg:grid-cols-3">
+             <CardContent className="grid gap-6 pt-2 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
                     <div className="flex items-center justify-between text-muted-foreground">
                         <span className="text-sm font-medium">هامش الربح</span>
@@ -315,6 +317,15 @@ export default function Dashboard() {
                     </div>
                     <div className="text-3xl font-bold text-destructive font-mono">
                         {dashboardStats.expiringRatio.toFixed(1)}%
+                    </div>
+                </div>
+                <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
+                    <div className="flex items-center justify-between text-muted-foreground">
+                        <span className="text-sm font-medium">عدد الأصناف</span>
+                        <Package className="h-5 w-5" />
+                    </div>
+                    <div className="text-3xl font-bold font-mono">
+                        {dashboardStats.totalProducts.toLocaleString()}
                     </div>
                 </div>
             </CardContent>
