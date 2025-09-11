@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import * as React from "react"
@@ -35,6 +36,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { subDays, differenceInDays } from "date-fns"
 
 type EditableOrderItem = OrderRequestItem & { profit_margin?: number };
 
@@ -263,48 +265,45 @@ export default function OrderRequestsPage() {
 };
 
 const systemSuggestions = React.useMemo(() => {
-    const suggestionsMap = new Map<string, { med: Medication; reason: string }>();
+    const suggestionsMap = new Map<string, { med: Medication; reason: string; quantity: number }>();
+    const analysisPeriodDays = 90;
+    const cutoffDate = subDays(new Date(), analysisPeriodDays);
 
-    // Low stock
+    // 1. Low stock based on reorder point
     inventory.forEach(i => {
         if (i.stock > 0 && i.stock <= i.reorder_point) {
-            suggestionsMap.set(i.id, { med: i, reason: 'مخزون منخفض' });
+            suggestionsMap.set(i.id, { med: i, reason: 'مخزون منخفض', quantity: i.reorder_point * 2 }); // Suggest ordering double the reorder point
         }
     });
 
-    // Sales stats
-    const salesStats: { [medId: string]: { quantity: number; profit: number } } = {};
-    sales.forEach(sale => {
+    // 2. Demand Forecasting based on sales
+    const salesInPeriod = sales.filter(s => new Date(s.date) >= cutoffDate);
+    const salesStats: { [medId: string]: number } = {};
+    salesInPeriod.forEach(sale => {
       sale.items.forEach(item => {
         if (!item.is_return) {
-          salesStats[item.medication_id] = salesStats[item.medication_id] || { quantity: 0, profit: 0 };
-          salesStats[item.medication_id].quantity += item.quantity;
-          salesStats[item.medication_id].profit += (item.price - item.purchase_price) * item.quantity;
+          salesStats[item.medication_id] = (salesStats[item.medication_id] || 0) + item.quantity;
         }
       });
     });
-
-    const topSelling = Object.entries(salesStats)
-      .sort(([, a], [, b]) => b.quantity - a.quantity)
-      .slice(0, 10)
-      .map(([medication_id]) => inventory.find(i => i.id === medication_id))
-      .filter((i): i is Medication => !!i);
-
-    topSelling.forEach(med => {
-        if (!suggestionsMap.has(med.id)) {
-            suggestionsMap.set(med.id, { med, reason: 'الأكثر مبيعًا' });
-        }
-    });
-
-    const topProfit = Object.entries(salesStats)
-      .sort(([, a], [, b]) => b.profit - a.profit)
-      .slice(0, 10)
-      .map(([medication_id]) => inventory.find(i => i.id === medication_id))
-      .filter((i): i is Medication => !!i);
     
-    topProfit.forEach(med => {
-        if (!suggestionsMap.has(med.id)) {
-            suggestionsMap.set(med.id, { med, reason: 'الأكثر ربحية' });
+    Object.entries(salesStats).forEach(([medId, totalQuantity]) => {
+        const med = inventory.find(i => i.id === medId);
+        if (!med) return;
+
+        const daysInPeriod = differenceInDays(new Date(), cutoffDate);
+        const avgDailySales = totalQuantity / daysInPeriod;
+        const forecastedMonthlyDemand = Math.ceil(avgDailySales * 30);
+
+        if (forecastedMonthlyDemand > med.stock) {
+            const suggestedQuantity = forecastedMonthlyDemand - med.stock;
+            if (!suggestionsMap.has(med.id) || (suggestionsMap.get(med.id)?.quantity || 0) < suggestedQuantity) {
+                 suggestionsMap.set(med.id, { 
+                    med: med, 
+                    reason: `توقع بيع ${forecastedMonthlyDemand} قطعة هذا الشهر`, 
+                    quantity: suggestedQuantity 
+                });
+            }
         }
     });
     
@@ -318,20 +317,19 @@ const systemSuggestions = React.useMemo(() => {
 
  const handleAddSuggestionsToCart = () => {
     const suggestionsToAdd = systemSuggestions
-        .map(s => s.med)
-        .filter(med => selectedSuggestions.has(med.id));
+        .filter(s => selectedSuggestions.has(s.med.id));
     
 
     const itemsToAddPromises = suggestionsToAdd
-      .filter(med => !orderRequestCart.find(item => item.medication_id === med.id))
-      .map(med => {
-          const newItemData = { medication_id: med.id, quantity: 1, is_new: true };
+      .filter(s => !orderRequestCart.find(item => item.medication_id === s.med.id))
+      .map(s => {
+          const newItemData = { medication_id: s.med.id, quantity: s.quantity || 1, is_new: true };
           return apiRequest('/order-requests', 'POST', newItemData);
       });
 
     Promise.all(itemsToAddPromises).then(newItems => {
-        setOrderRequestCart(prev => [...prev, ...newItems]);
-        toast({ title: `تم إضافة ${suggestionsToAdd.length} صنف إلى قائمة الطلبات` });
+        setOrderRequestCart(prev => [...prev, ...newItems.filter(item => item !== null)]);
+        toast({ title: `تم إضافة ${newItems.length} صنف إلى قائمة الطلبات` });
         setSelectedSuggestions(new Set());
     });
 };
@@ -571,7 +569,7 @@ return (
                  <CardHeader>
                     <CardTitle>اقتراحات النظام الذكية</CardTitle>
                     <CardDescription>
-                        يقترح النظام عليك الأصناف التي قد تحتاج لطلبها بناءً على حالة المخزون والمبيعات. حدد ما تريد إضافته ثم اضغط على زر الإضافة.
+                        يقترح النظام عليك الأصناف التي قد تحتاج لطلبها بناءً على حالة المخزون والمبيعات التاريخية. حدد ما تريد إضافته ثم اضغط على زر الإضافة.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -582,16 +580,18 @@ return (
                                     <TableHead className="w-12"></TableHead>
                                     <TableHead>الدواء</TableHead>
                                     <TableHead>الرصيد الحالي</TableHead>
+                                    <TableHead>الكمية المقترحة</TableHead>
                                     <TableHead>سبب الاقتراح</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {systemSuggestions.map(({ med, reason }) => (
+                                {systemSuggestions.map(({ med, reason, quantity }) => (
                                     <TableRow key={med.id}>
                                         <TableCell><Checkbox checked={selectedSuggestions.has(med.id)} onCheckedChange={(checked) => handleSuggestionSelection(med.id, !!checked)}/></TableCell>
                                         <TableCell>{med.name}</TableCell>
                                         <TableCell>{med.stock}</TableCell>
-                                        <TableCell>{reason}</TableCell>
+                                        <TableCell className="font-mono font-semibold">{quantity}</TableCell>
+                                        <TableCell className="text-sm text-muted-foreground">{reason}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
