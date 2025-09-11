@@ -56,6 +56,7 @@ import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@
 import { PinDialog } from "@/components/auth/PinDialog"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
+import { differenceInDays, parseISO, startOfToday } from 'date-fns'
 
 
 type StatementItem = {
@@ -68,6 +69,13 @@ type StatementItem = {
     id: string;
     items?: (PurchaseOrderItem | ReturnOrderItem)[];
 };
+
+type DebtAging = {
+    current: number;
+    '31-60': number;
+    '61-90': number;
+    over90: number;
+}
 
 export default function SuppliersPage() {
   const { 
@@ -98,7 +106,7 @@ export default function SuppliersPage() {
   const [editingSupplier, setEditingSupplier] = React.useState<Supplier | null>(null);
   const [selectedSupplier, setSelectedSupplier] = React.useState<Supplier | null>(null);
   const [isStatementOpen, setIsStatementOpen] = React.useState(false);
-  const [statementData, setStatementData] = React.useState<{ supplier: Supplier | null; items: StatementItem[] }>({ supplier: null, items: [] });
+  const [statementData, setStatementData] = React.useState<{ supplier: Supplier | null; items: StatementItem[], debtAging: DebtAging }>({ supplier: null, items: [], debtAging: { current: 0, '31-60': 0, '61-90': 0, over90: 0 } });
   const [supplierSearchTerm, setSupplierSearchTerm] = React.useState("");
   const [expandedStatementRows, setExpandedStatementRows] = React.useState<Set<string>>(new Set());
   
@@ -247,7 +255,20 @@ export default function SuppliersPage() {
         return { ...t, balance: runningBalance };
     });
     
-    setStatementData({ supplier, items: statementItems.reverse() });
+    // Debt Aging Calculation
+    const debtAging: DebtAging = { current: 0, '31-60': 0, '61-90': 0, over90: 0 };
+    const today = startOfToday();
+    supplierPurchases.forEach(po => {
+        // Simplified aging: based on purchase date. A more complex system would track payments against invoices.
+        const age = differenceInDays(today, parseISO(po.date));
+        if(age <= 30) debtAging.current += po.total_amount;
+        else if (age <= 60) debtAging['31-60'] += po.total_amount;
+        else if (age <= 90) debtAging['61-90'] += po.total_amount;
+        else debtAging.over90 += po.total_amount;
+    });
+
+
+    setStatementData({ supplier, items: statementItems.reverse(), debtAging });
     setExpandedStatementRows(new Set());
     setIsStatementOpen(true);
   };
@@ -569,14 +590,34 @@ export default function SuppliersPage() {
     </Dialog>
 
     <Dialog open={isStatementOpen} onOpenChange={setIsStatementOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-4xl">
             <DialogHeader>
                 <DialogTitle>كشف حساب المورد: {statementData.supplier?.name}</DialogTitle>
                 <DialogDescription>
                     عرض تفصيلي لجميع الحركات المالية للمورد.
                 </DialogDescription>
             </DialogHeader>
-            <ScrollArea className="max-h-[60vh] mt-4">
+
+            <div className="grid grid-cols-4 gap-4 text-center my-4">
+                <Card>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">0-30 يوم</CardTitle></CardHeader>
+                    <CardContent><p className="text-lg font-bold font-mono">{statementData.debtAging.current.toLocaleString()}</p></CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">31-60 يوم</CardTitle></CardHeader>
+                    <CardContent><p className="text-lg font-bold font-mono">{statementData.debtAging['31-60'].toLocaleString()}</p></CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">61-90 يوم</CardTitle></CardHeader>
+                    <CardContent><p className="text-lg font-bold font-mono">{statementData.debtAging['61-90'].toLocaleString()}</p></CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-destructive">أكثر من 90 يوم</CardTitle></CardHeader>
+                    <CardContent><p className="text-lg font-bold font-mono text-destructive">{statementData.debtAging.over90.toLocaleString()}</p></CardContent>
+                </Card>
+            </div>
+
+            <ScrollArea className="max-h-[50vh] mt-4">
                 <Table>
                     <TableHeader>
                         <TableRow>

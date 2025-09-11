@@ -286,6 +286,7 @@ export type Expense = {
     description: string;
     user_id: string;
     user_name: string;
+    recurring: boolean;
 };
 
 export type Task = {
