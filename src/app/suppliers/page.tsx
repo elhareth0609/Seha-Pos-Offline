@@ -48,7 +48,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Textarea } from "@/components/ui/textarea"
-import { DollarSign, FileText, Truck, Undo2, Wallet, Scale, MoreHorizontal, Pencil, Trash2, PlusCircle, ChevronDown, TrendingUp, AlertTriangle } from "lucide-react"
+import { DollarSign, FileText, Truck, Undo2, Wallet, Scale, MoreHorizontal, Pencil, Trash2, PlusCircle, ChevronDown, TrendingUp, AlertTriangle, Sparkles, Lightbulb } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -77,6 +77,116 @@ type DebtAging = {
     over90: number;
 }
 
+type SuggestedPayment = {
+    supplier_id: string;
+    supplier_name: string;
+    amount: number;
+    reason: string; // e.g., "Oldest Debt", "Nearing Limit"
+};
+
+function SmartSchedulerDialog({ suppliers, onExecute, open, onOpenChange }: { suppliers: (Supplier & { netDebt: number, totalPurchases: number })[], onExecute: (payments: { supplier_id: string, amount: number }[]) => void, open: boolean, onOpenChange: (open: boolean) => void }) {
+    const [availableCash, setAvailableCash] = React.useState('');
+    const [suggestedPayments, setSuggestedPayments] = React.useState<SuggestedPayment[]>([]);
+
+    const generateSuggestions = () => {
+        const cash = parseFloat(availableCash);
+        if (isNaN(cash) || cash <= 0) {
+            setSuggestedPayments([]);
+            return;
+        }
+
+        let remainingCash = cash;
+        const suggestions: SuggestedPayment[] = [];
+        
+        const sortedSuppliers = [...suppliers]
+            .filter(s => s.netDebt > 0)
+            .sort((a, b) => {
+                 // Priority 1: Approaching/over debt limit
+                const a_limit_ratio = a.debt_limit ? a.netDebt / a.debt_limit : 0;
+                const b_limit_ratio = b.debt_limit ? b.netDebt / b.debt_limit : 0;
+                if(a_limit_ratio > 0.9 || b_limit_ratio > 0.9) return b_limit_ratio - a_limit_ratio;
+
+                // Priority 2: Total purchase volume (maintain good relations)
+                return b.totalPurchases - a.totalPurchases;
+            });
+            
+        for (const supplier of sortedSuppliers) {
+            if (remainingCash <= 0) break;
+            
+            const amountToPay = Math.min(supplier.netDebt, remainingCash);
+            
+            let reason = "دين قائم";
+            const debtRatio = supplier.debt_limit ? supplier.netDebt / supplier.debt_limit : 0;
+            if (debtRatio > 0.9) reason = `تجاوز حد الدين`;
+            else if (debtRatio > 0.7) reason = `قريب من حد الدين`;
+            
+            suggestions.push({
+                supplier_id: supplier.id,
+                supplier_name: supplier.name,
+                amount: amountToPay,
+                reason: reason
+            });
+            remainingCash -= amountToPay;
+        }
+        setSuggestedPayments(suggestions);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2"><Sparkles className="text-primary"/> جدولة الدفعات الذكية</DialogTitle>
+                    <DialogDescription>أدخل المبلغ المتوفر لديك وسيقترح النظام خطة سداد ذكية للموردين.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="flex gap-4 items-end">
+                        <div className="flex-grow space-y-2">
+                            <Label htmlFor="available-cash">المبلغ المتوفر للدفع</Label>
+                            <Input id="available-cash" type="number" value={availableCash} onChange={e => setAvailableCash(e.target.value)} placeholder="مثال: 5000000" />
+                        </div>
+                        <Button onClick={generateSuggestions}>
+                            <Lightbulb className="me-2"/>
+                            اقترح خطة
+                        </Button>
+                    </div>
+
+                    {suggestedPayments.length > 0 && (
+                        <div className="space-y-3">
+                            <h4 className="font-semibold">خطة الدفع المقترحة:</h4>
+                            <ScrollArea className="h-64 border rounded-md p-2">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>المورد</TableHead>
+                                            <TableHead>المبلغ المقترح</TableHead>
+                                            <TableHead>السبب</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {suggestedPayments.map(p => (
+                                            <TableRow key={p.supplier_id}>
+                                                <TableCell>{p.supplier_name}</TableCell>
+                                                <TableCell className="font-mono">{p.amount.toLocaleString()}</TableCell>
+                                                <TableCell className="text-xs text-muted-foreground">{p.reason}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </ScrollArea>
+                        </div>
+                    )}
+                </div>
+                 <DialogFooter>
+                    <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
+                    <Button variant="success" disabled={suggestedPayments.length === 0} onClick={() => onExecute(suggestedPayments)}>
+                        تنفيذ الدفعات المقترحة ({suggestedPayments.length})
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 export default function SuppliersPage() {
   const { 
     scopedData, 
@@ -99,6 +209,7 @@ export default function SuppliersPage() {
   const [currentPage, setCurrentPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(9);
   const [loading, setLoading] = React.useState(true);
+  const [isSmartSchedulerOpen, setIsSmartSchedulerOpen] = React.useState(false);
 
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
@@ -211,6 +322,20 @@ export default function SuppliersPage() {
         setSelectedSupplier(null);
     }
   }
+
+  const handleExecuteSmartPayments = async (payments: { supplier_id: string, amount: number }[]) => {
+      if (payments.length === 0) return;
+      
+      const paymentPromises = payments.map(p => addPayment(p.supplier_id, p.amount, "دفعة مجدولة ذكيًا"));
+      
+      await Promise.all(paymentPromises);
+      
+      toast({ title: `تم تنفيذ ${payments.length} دفعة بنجاح!`, description: "تم تحديث أرصدة الموردين." });
+      
+      fetchData(currentPage, perPage, supplierSearchTerm);
+      setIsSmartSchedulerOpen(false);
+  };
+
 
   const handleShowStatement = (supplier: Supplier) => {
     const supplierPurchases = purchaseOrders.filter(po => po.supplier_id === supplier.id)
@@ -354,34 +479,40 @@ export default function SuppliersPage() {
                     إدارة حسابات الموردين وتتبع الديون المستحقة والمدفوعات.
                 </p>
             </div>
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogTrigger asChild>
-                    <Button><PlusCircle className="me-2 h-4 w-4" /> إضافة مورد جديد</Button>
-                </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>إضافة مورد جديد</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleAddSupplier} className="space-y-4 pt-2">
-                        <div className="space-y-2">
-                            <Label htmlFor="supplier_name">اسم المورد</Label>
-                            <Input id="supplier_name" name="supplier_name" required />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="supplierContact">الشخص المسؤول (اختياري)</Label>
-                            <Input id="supplierContact" name="supplierContact" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="debt_limit">حد الدين (اختياري)</Label>
-                            <Input id="debt_limit" name="debt_limit" type="number" placeholder="مثال: 1000000" />
-                        </div>
-                        <DialogFooter className="pt-2">
-                            <DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose>
-                            <Button type="submit" variant="success">إضافة</Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+            <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setIsSmartSchedulerOpen(true)}>
+                    <Sparkles className="me-2 text-primary" />
+                    جدولة الدفعات الذكية
+                </Button>
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button><PlusCircle className="me-2 h-4 w-4" /> إضافة مورد جديد</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>إضافة مورد جديد</DialogTitle>
+                        </DialogHeader>
+                        <form onSubmit={handleAddSupplier} className="space-y-4 pt-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="supplier_name">اسم المورد</Label>
+                                <Input id="supplier_name" name="supplier_name" required />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="supplierContact">الشخص المسؤول (اختياري)</Label>
+                                <Input id="supplierContact" name="supplierContact" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="debt_limit">حد الدين (اختياري)</Label>
+                                <Input id="debt_limit" name="debt_limit" type="number" placeholder="مثال: 1000000" />
+                            </div>
+                            <DialogFooter className="pt-2">
+                                <DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose>
+                                <Button type="submit" variant="success">إضافة</Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+            </div>
         </div>
         <div className="pb-4 flex flex-wrap gap-2">
             <Input 
@@ -689,6 +820,12 @@ export default function SuppliersPage() {
             </DialogFooter>
         </DialogContent>
     </Dialog>
+    <SmartSchedulerDialog
+        open={isSmartSchedulerOpen}
+        onOpenChange={setIsSmartSchedulerOpen}
+        suppliers={supplierAccounts}
+        onExecute={handleExecuteSmartPayments}
+    />
     <PinDialog 
         open={isPinDialogOpen}
         onOpenChange={setIsPinDialogOpen}
