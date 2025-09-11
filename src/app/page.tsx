@@ -20,7 +20,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import type { Medication, Sale, AppSettings, Task } from "@/lib/types";
-import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle, Coins, ListChecks, ShoppingBasket, Package, Users } from "lucide-react";
+import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle, Coins, ListChecks, ShoppingBasket, Package, Users, Warehouse } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, isWithinInterval, isToday, endOfMonth, endOfWeek, subMonths, startOfYear, endOfYear } from 'date-fns';
 import Link from "next/link";
@@ -170,7 +170,7 @@ export default function Dashboard() {
   }, [sales, inventory, leastSoldDays]);
 
   const dashboardStats = React.useMemo(() => {
-    if (!isClient) return { totalRevenue: 0, totalProfit: 0, profitMargin: 0, invoiceCount: 0, totalExpenses: 0, dailyCustomers: 0, expiringRatio: 0, totalProducts: 0 };
+    if (!isClient) return { totalRevenue: 0, totalProfit: 0, profitMargin: 0, invoiceCount: 0, totalExpenses: 0, dailyCustomers: 0, expiringRatio: 0, totalProducts: 0, totalInventoryValue: 0 };
     
     const from = dateFrom ? new Date(dateFrom) : null;
     const to = dateTo ? new Date(dateTo) : null;
@@ -197,7 +197,7 @@ export default function Dashboard() {
 
     const totalProducts = inventory.length;
 
-    return { totalRevenue: currentTotalRevenue, totalProfit: netProfit, profitMargin: currentProfitMargin, invoiceCount, totalExpenses: totalExpensesAmount, dailyCustomers, expiringRatio, totalProducts };
+    return { totalRevenue: currentTotalRevenue, totalProfit: netProfit, profitMargin: currentProfitMargin, invoiceCount, totalExpenses: totalExpensesAmount, dailyCustomers, expiringRatio, totalProducts, totalInventoryValue };
   }, [sales, expenses, inventory, expiringSoonItems, dateFrom, dateTo, isClient]);
 
 
@@ -312,11 +312,11 @@ export default function Dashboard() {
                 </div>
                 <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
                     <div className="flex items-center justify-between text-muted-foreground">
-                        <span className="text-sm font-medium">خطر المخزون</span>
-                        <AlertTriangle className="h-5 w-5 text-destructive" />
+                        <span className="text-sm font-medium">إجمالي قيمة المخزون</span>
+                        <Warehouse className="h-5 w-5" />
                     </div>
-                    <div className="text-3xl font-bold text-destructive font-mono">
-                        {dashboardStats.expiringRatio.toFixed(1)}%
+                    <div className="text-3xl font-bold font-mono">
+                        {dashboardStats.totalInventoryValue.toLocaleString()}
                     </div>
                 </div>
                 <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
