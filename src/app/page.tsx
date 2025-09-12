@@ -291,7 +291,7 @@ export default function Dashboard() {
                     <p className="text-xs text-muted-foreground">الربح بعد طرح الخصومات والصرفيات</p>
                 </div>
             </CardContent>
-             <CardContent className="grid gap-6 pt-2 sm:grid-cols-2 lg:grid-cols-4">
+             <CardContent className="grid gap-6 pt-2 sm:grid-cols-2 lg:grid-cols-5">
                 <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
                     <div className="flex items-center justify-between text-muted-foreground">
                         <span className="text-sm font-medium">هامش الربح</span>
@@ -317,6 +317,15 @@ export default function Dashboard() {
                     </div>
                     <div className="text-3xl font-bold font-mono">
                         {dashboardStats.totalProducts.toLocaleString()}
+                    </div>
+                </div>
+                 <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
+                    <div className="flex items-center justify-between text-muted-foreground">
+                        <span className="text-sm font-medium">قيمة المخزون الإجمالية</span>
+                        <Warehouse className="h-5 w-5" />
+                    </div>
+                    <div className="text-3xl font-bold font-mono">
+                        {dashboardStats.totalInventoryValue.toLocaleString()}
                     </div>
                 </div>
                  <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
@@ -503,5 +512,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
 
     
