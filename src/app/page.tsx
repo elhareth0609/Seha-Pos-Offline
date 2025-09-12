@@ -312,20 +312,20 @@ export default function Dashboard() {
                 </div>
                 <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
                     <div className="flex items-center justify-between text-muted-foreground">
-                        <span className="text-sm font-medium">إجمالي قيمة المخزون</span>
-                        <Warehouse className="h-5 w-5" />
-                    </div>
-                    <div className="text-3xl font-bold font-mono">
-                        {dashboardStats.totalInventoryValue.toLocaleString()}
-                    </div>
-                </div>
-                <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
-                    <div className="flex items-center justify-between text-muted-foreground">
                         <span className="text-sm font-medium">عدد الأصناف</span>
                         <Package className="h-5 w-5" />
                     </div>
                     <div className="text-3xl font-bold font-mono">
                         {dashboardStats.totalProducts.toLocaleString()}
+                    </div>
+                </div>
+                 <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
+                    <div className="flex items-center justify-between text-muted-foreground">
+                        <span className="text-sm font-medium">نسبة المخزون قريب الانتهاء</span>
+                        <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                    </div>
+                    <div className="text-3xl font-bold font-mono text-yellow-600">
+                        {dashboardStats.expiringRatio.toFixed(1)}%
                     </div>
                 </div>
             </CardContent>
@@ -503,3 +503,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
