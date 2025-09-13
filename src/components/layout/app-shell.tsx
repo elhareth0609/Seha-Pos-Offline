@@ -89,7 +89,7 @@ const allNavItems = [
   { href: "/order-requests", icon: ShoppingBasket, label: "طلبات الشراء", group: 'tools' },
   { href: "/patients", icon: Users, label: "أصدقاء الصيدلية", group: 'tools' },
   { href: "/tasks", icon: ListChecks, label: "المهام", group: 'tools' },
-  { href: "/exchange", icon: ArrowLeftRight, label: "سوق التبادل", group: 'tools' },
+  { href: "/exchange", icon: ArrowLeftRight, label: "Pharma Swap", group: 'tools' },
   
   { href: "/offers", icon: BadgePercent, label: "عروض ميدجرام", group: 'external' },
 
@@ -647,3 +647,5 @@ const handleBackup = async () => {
     </TooltipProvider>
   );
 }
+
+    

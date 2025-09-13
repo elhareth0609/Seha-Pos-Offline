@@ -130,7 +130,7 @@ export default function ExchangePage() {
                         <div className="flex items-center gap-4">
                             <ArrowLeftRight className="h-10 w-10 text-primary" />
                             <div>
-                                <CardTitle className="text-3xl">سوق التبادل</CardTitle>
+                                <CardTitle className="text-3xl">Pharma Swap</CardTitle>
                                 <CardDescription>
                                     اعرض الأدوية الفائضة لديك أو تصفح عروض الصيدليات الأخرى.
                                 </CardDescription>
@@ -292,5 +292,7 @@ export default function ExchangePage() {
         </div>
     );
 }
+
+    
 
     
