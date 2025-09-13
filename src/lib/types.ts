@@ -468,3 +468,5 @@ export type SupplierAnalyticsData = {
     total_profit: number;
     net_debt: number;
 };
+
+    
