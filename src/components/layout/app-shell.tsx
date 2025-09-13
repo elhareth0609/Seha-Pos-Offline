@@ -39,6 +39,7 @@ import {
   LifeBuoy,
   HeartPulse,
   Stethoscope,
+  ArrowLeftRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -88,7 +89,7 @@ const allNavItems = [
   { href: "/order-requests", icon: ShoppingBasket, label: "طلبات الشراء", group: 'tools' },
   { href: "/patients", icon: Users, label: "أصدقاء الصيدلية", group: 'tools' },
   { href: "/tasks", icon: ListChecks, label: "المهام", group: 'tools' },
-  // { href: "/representatives", icon: Contact, label: "دليل المندوبين", group: 'tools' },
+  { href: "/exchange", icon: ArrowLeftRight, label: "سوق التبادل", group: 'tools' },
   
   { href: "/offers", icon: BadgePercent, label: "عروض ميدجرام", group: 'external' },
 
@@ -347,7 +348,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         '/offers': 'manage_offers',
         '/hr': 'manage_hr',
         '/support': 'manage_support',
-        '/clinical-training': 'manage_guide' // Assuming guide permission covers this
+        '/clinical-training': 'manage_guide', // Assuming guide permission covers this
+        '/exchange': 'manage_inventory', // Assuming inventory permission covers this for now
     };
 
     return allNavItems.filter(item => {

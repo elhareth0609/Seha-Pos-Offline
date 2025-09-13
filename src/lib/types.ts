@@ -57,6 +57,18 @@ export type MedicalRepresentative = {
     status: 'active' | 'deleted';
 };
 
+export type ExchangeItem = {
+    id: string;
+    pharmacyId: string;
+    pharmacyName: string;
+    medicationName: string;
+    scientificName?: string;
+    quantity: number;
+    expirationDate: string;
+    price: number;
+    contactPhone: string;
+};
+
 export type Medication = {
   id: string;
   barcodes: string[];
