@@ -370,7 +370,7 @@ export default function ExchangePage() {
             <Tabs defaultValue="offers" onValueChange={setActiveTab} dir="rtl">
                 <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="offers">عروض الأدوية</TabsTrigger>
-                    <TabsTrigger value="requests">طلبات الأدوية</TabsTrigger>
+                    <TabsTrigger value="requests">الأدوية المفقودة</TabsTrigger>
                     <TabsTrigger value="mine">منشوراتي</TabsTrigger>
                 </TabsList>
                 <TabsContent value="offers" className="mt-4">
