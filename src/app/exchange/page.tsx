@@ -15,7 +15,7 @@ import { ArrowLeftRight, Phone, Search, Package, CalendarDays, Pilcrow, DollarSi
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, AlertDialogFooter } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter } from '@/components/ui/alert-dialog';
 
 
 const iraqProvinces = [
@@ -47,13 +47,21 @@ export default function ExchangePage() {
     const [provinceFilter, setProvinceFilter] = React.useState(currentUser?.province || 'all');
     const [activeTab, setActiveTab] = React.useState('all');
 
-    // Form state for new offer
+    // Form state for new offer from inventory
     const [medicationSearch, setMedicationSearch] = React.useState('');
     const [suggestions, setSuggestions] = React.useState<Medication[]>([]);
     const [selectedMed, setSelectedMed] = React.useState<Medication | null>(null);
     const [quantity, setQuantity] = React.useState('');
     const [price, setPrice] = React.useState('');
     const [contactPhone, setContactPhone] = React.useState(currentUser?.pharmacyPhone || '');
+
+    // Form state for manual entry
+    const [manualMedName, setManualMedName] = React.useState('');
+    const [manualScientificName, setManualScientificName] = React.useState('');
+    const [manualQuantity, setManualQuantity] = React.useState('');
+    const [manualPrice, setManualPrice] = React.useState('');
+    const [manualExpiration, setManualExpiration] = React.useState('');
+    const [manualContactPhone, setManualContactPhone] = React.useState(currentUser?.pharmacyPhone || '');
 
     const handleMedicationSearch = async (term: string) => {
         setMedicationSearch(term);
@@ -70,6 +78,20 @@ export default function ExchangePage() {
         setMedicationSearch(med.name);
         setSuggestions([]);
     };
+
+    const resetInventoryForm = () => {
+        setMedicationSearch('');
+        setSelectedMed(null);
+        setQuantity('');
+        setPrice('');
+    }
+    const resetManualForm = () => {
+        setManualMedName('');
+        setManualScientificName('');
+        setManualQuantity('');
+        setManualPrice('');
+        setManualExpiration('');
+    }
 
     const handlePostOffer = () => {
         if (!selectedMed || !quantity || !price || !contactPhone) {
@@ -93,12 +115,34 @@ export default function ExchangePage() {
         setExchangeItems(prev => [newOffer, ...prev]);
         toast({ title: 'تم نشر عرضك بنجاح!' });
         setIsOfferDialogOpen(false);
-        // Reset form
-        setMedicationSearch('');
-        setSelectedMed(null);
-        setQuantity('');
-        setPrice('');
+        resetInventoryForm();
     };
+
+     const handlePostManualOffer = () => {
+        if (!manualMedName || !manualQuantity || !manualPrice || !manualExpiration || !manualContactPhone) {
+            toast({ variant: 'destructive', title: 'بيانات ناقصة', description: 'الرجاء ملء جميع الحقول المطلوبة.' });
+            return;
+        }
+
+        const newOffer: ExchangeItem & { province: string } = {
+            id: `ex-${Date.now()}`,
+            pharmacyId: currentUser?.pharmacy_id || 'unknown',
+            pharmacyName: scopedData.settings[0].pharmacyName,
+            province: currentUser?.province || 'غير محدد',
+            medicationName: manualMedName,
+            scientificName: manualScientificName,
+            quantity: parseInt(manualQuantity, 10),
+            expirationDate: manualExpiration,
+            price: parseFloat(manualPrice),
+            contactPhone: manualContactPhone,
+        };
+
+        setExchangeItems(prev => [newOffer, ...prev]);
+        toast({ title: 'تم نشر عرضك بنجاح!' });
+        setIsOfferDialogOpen(false);
+        resetManualForm();
+    };
+
 
     const handleDeleteOffer = (offerId: string) => {
         setExchangeItems(prev => prev.filter(item => item.id !== offerId));
@@ -140,49 +184,77 @@ export default function ExchangePage() {
                             <DialogTrigger asChild>
                                 <Button variant="success"><PlusCircle className="me-2" /> اعرض دواء للتبادل</Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-lg">
+                             <DialogContent className="sm:max-w-lg">
                                 <DialogHeader>
                                     <DialogTitle>عرض دواء جديد للتبادل</DialogTitle>
                                 </DialogHeader>
-                                <div className="space-y-4 py-4">
-                                    <div className="relative space-y-2">
-                                        <Label htmlFor="med-search">1. ابحث عن الدواء في مخزونك</Label>
-                                        <Input
-                                            id="med-search"
-                                            placeholder="ابحث بالاسم..."
-                                            value={medicationSearch}
-                                            onChange={(e) => handleMedicationSearch(e.target.value)}
-                                        />
-                                        {suggestions.length > 0 && (
-                                            <Card className="absolute z-50 w-full mt-1 bg-background shadow-lg border">
-                                                <CardContent className="p-0">
-                                                    <ul className="divide-y divide-border">
-                                                        {suggestions.map(med => (
-                                                            <li key={med.id} onClick={() => handleSelectMedication(med)} className="p-3 hover:bg-accent cursor-pointer rounded-md">
-                                                                {med.name}
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </CardContent>
-                                            </Card>
-                                        )}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>2. حدد الكمية والسعر</Label>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <Input type="number" value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="الكمية المعروضة" disabled={!selectedMed} />
-                                            <Input type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="السعر المقترح للقطعة" disabled={!selectedMed} />
+                                <Tabs defaultValue="inventory">
+                                    <TabsList className="grid w-full grid-cols-2">
+                                        <TabsTrigger value="inventory">بحث من المخزون</TabsTrigger>
+                                        <TabsTrigger value="manual">إدخال يدوي</TabsTrigger>
+                                    </TabsList>
+                                    <TabsContent value="inventory" className="py-4 space-y-4">
+                                         <div className="relative space-y-2">
+                                            <Label htmlFor="med-search">1. ابحث عن الدواء في مخزونك</Label>
+                                            <Input
+                                                id="med-search"
+                                                placeholder="ابحث بالاسم..."
+                                                value={medicationSearch}
+                                                onChange={(e) => handleMedicationSearch(e.target.value)}
+                                            />
+                                            {suggestions.length > 0 && (
+                                                <Card className="absolute z-50 w-full mt-1 bg-background shadow-lg border">
+                                                    <CardContent className="p-0">
+                                                        <ul className="divide-y divide-border">
+                                                            {suggestions.map(med => (
+                                                                <li key={med.id} onClick={() => handleSelectMedication(med)} className="p-3 hover:bg-accent cursor-pointer rounded-md">
+                                                                    {med.name}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </CardContent>
+                                                </Card>
+                                            )}
                                         </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="contact-phone">3. رقم الهاتف للتواصل</Label>
-                                        <Input id="contact-phone" type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="07701234567" required />
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
-                                    <Button onClick={handlePostOffer} disabled={!selectedMed}>نشر العرض</Button>
-                                </DialogFooter>
+                                        <div className="space-y-2">
+                                            <Label>2. حدد الكمية والسعر</Label>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <Input type="number" value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="الكمية المعروضة" disabled={!selectedMed} />
+                                                <Input type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="السعر المقترح للقطعة" disabled={!selectedMed} />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="contact-phone">3. رقم الهاتف للتواصل</Label>
+                                            <Input id="contact-phone" type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="07701234567" required />
+                                        </div>
+                                        <DialogFooter>
+                                            <DialogClose asChild><Button variant="outline" onClick={resetInventoryForm}>إلغاء</Button></DialogClose>
+                                            <Button onClick={handlePostOffer} disabled={!selectedMed}>نشر العرض</Button>
+                                        </DialogFooter>
+                                    </TabsContent>
+                                    <TabsContent value="manual" className="py-4 space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2"><Label>الاسم التجاري</Label><Input value={manualMedName} onChange={e => setManualMedName(e.target.value)} required /></div>
+                                            <div className="space-y-2"><Label>الاسم العلمي (اختياري)</Label><Input value={manualScientificName} onChange={e => setManualScientificName(e.target.value)} /></div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2"><Label>الكمية</Label><Input type="number" value={manualQuantity} onChange={e => setManualQuantity(e.target.value)} required /></div>
+                                            <div className="space-y-2"><Label>تاريخ الانتهاء</Label><Input type="date" value={manualExpiration} onChange={e => setManualExpiration(e.target.value)} required /></div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>السعر المقترح للقطعة</Label>
+                                            <Input type="number" value={manualPrice} onChange={e => setManualPrice(e.target.value)} required />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>رقم الهاتف للتواصل</Label>
+                                            <Input type="tel" value={manualContactPhone} onChange={e => setManualContactPhone(e.target.value)} required />
+                                        </div>
+                                        <DialogFooter>
+                                            <DialogClose asChild><Button variant="outline" onClick={resetManualForm}>إلغاء</Button></DialogClose>
+                                            <Button onClick={handlePostManualOffer}>نشر العرض</Button>
+                                        </DialogFooter>
+                                    </TabsContent>
+                                </Tabs>
                             </DialogContent>
                         </Dialog>
                     </div>
