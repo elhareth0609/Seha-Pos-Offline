@@ -343,14 +343,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
 
     const getOrderRequestCart = async () => {
-        try {
-            const cart = await apiRequest('/order-requests');
-            setOrderRequestCart(cart as OrderRequestItem[]);
-            return cart as OrderRequestItem[];
-        } catch (e) {
-            toast({ variant: 'destructive', title: 'فشل في تحميل الطلبات', description: 'لم يتم تحميل قائمة الطلبات. الرجاء المحاولة مرة أخرى.' });
-            return [];
-        }
+        return Promise.resolve([]);
     }
     
     const [addingToCart, setAddingToCart] = React.useState(false);
