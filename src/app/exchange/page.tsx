@@ -410,7 +410,7 @@ export default function ExchangePage() {
                                 <CardFooter className="flex-col items-stretch gap-2">
                                      <p className="text-xs text-muted-foreground text-center mb-2">طلب من: {req.pharmacyName} ({req.province})</p>
                                      <div className="grid grid-cols-2 gap-2">
-                                        <Button variant="destructive" onClick={() => handleIgnoreRequest(req.id)}>غير مهتم</Button>
+                                        <Button variant="destructive" onClick={() => handleIgnoreRequest(req.id)}>غير متوفر</Button>
                                         <Button variant="success" onClick={() => { setSelectedRequestForResponse(req); setIsResponseDialogOpen(true); }}>متوفر لدي</Button>
                                     </div>
                                 </CardFooter>
