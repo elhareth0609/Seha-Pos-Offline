@@ -181,9 +181,21 @@ export default function Dashboard() {
     const filteredSales = interval ? sales.filter(sale => isWithinInterval(parseISO(sale.date), interval)) : sales;
     const filteredExpenses = interval ? expenses.filter(expense => isWithinInterval(parseISO(expense.created_at), interval)) : expenses;
 
-    const currentTotalRevenue = filteredSales.reduce((acc, sale) => acc + (sale.total || 0), 0);
-    const currentTotalProfit = filteredSales.reduce((acc, sale) => acc + ((sale.profit || 0) - (sale.discount || 0)), 0);
-    const totalExpensesAmount = filteredExpenses.reduce((acc, expense) => acc + expense.amount, 0);
+    const currentTotalRevenue = filteredSales.reduce((acc, sale) => {
+      const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
+      return acc + (isNaN(total) ? 0 : total);
+    }, 0);
+    
+    const currentTotalProfit = filteredSales.reduce((acc, sale) => {
+      const profit = typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0));
+      const discount = typeof sale.discount === 'number' ? sale.discount : parseFloat(String(sale.discount || 0));
+      return acc + ((isNaN(profit) ? 0 : profit) - (isNaN(discount) ? 0 : discount));
+    }, 0);
+    
+    const totalExpensesAmount = filteredExpenses.reduce((acc, expense) => {
+      const amount = typeof expense.amount === 'number' ? expense.amount : parseFloat(String(expense.amount || 0));
+      return acc + (isNaN(amount) ? 0 : amount);
+    }, 0);
 
     const netProfit = currentTotalProfit - totalExpensesAmount;
     const currentProfitMargin = currentTotalRevenue > 0 ? (netProfit / currentTotalRevenue) * 100 : 0;
