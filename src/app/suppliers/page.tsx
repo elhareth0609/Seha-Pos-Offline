@@ -164,7 +164,7 @@ function SmartSchedulerDialog({ suppliers, onExecute, open, onOpenChange }: { su
                                     </TableHeader>
                                     <TableBody>
                                         {suggestedPayments.map(p => (
-                                            <TableRow key={p.supplier_id}>
+                                            <TableRow key={p.supplier_id} className="text-right">
                                                 <TableCell>{p.supplier_name}</TableCell>
                                                 <TableCell className="font-mono">{p.amount.toLocaleString()}</TableCell>
                                                 <TableCell className="text-xs text-muted-foreground">{p.reason}</TableCell>
@@ -386,10 +386,13 @@ export default function SuppliersPage() {
     supplierPurchases.forEach(po => {
         // Simplified aging: based on purchase date. A more complex system would track payments against invoices.
         const age = differenceInDays(today, parseISO(po.date));
-        if(age <= 30) debtAging.current += po.total_amount;
-        else if (age <= 60) debtAging['31-60'] += po.total_amount;
-        else if (age <= 90) debtAging['61-90'] += po.total_amount;
-        else debtAging.over90 += po.total_amount;
+        const total_amount = typeof po.total_amount === 'number' ? po.total_amount : parseFloat(String(po.total_amount || 0));
+        const amount = isNaN(total_amount) ? 0 : total_amount;
+        
+        if(age <= 30) debtAging.current += amount;
+        else if (age <= 60) debtAging['31-60'] += amount;
+        else if (age <= 90) debtAging['61-90'] += amount;
+        else debtAging.over90 += amount;
     });
 
 
