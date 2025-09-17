@@ -59,7 +59,7 @@ export type MedicalRepresentative = {
 
 export type ExchangeItem = {
     id: string;
-    pharmacyId: string;
+    pharmacy_id: string;
     pharmacyName: string;
     medicationName: string;
     scientificName?: string;
@@ -67,7 +67,30 @@ export type ExchangeItem = {
     expirationDate: string;
     price: number;
     contactPhone: string;
+    province: string;
 };
+
+export type RequestResponse = {
+    id: string;
+    responderPharmacyId: string;
+    responderPharmacyName: string;
+    price: number;
+    contactPhone: string;
+};
+
+export type DrugRequest = {
+    id: string;
+    pharmacyId: string;
+    pharmacyName: string;
+    province: string;
+    medicationName: string;
+    quantity: number;
+    notes?: string;
+    status: 'open' | 'closed';
+    responses: RequestResponse[];
+    ignoredBy: string[]; // Array of pharmacy IDs that ignored this
+};
+
 
 export type Medication = {
   id: string;

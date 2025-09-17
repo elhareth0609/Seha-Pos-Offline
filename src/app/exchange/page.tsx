@@ -24,30 +24,24 @@ const iraqProvinces = [
     "القادسية", "ميسان", "ذي قار", "المثنى"
 ];
 
-// Dummy data
-const dummyExchangeItems: (ExchangeItem & { province: string })[] = [
-    { id: '1', pharmacyId: 'ph-1', pharmacyName: 'صيدلية الشفاء', province: 'بغداد', medicationName: 'Amoxil 500mg', quantity: 50, expirationDate: '2025-12-31', price: 1500, contactPhone: '07701112222', scientificName: 'Amoxicillin' },
-    { id: '2', pharmacyId: 'ph-2', pharmacyName: 'صيدلية دجلة', province: 'البصرة', medicationName: 'Cataflam 50mg', quantity: 30, expirationDate: '2025-08-01', price: 2000, contactPhone: '07803334444', scientificName: 'Diclofenac Potassium' },
-];
-
-const dummyDrugRequests: DrugRequest[] = [
-    { id: 'req-1', pharmacyId: 'ph-1', pharmacyName: 'صيدلية الشفاء', province: 'بغداد', medicationName: 'Ozempic 1mg', quantity: 5, notes: 'مطلوب بشكل عاجل', status: 'open', responses: [{ id: 'res-1', responderPharmacyId: 'ph-2', responderPharmacyName: 'صيدلية دجلة', price: 120000, contactPhone: '07803334444' }], ignoredBy: [] },
-    { id: 'req-2', pharmacyId: 'ph-2', pharmacyName: 'صيدلية دجلة', province: 'البصرة', medicationName: 'Aspirin 100mg', quantity: 20, notes: '', status: 'open', responses: [], ignoredBy: ['ph-currentUser'] },
-];
-
 export default function ExchangePage() {
-    const { currentUser, scopedData, searchAllInventory } = useAuth();
+    const { 
+        currentUser, scopedData, searchAllInventory, 
+        getExchangeItems, postExchangeItem, deleteExchangeItem,
+        getDrugRequests, postDrugRequest, deleteDrugRequest,
+        respondToDrugRequest, ignoreDrugRequest
+    } = useAuth();
     const { toast } = useToast();
 
     // Offers State
-    const [exchangeItems, setExchangeItems] = React.useState<(ExchangeItem & { province: string })[]>(dummyExchangeItems);
-    const [myOffers, setMyOffers] = React.useState<(ExchangeItem & { province: string })[]>([]);
+    const [exchangeItems, setExchangeItems] = React.useState<ExchangeItem[]>([]);
+    const [myOffers, setMyOffers] = React.useState<ExchangeItem[]>([]);
     
     // Requests State
-    const [drugRequests, setDrugRequests] = React.useState<DrugRequest[]>(dummyDrugRequests);
+    const [drugRequests, setDrugRequests] = React.useState<DrugRequest[]>([]);
     const [myRequests, setMyRequests] = React.useState<DrugRequest[]>([]);
 
-    const [loading, setLoading] = React.useState(false);
+    const [loading, setLoading] = React.useState(true);
     const [isOfferDialogOpen, setIsOfferDialogOpen] = React.useState(false);
     const [isRequestDialogOpen, setIsRequestDialogOpen] = React.useState(false);
     const [isResponseDialogOpen, setIsResponseDialogOpen] = React.useState(false);
@@ -59,7 +53,6 @@ export default function ExchangePage() {
     // Filters state
     const [searchTerm, setSearchTerm] = React.useState('');
     const [provinceFilter, setProvinceFilter] = React.useState(currentUser?.province || 'all');
-    const [activeTab, setActiveTab] = React.useState('offers');
 
     // Offer form state
     const [medicationSearch, setMedicationSearch] = React.useState('');
@@ -79,6 +72,27 @@ export default function ExchangePage() {
     const [requestMedName, setRequestMedName] = React.useState('');
     const [requestQuantity, setRequestQuantity] = React.useState('');
     const [requestNotes, setRequestNotes] = React.useState('');
+
+    React.useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            const [offers, requests] = await Promise.all([
+                getExchangeItems(),
+                getDrugRequests(),
+            ]);
+            
+            setExchangeItems(offers || []);
+            setDrugRequests(requests || []);
+            
+            if (currentUser) {
+                setMyOffers(offers?.filter(o => o.pharmacy_id === currentUser.pharmacy_id) || []);
+                setMyRequests(requests?.filter(r => r.pharmacyId === currentUser.pharmacy_id) || []);
+            }
+            setLoading(false);
+        };
+        fetchData();
+    }, [currentUser, getExchangeItems, getDrugRequests]);
+
 
     const handleMedicationSearch = async (term: string) => {
         setMedicationSearch(term);
@@ -101,17 +115,15 @@ export default function ExchangePage() {
         setManualMedName(''); setManualScientificName(''); setManualQuantity(''); setManualPrice(''); setManualExpiration('');
     }
     
-    const handlePostOffer = (isManual: boolean) => {
-        let newOffer: (ExchangeItem & { province: string }) | null = null;
+    const handlePostOffer = async (isManual: boolean) => {
+        let newOfferData: Omit<ExchangeItem, 'id' | 'pharmacyName' | 'pharmacy_id'>;
+
         if(isManual) {
              if (!manualMedName || !manualQuantity || !manualPrice || !manualExpiration || !manualContactPhone) {
                 toast({ variant: 'destructive', title: 'بيانات ناقصة', description: 'الرجاء ملء جميع الحقول المطلوبة.' });
                 return;
             }
-             newOffer = {
-                id: `ex-${Date.now()}`,
-                pharmacyId: currentUser?.pharmacy_id || 'unknown',
-                pharmacyName: scopedData.settings[0].pharmacyName,
+             newOfferData = {
                 province: currentUser?.province || 'غير محدد',
                 medicationName: manualMedName,
                 scientificName: manualScientificName,
@@ -125,10 +137,7 @@ export default function ExchangePage() {
                 toast({ variant: 'destructive', title: 'بيانات ناقصة', description: 'الرجاء ملء جميع الحقول المطلوبة.' });
                 return;
             }
-            newOffer = {
-                id: `ex-${Date.now()}`,
-                pharmacyId: currentUser?.pharmacy_id || 'unknown',
-                pharmacyName: scopedData.settings[0].pharmacyName,
+            newOfferData = {
                 province: currentUser?.province || 'غير محدد',
                 medicationName: selectedMed.name,
                 scientificName: selectedMed.scientific_names?.join(', '),
@@ -138,87 +147,93 @@ export default function ExchangePage() {
                 contactPhone: offerContactPhone,
             };
         }
+
+        const createdOffer = await postExchangeItem(newOfferData);
         
-        setExchangeItems(prev => [newOffer!, ...prev]);
-        setMyOffers(prev => [newOffer!, ...prev]);
-        toast({ title: 'تم نشر عرضك بنجاح!' });
-        setIsOfferDialogOpen(false);
-        resetOfferForms();
+        if (createdOffer) {
+            setExchangeItems(prev => [createdOffer, ...prev]);
+            setMyOffers(prev => [createdOffer, ...prev]);
+            toast({ title: 'تم نشر عرضك بنجاح!' });
+            setIsOfferDialogOpen(false);
+            resetOfferForms();
+        }
     };
 
-    const handleDeleteOffer = (offerId: string) => {
-        setExchangeItems(prev => prev.filter(item => item.id !== offerId));
-        setMyOffers(prev => prev.filter(item => item.id !== offerId));
-        toast({ title: "تم حذف العرض بنجاح" });
+    const handleDeleteOffer = async (offerId: string) => {
+        const success = await deleteExchangeItem(offerId);
+        if (success) {
+            setExchangeItems(prev => prev.filter(item => item.id !== offerId));
+            setMyOffers(prev => prev.filter(item => item.id !== offerId));
+            toast({ title: "تم حذف العرض بنجاح" });
+        }
     }
 
-    const handlePostRequest = () => {
+    const handlePostRequest = async () => {
         if (!requestMedName || !requestQuantity) {
             toast({ variant: 'destructive', title: 'بيانات ناقصة', description: 'الرجاء إدخال اسم الدواء والكمية المطلوبة.' });
             return;
         }
 
-        const newRequest: DrugRequest = {
-            id: `req-${Date.now()}`,
-            pharmacyId: currentUser!.pharmacy_id,
-            pharmacyName: scopedData.settings[0].pharmacyName,
-            province: currentUser!.province,
+        const newRequestData = {
             medicationName: requestMedName,
             quantity: parseInt(requestQuantity),
             notes: requestNotes,
-            status: 'open',
-            responses: [],
-            ignoredBy: [],
         };
+
+        const createdRequest = await postDrugRequest(newRequestData);
         
-        setDrugRequests(prev => [newRequest, ...prev]);
-        setMyRequests(prev => [newRequest, ...prev]);
-        toast({ title: "تم نشر طلبك بنجاح" });
-        setIsRequestDialogOpen(false);
-        setRequestMedName('');
-        setRequestQuantity('');
-        setRequestNotes('');
+        if (createdRequest) {
+            setDrugRequests(prev => [createdRequest, ...prev]);
+            setMyRequests(prev => [createdRequest, ...prev]);
+            toast({ title: "تم نشر طلبك بنجاح" });
+            setIsRequestDialogOpen(false);
+            setRequestMedName('');
+            setRequestQuantity('');
+            setRequestNotes('');
+        }
     }
 
-    const handleRespondToRequest = () => {
+    const handleRespondToRequest = async () => {
         const price = parseFloat(responsePrice);
         if(!selectedRequestForResponse || isNaN(price) || price <= 0) {
             toast({ variant: 'destructive', title: 'سعر غير صالح' });
             return;
         }
 
-        const newResponse: RequestResponse = {
-            id: `res-${Date.now()}`,
-            responderPharmacyId: currentUser!.pharmacy_id,
-            responderPharmacyName: scopedData.settings[0].pharmacyName,
-            price: price,
-            contactPhone: currentUser!.pharmacyPhone || scopedData.settings[0].pharmacyPhone
-        };
+        const updatedRequest = await respondToDrugRequest(selectedRequestForResponse.id, price);
         
-        setDrugRequests(prev => prev.map(req => 
-            req.id === selectedRequestForResponse.id 
-                ? { ...req, responses: [...req.responses, newResponse] }
-                : req
-        ));
-        
-        toast({ title: 'تم إرسال عرضك بنجاح', description: 'سيظهر عرضك لصاحب الطلب.' });
-        setIsResponseDialogOpen(false);
-        setResponsePrice('');
-        setSelectedRequestForResponse(null);
+        if (updatedRequest) {
+            setDrugRequests(prev => prev.map(req => 
+                req.id === updatedRequest.id 
+                    ? updatedRequest
+                    : req
+            ));
+            
+            toast({ title: 'تم إرسال عرضك بنجاح', description: 'سيظهر عرضك لصاحب الطلب.' });
+            setIsResponseDialogOpen(false);
+            setResponsePrice('');
+            setSelectedRequestForResponse(null);
+        }
     };
 
-    const handleIgnoreRequest = (requestId: string) => {
-        setDrugRequests(prev => prev.map(req => 
-            req.id === requestId 
-                ? { ...req, ignoredBy: [...req.ignoredBy, currentUser!.pharmacy_id] }
-                : req
-        ));
+    const handleIgnoreRequest = async (requestId: string) => {
+        const success = await ignoreDrugRequest(requestId);
+        if (success) {
+            setDrugRequests(prev => prev.map(req => 
+                req.id === requestId 
+                    ? { ...req, ignoredBy: [...req.ignoredBy, currentUser!.pharmacy_id] }
+                    : req
+            ));
+        }
     };
     
-    const handleDeleteRequest = (requestId: string) => {
-        setDrugRequests(prev => prev.filter(req => req.id !== requestId));
-        setMyRequests(prev => prev.filter(req => req.id !== requestId));
-        toast({ title: "تم حذف الطلب بنجاح" });
+    const handleDeleteRequest = async (requestId: string) => {
+        const success = await deleteDrugRequest(requestId);
+        if (success) {
+            setDrugRequests(prev => prev.filter(req => req.id !== requestId));
+            setMyRequests(prev => prev.filter(req => req.id !== requestId));
+            toast({ title: "تم حذف الطلب بنجاح" });
+        }
     }
 
     const filteredItems = React.useMemo(() => {
@@ -236,8 +251,8 @@ export default function ExchangePage() {
             const matchesSearch = req.medicationName.toLowerCase().includes(lowerCaseSearch) ||
                                   req.pharmacyName.toLowerCase().includes(lowerCaseSearch);
             const matchesProvince = provinceFilter === 'all' || req.province === provinceFilter;
-            const isIgnored = req.ignoredBy.includes(currentUser!.pharmacy_id);
-            const isMine = req.pharmacyId === currentUser!.pharmacy_id;
+            const isIgnored = currentUser ? req.ignoredBy.includes(currentUser.pharmacy_id) : false;
+            const isMine = currentUser ? req.pharmacyId === currentUser.pharmacy_id : false;
             return matchesSearch && matchesProvince && !isIgnored && !isMine;
         });
 
@@ -367,7 +382,7 @@ export default function ExchangePage() {
                 </CardContent>
             </Card>
 
-            <Tabs defaultValue="offers" onValueChange={setActiveTab} dir="rtl">
+            <Tabs defaultValue="offers" dir="rtl">
                 <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="offers">عروض الأدوية</TabsTrigger>
                     <TabsTrigger value="requests">الأدوية المفقودة</TabsTrigger>
