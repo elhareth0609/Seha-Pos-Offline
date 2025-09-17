@@ -1,20 +1,21 @@
 {
-  "name": "MedStock Manager",
-  "short_name": "MedStock",
-  "description": "A comprehensive pharmacy management system.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ECEFF1",
-  "theme_color": "#3F51B5",
+  "name": "Midgram",
+  "short_name": "Midgram",
+  "description": "نظام إدارة صيدلية للمبيعات والمخزون والمشتريات.",
   "icons": [
     {
-      "src": "/icons/icon-192x192.png",
+      "src": "/icon.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "/icon.png",
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#10b981"
+}

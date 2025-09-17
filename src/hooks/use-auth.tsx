@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative, Notification, SupportRequestPayload, PatientPaymentPayload, SupportRequest, PatientPayment } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative, Notification, SupportRequestPayload, PatientPaymentPayload, SupportRequest, PatientPayment, DrugRequest, RequestResponse } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 import { PinDialog } from '@/components/auth/PinDialog';
@@ -199,6 +199,15 @@ interface AuthContextType {
     supportRequests: SupportRequest[];
     addSupportRequest: (data: SupportRequestPayload) => Promise<boolean>;
     updateSupportRequestStatus: (id: string, status: 'new' | 'contacted') => Promise<void>;
+    // Pharma-Swap
+    getExchangeItems: () => Promise<ExchangeItem[]>;
+    postExchangeItem: (item: Omit<ExchangeItem, 'id' | 'pharmacyName' | 'pharmacy_id'>) => Promise<ExchangeItem | null>;
+    deleteExchangeItem: (itemId: string) => Promise<boolean>;
+    getDrugRequests: () => Promise<DrugRequest[]>;
+    postDrugRequest: (request: Omit<DrugRequest, 'id' | 'pharmacyId' | 'pharmacyName' | 'province' | 'status' | 'responses' | 'ignoredBy'>) => Promise<DrugRequest | null>;
+    deleteDrugRequest: (requestId: string) => Promise<boolean>;
+    respondToDrugRequest: (requestId: string, price: number) => Promise<DrugRequest | null>;
+    ignoreDrugRequest: (requestId: string) => Promise<boolean>;
 }
 
 export interface ScopedDataContextType {
@@ -243,6 +252,38 @@ const initialActiveInvoice: ActiveInvoice = {
     reviewIndex: null,
 };
 
+function openDB() {
+    return new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open('offline-requests-db', 1);
+        request.onupgradeneeded = event => {
+            const db = (event.target as IDBOpenDBRequest).result;
+            if (!db.objectStoreNames.contains('requests')) {
+                db.createObjectStore('requests', { autoIncrement: true, keyPath: 'id' });
+            }
+        };
+        request.onsuccess = event => resolve((event.target as IDBOpenDBRequest).result);
+        request.onerror = event => reject((event.target as IDBOpenDBRequest).error);
+    });
+}
+
+async function queueRequest(url: string, options: RequestInit) {
+    const db = await openDB();
+    const tx = db.transaction('requests', 'readwrite');
+    const store = tx.objectStore('requests');
+    await new Promise((resolve, reject) => {
+        const req = store.add({ url, options });
+        req.onsuccess = resolve;
+        req.onerror = reject;
+    });
+
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+        navigator.serviceWorker.ready.then(sw => {
+            sw.sync.register('sync-requests');
+        });
+    }
+}
+
+
 async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?: object) {
     const token = localStorage.getItem('authToken');
     const headers: HeadersInit = {
@@ -253,12 +294,21 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
         headers['Authorization'] = `Bearer ${token}`;
     }
 
+    const options = {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+    };
+
+    if (!navigator.onLine && method !== 'GET') {
+        await queueRequest(`${API_URL}${endpoint}`, options);
+        toast({ title: 'أنت غير متصل', description: 'تم حفظ طلبك وسيتم إرساله عند عودة الاتصال بالإنترنت.' });
+        // Return a mocked successful response for offline actions to update UI optimistically
+        return { message: 'Request queued for sync' }; 
+    }
+
     try {
-        const response = await fetch(`${API_URL}${endpoint}`, {
-            method,
-            headers,
-            body: body ? JSON.stringify(body) : undefined,
-        });
+        const response = await fetch(`${API_URL}${endpoint}`, options);
 
         if (response.status === 204) return null;
 
@@ -343,7 +393,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
 
     const getOrderRequestCart = async () => {
-        return Promise.resolve([]);
+        try {
+            return await apiRequest('/order-requests');
+        } catch(e) { return []; }
     }
     
     const [addingToCart, setAddingToCart] = React.useState(false);
@@ -1343,6 +1395,76 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         // In a real app, you would debounce this and save to the backend.
     }, []);
 
+    const getExchangeItems = async (): Promise<ExchangeItem[]> => {
+        try {
+            return await apiRequest('/exchange/items');
+        } catch (e) {
+            return [];
+        }
+    };
+    
+    const postExchangeItem = async (item: Omit<ExchangeItem, 'id' | 'pharmacyName' | 'pharmacy_id'>): Promise<ExchangeItem | null> => {
+        try {
+            const newItem = await apiRequest('/exchange/items', 'POST', item);
+            return newItem;
+        } catch (e) {
+            return null;
+        }
+    };
+
+    const deleteExchangeItem = async (itemId: string): Promise<boolean> => {
+        try {
+            await apiRequest(`/exchange/items/${itemId}`, 'DELETE');
+            return true;
+        } catch (e) {
+            return false;
+        }
+    };
+    
+    const getDrugRequests = async (): Promise<DrugRequest[]> => {
+        try {
+            return await apiRequest('/exchange/requests');
+        } catch (e) {
+            return [];
+        }
+    };
+    
+    const postDrugRequest = async (request: Omit<DrugRequest, 'id' | 'pharmacyId' | 'pharmacyName' | 'province' | 'status' | 'responses' | 'ignoredBy'>): Promise<DrugRequest | null> => {
+        try {
+            const newRequest = await apiRequest('/exchange/requests', 'POST', request);
+            return newRequest;
+        } catch (e) {
+            return null;
+        }
+    };
+
+    const deleteDrugRequest = async (requestId: string): Promise<boolean> => {
+        try {
+            await apiRequest(`/exchange/requests/${requestId}`, 'DELETE');
+            return true;
+        } catch (e) {
+            return false;
+        }
+    };
+    
+    const respondToDrugRequest = async (requestId: string, price: number): Promise<DrugRequest | null> => {
+        try {
+            const updatedRequest = await apiRequest(`/exchange/requests/${requestId}/respond`, 'POST', { price });
+            return updatedRequest;
+        } catch (e) {
+            return null;
+        }
+    };
+    
+    const ignoreDrugRequest = async (requestId: string): Promise<boolean> => {
+        try {
+            await apiRequest(`/exchange/requests/${requestId}/ignore`, 'POST');
+            return true;
+        } catch (e) {
+            return false;
+        }
+    };
+
 
     const setScopedSettings = async (value: AppSettings | ((val: AppSettings) => AppSettings)) => {
        const newSettings = typeof value === 'function' ? value(settings) : value;
@@ -1398,7 +1520,9 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             getOrderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, updateOrderRequestItem, duplicateOrderRequestItem, updatePreferenceScore,
             purchaseDraft, setPurchaseDraft,
             getNotifications,
-            supportRequests, addSupportRequest, updateSupportRequestStatus
+            supportRequests, addSupportRequest, updateSupportRequestStatus,
+            getExchangeItems, postExchangeItem, deleteExchangeItem,
+            getDrugRequests, postDrugRequest, deleteDrugRequest, respondToDrugRequest, ignoreDrugRequest
         }}>
             {children}
         </AuthContext.Provider>
@@ -1412,3 +1536,4 @@ export function useAuth() {
   }
   return context;
 }
+

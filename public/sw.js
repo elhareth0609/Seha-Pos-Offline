@@ -1,1 +1,135 @@
-if(!self.define){let e,a={};const s=(s,n)=>(s=new URL(s+".js",n).href,a[s]||new Promise(a=>{if("document"in self){const e=document.createElement("script");e.src=s,e.onload=a,document.head.appendChild(e)}else e=s,importScripts(s),a()}).then(()=>{let e=a[s];if(!e)throw new Error(`Module ${s} didn’t register its module`);return e}));self.define=(n,t)=>{const i=e||("document"in self?document.currentScript.src:"")||location.href;if(a[i])return;let c={};const r=e=>s(e,i),o={module:{uri:i},exports:c,require:r};a[i]=Promise.all(n.map(e=>o[e]||r(e))).then(e=>(t(...e),c))}}define(["./workbox-f1770938"],function(e){"use strict";importScripts(),self.skipWaiting(),e.clientsClaim(),e.precacheAndRoute([{url:"/_next/static/chunks/132-6f6b1b7cfbafeb6b.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/136-8dbc49a544ea3b57.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/171-4cf03f422d2e478f.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/2170a4aa-93f77cb6db9c49c7.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/277-4fc9328a5b55be37.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/310-725a6f48ec0e3088.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/322-12ab09ccc57800a4.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/421-a266bbd0000823ae.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/425-88284c78ca5d811d.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/4bd1b696-b655714f146a09e3.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/637-33a43086f62f43fe.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/690-d4ca50a3c5051063.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/711-4682928bb06275b0.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/721-53bc200369b275b7.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/768-224ed5cb2813b016.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/82-3d486688cbc7b4cb.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/874-eab1d44d4ab8f06d.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/908-4db0573357a850e9.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/983-b5bdbf5b05eea529.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/app/_not-found/page-a28cf9ec524ee9ff.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/app/expiring-soon/page-180fb9ffeb0ba503.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/app/guide/page-5f7ec3082d89628c.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/app/inventory/page-18cc0fcea3a5fda5.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/app/layout-e3c1cf0a0fded4e9.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/app/page-1bf25c743849f260.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/app/patients/page-a70ecdc3cfe14425.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/app/purchases/page-024895142bef42ca.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/app/reports/page-4d0b33dac0aaa778.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/app/sales/page-5b85a109f31b7351.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/app/settings/page-c0109550cbfd20a5.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/app/signup/page-72f013ae6b0da15d.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/app/suppliers/page-60bfe4981ba4197a.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/framework-75d8b6119e7601c4.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/main-99b85d5d805a9830.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/main-app-b9614c07c8437f28.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/pages/_app-8e94039938385921.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/pages/_error-7b2d139042a6a5ab.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/chunks/polyfills-42372ed130431b0a.js",revision:"846118c33b2c0e922d7b3a7676f81f6f"},{url:"/_next/static/chunks/webpack-16086c1c1fe50585.js",revision:"rQno5y41fG3aAmUxF5aTM"},{url:"/_next/static/css/232d49b4a9ca6fc1.css",revision:"232d49b4a9ca6fc1"},{url:"/_next/static/rQno5y41fG3aAmUxF5aTM/_buildManifest.js",revision:"64b75f55b320f229ccdd4c1b30908e99"},{url:"/_next/static/rQno5y41fG3aAmUxF5aTM/_ssgManifest.js",revision:"b6652df95db52feb4daf4eca35380933"},{url:"/manifest.json",revision:"22c0d8733374a128bd810dbb6b79f3fe"}],{ignoreURLParametersMatching:[/^utm_/,/^fbclid$/]}),e.cleanupOutdatedCaches(),e.registerRoute("/",new e.NetworkFirst({cacheName:"start-url",plugins:[{cacheWillUpdate:function(e){return _ref.apply(this,arguments)}}]}),"GET"),e.registerRoute(/^https:\/\/fonts\.(?:gstatic)\.com\/.*/i,new e.CacheFirst({cacheName:"google-fonts-webfonts",plugins:[new e.ExpirationPlugin({maxEntries:4,maxAgeSeconds:31536e3})]}),"GET"),e.registerRoute(/^https:\/\/fonts\.(?:googleapis)\.com\/.*/i,new e.StaleWhileRevalidate({cacheName:"google-fonts-stylesheets",plugins:[new e.ExpirationPlugin({maxEntries:4,maxAgeSeconds:604800})]}),"GET"),e.registerRoute(/\.(?:eot|otf|ttc|ttf|woff|woff2|font.css)$/i,new e.StaleWhileRevalidate({cacheName:"static-font-assets",plugins:[new e.ExpirationPlugin({maxEntries:4,maxAgeSeconds:604800})]}),"GET"),e.registerRoute(/\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i,new e.StaleWhileRevalidate({cacheName:"static-image-assets",plugins:[new e.ExpirationPlugin({maxEntries:64,maxAgeSeconds:2592e3})]}),"GET"),e.registerRoute(/\/_next\/static.+\.js$/i,new e.CacheFirst({cacheName:"next-static-js-assets",plugins:[new e.ExpirationPlugin({maxEntries:64,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(/\/_next\/image\?url=.+$/i,new e.StaleWhileRevalidate({cacheName:"next-image",plugins:[new e.ExpirationPlugin({maxEntries:64,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(/\.(?:mp3|wav|ogg)$/i,new e.CacheFirst({cacheName:"static-audio-assets",plugins:[new e.RangeRequestsPlugin,new e.ExpirationPlugin({maxEntries:32,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(/\.(?:mp4|webm)$/i,new e.CacheFirst({cacheName:"static-video-assets",plugins:[new e.RangeRequestsPlugin,new e.ExpirationPlugin({maxEntries:32,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(/\.(?:js)$/i,new e.StaleWhileRevalidate({cacheName:"static-js-assets",plugins:[new e.ExpirationPlugin({maxEntries:48,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(/\.(?:css|less)$/i,new e.StaleWhileRevalidate({cacheName:"static-style-assets",plugins:[new e.ExpirationPlugin({maxEntries:32,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(/\/_next\/data\/.+\/.+\.json$/i,new e.StaleWhileRevalidate({cacheName:"next-data",plugins:[new e.ExpirationPlugin({maxEntries:32,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(/\.(?:json|xml|csv)$/i,new e.NetworkFirst({cacheName:"static-data-assets",plugins:[new e.ExpirationPlugin({maxEntries:32,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(function(e){var a=e.sameOrigin,s=e.url.pathname;return!(!a||s.startsWith("/api/auth/callback")||!s.startsWith("/api/"))},new e.NetworkFirst({cacheName:"apis",networkTimeoutSeconds:10,plugins:[new e.ExpirationPlugin({maxEntries:16,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(function(e){var a=e.request,s=e.url.pathname,n=e.sameOrigin;return"1"===a.headers.get("RSC")&&"1"===a.headers.get("Next-Router-Prefetch")&&n&&!s.startsWith("/api/")},new e.NetworkFirst({cacheName:"pages-rsc-prefetch",plugins:[new e.ExpirationPlugin({maxEntries:32,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(function(e){var a=e.request,s=e.url.pathname,n=e.sameOrigin;return"1"===a.headers.get("RSC")&&n&&!s.startsWith("/api/")},new e.NetworkFirst({cacheName:"pages-rsc",plugins:[new e.ExpirationPlugin({maxEntries:32,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(function(e){var a=e.url.pathname;return e.sameOrigin&&!a.startsWith("/api/")},new e.NetworkFirst({cacheName:"pages",plugins:[new e.ExpirationPlugin({maxEntries:32,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(function(e){return!e.sameOrigin},new e.NetworkFirst({cacheName:"cross-origin",networkTimeoutSeconds:10,plugins:[new e.ExpirationPlugin({maxEntries:32,maxAgeSeconds:3600})]}),"GET")});
+// Service Worker
+
+const CACHE_NAME = 'midgram-cache-v1';
+const urlsToCache = [
+  '/',
+  '/login',
+  '/sales',
+  '/inventory',
+  '/purchases',
+  '/suppliers',
+  '/reports',
+  '/expenses',
+  '/tasks',
+  '/item-movement',
+  '/patients',
+  '/expiring-soon',
+  '/trash',
+  '/guide',
+  '/settings',
+  '/hr',
+  '/exchange',
+  '/offers',
+  '/clinical-training',
+  '/globals.css',
+  '/icon.png'
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('Opened cache');
+        return cache.addAll(urlsToCache);
+      })
+  );
+});
+
+self.addEventListener('fetch', event => {
+  // We only want to handle GET requests for caching.
+  // POST, PUT, DELETE requests will be handled by the background sync.
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        // Cache hit - return response
+        if (response) {
+          return response;
+        }
+
+        return fetch(event.request).then(
+          response => {
+            // Check if we received a valid response
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+
+            const responseToCache = response.clone();
+
+            caches.open(CACHE_NAME)
+              .then(cache => {
+                cache.put(event.request, responseToCache);
+              });
+
+            return response;
+          }
+        );
+      })
+  );
+});
+
+self.addEventListener('activate', event => {
+  const cacheWhitelist = [CACHE_NAME];
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheWhitelist.indexOf(cacheName) === -1) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+});
+
+self.addEventListener('sync', function(event) {
+  if (event.tag === 'sync-requests') {
+    event.waitUntil(syncOfflineRequests());
+  }
+});
+
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open('offline-requests-db', 1);
+        request.onupgradeneeded = event => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('requests')) {
+                db.createObjectStore('requests', { autoIncrement: true, keyPath: 'id' });
+            }
+        };
+        request.onsuccess = event => resolve(event.target.result);
+        request.onerror = event => reject(event.target.error);
+    });
+}
+
+async function syncOfflineRequests() {
+  const db = await openDB();
+  const tx = db.transaction('requests', 'readwrite');
+  const store = tx.objectStore('requests');
+  const requests = await new Promise((resolve, reject) => {
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+  });
+  
+  if (requests && requests.length > 0) {
+    for(const req of requests) {
+        try {
+            const response = await fetch(req.url, req.options);
+            if(response.ok) {
+                 await new Promise((resolve, reject) => {
+                    const deleteRequest = store.delete(req.id);
+                    deleteRequest.onsuccess = resolve;
+                    deleteRequest.onerror = reject;
+                });
+            }
+        } catch(e) {
+            console.error('Failed to sync request:', req, e);
+        }
+    }
+  }
+}
