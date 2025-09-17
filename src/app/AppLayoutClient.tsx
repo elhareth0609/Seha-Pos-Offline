@@ -5,7 +5,6 @@ import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { AppShell } from '@/components/layout/app-shell';
 import { Loader2 } from 'lucide-react';
-import LoginPage from '@/components/auth/LoginPage';
 import { usePathname, useRouter } from 'next/navigation';
 import type { UserPermissions } from '@/lib/types';
 
@@ -14,6 +13,7 @@ const allNavItems = [
   { href: "/", permissionKey: null },
   { href: "/sales", permissionKey: 'manage_sales' },
   { href: "/inventory", permissionKey: 'manage_inventory' },
+  { href: "/exchange", permissionKey: 'manage_inventory' },
   { href: "/purchases", permissionKey: 'manage_purchases' },
   { href: "/suppliers", permissionKey: 'manage_suppliers' },
   { href: "/reports", permissionKey: 'manage_reports' },
@@ -28,6 +28,7 @@ const allNavItems = [
   { href: "/hr", permissionKey: 'manage_hr' },
 ];
 
+const PUBLIC_ROUTES = ['/', '/login', '/signup'];
 
 export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
     const { loading, isAuthenticated, currentUser } = useAuth();
@@ -35,28 +36,37 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
     const router = useRouter();
 
     React.useEffect(() => {
-        if (!isAuthenticated || !currentUser) return;
-        
-        if (currentUser.role === 'SuperAdmin' && !pathname.startsWith('/superadmin')) {
-            router.replace('/superadmin');
-            return;
-        }
-        
-        if (currentUser.role !== 'SuperAdmin' && pathname.startsWith('/superadmin')) {
-            router.replace('/');
+        if (loading) return;
+
+        // If user is not authenticated and trying to access a protected route, redirect to login
+        if (!isAuthenticated && !PUBLIC_ROUTES.includes(pathname)) {
+            router.replace('/login');
             return;
         }
 
-        if (currentUser.role === 'Employee') {
-            const requiredPermission = allNavItems.find(item => item.href === pathname)?.permissionKey;
-            const userPermissions = currentUser.permissions as UserPermissions;
-
-            if (requiredPermission && userPermissions && !userPermissions[requiredPermission as keyof UserPermissions]) {
+        // If user is authenticated, handle role-based redirects and permissions
+        if (isAuthenticated && currentUser) {
+            if (currentUser.role === 'SuperAdmin' && !pathname.startsWith('/superadmin')) {
+                router.replace('/superadmin');
+                return;
+            }
+            
+            if (currentUser.role !== 'SuperAdmin' && pathname.startsWith('/superadmin')) {
                 router.replace('/');
+                return;
+            }
+    
+            if (currentUser.role === 'Employee') {
+                const requiredPermission = allNavItems.find(item => item.href === pathname)?.permissionKey;
+                const userPermissions = currentUser.permissions as UserPermissions;
+    
+                if (requiredPermission && userPermissions && !userPermissions[requiredPermission as keyof UserPermissions]) {
+                    router.replace('/');
+                }
             }
         }
 
-    }, [isAuthenticated, currentUser, pathname, router]);
+    }, [isAuthenticated, currentUser, loading, pathname, router]);
 
 
     if (loading) {
@@ -67,12 +77,12 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
         );
     }
 
-    // Show login page if not authenticated
-    if (!isAuthenticated) {
-        return <LoginPage />;
+    // Public routes are rendered without the AppShell
+    if (PUBLIC_ROUTES.includes(pathname)) {
+        return <>{children}</>;
     }
 
-    // Wait for currentUser to be available
+    // If authenticated, but user data is not yet available, show loader
     if (!currentUser) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-muted/40">
@@ -83,15 +93,6 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
 
     // Check if SuperAdmin needs to be redirected - show loading instead of flashing dashboard
     if (currentUser.role === 'SuperAdmin' && !pathname.startsWith('/superadmin')) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-muted/40">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            </div>
-        );
-    }
-
-    // Check if non-SuperAdmin needs to be redirected from SuperAdmin routes or root
-    if (currentUser.role !== 'SuperAdmin' && (pathname.startsWith('/superadmin'))) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-muted/40">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -112,6 +113,6 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
         );
     }
 
-    // Handle regular user routes
+    // Handle regular user routes with AppShell
     return <AppShell>{children}</AppShell>;
 }

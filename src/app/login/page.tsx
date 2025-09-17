@@ -8,19 +8,19 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
 import { LogIn, ShieldAlert } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
 
 function SuperAdminLoginDialog() {
     const { login } = useAuth();
     const router = useRouter();
+    const { toast } = useToast();
+    const [email, setEmail] = React.useState('');
+    const [pin, setPin] = React.useState('');
 
     const handleSuperAdminLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        const formData = new FormData(e.currentTarget as HTMLFormElement);
-        const email = formData.get('email') as string;
-        const pin = formData.get('pin') as string;
-        
         const user = await login(email, pin);
         if (user) {
             if (user.role === 'SuperAdmin') {
@@ -28,6 +28,8 @@ function SuperAdminLoginDialog() {
             } else {
                 router.push('/');
             }
+        } else {
+            toast({ variant: 'destructive', title: 'بيانات الدخول غير صحيحة' });
         }
     };
 
@@ -42,11 +44,11 @@ function SuperAdminLoginDialog() {
             <form onSubmit={handleSuperAdminLogin} className="space-y-4 py-2">
                 <div className="space-y-2">
                     <Label htmlFor="superadmin-email">البريد الإلكتروني</Label>
-                    <Input id="superadmin-email" name="email" type="email" required />
+                    <Input id="superadmin-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="superadmin-pin">رمز PIN</Label>
-                    <Input id="superadmin-pin" name="pin" type="password" required />
+                    <Input id="superadmin-pin" type="password" value={pin} onChange={(e) => setPin(e.target.value)}  required />
                 </div>
                 <DialogFooter>
                     <DialogClose asChild><Button variant="outline" type="button">إلغاء</Button></DialogClose>
@@ -58,10 +60,12 @@ function SuperAdminLoginDialog() {
 }
 
 export default function LoginPage() {
+    const [email, setEmail] = React.useState('');
+    const [pin, setPin] = React.useState('');
     const { login, isAuthenticated, loading } = useAuth();
     const router = useRouter();
 
-     React.useEffect(() => {
+    React.useEffect(() => {
         if (!loading && isAuthenticated) {
             router.replace('/');
         }
@@ -70,9 +74,6 @@ export default function LoginPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const formData = new FormData(e.currentTarget as HTMLFormElement);
-        const email = formData.get('email') as string;
-        const pin = formData.get('pin') as string;
         await login(email, pin);
     };
 
@@ -97,11 +98,11 @@ export default function LoginPage() {
                         <CardContent className="space-y-4">
                              <div className="space-y-2 text-right">
                                 <Label htmlFor="login-email">البريد الإلكتروني</Label>
-                                <Input id="login-email" name="email" type="email" placeholder="example@email.com" required />
+                                <Input id="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" required />
                             </div>
                             <div className="space-y-2 text-right">
                                 <Label htmlFor="login-pin">رمز PIN</Label>
-                                <Input id="login-pin" name="pin" type="password" required placeholder="••••" />
+                                <Input id="login-pin" type="password"  value={pin} onChange={(e) => setPin(e.target.value)}  required placeholder="••••" />
                             </div>
                         </CardContent>
                         <CardFooter className="flex-col gap-4">
