@@ -74,7 +74,7 @@ import { ar } from 'date-fns/locale';
 import { ThemeToggle } from "../ui/theme-toggle";
 
 const allNavItems = [
-  { href: "/", icon: LayoutDashboard, label: "لوحة التحكم", group: 'main' },
+  { href: "/dashboard", icon: LayoutDashboard, label: "لوحة التحكم", group: 'main' },
   { href: "/sales", icon: ShoppingCart, label: "المبيعات", group: 'main' },
   { href: "/inventory", icon: Boxes, label: "المخزون", group: 'main' },
   { href: "/clinical-training", icon: Stethoscope, label: "التعليم المستمر", group: 'main' },
@@ -353,7 +353,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
 
     return allNavItems.filter(item => {
-        if (item.href === '/' || item.href === '/representatives') return true; 
+        if (item.href === '/dashboard' || item.href === '/representatives') return true; 
         const permissionKey = permissionMap[item.href];
         if (!permissionKey) return true;
         return permissions[permissionKey];
@@ -477,7 +477,7 @@ const handleBackup = async () => {
             <div className="container py-4">
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4 pb-4 border-b">
                     <div className="flex flex-1 items-center justify-start gap-2">
-                        <Link href="/" className="flex items-center gap-2 font-semibold">
+                        <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
                             <img src="/icon.png" alt="Site Icon" className="h-6 w-6" />
                         </Link>
                         <div className="flex items-center gap-2">
@@ -647,5 +647,3 @@ const handleBackup = async () => {
     </TooltipProvider>
   );
 }
-
-    

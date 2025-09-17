@@ -10,7 +10,7 @@ import type { UserPermissions } from '@/lib/types';
 
 
 const allNavItems = [
-  { href: "/", permissionKey: null },
+  { href: "/dashboard", permissionKey: null },
   { href: "/sales", permissionKey: 'manage_sales' },
   { href: "/inventory", permissionKey: 'manage_inventory' },
   { href: "/exchange", permissionKey: 'manage_inventory' },
@@ -52,7 +52,7 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
             }
             
             if (currentUser.role !== 'SuperAdmin' && pathname.startsWith('/superadmin')) {
-                router.replace('/');
+                router.replace('/dashboard');
                 return;
             }
     
@@ -61,7 +61,7 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
                 const userPermissions = currentUser.permissions as UserPermissions;
     
                 if (requiredPermission && userPermissions && !userPermissions[requiredPermission as keyof UserPermissions]) {
-                    router.replace('/');
+                    router.replace('/dashboard');
                 }
             }
         }
