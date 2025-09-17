@@ -35,11 +35,13 @@
     --background-hsl: 204 10% 96%;
     --foreground-hsl: 224 71.4% 4.1%;
     
-    --medical-primary: 180 70% 45%;
-    --medical-secondary: 210 80% 96%;
-    --medical-tertiary: 200 85% 80%;
-    --medical-success: 130 60% 40%;
-    --medical-warning: 40 90% 60%;
+    /* Medical/Pharmacy Theme Colors */
+    --medical-primary: 155 100% 30%;
+    --medical-secondary: 155 85% 25%;
+    --medical-tertiary: 155 50% 97%;
+    --medical-success: 155 100% 25%;
+    --medical-warning: 38 92% 50%;
+
 
     --sidebar-background: 215 30% 15%;
     --sidebar-foreground: 210 20% 80%;
