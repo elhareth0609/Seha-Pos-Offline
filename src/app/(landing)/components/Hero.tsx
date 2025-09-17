@@ -93,14 +93,14 @@ export const Hero = () => {
                 <div className="embla__container flex">
                   <div className="embla__slide flex-[0_0_100%] min-w-0">
                     <img
-                      src="/lovable-uploads/f695b7c1-a4db-4a2c-9044-9a3530dc8159.png"
+                      src="/landing/f695b7c1-a4db-4a2c-9044-9a3530dc8159.png"
                       alt="واجهة نظام إدارة الصيدلية ميدجرام - لوحة التحكم والتقارير"
                       className="w-full h-auto rounded-2xl shadow-feature"
                     />
                   </div>
                   <div className="embla__slide flex-[0_0_100%] min-w-0">
                     <img
-                      src="/lovable-uploads/53f31578-5447-46e2-809c-12b2e06ba9ce.png"
+                      src="/landing/53f31578-5447-46e2-809c-12b2e06ba9ce.png"
                       alt="واجهة نظام إدارة الصيدلية ميدجرام - نقطة البيع والمخزون"
                       className="w-full h-auto rounded-2xl shadow-feature"
                     />
