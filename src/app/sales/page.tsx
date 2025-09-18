@@ -290,6 +290,95 @@ const referenceSites = [
     { name: "DawaSeek", url: "https://www.dawaseek.com/" },
 ];
 
+function FavoritesPopover({ onSelect }: { onSelect: (med: Medication) => void }) {
+    const { scopedData, searchAllInventory, toggleFavoriteMedication } = useAuth();
+    const { settings: [settings] } = scopedData;
+    const [allMeds, setAllMeds] = React.useState<Medication[]>([]);
+    const [searchTerm, setSearchTerm] = React.useState('');
+    const [searchResults, setSearchResults] = React.useState<Medication[]>([]);
+    
+    React.useEffect(() => {
+        searchAllInventory('').then(setAllMeds);
+    }, [searchAllInventory]);
+
+    React.useEffect(() => {
+        if(searchTerm.length > 1) {
+            const results = allMeds.filter(med => 
+                med.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                med.scientific_names?.some(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
+            );
+            setSearchResults(results.slice(0,5));
+        } else {
+            setSearchResults([]);
+        }
+    }, [searchTerm, allMeds]);
+
+    const favoriteMeds = React.useMemo(() => {
+        const favIds = new Set(settings.favorite_med_ids || []);
+        return allMeds.filter(med => favIds.has(med.id));
+    }, [settings.favorite_med_ids, allMeds]);
+
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button variant="outline" size="icon" className="shrink-0 text-yellow-400 border-yellow-400 hover:bg-yellow-400 hover:text-white">
+                    <Star />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-96">
+                <div className="space-y-4">
+                    <div>
+                        <h4 className="font-medium leading-none">الأدوية المفضلة</h4>
+                        <p className="text-sm text-muted-foreground">أضف الأدوية الأكثر مبيعاً للوصول السريع.</p>
+                    </div>
+                    
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="ابحث لإضافة دواء للمفضلة..." 
+                            className="pl-8" 
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        {searchTerm.length > 1 ? (
+                            // Search results
+                            searchResults.length > 0 ? searchResults.map(med => (
+                                <div key={med.id} className="p-2 flex items-center justify-between hover:bg-accent rounded-md text-sm">
+                                    <span>{med.name}</span>
+                                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => {toggleFavoriteMedication(med.id); setSearchTerm('');}}>
+                                        <PlusCircle className="h-4 w-4 text-green-600" />
+                                    </Button>
+                                </div>
+                            )) : <p className="text-xs text-muted-foreground text-center">لم يتم العثور على نتائج.</p>
+                        ) : (
+                            // Favorites list
+                            <ScrollArea className="h-48">
+                                <div className="space-y-2">
+                                {favoriteMeds.length > 0 ? favoriteMeds.map(med => (
+                                    <div key={med.id} className="group p-2 flex items-center justify-between hover:bg-accent rounded-md cursor-pointer text-sm" onClick={() => onSelect(med)}>
+                                        <span>{med.name}</span>
+                                        <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); toggleFavoriteMedication(med.id);}}>
+                                            <X className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                )) : (
+                                    <p className="text-xs text-muted-foreground text-center pt-4">
+                                        قائمة المفضلة فارغة. ابحث عن دواء لإضافته.
+                                    </p>
+                                )}
+                                </div>
+                            </ScrollArea>
+                        )}
+                    </div>
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+}
+
 export default function SalesPage() {
   const { 
     currentUser, 
@@ -307,7 +396,8 @@ export default function SalesPage() {
     searchAllInventory,
     searchAllSales,
     searchAllPatients,
-    verifyPin
+    verifyPin,
+    toggleFavoriteMedication
   } = useAuth();
 
   const router = useRouter();
@@ -810,11 +900,6 @@ export default function SalesPage() {
     });
   };
 
-  const favoriteMeds = React.useMemo(() => {
-    const favIds = settings.favorite_med_ids || [];
-    return allInventory.filter(med => favIds.includes(med.id));
-  }, [settings.favorite_med_ids, allInventory]);
-
   return (
     <>
     <TooltipProvider>
@@ -884,33 +969,7 @@ export default function SalesPage() {
                             </Card>
                         )}
                     </div>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" size="icon" className="shrink-0 text-yellow-400 border-yellow-400 hover:bg-yellow-400 hover:text-white">
-                                <Star />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-96">
-                            <div className="space-y-2">
-                                <h4 className="font-medium leading-none">الأدوية المفضلة</h4>
-                                <p className="text-sm text-muted-foreground">
-                                    اضغط على أي دواء لإضافته بسرعة للفاتورة.
-                                </p>
-                            </div>
-                            <div className="grid gap-2 mt-4 max-h-64 overflow-y-auto">
-                                {favoriteMeds.length > 0 ? favoriteMeds.map(med => (
-                                    <div key={med.id} onClick={() => addToCart(med)} className="p-2 flex items-center justify-between hover:bg-accent rounded-md cursor-pointer">
-                                        <span>{med.name}</span>
-                                        <Plus className="h-4 w-4" />
-                                    </div>
-                                )) : (
-                                    <p className="text-sm text-muted-foreground text-center py-4">
-                                        لم تقم بإضافة أي أدوية للمفضلة. اذهب إلى المخزون واضغط على النجمة.
-                                    </p>
-                                )}
-                            </div>
-                        </PopoverContent>
-                    </Popover>
+                    <FavoritesPopover onSelect={addToCart} />
                     <Popover>
                         <PopoverTrigger asChild>
                             <Button variant="outline" size="icon" className="shrink-0"><BrainCircuit /></Button>
