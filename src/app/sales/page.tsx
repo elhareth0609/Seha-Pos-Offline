@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import * as React from "react"
@@ -50,7 +51,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput, Notification } from "@/lib/types"
-import { PlusCircle, X, PackageSearch, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText, Calculator, Search, Plus, Minus } from "lucide-react"
+import { PlusCircle, X, PackageSearch, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText, Calculator, Search, Plus, Minus, Star } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
@@ -809,6 +810,11 @@ export default function SalesPage() {
     });
   };
 
+  const favoriteMeds = React.useMemo(() => {
+    const favIds = settings.favorite_med_ids || [];
+    return allInventory.filter(med => favIds.includes(med.id));
+  }, [settings.favorite_med_ids, allInventory]);
+
   return (
     <>
     <TooltipProvider>
@@ -878,6 +884,33 @@ export default function SalesPage() {
                             </Card>
                         )}
                     </div>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" size="icon" className="shrink-0 text-yellow-400 border-yellow-400 hover:bg-yellow-400 hover:text-white">
+                                <Star />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-96">
+                            <div className="space-y-2">
+                                <h4 className="font-medium leading-none">الأدوية المفضلة</h4>
+                                <p className="text-sm text-muted-foreground">
+                                    اضغط على أي دواء لإضافته بسرعة للفاتورة.
+                                </p>
+                            </div>
+                            <div className="grid gap-2 mt-4 max-h-64 overflow-y-auto">
+                                {favoriteMeds.length > 0 ? favoriteMeds.map(med => (
+                                    <div key={med.id} onClick={() => addToCart(med)} className="p-2 flex items-center justify-between hover:bg-accent rounded-md cursor-pointer">
+                                        <span>{med.name}</span>
+                                        <Plus className="h-4 w-4" />
+                                    </div>
+                                )) : (
+                                    <p className="text-sm text-muted-foreground text-center py-4">
+                                        لم تقم بإضافة أي أدوية للمفضلة. اذهب إلى المخزون واضغط على النجمة.
+                                    </p>
+                                )}
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                     <Popover>
                         <PopoverTrigger asChild>
                             <Button variant="outline" size="icon" className="shrink-0"><BrainCircuit /></Button>

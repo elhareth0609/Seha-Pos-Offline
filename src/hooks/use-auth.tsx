@@ -91,6 +91,7 @@ interface AuthContextType {
     bulkAddOrUpdateInventory: (items: Partial<Medication>[]) => Promise<boolean>;
     getPaginatedInventory: (page: number, perPage: number, search: string, filters: Record<string, any>) => Promise<PaginatedResponse<Medication>>;
     searchAllInventory: (search: string) => Promise<Medication[]>;
+    toggleFavoriteMedication: (medId: string) => Promise<void>;
     
     // Expiring Soon
     getPaginatedExpiringSoon: (page: number, perPage: number, search: string, type: 'expiring' | 'expired' | 'damaged') => Promise<{
@@ -240,6 +241,7 @@ const fallbackAppSettings: AppSettings = {
     pharmacyEmail: "",
     expirationThresholdDays: 90,
     invoiceFooterMessage: "شكرًا لزيارتكم!",
+    favorite_med_ids: [],
 }
 
 const initialActiveInvoice: ActiveInvoice = {
@@ -1465,6 +1467,12 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         }
     };
 
+    const toggleFavoriteMedication = async (medId: string) => {
+        const currentFavs = settings.favorite_med_ids || [];
+        const isFavorite = currentFavs.includes(medId);
+        const newFavs = isFavorite ? currentFavs.filter(id => id !== medId) : [...currentFavs, medId];
+        setScopedSettings({ ...settings, favorite_med_ids: newFavs });
+    }
 
     const setScopedSettings = async (value: AppSettings | ((val: AppSettings) => AppSettings)) => {
        const newSettings = typeof value === 'function' ? value(settings) : value;
@@ -1500,7 +1508,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             getAllPharmacySettings, getPharmacyData, clearPharmacyData, closeMonth,
             advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement, incrementAdView,
             offers, addOffer, deleteOffer, incrementOfferView,
-            addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, getPaginatedInventory, searchAllInventory, markAsDamaged,
+            addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, getPaginatedInventory, searchAllInventory, markAsDamaged, toggleFavoriteMedication,
             getPaginatedExpiringSoon,
             getPaginatedItemMovements, getMedicationMovements,
             addSale, updateSale, deleteSale, getPaginatedSales, searchAllSales,
@@ -1536,4 +1544,5 @@ export function useAuth() {
   }
   return context;
 }
+
 

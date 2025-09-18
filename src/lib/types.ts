@@ -280,6 +280,7 @@ export type AppSettings = {
     invoiceFooterMessage?: string;
     suggestion_preference_score?: Record<string, number>;
     controlled_substances?: string[];
+    favorite_med_ids?: string[];
 }
 
 export type TrashItem = {
