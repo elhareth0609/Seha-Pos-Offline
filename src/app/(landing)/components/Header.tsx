@@ -16,9 +16,9 @@ export const Header = () => {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center">
               <img src="/icon.png" alt="Midgram Logo" className="h-8 w-8" />
             </div>
-            <span className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            {/* <span className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
               ميدجرام
-            </span>
+            </span> */}
           </div>
 
           {/* Desktop Navigation */}

@@ -1,4 +1,4 @@
-import { Mail, Phone, MapPin, MessageCircle, Instagram } from "lucide-react";
+import { Mail, Phone, MapPin, MessageCircle, Instagram, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Footer = () => {
@@ -12,25 +12,25 @@ export const Footer = () => {
               <div className="w-10 h-10 rounded-xl flex items-center justify-center hover:rotate-12 transition-transform duration-300">
                 <img src="/icon.png" alt="Midgram Logo" className="h-8 w-8" />
               </div>
-              <span className="text-2xl font-bold">ميدجرام</span>
+              {/* <span className="text-2xl font-bold">ميدجرام</span> */}
             </div>
             <p className="text-gray-300 leading-relaxed hover:text-white transition-colors duration-300">
-              نظام إدارة الصيدليات الأكثر تطوراً في المنطقة. نساعدك في تحويل صيدليتك إلى مركز متكامل للكفاءة والربحية.
+              حوّل صيدليتك إلى مركز متكامل للكفاءة والربحية. نظام شامل لإدارة كل جوانب عملك اليومي بدقة وسهولة.
             </p>
           </div>
 
           {/* Contact */}
-          <div className="animate-fade-in" style={{animationDelay: "0.4s"}}>
+          <div className="animate-fade-in justify-end" style={{animationDelay: "0.4s"}}>
             <h4 className="text-lg font-semibold mb-4 text-white">تواصل معنا</h4>
             <div className="space-y-3">
-              <div className="flex items-center gap-3 hover:translate-x-2 transition-transform duration-300">
+              {/* <div className="flex items-center gap-3 hover:translate-x-2 transition-transform duration-300">
                 <Phone className="h-5 w-5 text-medical-primary" />
                 <span className="text-gray-300 hover:text-white transition-colors duration-300">+964 770 123 4567</span>
-              </div>
-              <div className="flex items-center gap-3 hover:translate-x-2 transition-transform duration-300">
+              </div> */}
+              {/* <div className="flex items-center gap-3 hover:translate-x-2 transition-transform duration-300">
                 <Mail className="h-5 w-5 text-medical-primary" />
                 <span className="text-gray-300 hover:text-white transition-colors duration-300">support@medgram.iq</span>
-              </div>
+              </div> */}
               <div className="flex items-center gap-3 hover:translate-x-2 transition-transform duration-300">
                 <MapPin className="h-5 w-5 text-medical-primary" />
                 <span className="text-gray-300 hover:text-white transition-colors duration-300">العراق - بغداد</span>
@@ -39,7 +39,6 @@ export const Footer = () => {
             
             {/* Social Media Buttons */}
             <div className="mt-6">
-              <h5 className="text-base font-medium mb-3 text-white">تابعنا على</h5>
               <div className="flex gap-3">
                 <Button 
                   size="sm" 
@@ -60,6 +59,7 @@ export const Footer = () => {
               </div>
             </div>
           </div>
+
         </div>
 
         {/* Bottom Bar */}
