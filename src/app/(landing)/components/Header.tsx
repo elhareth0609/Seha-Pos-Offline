@@ -29,9 +29,6 @@ export const Header = () => {
             <a href="#about" className="text-foreground hover:text-medical-primary transition-colors font-medium relative after:content-[''] after:absolute after:w-full after:scale-x-0 after:h-0.5 after:bottom-0 after:left-0 after:bg-medical-primary after:origin-bottom-right after:transition-transform after:duration-300 hover:after:scale-x-100 hover:after:origin-bottom-left">
               من نحن
             </a>
-            <a href="#contact" className="text-foreground hover:text-medical-primary transition-colors font-medium relative after:content-[''] after:absolute after:w-full after:scale-x-0 after:h-0.5 after:bottom-0 after:left-0 after:bg-medical-primary after:origin-bottom-right after:transition-transform after:duration-300 hover:after:scale-x-100 hover:after:origin-bottom-left">
-              اتصل بنا
-            </a>
           </nav>
 
           {/* Desktop CTA */}
@@ -62,9 +59,6 @@ export const Header = () => {
               </a>
               <a href="#about" className="text-foreground hover:text-medical-primary transition-colors font-medium py-2">
                 من نحن
-              </a>
-              <a href="#contact" className="text-foreground hover:text-medical-primary transition-colors font-medium py-2">
-                اتصل بنا
               </a>
               <div className="flex flex-col gap-3 pt-4 border-t border-border/50">
                 <Button variant="ghost" className="font-medium justify-start hover:scale-105 transition-transform duration-200">
