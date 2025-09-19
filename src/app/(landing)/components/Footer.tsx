@@ -44,7 +44,7 @@ export const Footer = () => {
                 <Button 
                   size="sm" 
                   className="bg-green-500 hover:bg-green-600 text-white flex items-center gap-2 px-4 py-2 rounded-lg hover:scale-110 transition-all duration-300"
-                  onClick={() => window.open('https://wa.me/+9647701234567', '_blank')}
+                  onClick={() => window.open('https://wa.me/9647762244627', '_blank')}
                 >
                   <MessageCircle className="h-4 w-4" />
                   واتساب
@@ -52,7 +52,7 @@ export const Footer = () => {
                 <Button 
                   size="sm" 
                   className="bg-gradient-to-r from-purple-500 via-pink-500 to-orange-400 hover:from-purple-600 hover:via-pink-600 hover:to-orange-500 text-white flex items-center gap-2 px-4 py-2 rounded-lg hover:scale-110 transition-all duration-300"
-                  onClick={() => window.open('https://instagram.com/medgram.iq', '_blank')}
+                  onClick={() => window.open('https://www.instagram.com/midgram.iq?igsh=cWZvcHhpbWE4Ym41', '_blank')}
                 >
                   <Instagram className="h-4 w-4" />
                   انستغرام
