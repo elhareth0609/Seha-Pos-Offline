@@ -2,35 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import useEmblaCarousel from "embla-carousel-react";
 import React from "react";
 
 export const Hero = () => {
-  const [emblaRef, emblaApi] = useEmblaCarousel({ 
-    loop: true
-  });
-  const [selectedIndex, setSelectedIndex] = React.useState(0);
-
-  const onSelect = React.useCallback(() => {
-    if (!emblaApi) return;
-    setSelectedIndex(emblaApi.selectedScrollSnap());
-  }, [emblaApi]);
-
-  React.useEffect(() => {
-    if (!emblaApi) return;
-    onSelect();
-    emblaApi.on("select", onSelect);
-    
-    // Auto scroll
-    const autoScroll = setInterval(() => {
-      emblaApi.scrollNext();
-    }, 5000);
-
-    return () => {
-      clearInterval(autoScroll);
-      emblaApi.off("select", onSelect);
-    };
-  }, [emblaApi, onSelect]);
   return (
     <section className="relative min-h-screen flex items-center justify-center bg-gradient-hero overflow-hidden" dir="rtl">
       {/* Background Pattern */}
@@ -79,41 +53,15 @@ export const Hero = () => {
             </div>
           </div>
           
-          {/* Hero Images Carousel */}
+          {/* Hero Image */}
           <div className="relative animate-fade-in" style={{animationDelay: "0.4s"}}>
             <div className="relative bg-gradient-card rounded-3xl p-8 shadow-glow hover:shadow-feature transition-shadow duration-500">
-              <div className="embla overflow-hidden rounded-2xl" ref={emblaRef}>
-                <div className="embla__container flex">
-                  <div className="embla__slide flex-[0_0_100%] min-w-0">
-                    <img
-                      src="/landing/f695b7c1-a4db-4a2c-9044-9a3530dc8159.png"
-                      alt="واجهة نظام إدارة الصيدلية ميدجرام - لوحة التحكم والتقارير"
-                      className="w-full h-auto rounded-2xl shadow-feature"
-                    />
-                  </div>
-                  <div className="embla__slide flex-[0_0_100%] min-w-0">
-                    <img
-                      src="/landing/53f31578-5447-46e2-809c-12b2e06ba9ce.png"
-                      alt="واجهة نظام إدارة الصيدلية ميدجرام - نقطة البيع والمخزون"
-                      className="w-full h-auto rounded-2xl shadow-feature"
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              {/* Carousel Indicators */}
-              <div className="flex justify-center gap-2 mt-4">
-                {[0, 1].map((index) => (
-                  <button
-                    key={index}
-                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                      selectedIndex === index 
-                        ? "bg-medical-primary scale-125" 
-                        : "bg-white/30 hover:bg-white/50"
-                    }`}
-                    onClick={() => emblaApi?.scrollTo(index)}
-                  />
-                ))}
+              <div className="overflow-hidden rounded-2xl">
+                <img
+                  src="/landing/f695b7c1-a4db-4a2c-9044-9a3530dc8159.png"
+                  alt="واجهة نظام إدارة الصيدلية ميدجرام - لوحة التحكم والتقارير"
+                  className="w-full h-auto rounded-2xl shadow-feature"
+                />
               </div>
               
               {/* Floating Elements */}
