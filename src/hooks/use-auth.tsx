@@ -1478,9 +1478,11 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
        const newSettings = typeof value === 'function' ? value(settings) : value;
        try {
            const updatedSettings = await apiRequest('/settings', 'POST', newSettings);
-           setSettings(updatedSettings);
+           setSettings(updatedSettings); // Update local state with the response from the server
            toast({ title: "تم حفظ الإعدادات" });
-       } catch (error: any) {}
+       } catch (error: any) {
+           // The apiRequest function already shows a toast on error
+       }
     };
     
     const scopedData: ScopedDataContextType = {
@@ -1544,5 +1546,3 @@ export function useAuth() {
   }
   return context;
 }
-
-
