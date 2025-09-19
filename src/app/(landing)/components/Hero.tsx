@@ -61,13 +61,6 @@ export const Hero = () => {
               حوّل صيدليتك إلى مركز متكامل للكفاءة والربحية. نظام شامل لإدارة كل جوانب عملك اليومي بدقة وسهولة.
             </p>
             
-            {/* CTA Buttons */}
-            <div className="flex justify-end animate-fade-in" style={{animationDelay: "0.6s"}}>
-              <Button size="lg" className="bg-gradient-primary hover:shadow-glow hover:scale-105 transition-all duration-300 text-lg px-8 py-4 rounded-xl">
-                تواصل معنا
-                <ArrowLeft className="mr-2 h-5 w-5" />
-              </Button>
-            </div>
             
             {/* Trust Indicators */}
             <div className="flex items-center gap-8 text-sm text-muted-foreground animate-fade-in" style={{animationDelay: "0.8s"}}>

@@ -277,7 +277,7 @@ export const Features = () => {
               </p>
               <div className="flex justify-center">
                 <button className="bg-gradient-primary text-white px-8 py-4 rounded-xl text-lg font-medium hover:shadow-glow hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2">
-                  ابدأ رحلتك مع ميدجرام
+                  تسجيل الدخول
                   <ArrowLeft className="w-5 h-5" />
                 </button>
               </div>

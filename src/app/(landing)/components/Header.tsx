@@ -36,9 +36,6 @@ export const Header = () => {
             <Button variant="ghost" className="font-medium hover:scale-105 transition-transform duration-200">
               تسجيل الدخول
             </Button>
-            <Button className="bg-gradient-primary hover:shadow-glow hover:scale-105 transition-all duration-300">
-              تواصل معنا
-            </Button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -63,9 +60,6 @@ export const Header = () => {
               <div className="flex flex-col gap-3 pt-4 border-t border-border/50">
                 <Button variant="ghost" className="font-medium justify-start hover:scale-105 transition-transform duration-200">
                   تسجيل الدخول
-                </Button>
-                <Button className="bg-gradient-primary hover:shadow-glow hover:scale-105 transition-all duration-300 justify-start">
-                  تواصل معنا
                 </Button>
               </div>
             </nav>
