@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import * as React from "react"
@@ -52,7 +53,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
 import type { Medication, AppSettings } from "@/lib/types"
-import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package, Plus, X, Filter, ShoppingBasket, Percent, PlusCircle, Copy } from "lucide-react"
+import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package, Plus, X, Filter, ShoppingBasket, Percent, PlusCircle, Copy, Star } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import Barcode from '@/components/ui/barcode';
@@ -62,6 +63,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import AdCarousel from "@/components/ui/ad-carousel";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { PinDialog } from "@/components/auth/PinDialog";
+import { cn } from "@/lib/utils"
 
 
 const dosage_forms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion"];
@@ -89,6 +91,7 @@ export default function InventoryPage() {
     currentUser,
     verifyPin,
     addToOrderRequestCart,
+    toggleFavoriteMedication,
   } = useAuth();
   
   const [paginatedInventory, setPaginatedInventory] = React.useState<Medication[]>([]);
@@ -128,6 +131,7 @@ export default function InventoryPage() {
 
   const [itemToDelete, setItemToDelete] = React.useState<Medication | null>(null);
   const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
+  const { settings: [settings] } = scopedData;
 
 
   // Fetch data
@@ -590,6 +594,7 @@ export default function InventoryPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12"></TableHead>
                 <TableHead>الاسم</TableHead>
                 <TableHead>الباركود</TableHead>
                 <TableHead className="text-center">المخزون</TableHead>
@@ -603,6 +608,7 @@ export default function InventoryPage() {
             <TableBody>
               {loading ? Array.from({ length: perPage }).map((_, i) => (
                   <TableRow key={`skel-${i}`}>
+                      <TableCell><Skeleton className="h-6 w-6 rounded-full" /></TableCell>
                       <TableCell><div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-sm" /><div className="space-y-2"><Skeleton className="h-4 w-40" /><Skeleton className="h-3 w-24" /></div></div></TableCell>
                       <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
@@ -614,6 +620,11 @@ export default function InventoryPage() {
                   </TableRow>
               )) : paginatedInventory.length > 0 ? paginatedInventory.map((item) => (
                 <TableRow key={item.id}>
+                  <TableCell>
+                      <Button variant="ghost" size="icon" onClick={() => toggleFavoriteMedication(item.id)} className="h-8 w-8">
+                          <Star className={cn("h-5 w-5 text-muted-foreground transition-colors", settings.favorite_med_ids?.includes(item.id) && "text-yellow-400 fill-yellow-400")} />
+                      </Button>
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
                         {typeof item.image_url === 'string' && item.image_url !== "" ? (
