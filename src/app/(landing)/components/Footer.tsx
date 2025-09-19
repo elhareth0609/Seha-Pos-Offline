@@ -1,4 +1,4 @@
-import { Heart, Mail, Phone, MapPin, MessageCircle, Instagram } from "lucide-react";
+import { Mail, Phone, MapPin, MessageCircle, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Footer = () => {
@@ -9,8 +9,8 @@ export const Footer = () => {
           {/* Brand */}
           <div className="space-y-4 animate-fade-in" style={{animationDelay: "0.2s"}}>
             <div className="flex items-center gap-3 hover:scale-105 transition-transform duration-300">
-              <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center hover:rotate-12 transition-transform duration-300">
-                <Heart className="h-6 w-6 text-white" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center hover:rotate-12 transition-transform duration-300">
+                <img src="/icon.png" alt="Midgram Logo" className="h-8 w-8" />
               </div>
               <span className="text-2xl font-bold">ميدجرام</span>
             </div>
