@@ -68,14 +68,14 @@ export const About = () => {
                           حمّل التطبيق الآن
                         </h6>
                         <div className="flex flex-col sm:flex-row gap-2">
-                          <Button size="sm" className="bg-black hover:bg-black/90 text-white flex items-center gap-2 px-4 py-2 rounded-lg text-xs hover:scale-105 transition-all duration-300">
+                          <Button size="sm" className="bg-black hover:bg-black/90 text-white flex items-center gap-2 px-4 py-2 rounded-lg text-xs hover:scale-105 transition-all duration-300" onClick={() => window.open('https://apps.apple.com/us/app/midgram/id6748060505', '_blank')}>
                             <div className="flex flex-col items-start">
                               <span className="text-xs opacity-80">متاح على</span>
                               <span className="font-semibold">App Store</span>
                             </div>
                             <Download className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" className="bg-gradient-to-b from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white flex items-center gap-2 px-4 py-2 rounded-lg text-xs hover:scale-105 transition-all duration-300">
+                          <Button size="sm" className="bg-gradient-to-b from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white flex items-center gap-2 px-4 py-2 rounded-lg text-xs hover:scale-105 transition-all duration-300" onClick={() => window.open('https://play.google.com/store/apps/details?id=com.wepioners.midgram', '_blank')}>
                             <div className="flex flex-col items-start">
                               <span className="text-xs opacity-80">احصل عليه من</span>
                               <span className="font-semibold">Google Play</span>
