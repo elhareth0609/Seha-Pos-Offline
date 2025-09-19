@@ -6,15 +6,14 @@ import { AuthProvider } from '@/hooks/use-auth';
 import AppLayoutClient from './AppLayoutClient';
 import { ThemeProvider } from "next-themes";
 
-// Temporarily removing Google Fonts import due to connection issues
-// We'll use system fonts as fallback
-// import { Tajawal } from 'next/font/google';
+// Use the Tajawal font from Google Fonts
+import { Tajawal } from 'next/font/google';
 
-// const tajawal = Tajawal({
-//   subsets: ['arabic'],
-//   weight: ['400', '500', '700'],
-//   variable: '--font-tajawal',
-// });
+const tajawal = Tajawal({
+  subsets: ['arabic'],
+  weight: ['400', '500', '700'],
+  variable: '--font-tajawal',
+});
 
 export const metadata: Metadata = {
   title: 'ميدجرام',
@@ -32,7 +31,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/icon.png" />
       </head>
-      <body className="font-body antialiased">
+      <body className={`${tajawal.variable} font-body antialiased`}>
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -66,4 +65,3 @@ export default function RootLayout({
     </html>
   );
 }
-
