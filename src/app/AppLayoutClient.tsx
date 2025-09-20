@@ -7,6 +7,7 @@ import { AppShell } from '@/components/layout/app-shell';
 import { Loader2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { UserPermissions } from '@/lib/types';
+import { ThemeProvider } from "next-themes";
 
 
 const allNavItems = [
@@ -30,7 +31,7 @@ const allNavItems = [
 
 const PUBLIC_ROUTES = ['/', '/login', '/signup'];
 
-export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
+function LayoutWrapper({ children }: { children: React.ReactNode }) {
     const { loading, isAuthenticated, currentUser } = useAuth();
     const pathname = usePathname();
     const router = useRouter();
@@ -77,7 +78,7 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
         );
     }
 
-    // Public routes are rendered without the AppShell
+    // Public routes are rendered without the AppShell and ThemeProvider
     if (PUBLIC_ROUTES.includes(pathname)) {
         return <>{children}</>;
     }
@@ -113,6 +114,21 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
         );
     }
 
-    // Handle regular user routes with AppShell
-    return <AppShell>{children}</AppShell>;
+    // Handle regular user routes with AppShell and ThemeProvider
+    return (
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+            themes={['light', 'dark', 'theme-black', 'theme-rose', 'theme-blue', 'theme-green', 'theme-violet', 'theme-serenity-blue', 'theme-radiant-orchid', 'theme-golden-sunset', 'theme-forest-dreams', 'theme-crimson-elegance', 'theme-pastel-paradise']}
+        >
+            <AppShell>{children}</AppShell>
+        </ThemeProvider>
+    );
+}
+
+
+export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
+    return <LayoutWrapper>{children}</LayoutWrapper>
 }

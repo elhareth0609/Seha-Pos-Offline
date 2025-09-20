@@ -4,7 +4,6 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/hooks/use-auth';
 import AppLayoutClient from './AppLayoutClient';
-import { ThemeProvider } from "next-themes";
 
 // Use the Tajawal font from Google Fonts
 import { Tajawal } from 'next/font/google';
@@ -47,20 +46,12 @@ export default function RootLayout({
             `,
           }}
         />
-        <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-            themes={['light', 'dark', 'theme-black', 'theme-rose', 'theme-blue', 'theme-green', 'theme-violet', 'theme-serenity-blue', 'theme-radiant-orchid', 'theme-golden-sunset', 'theme-forest-dreams', 'theme-crimson-elegance', 'theme-pastel-paradise']}
-        >
-            <AuthProvider>
-                <AppLayoutClient>
-                  {children}
-                </AppLayoutClient>
-                <Toaster />
-            </AuthProvider>
-        </ThemeProvider>
+        <AuthProvider>
+            <AppLayoutClient>
+              {children}
+            </AppLayoutClient>
+            <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );
