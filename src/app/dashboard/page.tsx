@@ -20,7 +20,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import type { Medication, Sale, AppSettings, Task } from "@/lib/types";
-import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle, Coins, ListChecks, ShoppingBasket, Package, Users, Warehouse, BrainCircuit, Sparkles } from "lucide-react";
+import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle, Coins, ListChecks, ShoppingBasket, Package, Users, Warehouse, BrainCircuit, Sparkles, CheckCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, isWithinInterval, isToday, endOfMonth, endOfWeek, subMonths, startOfYear, endOfYear, addMonths } from 'date-fns';
 import Link from "next/link";
