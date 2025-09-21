@@ -20,9 +20,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import type { Medication, Sale, AppSettings, Task } from "@/lib/types";
-import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle, Coins, ListChecks, ShoppingBasket, Package, Users, Warehouse } from "lucide-react";
+import { DollarSign, Clock, TrendingDown, TrendingUp, PieChart, AlertTriangle, Coins, ListChecks, ShoppingBasket, Package, Users, Warehouse, BrainCircuit, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, isWithinInterval, isToday, endOfMonth, endOfWeek, subMonths, startOfYear, endOfYear } from 'date-fns';
+import { differenceInDays, parseISO, startOfToday, startOfWeek, startOfMonth, isWithinInterval, isToday, endOfMonth, endOfWeek, subMonths, startOfYear, endOfYear, addMonths } from 'date-fns';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,6 +31,165 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
+
+function ExpirationSuggestions() {
+    const { scopedData, postExchangeItem } = useAuth();
+    const { inventory: [inventory], sales: [sales], settings: [settings] } = scopedData;
+    const { toast } = useToast();
+
+    const [suggestions, setSuggestions] = React.useState<any[]>([]);
+    const [offeredItems, setOfferedItems] = React.useState<Record<string, { quantity: string; price: string; }>>({});
+
+    React.useEffect(() => {
+        const analysisPeriodDays = 90;
+        const cutoffDate = subMonths(new Date(), 3);
+
+        const salesInPeriod = sales.filter(s => new Date(s.date) >= cutoffDate);
+        const salesStats: { [medId: string]: number } = {};
+        salesInPeriod.forEach(sale => {
+            sale.items.forEach(item => {
+                if (!item.is_return) {
+                    salesStats[item.medication_id] = (salesStats[item.medication_id] || 0) + item.quantity;
+                }
+            });
+        });
+
+        const expiringSoon = inventory.filter(item => {
+            if (!item.expiration_date) return false;
+            const expDate = parseISO(item.expiration_date);
+            const daysLeft = differenceInDays(expDate, startOfToday());
+            return daysLeft >= 0 && daysLeft <= (settings.expirationThresholdDays || 180);
+        });
+
+        const newSuggestions = expiringSoon.map(med => {
+            const monthlySales = (salesStats[med.id] || 0) / (analysisPeriodDays / 30);
+            const monthsTillExpiry = differenceInDays(parseISO(med.expiration_date), startOfToday()) / 30;
+            const projectedSales = Math.ceil(monthlySales * monthsTillExpiry);
+            const surplus = med.stock - projectedSales;
+
+            if (surplus > 0) {
+                return {
+                    med,
+                    reason: `مخزون عالٍ (${med.stock}) مقارنة بالمبيعات (${monthlySales.toFixed(1)}/شهر)`,
+                    surplus: Math.floor(surplus)
+                };
+            }
+            return null;
+        }).filter(s => s !== null && s.surplus > 0);
+
+        setSuggestions(newSuggestions);
+    }, [inventory, sales, settings.expirationThresholdDays]);
+
+    const handleOfferChange = (medId: string, field: 'quantity' | 'price', value: string) => {
+        setOfferedItems(prev => ({
+            ...prev,
+            [medId]: {
+                ...prev[medId],
+                [field]: value
+            }
+        }));
+    };
+
+    const handlePostOffer = async (med: Medication, surplus: number) => {
+        const offerData = offeredItems[med.id];
+        const quantity = parseInt(offerData?.quantity, 10);
+        const price = parseFloat(offerData?.price);
+
+        if (isNaN(quantity) || quantity <= 0) {
+            toast({ variant: 'destructive', title: "كمية غير صالحة" });
+            return;
+        }
+        if (isNaN(price) || price <= 0) {
+            toast({ variant: 'destructive', title: "سعر غير صالح" });
+            return;
+        }
+
+        const newOfferData = {
+            medicationName: med.name,
+            scientificName: med.scientific_names?.join(', '),
+            quantity: quantity,
+            expirationDate: med.expiration_date,
+            price: price,
+            contactPhone: settings.pharmacyPhone || '',
+            province: 'بغداد' // This should be dynamic later
+        };
+
+        const createdOffer = await postExchangeItem(newOfferData);
+        if (createdOffer) {
+            toast({ title: `تم عرض ${med.name} بنجاح!` });
+            setSuggestions(prev => prev.filter(s => s.med.id !== med.id));
+        }
+    };
+
+
+    if (suggestions.length === 0) {
+        return (
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Sparkles className="text-primary"/> اقتراحات لتجنب الإكسباير</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center justify-center h-48 text-muted-foreground">
+                    <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
+                    <p>لا توجد اقتراحات حاليًا. مخزونك في حالة ممتازة!</p>
+                </CardContent>
+            </Card>
+        )
+    }
+
+    return (
+        <Card className="lg:col-span-3">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Sparkles className="text-primary"/> اقتراحات لتجنب الإكسباير</CardTitle>
+                <CardDescription>
+                    يقترح النظام الأصناف المعرضة لخطر انتهاء الصلاحية بناءً على مبيعاتك. يمكنك عرضها للتبادل مباشرة من هنا.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ScrollArea className="h-72">
+                    <div className="space-y-4">
+                        {suggestions.map(({ med, reason, surplus }) => (
+                            <div key={med.id} className="p-3 border rounded-lg flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                <div className="flex-1">
+                                    <p className="font-semibold">{med.name}</p>
+                                    <p className="text-xs text-muted-foreground">{reason}</p>
+                                    <p className="text-sm font-medium text-destructive">
+                                        الكمية المعرضة للخطر: <span className="font-mono">{surplus}</span>
+                                    </p>
+                                </div>
+                                <div className="flex items-end gap-2">
+                                     <div className="space-y-1">
+                                        <Label htmlFor={`quantity-${med.id}`} className="text-xs">الكمية للعرض</Label>
+                                        <Input
+                                            id={`quantity-${med.id}`}
+                                            type="number"
+                                            placeholder="الكمية"
+                                            defaultValue={surplus}
+                                            onChange={e => handleOfferChange(med.id, 'quantity', e.target.value)}
+                                            className="w-24 h-9"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                         <Label htmlFor={`price-${med.id}`} className="text-xs">السعر</Label>
+                                        <Input
+                                            id={`price-${med.id}`}
+                                            type="number"
+                                            placeholder="السعر"
+                                            defaultValue={med.purchase_price}
+                                            onChange={e => handleOfferChange(med.id, 'price', e.target.value)}
+                                            className="w-24 h-9"
+                                        />
+                                    </div>
+                                    <Button size="sm" onClick={() => handlePostOffer(med, surplus)}>اعرض الآن</Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </ScrollArea>
+            </CardContent>
+        </Card>
+    )
+}
 
 export default function Dashboard() {
   const { currentUser, scopedData, updateTask, updateStatusTask, addToOrderRequestCart } = useAuth();
@@ -352,6 +511,9 @@ export default function Dashboard() {
             </CardContent>
         </Card>
 
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <ExpirationSuggestions />
+      </div>
 
        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Card className="lg:col-span-1">
@@ -524,326 +686,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    
-
-    
-// "use client"
-// import * as React from 'react';
-// import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-// import { DollarSign, TrendingUp, Package, AlertTriangle, Users, Boxes, ShoppingCart, BarChart, FileText } from 'lucide-react';
-// import { useAuth } from '@/hooks/use-auth';
-// import { Skeleton } from '@/components/ui/skeleton';
-// import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-// import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-// import { subDays, differenceInDays, parseISO } from 'date-fns';
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-// import Link from 'next/link';
-// import { Button } from '@/components/ui/button';
-// import AdCarousel from '@/components/ui/ad-carousel';
-// import {
-//   ChartContainer,
-//   ChartTooltip,
-//   ChartTooltipContent,
-// } from "@/components/ui/chart"
-// import { Bar, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts"
-
-
-// const DateRangeSelect = ({ value, onValueChange }: { value: string, onValueChange: (value: string) => void }) => (
-//     <Select value={value} onValueChange={onValueChange}>
-//         <SelectTrigger className="w-[180px]">
-//             <SelectValue />
-//         </SelectTrigger>
-//         <SelectContent>
-//             <SelectItem value="7">آخر 7 أيام</SelectItem>
-//             <SelectItem value="30">آخر 30 يوم</SelectItem>
-//             <SelectItem value="90">آخر 90 يوم</SelectItem>
-//         </SelectContent>
-//     </Select>
-// );
-
-
-// export default function DashboardPage() {
-//     const { scopedData, users } = useAuth();
-//     const { sales: [sales], inventory: [inventory] } = scopedData;
-//     const [loading, setLoading] = React.useState(true);
-//     const [statsDateRange, setStatsDateRange] = React.useState("30");
-//     const [staleItemsDateRange, setStaleItemsDateRange] = React.useState("30");
-
-
-//     React.useEffect(() => {
-//         if (sales && inventory) {
-//             setLoading(false);
-//         }
-//     }, [sales, inventory]);
-
-//     const filteredSales = React.useMemo(() => {
-//         const days = parseInt(statsDateRange);
-//         const cutoffDate = subDays(new Date(), days);
-//         return sales.filter(sale => new Date(sale.date) >= cutoffDate);
-//     }, [sales, statsDateRange]);
-
-//     const totalRevenue = filteredSales.reduce((acc, sale) => acc + (Number(sale.total) || 0), 0);
-//     const totalProfit = filteredSales.reduce((acc, sale) => acc + (Number(sale.profit) || 0) - (Number(sale.discount) || 0), 0);
-    
-//     const salesByDay = React.useMemo(() => {
-//         const days = parseInt(statsDateRange);
-//         const salesMap = new Map<string, number>();
-//         for (let i = 0; i < days; i++) {
-//             const date = subDays(new Date(), i);
-//             const dateString = date.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' });
-//             salesMap.set(dateString, 0);
-//         }
-//         filteredSales.forEach(sale => {
-//             const dateString = new Date(sale.date).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' });
-//             if (salesMap.has(dateString)) {
-//                 salesMap.set(dateString, (salesMap.get(dateString) || 0) + sale.total);
-//             }
-//         });
-        
-//         return Array.from(salesMap.entries()).map(([date, total]) => ({ date, total })).reverse();
-//     }, [filteredSales, statsDateRange]);
-
-
-//     const totalCustomers = filteredSales.length;
-
-//     const topSellingItems = React.useMemo(() => {
-//         const itemMap = new Map<string, { name: string, quantity: number, profit: number }>();
-//         filteredSales.forEach(sale => {
-//             sale.items.forEach(item => {
-//                 if (!item.is_return) {
-//                     const existing = itemMap.get(item.medication_id) || { name: item.name, quantity: 0, profit: 0 };
-//                     existing.quantity += item.quantity;
-//                     existing.profit += (item.price - item.purchase_price) * item.quantity;
-//                     itemMap.set(item.medication_id, existing);
-//                 }
-//             });
-//         });
-//         return Array.from(itemMap.values());
-//     }, [filteredSales]);
-    
-//     const topByQuantity = [...topSellingItems].sort((a, b) => b.quantity - a.quantity).slice(0, 5);
-//     const topByProfit = [...topSellingItems].sort((a, b) => b.profit - a.profit).slice(0, 5);
-
-//     const expiringSoonCount = inventory.filter(item => {
-//         if (!item.expiration_date) return false;
-//         const daysLeft = differenceInDays(parseISO(item.expiration_date), new Date());
-//         return daysLeft > 0 && daysLeft <= (scopedData.settings[0].expirationThresholdDays || 90);
-//     }).length;
-
-//     const inventoryValue = inventory.reduce((acc, item) => acc + (item.purchase_price * item.stock), 0);
-//     const expiringSoonValue = inventory.filter(item => {
-//         if (!item.expiration_date) return false;
-//         const daysLeft = differenceInDays(parseISO(item.expiration_date), new Date());
-//         return daysLeft > 0 && daysLeft <= (scopedData.settings[0].expirationThresholdDays || 90);
-//     }).reduce((acc, item) => acc + (item.purchase_price * item.stock), 0);
-    
-//     const expiringSoonPercentage = inventoryValue > 0 ? (expiringSoonValue / inventoryValue) * 100 : 0;
-    
-//     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
-    
-//     const dailyCustomers = sales.filter(sale => isSameDay(new Date(sale.date), new Date())).length;
-
-//     const staleItems = React.useMemo(() => {
-//         const soldItemIds = new Set(sales
-//             .filter(s => new Date(s.date) >= subDays(new Date(), parseInt(staleItemsDateRange)))
-//             .flatMap(s => s.items.map(i => i.medication_id))
-//         );
-//         return inventory
-//             .filter(item => !soldItemIds.has(item.id) && item.stock > 0)
-//             .sort((a, b) => (b.purchase_price * b.stock) - (a.purchase_price * a.stock))
-//             .slice(0, 10);
-//     }, [inventory, sales, staleItemsDateRange]);
-
-
-//     if (loading) {
-//         return (
-//              <div className="space-y-6">
-//                 <Skeleton className="h-32 w-full" />
-//                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-//                     <Skeleton className="h-24 w-full" />
-//                     <Skeleton className="h-24 w-full" />
-//                     <Skeleton className="h-24 w-full" />
-//                     <Skeleton className="h-24 w-full" />
-//                 </div>
-//                  <div className="grid gap-6 lg:grid-cols-3">
-//                     <Skeleton className="h-96 w-full lg:col-span-2" />
-//                     <Skeleton className="h-96 w-full" />
-//                 </div>
-//             </div>
-//         )
-//     }
-
-//     return (
-//         <div className="space-y-6">
-//              <div className="flex justify-between items-center">
-//                  <div>
-//                     <h1 className="text-2xl font-bold">لوحة التحكم</h1>
-//                     <p className="text-muted-foreground">نظرة عامة على أداء الصيدلية.</p>
-//                 </div>
-//                 <div className="flex items-center gap-4">
-//                     <DateRangeSelect value={statsDateRange} onValueChange={setStatsDateRange} />
-//                 </div>
-//             </div>
-            
-//             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-//                 <Card>
-//                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-//                         <CardTitle className="text-sm font-medium">إجمالي الإيرادات</CardTitle>
-//                         <DollarSign className="h-4 w-4 text-muted-foreground" />
-//                     </CardHeader>
-//                     <CardContent>
-//                         <div className="text-2xl font-bold font-mono">{totalRevenue.toLocaleString()}</div>
-//                         <p className="text-xs text-muted-foreground">خلال آخر {statsDateRange} يوم</p>
-//                     </CardContent>
-//                 </Card>
-//                 <Card>
-//                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-//                         <CardTitle className="text-sm font-medium">صافي الربح</CardTitle>
-//                         <TrendingUp className="h-4 w-4 text-muted-foreground" />
-//                     </CardHeader>
-//                     <CardContent>
-//                         <div className="text-2xl font-bold font-mono text-green-600">{totalProfit.toLocaleString()}</div>
-//                         <p className="text-xs text-muted-foreground">بعد خصم الخصومات</p>
-//                     </CardContent>
-//                 </Card>
-//                 <Card>
-//                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-//                         <CardTitle className="text-sm font-medium">الزبائن</CardTitle>
-//                         <Users className="h-4 w-4 text-muted-foreground" />
-//                     </CardHeader>
-//                     <CardContent>
-//                         <div className="text-2xl font-bold font-mono">{totalCustomers.toLocaleString()}</div>
-//                         <p className="text-xs text-muted-foreground">عدد الفواتير في الفترة المحددة</p>
-//                     </CardContent>
-//                 </Card>
-//                  <Card>
-//                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-//                         <CardTitle className="text-sm font-medium">قريب الانتهاء</CardTitle>
-//                         <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-//                     </CardHeader>
-//                     <CardContent>
-//                         <div className="text-2xl font-bold font-mono">{expiringSoonCount}</div>
-//                         <p className="text-xs text-muted-foreground">صنف على وشك الانتهاء</p>
-//                     </CardContent>
-//                 </Card>
-//                  <Card>
-//                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-//                         <CardTitle className="text-sm font-medium">زبائن اليوم</CardTitle>
-//                         <Users className="h-4 w-4 text-muted-foreground" />
-//                     </CardHeader>
-//                     <CardContent>
-//                         <div className="text-2xl font-bold font-mono">{dailyCustomers}</div>
-//                         <p className="text-xs text-muted-foreground">فاتورة تم إنشاؤها اليوم</p>
-//                     </CardContent>
-//                 </Card>
-//                 <Card>
-//                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-//                         <CardTitle className="text-sm font-medium">الأصناف</CardTitle>
-//                         <Boxes className="h-4 w-4 text-muted-foreground" />
-//                     </CardHeader>
-//                     <CardContent>
-//                         <div className="text-2xl font-bold font-mono">{inventory.length}</div>
-//                         <p className="text-xs text-muted-foreground">إجمالي عدد الأصناف في المخزون</p>
-//                     </CardContent>
-//                 </Card>
-//             </div>
-            
-//             <div className="grid gap-6 lg:grid-cols-3">
-//                 <Card className="lg:col-span-2">
-//                     <CardHeader>
-//                         <CardTitle>أداء المبيعات</CardTitle>
-//                         <CardDescription>عرض بياني للمبيعات اليومية خلال الفترة المحددة.</CardDescription>
-//                     </CardHeader>
-//                     <CardContent>
-//                          <ChartContainer config={{}} className="h-72 w-full">
-//                             <RechartsBarChart data={salesByDay} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-//                                 <CartesianGrid vertical={false} />
-//                                 <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
-//                                 <YAxis tickFormatter={(value) => `${value / 1000}k`} />
-//                                 <ChartTooltip content={<ChartTooltipContent />} />
-//                                 <Bar dataKey="total" fill="var(--color-primary)" radius={4} />
-//                             </RechartsBarChart>
-//                         </ChartContainer>
-//                     </CardContent>
-//                 </Card>
-//                 <Tabs defaultValue="profit" className="w-full">
-//                     <Card>
-//                         <CardHeader>
-//                             <TabsList className="grid w-full grid-cols-2">
-//                                 <TabsTrigger value="profit">الأكثر ربحًا</TabsTrigger>
-//                                 <TabsTrigger value="quantity">الأكثر مبيعًا</TabsTrigger>
-//                             </TabsList>
-//                         </CardHeader>
-//                         <TabsContent value="profit">
-//                             <CardContent>
-//                                 <Table>
-//                                     <TableHeader><TableRow><TableHead>الدواء</TableHead><TableHead className="text-left">الربح</TableHead></TableRow></TableHeader>
-//                                     <TableBody>
-//                                         {topByProfit.map(item => (
-//                                             <TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell className="text-left font-mono">{item.profit.toLocaleString()}</TableCell></TableRow>
-//                                         ))}
-//                                     </TableBody>
-//                                 </Table>
-//                             </CardContent>
-//                         </TabsContent>
-//                         <TabsContent value="quantity">
-//                             <CardContent>
-//                                  <Table>
-//                                     <TableHeader><TableRow><TableHead>الدواء</TableHead><TableHead className="text-left">الكمية</TableHead></TableRow></TableHeader>
-//                                     <TableBody>
-//                                         {topByQuantity.map(item => (
-//                                             <TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell className="text-left font-mono">{item.quantity}</TableCell></TableRow>
-//                                         ))}
-//                                     </TableBody>
-//                                 </Table>
-//                             </CardContent>
-//                         </TabsContent>
-//                     </Card>
-//                 </Tabs>
-//             </div>
-            
-//              <div className="grid gap-6 md:grid-cols-2">
-//                 <Card>
-//                     <CardHeader>
-//                         <div className="flex justify-between items-center">
-//                             <CardTitle>الأصناف الراكدة</CardTitle>
-//                             <DateRangeSelect value={staleItemsDateRange} onValueChange={setStaleItemsDateRange} />
-//                         </div>
-//                         <CardDescription>
-//                             قائمة بالأدوية التي لم يتم بيعها خلال آخر {staleItemsDateRange} يوم.
-//                         </CardDescription>
-//                     </CardHeader>
-//                     <CardContent>
-//                          <Table>
-//                             <TableHeader><TableRow><TableHead>الدواء</TableHead><TableHead className="text-left">الرصيد</TableHead><TableHead className="text-left">قيمة المخزون</TableHead></TableRow></TableHeader>
-//                             <TableBody>
-//                                 {staleItems.map(item => (
-//                                     <TableRow key={item.id}>
-//                                         <TableCell>{item.name}</TableCell>
-//                                         <TableCell className="text-left font-mono">{item.stock}</TableCell>
-//                                         <TableCell className="text-left font-mono text-destructive">{(item.stock * item.purchase_price).toLocaleString()}</TableCell>
-//                                     </TableRow>
-//                                 ))}
-//                             </TableBody>
-//                         </Table>
-//                     </CardContent>
-//                 </Card>
-//                 <div className="space-y-4">
-//                      <AdCarousel page="dashboard" />
-//                     <Card className="bg-gradient-to-br from-primary/90 to-primary text-primary-foreground">
-//                         <CardHeader>
-//                             <CardTitle>أدوات سريعة</CardTitle>
-//                         </CardHeader>
-//                         <CardContent className="grid grid-cols-2 gap-4">
-//                             <Button variant="secondary" asChild><Link href="/sales"><ShoppingCart className="me-2"/> فاتورة جديدة</Link></Button>
-//                             <Button variant="secondary" asChild><Link href="/purchases"><Boxes className="me-2"/> استلام بضاعة</Link></Button>
-//                             <Button variant="secondary" asChild><Link href="/reports"><FileText className="me-2"/> مراجعة الفواتير</Link></Button>
-//                             <Button variant="secondary" asChild><Link href="/inventory"><BarChart className="me-2"/> عرض المخزون</Link></Button>
-//                         </CardContent>
-//                     </Card>
-//                 </div>
-//             </div>
-//         </div>
-//     );
-// }
