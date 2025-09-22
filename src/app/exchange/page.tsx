@@ -60,13 +60,15 @@ export default function ExchangePage() {
     const [selectedMed, setSelectedMed] = React.useState<Medication | null>(null);
     const [offerQuantity, setOfferQuantity] = React.useState('');
     const [offerPrice, setOfferPrice] = React.useState('');
-    const [offerContactPhone, setOfferContactPhone] = React.useState(currentUser?.pharmacyPhone || '');
+    const [offerContactPhone, setOfferContactPhone] = React.useState('');
+    // const [offerContactPhone, setOfferContactPhone] = React.useState(currentUser?.pharmacyPhone || '');
     const [manualMedName, setManualMedName] = React.useState('');
     const [manualScientificName, setManualScientificName] = React.useState('');
     const [manualQuantity, setManualQuantity] = React.useState('');
     const [manualPrice, setManualPrice] = React.useState('');
     const [manualExpiration, setManualExpiration] = React.useState('');
-    const [manualContactPhone, setManualContactPhone] = React.useState(currentUser?.pharmacyPhone || '');
+    const [manualContactPhone, setManualContactPhone] = React.useState('');
+    // const [manualContactPhone, setManualContactPhone] = React.useState(currentUser?.pharmacyPhone || '');
 
     // Request form state
     const [requestMedName, setRequestMedName] = React.useState('');
@@ -276,11 +278,11 @@ export default function ExchangePage() {
                             </div>
                         </div>
                         <div className="flex gap-2">
-                            <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
-                                <DialogTrigger asChild>
+                            <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen} >
+                                <DialogTrigger asChild >
                                     <Button><Send className="me-2"/> اطلب دواء</Button>
                                 </DialogTrigger>
-                                <DialogContent >
+                                <DialogContent>
                                     <DialogHeader>
                                         <DialogTitle>إنشاء طلب دواء جديد</DialogTitle>
                                     </DialogHeader>
@@ -308,7 +310,7 @@ export default function ExchangePage() {
                                 <DialogTrigger asChild>
                                     <Button variant="success"><PlusCircle className="me-2" /> اعرض دواء للتبادل</Button>
                                 </DialogTrigger>
-                                 <DialogContent className="sm:max-w-lg">
+                                <DialogContent className="sm:max-w-lg">
                                     <DialogHeader>
                                         <DialogTitle>عرض دواء جديد للتبادل</DialogTitle>
                                     </DialogHeader>
@@ -317,7 +319,7 @@ export default function ExchangePage() {
                                             <TabsTrigger value="inventory">بحث من المخزون</TabsTrigger>
                                             <TabsTrigger value="manual">إدخال يدوي</TabsTrigger>
                                         </TabsList>
-                                        <TabsContent value="inventory" className="py-4 space-y-4">
+                                        <TabsContent value="inventory" className="py-4 space-y-4" dir="rtl">
                                             <div className="relative space-y-2">
                                                 <Label>1. ابحث عن الدواء في مخزونك</Label>
                                                 <Input value={medicationSearch} onChange={(e) => handleMedicationSearch(e.target.value)} placeholder="ابحث بالاسم..." />
@@ -343,7 +345,7 @@ export default function ExchangePage() {
                                                 <Button onClick={() => handlePostOffer(false)} disabled={!selectedMed}>نشر العرض</Button>
                                             </DialogFooter>
                                         </TabsContent>
-                                        <TabsContent value="manual" className="py-4 space-y-4">
+                                        <TabsContent value="manual" className="py-4 space-y-4" dir="rtl">
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-2"><Label>الاسم التجاري</Label><Input value={manualMedName} onChange={e => setManualMedName(e.target.value)} required /></div>
                                                 <div className="space-y-2"><Label>الاسم العلمي (اختياري)</Label><Input value={manualScientificName} onChange={e => setManualScientificName(e.target.value)} /></div>
@@ -388,7 +390,7 @@ export default function ExchangePage() {
                     <TabsTrigger value="requests">الأدوية المفقودة</TabsTrigger>
                     <TabsTrigger value="mine">منشوراتي</TabsTrigger>
                 </TabsList>
-                <TabsContent value="offers" className="mt-4">
+                <TabsContent value="offers" className="mt-4" dir="rtl">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {loading ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-64 w-full" />)
                         : filteredItems.offers.length > 0 ? filteredItems.offers.map(item => (
@@ -410,7 +412,7 @@ export default function ExchangePage() {
                         )) : <div className="col-span-full text-center py-16 text-muted-foreground"><Package className="h-16 w-16 mx-auto mb-4" /><p>لا توجد عروض متاحة تطابق بحثك.</p></div>}
                     </div>
                 </TabsContent>
-                <TabsContent value="requests" className="mt-4">
+                <TabsContent value="requests" className="mt-4" dir="rtl">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                          {loading ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-60 w-full" />)
                         : filteredItems.requests.length > 0 ? filteredItems.requests.map(req => (
@@ -433,7 +435,7 @@ export default function ExchangePage() {
                         )) : <div className="col-span-full text-center py-16 text-muted-foreground"><Send className="h-16 w-16 mx-auto mb-4" /><p>لا توجد طلبات متاحة حاليًا.</p></div>}
                     </div>
                 </TabsContent>
-                <TabsContent value="mine" className="mt-4 space-y-6">
+                <TabsContent value="mine" className="mt-4 space-y-6" dir="rtl">
                     <div>
                         <h2 className="text-xl font-bold mb-4">عروضي</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
