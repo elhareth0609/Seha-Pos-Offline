@@ -184,7 +184,12 @@ export default function ItemMovementPage() {
         if (!searchByScientificName || !searchTerm) return null;
         const totalStock = inventory
             .filter(med => med.scientific_names?.some(sn => sn.toLowerCase() === searchTerm.toLowerCase()))
-            .reduce((sum, med) => sum + med.stock, 0);
+            // .reduce((sum, med) => sum + med.stock, 0);
+            .reduce((sum, med) => {
+                const stock = typeof med.stock === 'number' ? med.stock : parseFloat(String(med.stock || 0));
+                return sum + (isNaN(stock) ? 0 : stock);
+            }, 0);
+            
         return totalStock;
     };
     

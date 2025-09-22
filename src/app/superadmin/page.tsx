@@ -617,7 +617,7 @@ export default function SuperAdminPage() {
                             <DialogTrigger asChild>
                                 <Button size="icon"><ImagePlus /></Button>
                             </DialogTrigger>
-                             <DialogContent>
+                            <DialogContent>
                                 <DialogHeader>
                                     <DialogTitle>إضافة عرض جديد</DialogTitle>
                                 </DialogHeader>
