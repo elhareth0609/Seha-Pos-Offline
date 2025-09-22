@@ -125,7 +125,8 @@ export default function ExpensesPage() {
         return;
     }
     
-    const success = await addExpense(amount, newDescription, false); // Not recurring
+    const success = await addExpense(amount, newDescription); // Not recurring
+    // const success = await addExpense(amount, newDescription, false); // Not recurring
     if (success) {
       fetchData(1, perPage, ""); // Refresh data
       resetAddDialog();

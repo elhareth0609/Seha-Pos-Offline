@@ -247,7 +247,7 @@ export default function ItemMovementPage() {
                                 <CardContent className="p-0">
                                     <ul className="divide-y divide-border">
                                         {suggestions.map((med, index) => (
-                                            <li key={med.id + index} 
+                                            <li key={`${med.id}-${index}-${searchByScientificName ? med.scientific_names?.[0] : med.name}`} 
                                                 onMouseDown={() => handleSelectSuggestion(med)}
                                                 className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
                                             >
