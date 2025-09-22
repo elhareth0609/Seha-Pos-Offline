@@ -276,11 +276,11 @@ export default function ExchangePage() {
                             </div>
                         </div>
                         <div className="flex gap-2">
-                             <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
+                            <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
                                 <DialogTrigger asChild>
                                     <Button><Send className="me-2"/> اطلب دواء</Button>
                                 </DialogTrigger>
-                                <DialogContent>
+                                <DialogContent >
                                     <DialogHeader>
                                         <DialogTitle>إنشاء طلب دواء جديد</DialogTitle>
                                     </DialogHeader>
