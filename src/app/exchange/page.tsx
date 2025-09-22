@@ -243,14 +243,14 @@ export default function ExchangePage() {
         
         const offers = exchangeItems.filter(item => {
             const matchesSearch = item.medicationName.toLowerCase().includes(lowerCaseSearch) ||
-                                  item.scientificName?.toLowerCase().includes(lowerCaseSearch) ||
-                                  item.pharmacyName.toLowerCase().includes(lowerCaseSearch);
+                                  (item.scientificName && item.scientificName.toLowerCase().includes(lowerCaseSearch)) ||
+                                  (item.pharmacyName && item.pharmacyName.toLowerCase().includes(lowerCaseSearch));
             const matchesProvince = provinceFilter === 'all' || item.province === provinceFilter;
             return matchesSearch && matchesProvince;
         });
 
         const requests = drugRequests.filter(req => {
-            const matchesSearch = req.medicationName.toLowerCase().includes(lowerCaseSearch) || req.pharmacyName.toLowerCase().includes(lowerCaseSearch);
+            const matchesSearch = req.medicationName.toLowerCase().includes(lowerCaseSearch) || (req.pharmacyName && req.pharmacyName.toLowerCase().includes(lowerCaseSearch));
             const matchesProvince = provinceFilter === 'all' || req.province === provinceFilter;
             const isIgnored = currentUser ? req.ignoredBy.includes(currentUser.pharmacy_id) : false;
             const isMine = currentUser ? req.pharmacy_id === currentUser.pharmacy_id : false;
@@ -504,9 +504,11 @@ export default function ExchangePage() {
 
             <Dialog open={isViewingResponses} onOpenChange={setIsViewingResponses}>
                 <DialogContent>
-                     <DialogHeader><DialogTitle>الردود على طلب: {selectedRequestForViewing?.medicationName}</DialogTitle></DialogHeader>
-                     <div className="py-4 max-h-96 overflow-y-auto space-y-3">
-                         {selectedRequestForViewing?.responses && selectedRequestForViewing.responses.length > 0 ? (
+                    <DialogHeader>
+                        <DialogTitle>الردود على طلب: {selectedRequestForViewing?.medicationName}</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 max-h-96 overflow-y-auto space-y-3">
+                        {selectedRequestForViewing?.responses && selectedRequestForViewing.responses.length > 0 ? (
                             selectedRequestForViewing.responses.map(res => (
                                 <Card key={res.id}>
                                     <CardContent className="p-3 flex justify-between items-center">
@@ -518,8 +520,8 @@ export default function ExchangePage() {
                                     </CardContent>
                                 </Card>
                             ))
-                         ) : (<p className="text-muted-foreground text-center py-8">لا توجد ردود على هذا الطلب بعد.</p>)}
-                     </div>
+                        ) : (<p className="text-muted-foreground text-center py-8">لا توجد ردود على هذا الطلب بعد.</p>)}
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>
