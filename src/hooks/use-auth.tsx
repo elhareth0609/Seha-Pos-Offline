@@ -205,7 +205,7 @@ interface AuthContextType {
     postExchangeItem: (item: Omit<ExchangeItem, 'id' | 'pharmacyName' | 'pharmacy_id'>) => Promise<ExchangeItem | null>;
     deleteExchangeItem: (itemId: string) => Promise<boolean>;
     getDrugRequests: () => Promise<DrugRequest[]>;
-    postDrugRequest: (request: Omit<DrugRequest, 'id' | 'pharmacyId' | 'pharmacyName' | 'province' | 'status' | 'responses' | 'ignoredBy'>) => Promise<DrugRequest | null>;
+    postDrugRequest: (request: Omit<DrugRequest, 'id' | 'pharmacy_id' | 'pharmacyName' | 'province' | 'status' | 'responses' | 'ignoredBy'>) => Promise<DrugRequest | null>;
     deleteDrugRequest: (requestId: string) => Promise<boolean>;
     respondToDrugRequest: (requestId: string, price: number) => Promise<DrugRequest | null>;
     ignoreDrugRequest: (requestId: string) => Promise<boolean>;
@@ -1431,7 +1431,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         }
     };
     
-    const postDrugRequest = async (request: Omit<DrugRequest, 'id' | 'pharmacyId' | 'pharmacyName' | 'province' | 'status' | 'responses' | 'ignoredBy'>): Promise<DrugRequest | null> => {
+    const postDrugRequest = async (request: Omit<DrugRequest, 'id' | 'pharmacy_id' | 'pharmacyName' | 'province' | 'status' | 'responses' | 'ignoredBy'>): Promise<DrugRequest | null> => {
         try {
             const newRequest = await apiRequest('/exchange/requests', 'POST', request);
             return newRequest;

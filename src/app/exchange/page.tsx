@@ -88,7 +88,7 @@ export default function ExchangePage() {
             
             if (currentUser) {
                 setMyOffers(offers?.filter(o => o.pharmacy_id === currentUser.pharmacy_id) || []);
-                setMyRequests(requests?.filter(r => r.pharmacyId === currentUser.pharmacy_id) || []);
+                setMyRequests(requests?.filter(r => r.pharmacy_id === currentUser.pharmacy_id) || []);
             }
             setLoading(false);
         };
@@ -250,11 +250,10 @@ export default function ExchangePage() {
         });
 
         const requests = drugRequests.filter(req => {
-            const matchesSearch = req.medicationName.toLowerCase().includes(lowerCaseSearch) ||
-                                  req.pharmacyName.toLowerCase().includes(lowerCaseSearch);
+            const matchesSearch = req.medicationName.toLowerCase().includes(lowerCaseSearch) || req.pharmacyName.toLowerCase().includes(lowerCaseSearch);
             const matchesProvince = provinceFilter === 'all' || req.province === provinceFilter;
             const isIgnored = currentUser ? req.ignoredBy.includes(currentUser.pharmacy_id) : false;
-            const isMine = currentUser ? req.pharmacyId === currentUser.pharmacy_id : false;
+            const isMine = currentUser ? req.pharmacy_id === currentUser.pharmacy_id : false;
             return matchesSearch && matchesProvince && !isIgnored && !isMine;
         });
 

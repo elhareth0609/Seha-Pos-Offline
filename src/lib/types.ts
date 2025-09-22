@@ -80,7 +80,7 @@ export type RequestResponse = {
 
 export type DrugRequest = {
     id: string;
-    pharmacyId: string;
+    pharmacy_id: string;
     pharmacyName: string;
     province: string;
     medicationName: string;
