@@ -41,6 +41,7 @@ function ExpirationSuggestions() {
     const [suggestions, setSuggestions] = React.useState<any[]>([]);
     const [offeredItems, setOfferedItems] = React.useState<Record<string, { quantity: string; price: string; }>>({});
 
+    
     React.useEffect(() => {
         const analysisPeriodDays = 90;
         const cutoffDate = subMonths(new Date(), 3);
@@ -79,7 +80,18 @@ function ExpirationSuggestions() {
         }).filter(s => s !== null && s.surplus > 0);
 
         setSuggestions(newSuggestions);
-    }, [inventory, sales, settings.expirationThresholdDays]);
+        
+        // Initialize offeredItems with default values
+        const initialOfferedItems: Record<string, { quantity: string; price: string; }> = {};
+        newSuggestions.forEach(({ med, surplus }) => {
+            initialOfferedItems[med.id] = {
+                quantity: String(surplus),
+                price: String(med.purchase_price)
+            };
+        });
+        setOfferedItems(initialOfferedItems);
+    }, [inventory, sales, settings.expirationThresholdDays]); 
+
 
     const handleOfferChange = (medId: string, field: 'quantity' | 'price', value: string) => {
         setOfferedItems(prev => ({
@@ -92,16 +104,30 @@ function ExpirationSuggestions() {
     };
 
     const handlePostOffer = async (med: Medication, surplus: number) => {
-        const offerData = offeredItems[med.id];
-        const quantity = parseInt(offerData?.quantity, 10);
-        const price = parseFloat(offerData?.price);
-
-        if (isNaN(quantity) || quantity <= 0) {
-            toast({ variant: 'destructive', title: "كمية غير صالحة" });
+        console.log("Medication:", med);
+        console.log("OfferedItems:", offeredItems);
+        
+        // Get values with proper fallbacks
+        const offerData = offeredItems[med.id] || {};
+        const quantityStr = offerData.quantity || String(surplus);
+        const priceStr = offerData.price || String(med.purchase_price);
+        
+        console.log("Quantity string:", quantityStr, "Price string:", priceStr);
+        
+        // Parse with better error handling
+        const quantity = parseInt(quantityStr, 10);
+        const price = parseFloat(priceStr);
+        
+        console.log("Parsed quantity:", quantity, "Parsed price:", price); 
+        // Validate quantity
+        if (isNaN(quantity) || quantity <= 0 || quantity > surplus) {
+            toast({ variant: 'destructive', title: "كمية غير صالحة", description: "الرجاء إدخال كمية صالحة وأكبر من صفر ولا تتجاوز الكمية المتاحة" });
             return;
         }
+        
+        // Validate price
         if (isNaN(price) || price <= 0) {
-            toast({ variant: 'destructive', title: "سعر غير صالح" });
+            toast({ variant: 'destructive', title: "سعر غير صالح", description: "الرجاء إدخال سعر صالح وأكبر من صفر" });
             return;
         }
 
@@ -158,7 +184,7 @@ function ExpirationSuggestions() {
                                     </p>
                                 </div>
                                 <div className="flex items-end gap-2">
-                                     <div className="space-y-1">
+                                    <div className="space-y-1">
                                         <Label htmlFor={`quantity-${med.id}`} className="text-xs">الكمية للعرض</Label>
                                         <Input
                                             id={`quantity-${med.id}`}
@@ -170,7 +196,7 @@ function ExpirationSuggestions() {
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                         <Label htmlFor={`price-${med.id}`} className="text-xs">السعر</Label>
+                                        <Label htmlFor={`price-${med.id}`} className="text-xs">السعر</Label>
                                         <Input
                                             id={`price-${med.id}`}
                                             type="number"
