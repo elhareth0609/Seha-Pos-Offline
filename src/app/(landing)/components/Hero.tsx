@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import React from "react";
 import { ThemeToggle } from "./ThemeToggle";
+import { useAuth } from "@/hooks/use-auth";
+import Link from "next/link";
 
 export const Hero = () => {
+    const { isAuthenticated } = useAuth();
   return (
     <section className="relative min-h-screen flex items-center justify-center bg-gradient-hero overflow-hidden" dir="rtl">
       {/* Background Pattern */}
@@ -44,9 +47,11 @@ export const Hero = () => {
             
             {/* CTA Button */}
             <div className="flex justify-center lg:justify-start animate-fade-in" style={{animationDelay: "0.6s"}}>
-              <Button size="lg" className="bg-gradient-primary text-white px-8 py-4 rounded-xl text-lg font-medium hover:shadow-glow hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2">
-                  تسجيل الدخول
-                  <ArrowLeft className="w-5 h-5" />
+              <Button asChild size="lg" className="bg-gradient-primary text-white px-8 py-4 rounded-xl text-lg font-medium hover:shadow-glow hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2">
+                  <Link href={isAuthenticated ? "/dashboard" : "/login"}>
+                    {isAuthenticated ? "لوحة التحكم" : "تسجيل الدخول"}
+                    <ArrowLeft className="w-5 h-5" />
+                  </Link>
               </Button>
             </div>
             

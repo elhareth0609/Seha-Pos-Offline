@@ -2,6 +2,8 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth';
 import { 
   ShoppingCart, 
   Package, 
@@ -28,6 +30,7 @@ import {
 } from "lucide-react";
 
 export const Features = () => {
+  const { isAuthenticated } = useAuth();
   const coreFeatures = [
     {
       icon: ShoppingCart,
@@ -276,10 +279,12 @@ export const Features = () => {
                 وتحسين كفاءة عملك. انضم إلى آلاف الصيدليات التي تثق في ميدجرام
               </p>
               <div className="flex justify-center">
-                <button className="bg-gradient-primary text-white px-8 py-4 rounded-xl text-lg font-medium hover:shadow-glow hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2">
-                  تسجيل الدخول
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
+                <Link href={isAuthenticated ? "/dashboard" : "/login"}>
+                    <button className="bg-gradient-primary text-white px-8 py-4 rounded-xl text-lg font-medium hover:shadow-glow hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2">
+                    {isAuthenticated ? "لوحة التحكم" : "تسجيل الدخول"}
+                    <ArrowLeft className="w-5 h-5" />
+                    </button>
+                </Link>
               </div>
             </CardContent>
           </Card>
