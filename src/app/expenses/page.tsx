@@ -233,7 +233,7 @@ export default function ExpensesPage() {
                 <TabsTrigger value="one-time">المصاريف اليومية</TabsTrigger>
                 <TabsTrigger value="recurring">المصاريف الثابتة</TabsTrigger>
             </TabsList>
-            <TabsContent value="one-time" className="mt-4">
+            <TabsContent value="one-time" className="mt-4" dir="rtl">
                 <div className="flex justify-between items-center mb-4">
                     <Input 
                         placeholder="ابحث في الوصف..."
@@ -281,7 +281,7 @@ export default function ExpensesPage() {
                         </DialogContent>
                     </Dialog>
                 </div>
-                 <div className="overflow-x-auto">
+                <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -383,7 +383,7 @@ export default function ExpensesPage() {
                         </div>
                     </div>
             </TabsContent>
-            <TabsContent value="recurring" className="mt-4">
+            <TabsContent value="recurring" className="mt-4" dir="rtl">
                 <div className="flex justify-between items-center mb-4">
                     <p className="text-muted-foreground text-sm">
                         عرّف المصاريف الدورية هنا وسيتم تسجيلها تلقائيًا في بداية كل شهر.
