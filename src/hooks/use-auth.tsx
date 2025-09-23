@@ -280,7 +280,7 @@ async function queueRequest(url: string, options: RequestInit) {
 
     if ('serviceWorker' in navigator && 'SyncManager' in window) {
         navigator.serviceWorker.ready.then(sw => {
-            sw.sync.register('sync-requests');
+            (sw as any).sync?.register('sync-requests');
         });
     }
 }

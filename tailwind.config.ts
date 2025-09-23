@@ -84,11 +84,6 @@ export default {
           '5': 'hsl(var(--chart-5))',
         },
       },
-      fontFamily: {
-        'body': ['Tajawal', 'sans-serif'],
-        'headline': ['Tajawal', 'sans-serif'],
-        'sans': ['Tajawal', 'sans-serif'],
-      },
       backgroundImage: {
         'gradient-primary': 'var(--gradient-primary)',
         'gradient-hero': 'var(--gradient-hero)',

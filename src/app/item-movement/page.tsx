@@ -46,7 +46,7 @@ export default function ItemMovementPage() {
     const fetchMedicationMovements = React.useCallback(async (medicationId: string | null, page: number, limit: number, scientificName?: string) => {
         setLoading(true);
         try {
-            const response = await getPaginatedItemMovements(page, limit, "", medicationId, scientificName);
+            const response = await getPaginatedItemMovements(page, limit, "", medicationId || "", scientificName);
             setTransactions(response.data);
             setTotalPages(response.last_page);
             setCurrentPage(response.current_page);
@@ -108,10 +108,10 @@ export default function ItemMovementPage() {
             const response = await apiRequest(`/medications?${params.toString()}`);
             
             if (response.data && response.data.length > 0) {
-                 const uniqueSuggestions = Array.from(new Map(response.data.map((item: Medication) => 
+                const uniqueSuggestions = Array.from(new Map(response.data.map((item: Medication) => 
                     [searchByScientificName && item.scientific_names ? item.scientific_names[0] : item.name, item]
                 )).values());
-                setSuggestions(uniqueSuggestions);
+                setSuggestions(uniqueSuggestions as Medication[]);
             } else {
                 setSuggestions([]);
             }

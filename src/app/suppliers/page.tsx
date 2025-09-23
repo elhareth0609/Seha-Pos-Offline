@@ -337,69 +337,71 @@ export default function SuppliersPage() {
   };
 
 
-  const handleShowStatement = (supplier: Supplier) => {
-    const supplierPurchases = purchaseOrders.filter(po => po.supplier_id === supplier.id)
-        .map(po => ({ 
-            id: po.id,
-            date: po.date, 
-            type: 'شراء' as const, 
-            details: `فاتورة شراء #${po.id}`, 
-            debit: po.total_amount, 
-            credit: 0,
-            items: po.items,
-        }));
+    const handleShowStatement = React.useCallback((supplier: Supplier) => {
 
-    const supplierReturnsData = supplierReturns.filter(ret => ret.supplier_id === supplier.id)
-        .map(ret => ({ 
-            id: ret.id,
-            date: ret.date, 
-            type: 'استرجاع' as const, 
-            details: `إرجاع #${ret.id}`, 
-            debit: 0, 
-            credit: ret.total_amount,
-            items: ret.items,
-        }));
+        const supplierPurchases = purchaseOrders.filter(po => po.supplier_id === supplier.id)
+            .map(po => ({ 
+                id: po.id,
+                date: po.date, 
+                type: 'شراء' as const, 
+                details: `فاتورة شراء #${po.id}`, 
+                debit: po.total_amount, 
+                credit: 0,
+                items: po.items,
+            }));
 
-    const supplierPaymentsData = (supplierPayments?.supplierPayments || []).filter(p => p.supplier_id === supplier.id)
-        .map(p => ({ 
-            id: p.id,
-            date: p.date, 
-            type: 'دفعة' as const, 
-            details: `دفعة نقدية ${p.notes ? `(${p.notes})` : ''}`, 
-            debit: 0, 
-            credit: p.amount,
-            items: [],
-        }));
+        const supplierReturnsData = supplierReturns.filter(ret => ret.supplier_id === supplier.id)
+            .map(ret => ({ 
+                id: ret.id,
+                date: ret.date, 
+                type: 'استرجاع' as const, 
+                details: `إرجاع #${ret.id}`, 
+                debit: 0, 
+                credit: ret.total_amount,
+                items: ret.items,
+            }));
 
-    const allTransactions = [...supplierPurchases, ...supplierReturnsData, ...supplierPaymentsData]
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const supplierPaymentsData = (supplierPayments?.supplierPayments || []).filter(p => p.supplier_id === supplier.id)
+            .map(p => ({ 
+                id: p.id,
+                date: p.date, 
+                type: 'دفعة' as const, 
+                details: `دفعة نقدية ${p.notes ? `(${p.notes})` : ''}`, 
+                debit: 0, 
+                credit: p.amount,
+                items: [],
+            }));
 
-    let runningBalance = 0;
-    const statementItems = allTransactions.map(t => {
-        runningBalance += t.debit - t.credit;
-        return { ...t, balance: runningBalance };
-    });
-    
-    // Debt Aging Calculation
-    const debtAging: DebtAging = { current: 0, '31-60': 0, '61-90': 0, over90: 0 };
-    const today = startOfToday();
-    supplierPurchases.forEach(po => {
-        // Simplified aging: based on purchase date. A more complex system would track payments against invoices.
-        const age = differenceInDays(today, parseISO(po.date));
-        const total_amount = typeof po.total_amount === 'number' ? po.total_amount : parseFloat(String(po.total_amount || 0));
-        const amount = isNaN(total_amount) ? 0 : total_amount;
+        const allTransactions = [...supplierPurchases, ...supplierReturnsData, ...supplierPaymentsData]
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        let runningBalance = 0;
+        const statementItems = allTransactions.map(t => {
+            runningBalance += t.debit - t.credit;
+            return { ...t, balance: runningBalance };
+        });
         
-        if(age <= 30) debtAging.current += amount;
-        else if (age <= 60) debtAging['31-60'] += amount;
-        else if (age <= 90) debtAging['61-90'] += amount;
-        else debtAging.over90 += amount;
-    });
+        // Debt Aging Calculation
+        const debtAging: DebtAging = { current: 0, '31-60': 0, '61-90': 0, over90: 0 };
+        const today = startOfToday();
+        supplierPurchases.forEach(po => {
+            // Simplified aging: based on purchase date. A more complex system would track payments against invoices.
+            const age = differenceInDays(today, parseISO(po.date));
+            const total_amount = typeof po.debit === 'number' ? po.debit : parseFloat(String(po.debit || 0));
+            const amount = isNaN(total_amount) ? 0 : total_amount;
+            
+            if(age <= 30) debtAging.current += amount;
+            else if (age <= 60) debtAging['31-60'] += amount;
+            else if (age <= 90) debtAging['61-90'] += amount;
+            else debtAging.over90 += amount;
+            console.log(debtAging);
+        });
 
 
-    setStatementData({ supplier, items: statementItems.reverse(), debtAging });
-    setExpandedStatementRows(new Set());
-    setIsStatementOpen(true);
-  };
+        setStatementData({ supplier, items: statementItems.reverse(), debtAging });
+        setExpandedStatementRows(new Set());
+        setIsStatementOpen(true);
+    }, [purchaseOrders, supplierReturns, supplierPayments]);
   
   const toggleStatementRow = (id: string) => {
     setExpandedStatementRows(prev => {
@@ -415,9 +417,9 @@ export default function SuppliersPage() {
 
   const supplierAccounts = React.useMemo(() => {
     return suppliers.map(supplier => {
-        const purchases = purchaseOrders.filter(po => po.supplier_id == supplier.id);
-        const returns = supplierReturns.filter(ret => ret.supplier_id == supplier.id);
-        const payments = supplierPayments?.supplierPayments?.filter(p => p.supplier_id == supplier.id) || [];
+        const purchases = Array.isArray(purchaseOrders) ? purchaseOrders.filter(po => po.supplier_id == supplier.id) : [];
+        const returns = Array.isArray(supplierReturns) ? supplierReturns.filter(ret => ret.supplier_id == supplier.id) : [];
+        const payments = supplierPayments?.supplierPayments ? supplierPayments.supplierPayments.filter(p => p.supplier_id == supplier.id) : [];
         
         // const totalPurchases = purchases.reduce((acc, po) => acc + (po.total_amount || 0), 0);
         const totalPurchases = purchases.reduce((acc, po) => {
@@ -440,9 +442,9 @@ export default function SuppliersPage() {
         
         const supplierProductIds = new Set(purchases.flatMap(po => po.items.map(item => item.medication_id)));
         
-        const profitFromSupplier = sales.flatMap(sale => sale.items)
+        const profitFromSupplier = Array.isArray(sales) ? sales.flatMap(sale => sale.items)
             .filter(item => supplierProductIds.has(item.medication_id))
-            .reduce((acc, item) => acc + (item.price - item.purchase_price) * item.quantity, 0);
+            .reduce((acc, item) => acc + (item.price - item.purchase_price) * item.quantity, 0) : 0;
 
         return {
             ...supplier,
@@ -559,10 +561,10 @@ export default function SuppliersPage() {
                     <Card key={account.id} className="flex flex-col">
                         <CardHeader>
                             <div className="flex justify-between items-start">
-                               <div>
-                                    <CardTitle>{account.name}</CardTitle>
-                                    <CardDescription>{account.contact_person || 'لا يوجد جهة اتصال'}</CardDescription>
-                               </div>
+                                <div>
+                                        <CardTitle>{account.name}</CardTitle>
+                                        <CardDescription>{account.contact_person || 'لا يوجد جهة اتصال'}</CardDescription>
+                                </div>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -646,8 +648,8 @@ export default function SuppliersPage() {
                             )}
                         </CardContent>
                         <CardFooter className="flex-col sm:flex-row gap-2">
-                            <Button variant="outline" className="w-full" onClick={() => handleShowStatement(account)}>
-                               <FileText className="me-2 h-4 w-4" /> كشف حساب
+                            <Button variant="outline" className="w-full" onClick={(e) => { e.preventDefault(); console.log("Button clicked"); alert("Button clicked"); handleShowStatement(account); }}>
+                                <FileText className="me-2 h-4 w-4" /> كشف حساب
                             </Button>
                             <Button variant="success" onClick={() => { setSelectedSupplier(account); setIsPaymentDialogOpen(true); }} className="w-full">
                                 <DollarSign className="me-2 h-4 w-4" />
@@ -777,7 +779,7 @@ export default function SuppliersPage() {
                     </TableHeader>
                     <TableBody>
                         {statementData.items.map((item, index) => (
-                          <React.Fragment key={item.id}>
+                          <React.Fragment key={`statement-${item.id}-${index}`}>
                             <TableRow 
                                 onClick={() => item.items && item.items.length > 0 && toggleStatementRow(item.id)}
                                 className={cn(item.items && item.items.length > 0 && "cursor-pointer text-right")}
@@ -813,7 +815,7 @@ export default function SuppliersPage() {
                                                 </TableHeader>
                                                 <TableBody>
                                                     {item.items.map((subItem, subIndex) => (
-                                                        <TableRow key={subIndex}>
+                                                        <TableRow key={`subitem-${item.id}-${subIndex}-${(subItem as any).name || ""}`}>
                                                             <TableCell>{(subItem as any).name}</TableCell>
                                                             <TableCell>{subItem.quantity}</TableCell>
                                                             <TableCell className="font-mono">{subItem.purchase_price.toLocaleString()}</TableCell>

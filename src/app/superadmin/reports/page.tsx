@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { AppSettings, Sale, User, PurchaseOrder, Supplier, SaleItem } from '@/lib/types';
+import type { AppSettings, Sale, User, PurchaseOrder, Supplier, SaleItem, ReturnOrder, SupplierPayment } from '@/lib/types';
 import { ArrowLeft, Download } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
@@ -69,8 +69,8 @@ export default function SuperAdminReportsPage() {
     const [allPharmacySales, setAllPharmacySales] = React.useState<Record<string, Sale[]>>({});
     const [allPharmacyPurchases, setAllPharmacyPurchases] = React.useState<Record<string, PurchaseOrder[]>>({});
     const [allSuppliers, setAllSuppliers] = React.useState<Supplier[]>([]);
-    const [allPharmacyPayments, setAllPharmacyPayments] = React.useState<Record<string, any>>({});
-    const [allPharmacyReturns, setAllPharmacyReturns] = React.useState<Record<string, any>>({});
+    const [allPharmacyPayments, setAllPharmacyPayments] = React.useState<Record<string, { supplierPayments: SupplierPayment[] }>>({});
+    const [allPharmacyReturns, setAllPharmacyReturns] = React.useState<Record<string, ReturnOrder[]>>({});
     
     const [loading, setLoading] = React.useState(true);
 
@@ -121,8 +121,8 @@ export default function SuperAdminReportsPage() {
                     const salesMap: Record<string, Sale[]> = {};
                     const purchasesMap: Record<string, PurchaseOrder[]> = {};
                     const suppliersList: Supplier[] = [];
-                    const paymentsMap: Record<string, any> = {};
-                    const returnsMap: Record<string, any> = {};
+                    const paymentsMap: Record<string, { supplierPayments: SupplierPayment[] }> = {};
+                    const returnsMap: Record<string, ReturnOrder[]> = {};
 
                     const supplierMap = new Map<string, Supplier>();
 
@@ -280,10 +280,10 @@ export default function SuperAdminReportsPage() {
             });
             
             returns.forEach(ro => {
-                 const supplier = allSuppliers.find(s => s.id === ro.supplier_id);
-                 if (!supplier) return;
-                 const data = analyticsMap.get(supplier.id)!;
-                 data.net_debt -= ro.total_amount;
+                const supplier = allSuppliers.find(s => s.id === ro.supplier_id);
+                if (!supplier) return;
+                const data = analyticsMap.get(supplier.id)!;
+                data.net_debt -= ro.total_amount;
             });
 
             payments.forEach(p => {

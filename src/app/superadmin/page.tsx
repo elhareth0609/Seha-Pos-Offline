@@ -93,7 +93,7 @@ function AdminRow({ admin, onDelete, onToggleStatus, onEdit, pharmacySettings }:
                         <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                         <DropdownMenuItem onSelect={() => onEdit(admin)}>
+                        <DropdownMenuItem onSelect={() => onEdit(admin)}>
                             <Pencil className="me-2"/>
                             تعديل البيانات
                         </DropdownMenuItem>
@@ -272,11 +272,11 @@ export default function SuperAdminPage() {
     }
 
     const handleToggleStatus = (user: User) => {
-        toggleUserStatus(user.id).then(success => {
-             if(success) {
+        toggleUserStatus(user).then(success => {
+            if(success) {
                 toast({title: `تم تغيير حالة حساب ${user.name}`});
                 fetchData(currentPage, perPage, searchTerm); // Refresh
-             }
+            }
         })
     }
     
