@@ -83,11 +83,14 @@ function ExpirationSuggestions() {
         
         // Initialize offeredItems with default values
         const initialOfferedItems: Record<string, { quantity: string; price: string; }> = {};
-        newSuggestions.forEach(({ med, surplus }) => {
-            initialOfferedItems[med.id] = {
-                quantity: String(surplus),
-                price: String(med.purchase_price)
-            };
+        newSuggestions.forEach((suggestion) => {
+            if (suggestion) {
+                const { med, surplus } = suggestion;
+                initialOfferedItems[med.id] = {
+                    quantity: String(surplus),
+                    price: String(med.purchase_price)
+                };
+            }
         });
         setOfferedItems(initialOfferedItems);
     }, [inventory, sales, settings.expirationThresholdDays]); 
