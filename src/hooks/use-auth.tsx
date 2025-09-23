@@ -138,6 +138,10 @@ interface AuthContextType {
     addExpense: (amount: number, description: string) => Promise<boolean>;
     updateExpense: (id: string, amount: number, description: string) => Promise<boolean>;
     deleteExpense: (id: string) => Promise<boolean>;
+    getRecurringExpenses: () => Promise<any[]>;
+    addRecurringExpense: (data: any) => Promise<boolean>;
+    deleteRecurringExpense: (id: string) => Promise<boolean>;
+
 
     // Tasks
     getPaginatedTasks: (page: number, perPage: number, filters: { user_id?: string, completed?: boolean }) => Promise<PaginatedResponse<Task>>;
@@ -174,7 +178,7 @@ interface AuthContextType {
     getArchivedMonthData: (archiveId: string) => Promise<ArchivedMonthData | null>;
 
     getOrderRequestCart: () => Promise<OrderRequestItem[]>;
-    addToOrderRequestCart: (item: Medication) => void;
+    addToOrderRequestCart: (item: Medication | { medication_id: string; name: string }) => void;
     removeFromOrderRequestCart: (orderItemId: string, skipToast?: boolean) => void;
     updateOrderRequestItem: (orderItemId: string, data: Partial<OrderRequestItem>) => Promise<void>;
     duplicateOrderRequestItem: (orderItemId: string) => Promise<void>;
@@ -1151,6 +1155,33 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             return true;
         } catch (e) { return false; }
     };
+
+    const getRecurringExpenses = async () => {
+        try {
+            const data = await apiRequest('/recurring-expenses');
+            return data || [];
+        } catch (e) {
+            return [];
+        }
+    };
+
+    const addRecurringExpense = async (data: any) => {
+        try {
+            await apiRequest('/recurring-expenses', 'POST', data);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    };
+
+    const deleteRecurringExpense = async (id: string) => {
+        try {
+            await apiRequest(`/recurring-expenses/${id}`, 'DELETE');
+            return true;
+        } catch (e) {
+            return false;
+        }
+    };
     
     const getPaginatedTasks = React.useCallback(async (page: number, perPage: number, filters: { user_id?: string, completed?: boolean }) => {
         try {
@@ -1519,7 +1550,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             addPayment, addPatientPayment,
             addPurchaseOrder,
             addReturnOrder, getPaginatedPurchaseOrders, getPaginatedReturnOrders,
-            getPaginatedExpenses, addExpense, updateExpense, deleteExpense,
+            getPaginatedExpenses, addExpense, updateExpense, deleteExpense, getRecurringExpenses, addRecurringExpense, deleteRecurringExpense,
             getPaginatedTasks, getMineTasks, addTask, updateTask, updateStatusTask, deleteTask,
             restoreItem, permDelete, clearTrash, getPaginatedTrash,
             getPaginatedUsers,

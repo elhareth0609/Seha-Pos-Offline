@@ -59,7 +59,7 @@ import { PinDialog } from "@/components/auth/PinDialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function ExpensesPage() {
-  const { getPaginatedExpenses, addExpense, updateExpense, deleteExpense, verifyPin, currentUser } = useAuth();
+  const { getPaginatedExpenses, addExpense, updateExpense, deleteExpense, verifyPin, currentUser, getRecurringExpenses, addRecurringExpense, deleteRecurringExpense } = useAuth();
   const { toast } = useToast();
   
   const [expenses, setExpenses] = React.useState<Expense[]>([]);
@@ -81,6 +81,7 @@ export default function ExpensesPage() {
 
   // State for recurring expenses
   const [recurringExpenses, setRecurringExpenses] = React.useState<any[]>([]);
+  const [loadingRecurring, setLoadingRecurring] = React.useState(true);
   const [isAddRecurringDialogOpen, setIsAddRecurringDialogOpen] = React.useState(false);
   const [newRecurringDescription, setNewRecurringDescription] = React.useState("");
   const [newRecurringAmount, setNewRecurringAmount] = React.useState("");
@@ -107,6 +108,17 @@ export default function ExpensesPage() {
     return () => clearTimeout(handler);
   }, [currentPage, perPage, searchTerm, fetchData]);
 
+  const fetchRecurringExpenses = React.useCallback(async () => {
+    setLoadingRecurring(true);
+    const data = await getRecurringExpenses();
+    setRecurringExpenses(data);
+    setLoadingRecurring(false);
+  }, [getRecurringExpenses]);
+
+  React.useEffect(() => {
+    fetchRecurringExpenses();
+  }, [fetchRecurringExpenses]);
+
 
   const resetAddDialog = () => {
     setNewAmount("");
@@ -126,7 +138,6 @@ export default function ExpensesPage() {
     }
     
     const success = await addExpense(amount, newDescription); // Not recurring
-    // const success = await addExpense(amount, newDescription, false); // Not recurring
     if (success) {
       fetchData(1, perPage, ""); // Refresh data
       resetAddDialog();
@@ -143,15 +154,29 @@ export default function ExpensesPage() {
         toast({ variant: 'destructive', title: "الوصف مطلوب" });
         return;
     }
-    // This function will need to be implemented in useAuth to save the recurring expense rule
-    // For now, we'll just add it to local state for UI demonstration
-    const newRecExpense = { id: `rec-${Date.now()}`, description: newRecurringDescription, amount, day_of_month: parseInt(newRecurringDay) };
-    setRecurringExpenses(prev => [...prev, newRecExpense]);
-    toast({ title: "تمت إضافة المصروف الدوري بنجاح" });
-    setIsAddRecurringDialogOpen(false);
-    setNewRecurringDescription("");
-    setNewRecurringAmount("");
-    setNewRecurringDay("1");
+    
+    const success = await addRecurringExpense({
+        description: newRecurringDescription,
+        amount: amount,
+        day_of_month: parseInt(newRecurringDay),
+    });
+
+    if (success) {
+        fetchRecurringExpenses();
+        toast({ title: "تمت إضافة المصروف الدوري بنجاح" });
+        setIsAddRecurringDialogOpen(false);
+        setNewRecurringDescription("");
+        setNewRecurringAmount("");
+        setNewRecurringDay("1");
+    }
+  }
+
+  const handleDeleteRecurringExpense = async (id: string) => {
+    const success = await deleteRecurringExpense(id);
+    if (success) {
+        fetchRecurringExpenses();
+        toast({ title: "تم حذف المصروف الدوري" });
+    }
   }
 
   
@@ -451,13 +476,17 @@ export default function ExpensesPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {recurringExpenses.length > 0 ? recurringExpenses.map((exp) => (
+                        {loadingRecurring ? (
+                             <TableRow>
+                                <TableCell colSpan={4}><Skeleton className="h-5 w-full" /></TableCell>
+                            </TableRow>
+                        ) : recurringExpenses.length > 0 ? recurringExpenses.map((exp) => (
                              <TableRow key={exp.id}>
                                 <TableCell className="font-medium">{exp.description}</TableCell>
                                 <TableCell className="font-mono text-destructive">{exp.amount.toLocaleString()}</TableCell>
                                 <TableCell>يوم {exp.day_of_month} من كل شهر</TableCell>
                                 <TableCell>
-                                    <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
+                                    <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleDeleteRecurringExpense(exp.id)}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </TableCell>
