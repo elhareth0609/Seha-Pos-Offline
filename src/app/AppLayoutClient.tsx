@@ -121,7 +121,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
             defaultTheme="system"
             enableSystem
             disableTransitionOnChange
-            themes={['light', 'dark', 'theme-black', 'theme-rose', 'theme-blue', 'theme-green', 'theme-violet', 'theme-serenity-blue', 'theme-radiant-orchid', 'theme-golden-sunset', 'theme-forest-dreams', 'theme-crimson-elegance', 'theme-pastel-paradise']}
+            themes={['light', 'dark']}
         >
             <AppShell>{children}</AppShell>
         </ThemeProvider>
