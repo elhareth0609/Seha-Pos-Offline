@@ -17,7 +17,6 @@ const tajawal = Tajawal({
 export const metadata: Metadata = {
   title: 'ميدجرام',
   description: 'نظام إدارة صيدلية للمبيعات والمخزون والمشتريات.',
-  manifest: '/manifest.json'
 };
 
 export default function RootLayout({
@@ -31,21 +30,6 @@ export default function RootLayout({
         <link rel="icon" href="/icon.png" />
       </head>
       <body className={`${tajawal.variable} font-body antialiased`}>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                  navigator.serviceWorker.register('/sw.js').then(registration => {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                  }, err => {
-                    console.log('ServiceWorker registration failed: ', err);
-                  });
-                });
-              }
-            `,
-          }}
-        />
         <AuthProvider>
             <AppLayoutClient>
               {children}
