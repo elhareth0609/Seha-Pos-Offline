@@ -15,6 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // API Endpoint for representatives
 const REPS_API_URL = 'https://us-central1-midgram-e4985.cloudfunctions.net/getRepresentatives'; 
+const PRODUCTS_API_URL = 'https://us-central1-midgram-e4985.cloudfunctions.net/getRepresentatives'; 
 
 export default function RepresentativesPage() {
     const [reps, setReps] = React.useState<MedicalRepresentative[]>([]);

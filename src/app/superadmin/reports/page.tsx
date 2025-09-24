@@ -44,14 +44,14 @@ type TopPurchasedItem = {
     quantity: number;
 };
 
-type SupplierAnalyticsData = {
-    supplier_id: string;
-    supplier_name: string;
-    total_purchases: number;
-    total_sales: number;
-    total_profit: number;
-    net_debt: number;
-};
+// type SupplierAnalyticsData = {
+//     supplier_id: string;
+//     supplier_name: string;
+//     total_purchases: number;
+//     total_sales: number;
+//     total_profit: number;
+//     net_debt: number;
+// };
 
 // Helper function to download data as CSV
 const downloadAsCSV = (data: any[], filename: string) => {
@@ -87,8 +87,8 @@ export default function SuperAdminReportsPage() {
     const [topPurchaseItemsDateFrom, setTopPurchaseItemsDateFrom] = React.useState<string>("");
     const [topPurchaseItemsDateTo, setTopPurchaseItemsDateTo] = React.useState<string>("");
 
-    const [supplierAnalyticsDateFrom, setSupplierAnalyticsDateFrom] = React.useState<string>("");
-    const [supplierAnalyticsDateTo, setSupplierAnalyticsDateTo] = React.useState<string>("");
+    // const [supplierAnalyticsDateFrom, setSupplierAnalyticsDateFrom] = React.useState<string>("");
+    // const [supplierAnalyticsDateTo, setSupplierAnalyticsDateTo] = React.useState<string>("");
     const [selectedSupplierId, setSelectedSupplierId] = React.useState<string>("all");
 
     React.useEffect(() => {
@@ -117,7 +117,7 @@ export default function SuperAdminReportsPage() {
                         }))
                     );
                     const results = await Promise.all(dataPromises);
-
+                    console.log(results)
                     const salesMap: Record<string, Sale[]> = {};
                     const purchasesMap: Record<string, PurchaseOrder[]> = {};
                     const suppliersList: Supplier[] = [];
@@ -251,90 +251,90 @@ export default function SuperAdminReportsPage() {
         return Object.values(topPurchasedItemsMap).sort((a,b) => b.quantity - a.quantity).slice(0,30);
     }, [allPharmacyPurchases, topPurchaseItemsDateFrom, topPurchaseItemsDateTo]);
     
-    const supplierAnalytics = React.useMemo<SupplierAnalyticsData[]>(() => {
-        const analyticsMap = new Map<string, SupplierAnalyticsData>();
+    // const supplierAnalytics = React.useMemo<SupplierAnalyticsData[]>(() => {
+    //     const analyticsMap = new Map<string, SupplierAnalyticsData>();
 
-        allSuppliers.forEach(s => {
-            analyticsMap.set(s.id, {
-                supplier_id: s.id,
-                supplier_name: s.name,
-                total_purchases: 0,
-                total_sales: 0,
-                total_profit: 0,
-                net_debt: 0
-            });
-        });
+    //     allSuppliers.forEach(s => {
+    //         analyticsMap.set(s.id, {
+    //             supplier_id: s.id,
+    //             supplier_name: s.name,
+    //             total_purchases: 0,
+    //             total_sales: 0,
+    //             total_profit: 0,
+    //             net_debt: 0
+    //         });
+    //     });
 
-        // Calculate Purchases, Debts
-        Object.keys(allPharmacyPurchases).forEach(pharmacyId => {
-            const purchases = filterByDateRange(allPharmacyPurchases[pharmacyId] || [], supplierAnalyticsDateFrom, supplierAnalyticsDateTo);
-            const returns = filterByDateRange(allPharmacyReturns[pharmacyId] || [], supplierAnalyticsDateFrom, supplierAnalyticsDateTo);
-            const payments = filterByDateRange(allPharmacyPayments[pharmacyId]?.supplierPayments || [], supplierAnalyticsDateFrom, supplierAnalyticsDateTo);
+    //     // Calculate Purchases, Debts
+    //     Object.keys(allPharmacyPurchases).forEach(pharmacyId => {
+    //         const purchases = filterByDateRange(allPharmacyPurchases[pharmacyId] || [], supplierAnalyticsDateFrom, supplierAnalyticsDateTo);
+    //         const returns = filterByDateRange(allPharmacyReturns[pharmacyId] || [], supplierAnalyticsDateFrom, supplierAnalyticsDateTo);
+    //         const payments = filterByDateRange(allPharmacyPayments[pharmacyId]?.supplierPayments || [], supplierAnalyticsDateFrom, supplierAnalyticsDateTo);
 
-            purchases.forEach(po => {
-                const supplier = allSuppliers.find(s => s.id === po.supplier_id);
-                if (!supplier) return;
-                const data = analyticsMap.get(supplier.id)!;
-                data.total_purchases += po.total_amount;
-                data.net_debt += po.total_amount;
-            });
+    //         purchases.forEach(po => {
+    //             const supplier = allSuppliers.find(s => s.id === po.supplier_id);
+    //             if (!supplier) return;
+    //             const data = analyticsMap.get(supplier.id)!;
+    //             data.total_purchases += po.total_amount;
+    //             data.net_debt += po.total_amount;
+    //         });
             
-            returns.forEach(ro => {
-                const supplier = allSuppliers.find(s => s.id === ro.supplier_id);
-                if (!supplier) return;
-                const data = analyticsMap.get(supplier.id)!;
-                data.net_debt -= ro.total_amount;
-            });
+    //         returns.forEach(ro => {
+    //             const supplier = allSuppliers.find(s => s.id === ro.supplier_id);
+    //             if (!supplier) return;
+    //             const data = analyticsMap.get(supplier.id)!;
+    //             data.net_debt -= ro.total_amount;
+    //         });
 
-            payments.forEach(p => {
-                const supplier = allSuppliers.find(s => s.id === p.supplier_id);
-                if (!supplier) return;
-                const data = analyticsMap.get(supplier.id)!;
-                data.net_debt -= p.amount;
-            });
-        });
+    //         payments.forEach(p => {
+    //             const supplier = allSuppliers.find(s => s.id === p.supplier_id);
+    //             if (!supplier) return;
+    //             const data = analyticsMap.get(supplier.id)!;
+    //             data.net_debt -= p.amount;
+    //         });
+    //     });
         
-        // Calculate Sales and Profit
-        const supplierMedicationMap = new Map<string, string[]>(); // supplier_id -> [med_id1, med_id2]
-        allSuppliers.forEach(s => supplierMedicationMap.set(s.id, []));
+    //     // Calculate Sales and Profit
+    //     const supplierMedicationMap = new Map<string, string[]>(); // supplier_id -> [med_id1, med_id2]
+    //     allSuppliers.forEach(s => supplierMedicationMap.set(s.id, []));
 
-        Object.values(allPharmacyPurchases).flat().forEach(po => {
-            const medIds = po.items.map(i => i.medication_id).filter((id): id is string => !!id);
-            const existingMeds = supplierMedicationMap.get(po.supplier_id) || [];
-            supplierMedicationMap.set(po.supplier_id, [...new Set([...existingMeds, ...medIds])]);
-        });
+    //     Object.values(allPharmacyPurchases).flat().forEach(po => {
+    //         const medIds = po.items.map(i => i.medication_id).filter((id): id is string => !!id);
+    //         const existingMeds = supplierMedicationMap.get(po.supplier_id) || [];
+    //         supplierMedicationMap.set(po.supplier_id, [...new Set([...existingMeds, ...medIds])]);
+    //     });
 
-        Object.values(allPharmacySales).flat().forEach(sale => {
-             const saleInDateRange = filterByDateRange([sale], supplierAnalyticsDateFrom, supplierAnalyticsDateTo).length > 0;
-             if (!saleInDateRange) return;
+    //     Object.values(allPharmacySales).flat().forEach(sale => {
+    //          const saleInDateRange = filterByDateRange([sale], supplierAnalyticsDateFrom, supplierAnalyticsDateTo).length > 0;
+    //          if (!saleInDateRange) return;
 
-             sale.items.forEach(item => {
-                 for (const [supplier_id, med_ids] of supplierMedicationMap.entries()) {
-                     if (med_ids.includes(item.medication_id)) {
-                         const data = analyticsMap.get(supplier_id)!;
-                         const saleValue = (item.price || 0) * item.quantity;
-                         const profitValue = ((item.price || 0) - (item.purchase_price || 0)) * item.quantity;
-                         if (!item.is_return) {
-                            data.total_sales += saleValue;
-                            data.total_profit += profitValue;
-                         } else {
-                            data.total_sales -= saleValue;
-                            data.total_profit -= profitValue;
-                         }
-                         break; // Assume a med is from one primary supplier for this analysis
-                     }
-                 }
-             });
-        });
+    //          sale.items.forEach(item => {
+    //              for (const [supplier_id, med_ids] of supplierMedicationMap.entries()) {
+    //                  if (med_ids.includes(item.medication_id)) {
+    //                      const data = analyticsMap.get(supplier_id)!;
+    //                      const saleValue = (item.price || 0) * item.quantity;
+    //                      const profitValue = ((item.price || 0) - (item.purchase_price || 0)) * item.quantity;
+    //                      if (!item.is_return) {
+    //                         data.total_sales += saleValue;
+    //                         data.total_profit += profitValue;
+    //                      } else {
+    //                         data.total_sales -= saleValue;
+    //                         data.total_profit -= profitValue;
+    //                      }
+    //                      break; // Assume a med is from one primary supplier for this analysis
+    //                  }
+    //              }
+    //          });
+    //     });
         
-        let result = Array.from(analyticsMap.values());
-        if (selectedSupplierId !== 'all') {
-            result = result.filter(r => r.supplier_id === selectedSupplierId);
-        }
+    //     let result = Array.from(analyticsMap.values());
+    //     if (selectedSupplierId !== 'all') {
+    //         result = result.filter(r => r.supplier_id === selectedSupplierId);
+    //     }
 
-        return result.sort((a,b) => b.total_purchases - a.total_purchases);
+    //     return result.sort((a,b) => b.total_purchases - a.total_purchases);
 
-    }, [allSuppliers, allPharmacyPurchases, allPharmacySales, allPharmacyPayments, allPharmacyReturns, supplierAnalyticsDateFrom, supplierAnalyticsDateTo, selectedSupplierId]);
+    // }, [allSuppliers, allPharmacyPurchases, allPharmacySales, allPharmacyPayments, allPharmacyReturns, supplierAnalyticsDateFrom, supplierAnalyticsDateTo, selectedSupplierId]);
 
 
     if (loading) {
@@ -370,9 +370,9 @@ export default function SuperAdminReportsPage() {
             </Card>
 
             <Tabs defaultValue="performance" dir="rtl">
-                <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
+                <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
                     <TabsTrigger value="performance">أداء الصيدليات</TabsTrigger>
-                    <TabsTrigger value="supplierAnalytics">تحليلات الموردين</TabsTrigger>
+                    {/* <TabsTrigger value="supplierAnalytics">تحليلات الموردين</TabsTrigger> */}
                     <TabsTrigger value="topSelling">الأكثر مبيعًا</TabsTrigger>
                     <TabsTrigger value="topPurchasingPharma">الصيدليات الأكثر شراءً</TabsTrigger>
                     <TabsTrigger value="topPurchasingItems">الأصناف الأكثر شراءً</TabsTrigger>
@@ -427,7 +427,7 @@ export default function SuperAdminReportsPage() {
                     </Card>
                 </TabsContent>
                 
-                 <TabsContent value="supplierAnalytics">
+                 {/* <TabsContent value="supplierAnalytics">
                     <Card>
                         <CardHeader>
                             <div className="flex justify-between items-center">
@@ -482,7 +482,7 @@ export default function SuperAdminReportsPage() {
                             </Table>
                         </CardContent>
                     </Card>
-                </TabsContent>
+                </TabsContent> */}
 
                 <TabsContent value="topSelling">
                      <Card>
