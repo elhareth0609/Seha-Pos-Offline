@@ -24,7 +24,6 @@ import {
   Star,
   Target,
   Lightbulb,
-  Eye,
   PieChart,
   Briefcase
 } from "lucide-react";
@@ -126,7 +125,7 @@ export const Features = () => {
     { icon: Target, value: "99.9%", label: "دقة في التنبؤ", color: "medical-primary" },
     { icon: TrendingUp, value: "+45%", label: "زيادة الأرباح", color: "medical-success" },
     { icon: Clock, value: "24/7", label: "دعم فني", color: "medical-secondary" },
-    { icon: Eye, value: "100%", label: "شفافية البيانات", color: "medical-warning" }
+    { icon: TrendingUp, value: "100%", label: "شفافية البيانات", color: "medical-warning" }
   ];
 
   return (
@@ -247,7 +246,7 @@ export const Features = () => {
                   <p className="text-muted-foreground leading-relaxed mb-4 text-sm">{feature.description}</p>
                   
                   <div className={`inline-flex items-center gap-2 bg-${feature.color}/10 text-${feature.color} px-3 py-1 rounded-lg text-xs font-medium mb-3`}>
-                    <Eye className="w-3 h-3" />
+                    <TrendingUp className="w-3 h-3" />
                     <span>{feature.benefit}</span>
                   </div>
                   
