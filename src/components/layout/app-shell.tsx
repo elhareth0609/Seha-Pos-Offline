@@ -90,7 +90,7 @@ const allNavItems = [
   { href: "/patients", icon: Users, label: "أصدقاء الصيدلية", group: 'tools' },
   { href: "/tasks", icon: ListChecks, label: "المهام", group: 'tools' },
   { href: "/exchange", icon: ArrowLeftRight, label: "Pharma Swap", group: 'tools' },
-  
+  { href: "/representatives", icon: Contact, label: "دليل المندوبين", group: 'external' },
   { href: "/offers", icon: BadgePercent, label: "عروض ميدجرام", group: 'external' },
 
   { href: "/hr", icon: UserCog, label: "شؤون الموظفين", group: 'admin' },
@@ -327,6 +327,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         manage_offers: true,
         manage_hr: false,
         manage_support: true,
+        manage_representatives: true,
     };
 
     const permissionMap: { [key: string]: keyof UserPermissions } = {
@@ -350,6 +351,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         '/support': 'manage_support',
         '/clinical-training': 'manage_guide', // Assuming guide permission covers this
         '/exchange': 'manage_inventory', // Assuming inventory permission covers this for now
+        '/representatives': 'manage_representatives', // Assuming representatives permission covers this for now
     };
 
     return allNavItems.filter(item => {
