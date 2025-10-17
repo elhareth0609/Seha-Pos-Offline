@@ -450,7 +450,7 @@ export default function PatientsPage() {
                     <TableBody>
                         {statementData.items.map((item, index) => (
                           <TableRow key={index}>
-                                <TableCell className="text-xs text-right">{new Date(item.date).toLocaleDateString('ar-EG')}</TableCell>
+                                <TableCell className="text-xs text-right">{new Date(item.date).toLocaleDateString('en-US')}</TableCell>
                                 <TableCell className="text-right">{item.details}</TableCell>
                                 <TableCell className="font-mono text-red-600 text-right">{item.debit > 0 ? item.debit.toLocaleString() : '-'}</TableCell>
                                 <TableCell className="font-mono text-green-600 text-right">{item.credit > 0 ? item.credit.toLocaleString() : '-'}</TableCell>

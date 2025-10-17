@@ -359,7 +359,7 @@ export default function CloseMonthPage() {
                                         {archiveData.sales.map((sale: any) => (
                                             <TableRow key={sale.id}>
                                                 <TableCell className="font-mono">{sale.id}</TableCell>
-                                                <TableCell>{new Date(sale.date).toLocaleDateString('ar-EG')}</TableCell>
+                                                <TableCell>{new Date(sale.date).toLocaleDateString('en-US')}</TableCell>
                                                 <TableCell className="font-mono">{sale.total.toLocaleString()}</TableCell>
                                             </TableRow>
                                         ))}

@@ -307,7 +307,7 @@ export default function ItemMovementPage() {
                                     </TableRow>
                                 )) : transactions.length > 0 ? transactions.map((item) => (
                                         <TableRow key={item.id}>
-                                            <TableCell className="font-mono">{new Date(item.date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</TableCell>
+                                            <TableCell className="font-mono">{new Date(item.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</TableCell>
                                             {!selectedMed && <TableCell>{item.actor}</TableCell>}
                                             <TableCell>{getTypeBadge(item.type)}</TableCell>
                                             <TableCell className={`font-medium font-mono ${item.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>

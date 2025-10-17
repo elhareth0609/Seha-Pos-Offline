@@ -233,7 +233,7 @@ export default function TasksPage() {
                         </TableCell>
                         <TableCell className={task.completed ? "text-muted-foreground line-through" : ""}>{task.description}</TableCell>
                         {currentUser?.role === 'Admin' && <TableCell>{task.user_name}</TableCell>}
-                        <TableCell className="font-mono text-sm">{new Date(task.created_at).toLocaleDateString('ar-EG')}</TableCell>
+                        <TableCell className="font-mono text-sm">{new Date(task.created_at).toLocaleDateString('en-US')}</TableCell>
                         {currentUser?.role === 'Admin' && (
                             <TableCell>
                                 {/* {task.completed && ( */}

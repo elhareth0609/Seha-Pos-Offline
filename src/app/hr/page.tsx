@@ -390,8 +390,8 @@ export default function HRPage() {
                                             const salary = (minutes / 60) * (selectedUser?.hourly_rate || 0);
                                             return (
                                                 <TableRow key={log.id}>
-                                                    <TableCell>{new Date(log.clock_in).toLocaleString('ar-EG')}</TableCell>
-                                                    <TableCell>{log.clock_out ? new Date(log.clock_out).toLocaleString('ar-EG') : '-'}</TableCell>
+                                                    <TableCell>{new Date(log.clock_in).toLocaleString('en-US')}</TableCell>
+                                                    <TableCell>{log.clock_out ? new Date(log.clock_out).toLocaleString('en-US') : '-'}</TableCell>
                                                     <TableCell className="font-mono">{duration}</TableCell>
                                                     <TableCell className="font-mono">{salary.toLocaleString()}</TableCell>
                                                 </TableRow>

@@ -695,7 +695,7 @@ export default function PurchasesPage() {
                                         <TableCell>{item.name}</TableCell>
                                         <TableCell className="font-mono">{item.quantity}</TableCell>
                                         <TableCell className="font-mono">{item.purchase_price?.toLocaleString()}</TableCell>
-                                        <TableCell className="font-mono">{item.expiration_date ? new Date(item.expiration_date).toLocaleDateString('ar-EG') : ''}</TableCell>
+                                        <TableCell className="font-mono">{item.expiration_date ? new Date(item.expiration_date).toLocaleDateString('en-US') : ''}</TableCell>
                                         <TableCell className="font-mono">{(item.quantity! * item.purchase_price!).toLocaleString()}</TableCell>
                                         <TableCell className="flex items-center gap-1">
                                             <Button variant="ghost" size="icon" className="text-blue-600 h-8 w-8" onClick={() => openEditItemDialog(item)}>
@@ -765,7 +765,7 @@ export default function PurchasesPage() {
                                 <TableCell></TableCell>
                                 <TableCell></TableCell>
                                 <TableCell className="font-mono">{po.total_amount.toLocaleString()}</TableCell>
-                                <TableCell className="font-mono">{new Date(po.date).toLocaleDateString('ar-EG')}</TableCell>
+                                <TableCell className="font-mono">{new Date(po.date).toLocaleDateString('en-US')}</TableCell>
                             </TableRow>
                             {expandedRows.has(po.id) && (po.items || []).map((item, index) => (
                                 <TableRow key={`${po.id}-${item.id}-${index}`} className="bg-muted/10">
@@ -969,7 +969,7 @@ export default function PurchasesPage() {
                                 <TableCell></TableCell>
                                 <TableCell></TableCell>
                                 <TableCell className="font-mono">{ret.total_amount.toLocaleString()}</TableCell>
-                                <TableCell className="font-mono">{new Date(ret.date).toLocaleDateString('ar-EG')}</TableCell>
+                                <TableCell className="font-mono">{new Date(ret.date).toLocaleDateString('en-US')}</TableCell>
                             </TableRow>
                              {expandedRows.has(ret.id) && (ret.items || []).map((item, index) => (
                                 <TableRow key={`${ret.id}-${item.medication_id}-${index}`} className="bg-muted/10">

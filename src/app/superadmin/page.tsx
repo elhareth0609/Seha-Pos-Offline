@@ -666,7 +666,7 @@ export default function SuperAdminPage() {
                                         <div className="text-sm">
                                             <p className="font-semibold">{offer.title}</p>
                                             {offer.contact_number && <div className="flex items-center gap-1 text-xs text-muted-foreground"><Phone className="h-3 w-3"/><span>{offer.contact_number}</span></div>}
-                                            <div className="flex items-center gap-1 text-xs text-muted-foreground"><CalendarClock className="h-3 w-3"/><span>ينتهي في: {new Date(offer.expiration_date).toLocaleDateString('ar-EG')}</span></div>
+                                            <div className="flex items-center gap-1 text-xs text-muted-foreground"><CalendarClock className="h-3 w-3"/><span>ينتهي في: {new Date(offer.expiration_date).toLocaleDateString('en-US')}</span></div>
                                             <div className="flex items-center gap-1 text-xs text-muted-foreground"><Eye className="h-3 w-3" /><span>{offer.views || 0} مشاهدة</span></div>
                                         </div>
                                     </div>

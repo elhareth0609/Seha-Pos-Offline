@@ -14,7 +14,7 @@ async function calculateDoseWithOpenRouter(input: DoseCalculationInput): Promise
     `- ${med.tradeName} (${med.scientific_names ? med.scientific_names.join(', ') : 'N/A'})`
   ).join('\n');
 
-const prompt = `You are an expert Iraqi pharmacist assistant. Provide dosage analysis for the given medications based on the patient's age. Your response must be in valid JSON format only.
+const prompt = `You are an expert Iraqi pharmacist assistant. Provide dosage analysis for the given medications based on the patient's weight. Your response must be in valid JSON format only.
 
 You must return JSON in the exact format below:
 {
@@ -27,7 +27,7 @@ You must return JSON in the exact format below:
   "interactions": []
 }
 
-Patient age: ${input.patientAge}
+Patient weight: ${input.patientWeight} kg
 Medications:
 ${medicationsText}
 

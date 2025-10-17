@@ -643,7 +643,7 @@ export default function InventoryPage() {
                   <TableCell className="font-mono text-xs">{item.barcodes?.join(', ')}</TableCell>
                   <TableCell className="text-center font-mono">{item.stock}</TableCell>
                   <TableCell className="text-center font-mono">{item.reorder_point}</TableCell>
-                  <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('ar-EG')}</TableCell>
+                  <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('en-US')}</TableCell>
                   <TableCell className="text-center font-mono">{item.price.toLocaleString()}</TableCell>
                   <TableCell>{getStockStatus(item.stock, item.reorder_point)}</TableCell>
                   <TableCell>

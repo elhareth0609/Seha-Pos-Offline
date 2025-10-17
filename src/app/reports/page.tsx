@@ -454,7 +454,7 @@ export default function ReportsPage() {
                                 <React.Fragment key={sale.id}>
                                     <TableRow onClick={() => toggleRow(sale.id)} className="cursor-pointer">
                                         <TableCell className="font-medium font-mono">{sale.id}</TableCell>
-                                        <TableCell className="font-mono">{new Date(sale.date).toLocaleString('ar-EG', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric' })}</TableCell>
+                                        <TableCell className="font-mono">{new Date(sale.date).toLocaleString('en-US', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric' })}</TableCell>
                                         <TableCell>{sale.patientName || 'غير محدد'}</TableCell>
                                         <TableCell className="text-center font-mono">{(sale.items || []).length}</TableCell>
                                         <TableCell className="text-left font-mono">{sale.total.toLocaleString()}</TableCell>

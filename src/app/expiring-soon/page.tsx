@@ -226,7 +226,7 @@ export default function ExpiringSoonPage() {
                           <div className="text-xs text-muted-foreground font-mono">{item.barcodes?.join(', ')}</div>
                         </TableCell>
                         <TableCell className="font-mono">{item.stock}</TableCell>
-                        <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('ar-EG')}</TableCell>
+                        <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('en-US')}</TableCell>
                         <TableCell className="font-mono">{formatDaysLeft(item.expiration_date)}</TableCell>
                         <TableCell>{getExpirationBadge(item.expiration_date)}</TableCell>
                         <TableCell className="text-left">
@@ -299,7 +299,7 @@ export default function ExpiringSoonPage() {
                           <div className="text-xs text-muted-foreground font-mono">{item.barcodes?.join(', ')}</div>
                         </TableCell>
                         <TableCell className="font-mono">{item.stock}</TableCell>
-                        <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('ar-EG')}</TableCell>
+                        <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('en-US')}</TableCell>
                         <TableCell>{getExpirationBadge(item.expiration_date)}</TableCell>
                         <TableCell className="text-left">
                             <div className="flex justify-end items-center gap-2">

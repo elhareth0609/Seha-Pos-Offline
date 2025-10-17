@@ -212,7 +212,7 @@ export default function TrashPage() {
                 <TableCell>
                   <Badge variant="secondary">{item_typeLabels[item.item_type as keyof typeof item_typeLabels]}</Badge>
                 </TableCell>
-                <TableCell>{new Date(item.deleted_at).toLocaleString('ar-EG')}</TableCell>
+                <TableCell>{new Date(item.deleted_at).toLocaleString('en-US')}</TableCell>
                 <TableCell className="text-left space-x-2 space-x-reverse">
                     <Button variant="outline" size="sm" onClick={() => handleRestore(item)}>
                         <RotateCcw className="me-2 h-4 w-4"/>

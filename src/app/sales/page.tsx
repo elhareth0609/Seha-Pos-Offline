@@ -128,15 +128,15 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
 };
 
 function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
-    const [patientAge, setPatientAge] = React.useState('');
+    const [patientWeight, setPatientWeight] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
     const [results, setResults] = React.useState<DoseCalculationOutput | null>(null);
     const { toast } = useToast();
 
     const handleCalculate = async () => {
-        const age = parseInt(patientAge, 10);
-        if (isNaN(age) || age <= 0) {
-            toast({ variant: 'destructive', title: 'عمر غير صالح', description: 'الرجاء إدخال عمر صحيح.' });
+        const weight = parseFloat(patientWeight);
+        if (isNaN(weight) || weight <= 0) {
+            toast({ variant: 'destructive', title: 'وزن غير صالح', description: 'الرجاء إدخال وزن صحيح.' });
             return;
         }
         
@@ -154,7 +154,7 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
             
         try {
             const response = await calculateDose({ 
-                patientAge: age, 
+                patientWeight: weight, 
                 medications: medicationsInput,
             });
             setResults(response);
@@ -171,14 +171,14 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
             <DialogHeader>
                 <DialogTitle>مساعد الجرعات الذكي</DialogTitle>
                 <DialogDescription>
-                    أدخل عمر المريض للحصول على اقتراحات للجرعات.
+                    أدخل وزن المريض للحصول على اقتراحات للجرعات.
                 </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                     <div className="space-y-2">
-                        <Label htmlFor="patient-age">عمر المريض (بالسنوات)</Label>
-                        <Input id="patient-age" type="number" value={patientAge} onChange={(e) => setPatientAge(e.target.value)} placeholder="مثال: 5" />
+                        <Label htmlFor="patient-weight">وزن المريض (بالكيلوجرام)</Label>
+                        <Input id="patient-weight" type="number" step="0.1" value={patientWeight} onChange={(e) => setPatientWeight(e.target.value)} placeholder="مثال: 25.5" />
                     </div>
                      <div className="md:col-span-2">
                          <Button onClick={handleCalculate} disabled={isLoading || cartItems.length === 0} className="w-full">
@@ -254,7 +254,7 @@ function BarcodeConflictDialog({ open, onOpenChange, conflictingMeds, onSelect }
                                 <div>
                                     <div className="font-semibold">{med.name}</div>
                                     <div className="text-sm text-muted-foreground">
-                                        تاريخ الانتهاء: <span className="font-mono">{new Date(med.expiration_date).toLocaleDateString('ar-EG')}</span>
+                                        تاريخ الانتهاء: <span className="font-mono">{new Date(med.expiration_date).toLocaleDateString('en-US')}</span>
                                     </div>
                                 </div>
                                 <div className="text-sm">

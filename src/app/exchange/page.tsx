@@ -401,7 +401,7 @@ export default function ExchangePage() {
                                 <CardContent className="space-y-3 text-sm flex-grow">
                                     <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-2"><Package /> الكمية:</span><span className="font-bold font-mono">{item.quantity}</span></div>
                                     <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-2"><DollarSign /> السعر:</span><span className="font-bold font-mono text-green-600">{item.price.toLocaleString()}</span></div>
-                                    <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-2"><CalendarDays /> الانتهاء:</span><span className="font-mono">{new Date(item.expirationDate).toLocaleDateString('ar-EG')}</span></div>
+                                    <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-2"><CalendarDays /> الانتهاء:</span><span className="font-mono">{new Date(item.expirationDate).toLocaleDateString('en-US')}</span></div>
                                     <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-2"><Pilcrow /> الصيدلية:</span><span className="font-semibold">{item.pharmacyName} ({item.province})</span></div>
                                 </CardContent>
                                 <CardFooter>

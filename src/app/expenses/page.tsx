@@ -328,7 +328,7 @@ export default function ExpensesPage() {
                                 </TableRow>
                             )) : expenses.length > 0 ? expenses.map((expense) => (
                                 <TableRow key={expense.id}>
-                                    <TableCell className="font-mono text-sm">{new Date(expense.created_at).toLocaleDateString('ar-EG')}</TableCell>
+                                    <TableCell className="font-mono text-sm">{new Date(expense.created_at).toLocaleDateString('en-US')}</TableCell>
                                     <TableCell className="font-medium">{expense.description}</TableCell>
                                     <TableCell className="font-mono text-destructive">{expense.amount.toLocaleString()}</TableCell>
                                     <TableCell className="text-muted-foreground">{expense.user_name}</TableCell>

@@ -785,7 +785,7 @@ export default function SuppliersPage() {
                                 className={cn(item.items && item.items.length > 0 && "cursor-pointer text-right")}
                             >
                                 <TableCell className="text-xs text-right">
-                                    {new Date(item.date).toLocaleDateString('ar-EG')}
+                                    {new Date(item.date).toLocaleDateString('en-US')}
                                 </TableCell>
                                 <TableCell className="flex justify-between items-center">
                                     <div className="font-medium flex items-center gap-2">
