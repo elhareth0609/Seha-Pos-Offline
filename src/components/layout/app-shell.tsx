@@ -328,6 +328,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         manage_hr: false,
         manage_support: true,
         manage_representatives: true,
+        manage_exchange: true,
     };
 
     const permissionMap: { [key: string]: keyof UserPermissions } = {
@@ -350,7 +351,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         '/hr': 'manage_hr',
         '/support': 'manage_support',
         '/clinical-training': 'manage_guide', // Assuming guide permission covers this
-        '/exchange': 'manage_inventory', // Assuming inventory permission covers this for now
+        '/exchange': 'manage_exchange',
         '/representatives': 'manage_representatives', // Assuming representatives permission covers this for now
     };
 

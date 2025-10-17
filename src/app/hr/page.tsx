@@ -64,6 +64,8 @@ const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: stri
     { key: 'manage_order_requests', label: 'الوصول إلى طلبات الطلب' },
     { key: 'manage_offers', label: 'الوصول إلى العروض' },
     { key: 'manage_hr', label: 'الوصول إلى شؤون الموظفين' },
+    { key: 'manage_exchange', label: 'الوصول إلى Pharma Swap' },
+    { key: 'manage_representatives', label: 'الوصول إلى المندوبين' },
 ];
 
 
@@ -150,12 +152,30 @@ export default function HRPage() {
     const openPermissionsDialog = (user: User) => {
         setEditingUser(user);
         const permissions: UserPermissions = user.permissions || {
-            manage_sales: true, manage_inventory: true, manage_purchases: false, manage_suppliers: false,
-            manage_reports: false, manage_itemMovement: true, manage_patients: true, manage_expiringSoon: true,
-            manage_guide: true, manage_settings: false, manage_trash: false, manage_salesPriceModification: false,
-            manage_users: false, manage_previous_sales: false, manage_expenses: false, manage_tasks: false,
-            manage_close_month: false, manage_archives: false, manage_order_requests: false, manage_offers: false,
-            manage_hr: false, manage_support: false, manage_representatives: false
+            manage_sales: true, 
+            manage_inventory: true, 
+            manage_purchases: false, 
+            manage_suppliers: false,
+            manage_reports: false, 
+            manage_itemMovement: true, 
+            manage_patients: true, 
+            manage_expiringSoon: true,
+            manage_guide: true, 
+            manage_settings: false, 
+            manage_trash: false, 
+            manage_salesPriceModification: false,
+            manage_users: false, 
+            manage_previous_sales: false, 
+            manage_expenses: false, 
+            manage_tasks: false,
+            manage_close_month: false, 
+            manage_archives: false, 
+            manage_order_requests: false, 
+            manage_offers: false,
+            manage_hr: false, 
+            manage_support: false, 
+            manage_representatives: false,
+            manage_exchange: false
         };
         setCurrentUserPermissions(permissions);
         setIsPermissionsDialogOpen(true);

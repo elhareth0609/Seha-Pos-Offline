@@ -37,6 +37,7 @@ export type UserPermissions = {
     manage_hr: boolean;
     manage_support: boolean;
     manage_representatives: boolean;
+    manage_exchange: boolean;
 };
 
 export type Notification = {
