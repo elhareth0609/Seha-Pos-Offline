@@ -413,6 +413,7 @@ export default function SalesPage() {
   
   const [searchTerm, setSearchTerm] = React.useState("")
   const [suggestions, setSuggestions] = React.useState<Medication[]>([])
+  const [isProcessingBarcode, setIsProcessingBarcode] = React.useState(false)
   const [isCheckoutOpen, setIsCheckoutOpen] = React.useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = React.useState(false);
   const [saleToPrint, setSaleToPrint] = React.useState<Sale | null>(null);
@@ -570,7 +571,12 @@ export default function SalesPage() {
     };
   
     const processBarcode = async (barcode: string) => {
-        const results = await searchAllInventory(barcode);
+
+        // Return early if already processing a barcode
+        if (isProcessingBarcode) return;
+
+        try {
+            const results = await searchAllInventory(barcode);
         setAllInventory(results); // Make sure full inventory is available for checks
 
         const matchingMeds = results.filter(med => 
@@ -579,20 +585,26 @@ export default function SalesPage() {
 
         if (matchingMeds.length === 1) {
             addToCart(matchingMeds[0]);
+            setSearchTerm(""); // Clear search term after adding item to prevent duplicate addition
         } else if (matchingMeds.length > 1) {
             setBarcodeConflictMeds(matchingMeds);
             setIsBarcodeConflictDialogOpen(true);
+            setSearchTerm(""); // Clear search term after showing conflict dialog
         } else {
              toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'يرجى التأكد من الباركود أو البحث بالاسم.' });
+        }
+        } finally {
+            setIsProcessingBarcode(false);
         }
     };
   
     React.useEffect(() => {
         const handler = setTimeout(async () => {
             if (searchTerm.length > 5 && suggestions.length === 0) {
+                setIsProcessingBarcode(true);
                 await processBarcode(searchTerm);
             }
-        }, 100);
+        });
 
         return () => {
             clearTimeout(handler);
@@ -624,13 +636,15 @@ export default function SalesPage() {
   }
 
   const handleSearchKeyDown = React.useCallback(async (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
+        if (event.key === 'Enter') {
         event.preventDefault();
-        if(searchTerm) {
+        // Only process if not already processing a barcode and search term exists
+        if(!isProcessingBarcode && searchTerm) {
+            console.log("Entre")
             await processBarcode(searchTerm);
         }
     }
-  }, [searchTerm, processBarcode]);
+  }, [searchTerm, processBarcode, isProcessingBarcode]);
 
   const updateQuantity = (id: string, isReturn: boolean | undefined, newQuantityStr: string) => {
     const newQuantity = parseFloat(newQuantityStr);
