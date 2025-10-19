@@ -340,6 +340,8 @@ export type Task = {
 export type MonthlyArchive = {
   id: string;
   pharmacy_id: string;
+  date_to: string;
+  date_from: string;
   month_name: string; // e.g., "August 2024"
   created_at: string;
 };
@@ -347,6 +349,8 @@ export type MonthlyArchive = {
 export type ArchivedMonthData = {
   id: string;
   month_name: string;
+  date_to: string;
+  date_from: string;
   summary: {
     total_sales: number;
     total_expenses: number;

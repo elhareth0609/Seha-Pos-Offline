@@ -277,7 +277,7 @@ export default function CloseMonthPage() {
                             <SelectContent>
                                 {archives.map(archive => (
                                     <SelectItem key={archive.id} value={archive.id}>
-                                        {archive.month_name}
+                                        {archive.date_from} - {archive.date_to}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -302,7 +302,7 @@ export default function CloseMonthPage() {
                 <div className="space-y-6 animate-in fade-in">
                     <Card>
                         <CardHeader>
-                            <CardTitle>ملخص الأداء المالي لشهر: {archiveData.month_name}</CardTitle>
+                            <CardTitle>ملخص الأداء المالي لشهر: {archiveData.date_from} - {archiveData.date_to}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="grid gap-4 md:grid-cols-3">
