@@ -11,6 +11,7 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -43,14 +44,21 @@ export function PinDialog({ open, onOpenChange, onConfirm, title, description }:
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
-        {hasCustomTitle && (
+        {hasCustomTitle ? (
             <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
             {description && <DialogDescription>{description}</DialogDescription>}
             </DialogHeader>
+        ) : (
+            <DialogHeader>
+                <VisuallyHidden>
+                    <DialogTitle>تأكيد رمز PIN</DialogTitle>
+                </VisuallyHidden>
+            </DialogHeader>
         )}
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
+
             <Label htmlFor="pin-confirm" className="text-right">
               رمز PIN
             </Label>
@@ -62,10 +70,12 @@ export function PinDialog({ open, onOpenChange, onConfirm, title, description }:
               className="col-span-3"
               maxLength={6}
               autoFocus
+              autoComplete="new-password" // 👈 prevent autofill popup
+              inputMode="numeric"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleConfirm();
+                  e.preventDefault();
+                  handleConfirm();
                 }
               }}
             />

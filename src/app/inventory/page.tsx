@@ -378,66 +378,59 @@ export default function InventoryPage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    setIsImporting(true);
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
-        setIsImporting(true);
         const data = e.target?.result;
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+        const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-        if (jsonData.length < 2) {
-          toast({ variant: 'destructive', title: 'ملف فارغ', description: 'الملف لا يحتوي على بيانات.' });
-          setIsImporting(false);
+        if (jsonData.length === 0) {
+          toast({ variant: 'destructive', title: 'ملف فارغ' });
           return;
         }
 
-        const headerRow: string[] = jsonData[0].map(h => String(h).toLowerCase().trim());
-        const rows = jsonData.slice(1);
-        const barcodeAliases = ['barcode', 'product_number', 'الباركود'];
-        const nameAliases = ['name', 'الاسم'];
-        const stockAliases = ['stock', 'الكمية', 'quantity'];
-        
-        const barcodeIndex = headerRow.findIndex(h => barcodeAliases.some(alias => h.includes(alias)));
-        const nameIndex = headerRow.findIndex(h => nameAliases.some(alias => h.includes(alias)));
-        const stockIndex = headerRow.findIndex(h => stockAliases.some(alias => h.includes(alias)));
-        
-        if (barcodeIndex === -1 || nameIndex === -1) {
-          toast({ variant: 'destructive', title: 'أعمدة ناقصة', description: `الملف يجب أن يحتوي على عمود للباركود (مثل product_number أو barcode) وعمود للاسم (name).` });
-          setIsImporting(false);
-          return;
-        }
+        const medicationsToProcess: Partial<Medication>[] = jsonData.map(row => ({
+          barcodes: row['الباركود'] ? String(row['الباركود']).split(',').map(s => s.trim()) : [],
+          name: row['الاسم التجاري'] || 'Unnamed Product',
+          scientific_names: row['الاسم العلمي'] ? String(row['الاسم العلمي']).split(',').map(s => s.trim()) : [],
+          stock: Number(row['الكمية']) || 0,
+          reorder_point: Number(row['نقطة اعادة الطلب']) || 10,
+          price: Number(row['سعر البيع']) || 0,
+          purchase_price: Number(row['سعر الشراء']) || 0,
+          expiration_date: (() => {
+            const val = row['تاريخ الانتهاء'];
+            if (!val) return new Date().toISOString().split('T')[0];
+            
+            // إذا كان التاريخ رقم Excel
+            if (typeof val === 'number') {
+              const jsDate = XLSX.SSF.parse_date_code(val);
+              return `${jsDate.y}-${String(jsDate.m).padStart(2, '0')}-${String(jsDate.d).padStart(2, '0')}`;
+            }
+            
+            // إذا كان التاريخ نص بصيغة yyyy-mm-dd أو مشابهة
+            const parsed = new Date(val);
+            if (!isNaN(parsed.getTime())) {
+              return parsed.toISOString().split('T')[0];
+            }
 
-        const medicationsToProcess: Partial<Medication>[] = [];
-        const futureDate = new Date();
-        futureDate.setFullYear(futureDate.getFullYear() + 2);
-        const formattedExpDate = futureDate.toISOString().split('T')[0];
-
-        for (const row of rows) {
-            const barcode = String(row[barcodeIndex] || '').trim();
-            const medName = String(row[nameIndex] || 'Unnamed Product').trim();
-            const stock = stockIndex > -1 ? parseInt(String(row[stockIndex]), 10) : 0;
-            if (!barcode || !medName) continue;
-            medicationsToProcess.push({
-                barcodes: [barcode],
-                name: medName,
-                stock: isNaN(stock) ? 0 : stock,
-                reorder_point: 10,
-                price: 0,
-                purchase_price: 0,
-                expiration_date: formattedExpDate,
-            });
-        }
+            return new Date().toISOString().split('T')[0];
+          })(),
+          dosage: row['الجرعة'],
+          dosage_form: row['الشكل الدوائي'],
+        }));
         
         await bulkAddOrUpdateInventory(medicationsToProcess);
-        fetchData(1, perPage, ""); // Refresh data
-        toast({ title: "تم الاستيراد بنجاح", description: `تم استيراد ${medicationsToProcess.length} دواء بنجاح.` });
+        
+        fetchData(1, perPage, "");
+        toast({ title: "تم الاستيراد بنجاح", description: `جاري معالجة ${medicationsToProcess.length} دواء.` });
 
       } catch (error) {
         console.error('Error importing from Excel:', error);
-        toast({ variant: 'destructive', title: 'خطأ في الاستيراد', description: 'حدث خطأ أثناء معالجة الملف. تأكد من أن الملف بصيغة Excel الصحيحة.' });
+        toast({ variant: 'destructive', title: 'خطأ في الاستيراد' });
       } finally {
         setIsImporting(false);
         if (fileInputRef.current) {
@@ -500,11 +493,13 @@ export default function InventoryPage() {
           <div className="pt-4 flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <Input 
+                type="text"
                 placeholder="ابحث بالاسم، الاسم العلمي أو الباركود..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="max-w-sm"
-              />
+                autoComplete="off"
+              /> 
               <div className="flex gap-2">
                 <Button variant="success" onClick={openAddModal}>
                   <Plus className="me-2 h-4 w-4" />
@@ -597,10 +592,12 @@ export default function InventoryPage() {
                 <TableHead className="w-12"></TableHead>
                 <TableHead>الاسم</TableHead>
                 <TableHead>الباركود</TableHead>
+                <TableHead>الاسم العلمي</TableHead>
+                <TableHead>سعر الشراء</TableHead>
+                <TableHead>سعر البيع</TableHead>
                 <TableHead className="text-center">المخزون</TableHead>
                 <TableHead className="text-center">نقطة إعادة الطلب</TableHead>
                 <TableHead>تاريخ الانتهاء</TableHead>
-                <TableHead className="text-center">سعر البيع</TableHead>
                 <TableHead>الحالة</TableHead>
                 <TableHead><span className="sr-only">الإجراءات</span></TableHead>
               </TableRow>
@@ -609,12 +606,14 @@ export default function InventoryPage() {
               {loading ? Array.from({ length: perPage }).map((_, i) => (
                   <TableRow key={`skel-${i}`}>
                       <TableCell><Skeleton className="h-6 w-6 rounded-full" /></TableCell>
-                      <TableCell><div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-sm" /><div className="space-y-2"><Skeleton className="h-4 w-40" /><Skeleton className="h-3 w-24" /></div></div></TableCell>
+                      <TableCell><div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-sm" /><div className="space-y-2"><Skeleton className="h-4 w-40" /></div></div></TableCell>
                       <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-28" /></TableCell>
                       <TableCell><Skeleton className="h-8 w-8" /></TableCell>
                   </TableRow>
@@ -636,15 +635,16 @@ export default function InventoryPage() {
                         )}
                         <div>
                           <span className="font-medium">{item.name}</span>
-                          <div className="text-xs text-muted-foreground">{item.scientific_names?.join(', ')}</div>
                         </div>
                     </div>
                   </TableCell>
                   <TableCell className="font-mono text-xs">{item.barcodes?.join(', ')}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{item.scientific_names?.join(', ')}</TableCell>
+                  <TableCell className="font-mono">{item.purchase_price}</TableCell>
+                  <TableCell className="font-mono">{item.price}</TableCell>
                   <TableCell className="text-center font-mono">{item.stock}</TableCell>
                   <TableCell className="text-center font-mono">{item.reorder_point}</TableCell>
                   <TableCell className="font-mono">{new Date(item.expiration_date).toLocaleDateString('en-US')}</TableCell>
-                  <TableCell className="text-center font-mono">{item.price.toLocaleString()}</TableCell>
                   <TableCell>{getStockStatus(item.stock, item.reorder_point)}</TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end">
@@ -710,7 +710,7 @@ export default function InventoryPage() {
                 </TableRow>
               )) : (
                 <TableRow>
-                    <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">
+                    <TableCell colSpan={11} className="text-center h-24 text-muted-foreground">
                         لا يوجد مخزون لعرضه.
                     </TableCell>
                 </TableRow>

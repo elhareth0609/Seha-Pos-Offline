@@ -973,9 +973,15 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     const bulkAddOrUpdateInventory = async (items: Partial<Medication>[]) => {
         try {
             const { new_count, updated_count } = await apiRequest('/medications/bulk', 'POST', { items });
-            toast({ title: "اكتمل الاستيراد", description: `تمت إضافة ${new_count} أصناف جديدة وتحديث ${updated_count} أصناف.` });
-            return true;
-        } catch (e) { return false; }
+            if (new_count && updated_count) {
+                toast({ title: "اكتمل الاستيراد", description: `تمت إضافة ${new_count} أصناف جديدة وتحديث ${updated_count} أصناف.` });
+                return true;
+            } else {
+                return false; 
+            }
+        } catch (e) { 
+            return false; 
+        }
     }
 
     const addSale = async (saleData: any) => {
