@@ -81,7 +81,6 @@ export default function CentralDrugsPage() {
                     name: row['الاسم التجاري'],
                     scientific_names: (row['الاسم العلمي'] || '').split(',').map((s: string) => s.trim()).filter(Boolean),
                     barcodes: (row['الباركود'] || '').split(',').map((s: string) => String(s).trim()).filter(Boolean),
-                    dosage: row['الجرعة'],
                     dosage_form: row['الشكل الدوائي'],
                 }));
                 

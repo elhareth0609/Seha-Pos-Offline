@@ -764,7 +764,7 @@ export default function InventoryPage() {
                               </div>
                               <div className="space-y-2">
                                   <Label htmlFor="edit-name">الاسم التجاري</Label>
-                                  <Input id="edit-name" value={editingMed.name} onChange={e => setEditingMed(p => p ? {...p, name: e.target.value} : null)} required />
+                                  <Input id="edit-name" value={editingMed.name || ''} onChange={e => setEditingMed(p => p ? {...p, name: e.target.value} : null)} required />
                               </div>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -795,11 +795,11 @@ export default function InventoryPage() {
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                               <div className="space-y-2">
                                 <Label htmlFor="edit-dosage">الجرعة</Label>
-                                <Input id="edit-dosage" value={editingMed.dosage} onChange={e => setEditingMed(p => p ? {...p, dosage: e.target.value} : null)} />
+                                <Input id="edit-dosage" value={editingMed.dosage || ''} onChange={e => setEditingMed(p => p ? {...p, dosage: e.target.value} : null)} />
                               </div>
                               <div className="space-y-2">
                                   <Label htmlFor="edit-dosage_form">الشكل الدوائي</Label>
-                                  <Select value={editingMed.dosage_form} onValueChange={val => setEditingMed(p => p ? {...p, dosage_form: val} : null)}>
+                                  <Select value={editingMed.dosage_form || ''} onValueChange={val => setEditingMed(p => p ? {...p, dosage_form: val} : null)}>
                                       <SelectTrigger id="edit-dosage_form">
                                         <SelectValue placeholder="اختر الشكل" />
                                       </SelectTrigger>
@@ -810,27 +810,27 @@ export default function InventoryPage() {
                               </div>
                               <div className="space-y-2">
                                 <Label htmlFor="edit-stock">رصيد المخزون</Label>
-                                <Input id="edit-stock" type="number" value={editingMed.stock} onChange={e => setEditingMed(p => p ? {...p, stock: parseInt(e.target.value)} : null)} required />
+                                <Input id="edit-stock" type="number" value={editingMed.stock || 0} onChange={e => setEditingMed(p => p ? {...p, stock: parseInt(e.target.value)} : null)} required />
                               </div>
                               <div className="space-y-2">
                                   <Label htmlFor="edit-reorder_point">نقطة إعادة الطلب</Label>
-                                  <Input id="edit-reorder_point" type="number" value={editingMed.reorder_point} onChange={e => setEditingMed(p => p ? {...p, reorder_point: parseInt(e.target.value)} : null)} required />
+                                  <Input id="edit-reorder_point" type="number" value={editingMed.reorder_point || 0} onChange={e => setEditingMed(p => p ? {...p, reorder_point: parseInt(e.target.value)} : null)} required />
                               </div>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>سعر الشراء</Label>
-                                    <Input type="number" value={editingMed.purchase_price} onChange={e => handlePriceChange(setEditingMed, 'purchase_price', e.target.value)} required />
+                                    <Input type="number" value={editingMed.purchase_price || 0} onChange={e => handlePriceChange(setEditingMed, 'purchase_price', e.target.value)} required />
                                 </div>
                                 <div className="flex items-end gap-2">
                                     <div className="space-y-2 flex-grow">
                                         <Label>سعر البيع</Label>
-                                        <Input type="number" value={editingMed.price} onChange={e => handlePriceChange(setEditingMed, 'price', e.target.value)} required />
+                                        <Input type="number" value={editingMed.price || 0} onChange={e => handlePriceChange(setEditingMed, 'price', e.target.value)} required />
                                     </div>
                                     <div className="space-y-2 w-24">
                                         <Label>النسبة %</Label>
                                         <div className="relative">
-                                            <Input type="number" value={editingMed.profit_margin?.toFixed(0)} onChange={e => handlePriceChange(setEditingMed, 'profit_margin', e.target.value)} className="pe-7" />
+                                            <Input type="number" value={(editingMed.profit_margin || 0).toFixed(0)} onChange={e => handlePriceChange(setEditingMed, 'profit_margin', e.target.value)} className="pe-7" />
                                             <Percent className="absolute top-1/2 -translate-y-1/2 start-1.5 h-4 w-4 text-muted-foreground" />
                                         </div>
                                     </div>
