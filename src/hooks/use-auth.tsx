@@ -93,6 +93,10 @@ interface AuthContextType {
     searchAllInventory: (search: string) => Promise<Medication[]>;
     toggleFavoriteMedication: (medId: string) => Promise<void>;
     
+    // Central Drug Management (SuperAdmin)
+    getCentralDrugs: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Medication>>;
+    uploadCentralDrugList: (items: Partial<Medication>[]) => Promise<boolean>;
+
     // Expiring Soon
     getPaginatedExpiringSoon: (page: number, perPage: number, search: string, type: 'expiring' | 'expired' | 'damaged') => Promise<{
         data: Medication[];
@@ -984,6 +988,13 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         }
     }
 
+    const uploadCentralDrugList = async (items: Partial<Medication>[]) => {
+        try {
+            await apiRequest('/superadmin/drugs/bulk-upload', 'POST', { items });
+            return true;
+        } catch (e) { return false; }
+    }
+
     const addSale = async (saleData: any) => {
         try {
             const { sale: newSale, updated_inventory } = await apiRequest('/sales', 'POST', saleData);
@@ -1522,6 +1533,14 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
        }
     };
     
+    // Central Drug Management
+    const getCentralDrugs = React.useCallback(async (page: number, perPage: number, search: string) => {
+        try {
+            const params = new URLSearchParams({ page: String(page), per_page: String(perPage), search });
+            return await apiRequest(`/superadmin/drugs?${params.toString()}`);
+        } catch (e) { return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Medication>; }
+    }, []);
+
     const scopedData: ScopedDataContextType = {
         inventory: [inventory, setInventory],
         sales: [sales, setSales],
@@ -1569,7 +1588,8 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             getNotifications,
             supportRequests, addSupportRequest, updateSupportRequestStatus,
             getExchangeItems, postExchangeItem, deleteExchangeItem,
-            getDrugRequests, postDrugRequest, deleteDrugRequest, respondToDrugRequest, ignoreDrugRequest
+            getDrugRequests, postDrugRequest, deleteDrugRequest, respondToDrugRequest, ignoreDrugRequest,
+            getCentralDrugs, uploadCentralDrugList
         }}>
             {children}
         </AuthContext.Provider>

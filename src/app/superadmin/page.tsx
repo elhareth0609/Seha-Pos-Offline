@@ -3,6 +3,7 @@
 "use client";
 
 import * as React from 'react';
+import * as XLSX from 'xlsx';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,11 +17,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import type { User, Advertisement, Offer, SupportRequest } from '@/lib/types';
+import type { User, Advertisement, Offer, SupportRequest, Medication } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, Building, ImagePlus, Image as ImageIcon, LayoutDashboard, ShoppingCart,LockKeyhole, LockOpen, LockIcon, Boxes, BadgePercent, Phone, CalendarClock, Pencil, LifeBuoy } from 'lucide-react';
+import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, Building, ImagePlus, Image as ImageIcon, LayoutDashboard, ShoppingCart,LockKeyhole, LockOpen, LockIcon, Boxes, BadgePercent, Phone, CalendarClock, Pencil, LifeBuoy, Upload, Pill } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -137,7 +138,8 @@ export default function SuperAdminPage() {
         getPaginatedUsers,
         updateUser,
         supportRequests, updateSupportRequestStatus,
-        getAllPharmacySettings
+        getAllPharmacySettings,
+        uploadCentralDrugList,
     } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
@@ -170,6 +172,10 @@ export default function SuperAdminPage() {
     const [offerImageFile, setOfferImageFile] = React.useState<File | null>(null);
     const [offerImagePreview, setOfferImagePreview] = React.useState<string | null>(null);
     const [offerFilter, setOfferFilter] = React.useState<'active' | 'expired'>('active');
+
+    // Central Drug List Upload
+    const [isImporting, setIsImporting] = React.useState(false);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     
     const addAdminForm = useForm<AddAdminFormValues>({
@@ -342,6 +348,54 @@ export default function SuperAdminPage() {
         return (offers || []).filter(offer => !isAfter(parseISO(offer.expiration_date), now));
     }, [offers, offerFilter]);
 
+    const handleImportClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                setIsImporting(true);
+                const data = e.target?.result;
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+                if (jsonData.length === 0) {
+                    toast({ variant: 'destructive', title: 'ملف فارغ' });
+                    setIsImporting(false);
+                    return;
+                }
+
+                const medicationsToProcess: Partial<Medication>[] = jsonData.map(row => ({
+                    name: row['الاسم التجاري'],
+                    scientific_names: (row['الاسم العلمي'] || '').split(',').map((s: string) => s.trim()).filter(Boolean),
+                    barcodes: (row['الباركود'] || '').split(',').map((s: string) => s.trim()).filter(Boolean),
+                    dosage: row['الجرعة'],
+                    dosage_form: row['الشكل الدوائي'],
+                }));
+                
+                await uploadCentralDrugList(medicationsToProcess);
+                toast({ title: "تم رفع الملف بنجاح", description: `جاري معالجة ${medicationsToProcess.length} دواء.` });
+
+            } catch (error) {
+                console.error('Error importing from Excel:', error);
+                toast({ variant: 'destructive', title: 'خطأ في الاستيراد' });
+            } finally {
+                setIsImporting(false);
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
     if (!currentUser || currentUser.role !== 'SuperAdmin') {
         return null;
     }
@@ -354,6 +408,9 @@ export default function SuperAdminPage() {
                     <p className="text-muted-foreground">إدارة حسابات مديري الصيدليات والإعلانات والعروض.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                    <Button variant="outline" asChild>
+                        <Link href="/superadmin/drugs"><Pill className="me-2"/> قاعدة الأدوية</Link>
+                    </Button>
                     <Button variant="outline" asChild>
                         <Link href="/superadmin/reports"><FileText className="me-2"/> عرض التقارير</Link>
                     </Button>
