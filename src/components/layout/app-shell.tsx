@@ -512,7 +512,7 @@ const handleBackup = async () => {
                         </div>
                     </div>
 
-                    <div className="flex flex-1 items-center justify-center gap-2">
+                    {/* <div className="flex flex-1 items-center justify-center gap-2">
                         {currentUser?.role === 'Admin' && (
                             <div className="hidden lg:block">
                                 <Tooltip>
@@ -527,7 +527,7 @@ const handleBackup = async () => {
                                 </Tooltip>
                             </div>
                         )}
-                    </div>
+                    </div> */}
                     <div className="flex flex-1 items-center justify-end gap-2 md:flex-grow-0">
                         <div className="items-center gap-2 flex">
                             {currentUser?.role === 'Admin' ? (
