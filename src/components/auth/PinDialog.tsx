@@ -68,7 +68,6 @@ export function PinDialog({ open, onOpenChange, onConfirm, title, description }:
               value={pin}
               onChange={(e) => setPin(e.target.value)}
               className="col-span-3"
-              maxLength={6}
               autoFocus
               autoComplete="new-password" // 👈 prevent autofill popup
               inputMode="numeric"

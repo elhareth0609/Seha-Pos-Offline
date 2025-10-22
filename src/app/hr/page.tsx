@@ -28,14 +28,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 const addUserSchema = z.object({
     name: z.string().min(3, { message: "الرجاء إدخال اسم مكون من 3 أحرف على الأقل." }),
     email: z.string().email({ message: "الرجاء إدخال بريد إلكتروني صالح." }),
-    pin: z.string().length(6, { message: "يجب أن يتكون رمز PIN من 6 أرقام." }),
+    pin: z.string().min(6, { message: "يجب أن يتكون رمز PIN من 6 أرقام عل الأقل." }),
 });
 type AddUserFormValues = z.infer<typeof addUserSchema>;
 
 const editUserSchema = z.object({
     name: z.string().min(3, { message: "الرجاء إدخال اسم مكون من 3 أحرف على الأقل." }),
     email: z.string().email({ message: "الرجاء إدخال بريد إلكتروني صالح." }),
-    pin: z.string().optional().refine(val => !val || val.length === 6, { message: "رمز PIN يجب أن يكون 6 أرقام." }),
+    pin: z.string().optional().refine(val => !val || val.length < 6, { message: "يجب أن يتكون رمز PIN من 6 أرقام عل الأقل." }),
     confirmPin: z.string().optional(),
 }).refine(data => data.pin === data.confirmPin, {
     message: "رموز PIN غير متطابقة",
@@ -440,7 +440,7 @@ export default function HRPage() {
                         <form onSubmit={addUserForm.handleSubmit(onAddUserSubmit)} className="space-y-4 py-2">
                             <FormField control={addUserForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>اسم الموظف</FormLabel><FormControl><Input placeholder="اسم الموظف الكامل" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={addUserForm.control} name="email" render={({ field }) => (<FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" placeholder="example@email.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={addUserForm.control} name="pin" render={({ field }) => (<FormItem><FormLabel>رمز PIN</FormLabel><FormControl><Input type="password"  maxLength={6} {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={addUserForm.control} name="pin" render={({ field }) => (<FormItem><FormLabel>رمز PIN</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <DialogFooter className="pt-4"><Button type="button" variant="outline" onClick={() => setIsAddUserOpen(false)}>إلغاء</Button><Button type="submit" disabled={addUserForm.formState.isSubmitting} variant="success">إضافة الموظف</Button></DialogFooter>
                         </form>
                     </Form>
@@ -454,8 +454,8 @@ export default function HRPage() {
                         <form onSubmit={editUserForm.handleSubmit(onEditUserSubmit)} className="space-y-4 py-2">
                             <FormField control={editUserForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>الاسم</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={editUserForm.control} name="email" render={({ field }) => (<FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={editUserForm.control} name="pin" render={({ field }) => (<FormItem><FormLabel>رمز PIN الجديد (اختياري)</FormLabel><FormControl><Input type="password"  maxLength={6} {...field} placeholder="اتركه فارغًا لعدم التغيير" /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={editUserForm.control} name="confirmPin" render={({ field }) => (<FormItem><FormLabel>تأكيد رمز PIN الجديد</FormLabel><FormControl><Input type="password"  maxLength={6} {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={editUserForm.control} name="pin" render={({ field }) => (<FormItem><FormLabel>رمز PIN الجديد (اختياري)</FormLabel><FormControl><Input type="password"  {...field} placeholder="اتركه فارغًا لعدم التغيير" /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={editUserForm.control} name="confirmPin" render={({ field }) => (<FormItem><FormLabel>تأكيد رمز PIN الجديد</FormLabel><FormControl><Input type="password"  {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <DialogFooter className="pt-4"><DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose><Button type="submit" variant="success">حفظ التغييرات</Button></DialogFooter>
                         </form>
                     </Form>
