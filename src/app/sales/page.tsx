@@ -413,7 +413,7 @@ export default function SalesPage() {
   
   const [searchTerm, setSearchTerm] = React.useState("")
   const [suggestions, setSuggestions] = React.useState<Medication[]>([])
-  const [isProcessingBarcode, setIsProcessingBarcode] = React.useState(false)
+  const [isSearchLoading, setIsSearchLoading] = React.useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = React.useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = React.useState(false);
   const [saleToPrint, setSaleToPrint] = React.useState<Sale | null>(null);
@@ -571,37 +571,33 @@ export default function SalesPage() {
     };
   
     const processBarcode = async (barcode: string) => {
-
-        // Return early if already processing a barcode
-        if (isProcessingBarcode) return;
-
+        setIsSearchLoading(true);
         try {
             const results = await searchAllInventory(barcode);
-        setAllInventory(results); // Make sure full inventory is available for checks
+            setAllInventory(results); // Make sure full inventory is available for checks
 
-        const matchingMeds = results.filter(med => 
-            med.barcodes && med.barcodes.some(bc => bc && bc.toLowerCase() === barcode.toLowerCase())
-        );
+            const matchingMeds = results.filter(med => 
+                med.barcodes && med.barcodes.some(bc => bc && bc.toLowerCase() === barcode.toLowerCase())
+            );
 
-        if (matchingMeds.length === 1) {
-            addToCart(matchingMeds[0]);
-            setSearchTerm(""); // Clear search term after adding item to prevent duplicate addition
-        } else if (matchingMeds.length > 1) {
-            setBarcodeConflictMeds(matchingMeds);
-            setIsBarcodeConflictDialogOpen(true);
-            setSearchTerm(""); // Clear search term after showing conflict dialog
-        } else {
-             toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'يرجى التأكد من الباركود أو البحث بالاسم.' });
-        }
+            if (matchingMeds.length === 1) {
+                addToCart(matchingMeds[0]);
+                setSearchTerm(""); // Clear search term after adding item to prevent duplicate addition
+            } else if (matchingMeds.length > 1) {
+                setBarcodeConflictMeds(matchingMeds);
+                setIsBarcodeConflictDialogOpen(true);
+                setSearchTerm(""); // Clear search term after showing conflict dialog
+            } else {
+                toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'يرجى التأكد من الباركود أو البحث بالاسم.' });
+            }
         } finally {
-            setIsProcessingBarcode(false);
+            setIsSearchLoading(false);
         }
     };
   
     React.useEffect(() => {
         const handler = setTimeout(async () => {
             if (searchTerm.length > 5 && suggestions.length === 0) {
-                setIsProcessingBarcode(true);
                 await processBarcode(searchTerm);
             }
         });
@@ -626,9 +622,14 @@ export default function SalesPage() {
     setSearchTerm(value);
 
     if (value.length > 0) {
-        const results = await searchAllInventory(value);
-        setAllInventory(results); // Store all results for alternative check
-        setSuggestions(results.slice(0, 5));
+        setIsSearchLoading(true);
+        try {
+            const results = await searchAllInventory(value);
+            setAllInventory(results); // Store all results for alternative check
+            setSuggestions(results.slice(0, 5));
+        } finally {
+            setIsSearchLoading(false);
+        }
     } else {
         setSuggestions([]);
         setAllInventory([]);
@@ -639,12 +640,11 @@ export default function SalesPage() {
         if (event.key === 'Enter') {
         event.preventDefault();
         // Only process if not already processing a barcode and search term exists
-        if(!isProcessingBarcode && searchTerm) {
-            console.log("Entre")
+        if(searchTerm) {
             await processBarcode(searchTerm);
         }
     }
-  }, [searchTerm, processBarcode, isProcessingBarcode]);
+  }, [searchTerm, processBarcode]);
 
   const updateQuantity = (id: string, isReturn: boolean | undefined, newQuantityStr: string) => {
     const newQuantity = parseFloat(newQuantityStr);
@@ -938,6 +938,7 @@ export default function SalesPage() {
                             value={searchTerm}
                             onChange={handleSearchChange}
                             onKeyDown={handleSearchKeyDown}
+                            disabled={isSearchLoading}
                             autoFocus
                         />
                         {suggestions.length > 0 && (
