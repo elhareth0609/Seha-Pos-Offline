@@ -55,7 +55,7 @@ interface AuthContextType {
     setUsers: React.Dispatch<React.SetStateAction<User[]>>;
     isAuthenticated: boolean;
     loading: boolean;
-    createPharmacyAdmin: (name: string, email: string, pin: string, province: string) => Promise<boolean>;
+    createPharmacyAdmin: (name: string, email: string, pin: string, province: string, dofied_id: string) => Promise<boolean>;
     login: (email: string, pin: string) => Promise<User | null>;
     logout: () => void;
     registerUser: (name: string, email: string, pin: string) => Promise<boolean>;
@@ -566,9 +566,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
     
-    const createPharmacyAdmin = async (name: string, email: string, pin: string, province: string) => {
+    const createPharmacyAdmin = async (name: string, email: string, pin: string, province: string, dofied_id: string) => {
         try {
-            const newUser = await apiRequest('/superadmin/pharmacies', 'POST', { name, email, pin, province });
+            const newUser = await apiRequest('/superadmin/pharmacies', 'POST', { name, email, pin, province, dofied_id });
             setUsers(prev => [...prev, newUser]);
             return true;
         } catch (error: any) { return false; }

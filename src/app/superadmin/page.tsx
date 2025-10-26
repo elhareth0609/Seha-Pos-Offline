@@ -43,6 +43,7 @@ const addAdminSchema = z.object({
     email: z.string().email({ message: "بريد إلكتروني غير صالح" }),
     pin: z.string().min(6, { message: "يجب أن يتكون رمز PIN من 6 أحرف على الأقل." }),
     province: z.string({ required_error: "الرجاء اختيار محافظة" }),
+    dofied_id: z.string().min(1, { message: "Dofied Id مطلوب" }),
 });
 
 type AddAdminFormValues = z.infer<typeof addAdminSchema>;
@@ -53,6 +54,7 @@ const editAdminSchema = z.object({
     email: z.string().email({ message: "بريد إلكتروني غير صالح" }),
     pin: z.string().optional().refine(val => !val || val.length >= 6, { message: "رمز PIN يجب أن يكون 6 رموز على الأقل" }),
     province: z.string({ required_error: "الرجاء اختيار محافظة" }),
+    dofied_id: z.string().min(1, { message: "Dofied Id مطلوب" }),
 });
 
 type EditAdminFormValues = z.infer<typeof editAdminSchema>;
@@ -83,6 +85,7 @@ function AdminRow({ admin, onDelete, onToggleStatus, onEdit, pharmacySettings }:
                 </div>
             </TableCell>
             <TableCell className="hidden md:table-cell">{admin.province || 'غير محدد'}</TableCell>
+            <TableCell className="hidden md:table-cell">{admin.dofied_id || 'غير محدد'}</TableCell>
             <TableCell>
                 <Badge variant={admin.status === 'active' ? 'secondary' : 'destructive'} className={admin.status === 'active' ? 'bg-green-100 text-green-800' : ''}>
                     {admin.status === 'active' ? 'فعال' : 'معلق'}
@@ -180,11 +183,12 @@ export default function SuperAdminPage() {
     
     const addAdminForm = useForm<AddAdminFormValues>({
         resolver: zodResolver(addAdminSchema),
-        defaultValues: { name: "", email: "", pin: "", province: "" },
+        defaultValues: { name: "", email: "", pin: "", province: "", dofied_id: "" },
     });
     
     const editAdminForm = useForm<EditAdminFormValues>({
         resolver: zodResolver(editAdminSchema),
+        defaultValues: { name: "", email: "", pin: "", province: "", dofied_id: "" },
     });
 
     const fetchData = React.useCallback(async (page: number, limit: number, search: string) => {
@@ -226,7 +230,7 @@ export default function SuperAdminPage() {
     }, [currentUser, router]);
 
     const handleAddAdmin = async (data: AddAdminFormValues) => {
-        const success = await createPharmacyAdmin(data.name, data.email, data.pin, data.province);
+        const success = await createPharmacyAdmin(data.name, data.email, data.pin, data.province, data.dofied_id);
         if (success) {
             toast({ title: "تم إنشاء حساب المدير بنجاح" });
             fetchData(1, perPage, ""); // Refresh
@@ -244,6 +248,7 @@ export default function SuperAdminPage() {
             email: data.email,
             pin: data.pin || undefined,
             province: data.province,
+            dofied_id: data.dofied_id,
         });
         if (success) {
             toast({ title: "تم تحديث حساب المدير بنجاح" });
@@ -261,7 +266,8 @@ export default function SuperAdminPage() {
             name: admin.name,
             email: admin.email,
             province: admin.province || '',
-            pin: ''
+            pin: '',
+            dofied_id: admin.dofied_id || ''
         });
         setIsEditAdminOpen(true);
     };
@@ -509,6 +515,15 @@ export default function SuperAdminPage() {
                                                     <FormMessage />
                                                 </FormItem>
                                             )} />
+                                            <FormField control={addAdminForm.control} name="dofied_id" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Dofied Id</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} placeholder="أدخل Dofied Id" />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
                                             <DialogFooter className="pt-4">
                                                 <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
                                                 <Button type="submit" variant="success">إنشاء الحساب</Button>
@@ -551,6 +566,7 @@ export default function SuperAdminPage() {
                                     <TableHead className="hidden sm:table-cell">البريد الإلكتروني</TableHead>
                                     <TableHead className="hidden lg:table-cell">رمز PIN</TableHead>
                                     <TableHead className="hidden md:table-cell">المحافظة</TableHead>
+                                    <TableHead className="hidden md:table-cell">Dofied Id</TableHead>
                                     <TableHead>الحالة</TableHead>
                                     <TableHead className="text-left">الإجراءات</TableHead>
                                 </TableRow>
@@ -870,6 +886,15 @@ export default function SuperAdminPage() {
                                             {iraqProvinces.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={editAdminForm.control} name="dofied_id" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Dofied Id</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} placeholder="أدخل Dofied Id" />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />

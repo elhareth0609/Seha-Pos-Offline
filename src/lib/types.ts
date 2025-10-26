@@ -251,6 +251,7 @@ export type User = {
   hourly_rate?: number;
   salary?: number;
   pharmacy_id: string;
+  dofied_id?: string;
   province?: string;
   created_at: string; // ISO date string
   image1DataUri?: string;
