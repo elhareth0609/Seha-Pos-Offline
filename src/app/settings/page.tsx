@@ -330,7 +330,7 @@ export default function SettingsPage() {
             </Card>
         )}
         
-        {currentUser.role === 'Admin' && (
+        {/* {currentUser.role === 'Admin' && (
             <Card>
                 <CardHeader>
                     <CardTitle>إعدادات الحذف الآمن</CardTitle>
@@ -355,7 +355,7 @@ export default function SettingsPage() {
                     ))}
                 </CardContent>
             </Card>
-        )}
+        )} */}
 
         {currentUser.role === 'Admin' && (
             <Card className="border-destructive">

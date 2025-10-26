@@ -119,7 +119,7 @@ export default function TrashPage() {
             </CardDescription>
         </div>
         <div className="flex gap-2">
-            {currentUser?.role === 'Admin' && (
+            {/* {currentUser?.role === 'Admin' && (
               <Dialog open={isSecurityDialogOpen} onOpenChange={setIsSecurityDialogOpen}>
                 <DialogTrigger asChild>
                     <Button variant="outline"><ShieldCheck className="me-2 h-4 w-4" /> إعدادات الحذف الآمن</Button>
@@ -149,7 +149,7 @@ export default function TrashPage() {
                     </div>
                 </DialogContent>
               </Dialog>
-            )}
+            )} */}
             {currentUser?.role === 'Admin' && trash.length > 0 && (
                 <AlertDialog>
                     <AlertDialogTrigger asChild>

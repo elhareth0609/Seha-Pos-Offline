@@ -209,15 +209,15 @@ export default function InventoryPage() {
   const handleDelete = async () => {
     if (!itemToDelete) return;
 
-    if (currentUser?.require_pin_for_delete) {
-        setIsPinDialogOpen(true);
-    } else {
+    // if (currentUser?.require_pin_for_delete) {
+    //     setIsPinDialogOpen(true);
+    // } else {
         const success = await deleteMedication(itemToDelete.id);
         if (success) {
             fetchData(currentPage, perPage, searchTerm);
             setItemToDelete(null);
         }
-    }
+    // }
   };
 
   const handlePinConfirm = async (pin: string) => {
