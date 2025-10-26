@@ -90,7 +90,7 @@ const allNavItems = [
   { href: "/patients", icon: Users, label: "أصدقاء الصيدلية", group: 'tools' },
   { href: "/tasks", icon: ListChecks, label: "المهام", group: 'tools' },
   { href: "/exchange", icon: ArrowLeftRight, label: "Pharma Swap", group: 'tools' },
-  { href: "/representatives", icon: Contact, label: "دليل المندوبين", group: 'external' },
+  // { href: "/representatives", icon: Contact, label: "دليل المندوبين", group: 'external' },
   { href: "/offers", icon: BadgePercent, label: "عروض ميدجرام", group: 'external' },
 
   { href: "/hr", icon: UserCog, label: "شؤون الموظفين", group: 'admin' },

@@ -15,7 +15,7 @@ const allNavItems = [
   { href: "/sales", permissionKey: 'manage_sales' },
   { href: "/inventory", permissionKey: 'manage_inventory' },
   { href: "/exchange", permissionKey: 'manage_exchange' },
-  { href: "/representatives", permissionKey: 'manage_representatives' },
+//   { href: "/representatives", permissionKey: 'manage_representatives' },
   { href: "/purchases", permissionKey: 'manage_purchases' },
   { href: "/suppliers", permissionKey: 'manage_suppliers' },
   { href: "/reports", permissionKey: 'manage_reports' },

@@ -111,14 +111,14 @@ export const Features = () => {
       color: "medical-purple",
       benefit: "تطوير مهني مستمر"
     },
-    {
-      icon: UserCheck,
-      title: "دليل المندوبين",
-      description: "صفحة خاصة لعرض أحدث المنتجات والعروض من الشركات الطبية والمندوبين المسجلين",
-      location: "الشبكة والعروض",
-      color: "medical-success",
-      benefit: "آخر المنتجات والعروض"
-    }
+    // {
+    //   icon: UserCheck,
+    //   title: "دليل المندوبين",
+    //   description: "صفحة خاصة لعرض أحدث المنتجات والعروض من الشركات الطبية والمندوبين المسجلين",
+    //   location: "الشبكة والعروض",
+    //   color: "medical-success",
+    //   benefit: "آخر المنتجات والعروض"
+    // }
   ];
 
   const stats = [

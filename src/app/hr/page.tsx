@@ -59,13 +59,13 @@ const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: stri
     { key: 'manage_settings', label: 'الوصول إلى الإعدادات' },
     { key: 'manage_salesPriceModification', label: 'تعديل أسعار البيع في الفاتورة' },
     { key: 'manage_previous_sales', label: 'تعديل وحذف المبيعات السابقة' },
-    { key: 'manage_guide', label: 'الوصول إلى الدليل' },
+    // { key: 'manage_guide', label: 'الوصول إلى الدليل' },
     { key: 'manage_close_month', label: 'الوصول إلى إغلاق الشهر' },
     { key: 'manage_order_requests', label: 'الوصول إلى طلبات الطلب' },
     { key: 'manage_offers', label: 'الوصول إلى العروض' },
     { key: 'manage_hr', label: 'الوصول إلى شؤون الموظفين' },
     { key: 'manage_exchange', label: 'الوصول إلى Pharma Swap' },
-    { key: 'manage_representatives', label: 'الوصول إلى المندوبين' },
+    // { key: 'manage_representatives', label: 'الوصول إلى المندوبين' },
 ];
 
 

@@ -100,7 +100,7 @@ const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: stri
     { key: 'manage_order_requests', label: 'الوصول إلى طلبات الطلب' },
     { key: 'manage_offers', label: 'الوصول إلى العروض' },
     { key: 'manage_exchange', label: 'الوصول إلى Pharma Swap' },
-    { key: 'manage_representatives', label: 'الوصول إلى المندوبين' },
+    // { key: 'manage_representatives', label: 'الوصول إلى المندوبين' },
 ];
 
 function AddUserDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
