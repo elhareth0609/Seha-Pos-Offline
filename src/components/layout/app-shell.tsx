@@ -77,7 +77,7 @@ const allNavItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "لوحة التحكم", group: 'main' },
   { href: "/sales", icon: ShoppingCart, label: "المبيعات", group: 'main' },
   { href: "/inventory", icon: Boxes, label: "المخزون", group: 'main' },
-  { href: "/clinical-training", icon: Stethoscope, label: "التعليم المستمر", group: 'main' },
+  // { href: "/clinical-training", icon: Stethoscope, label: "التعليم المستمر", group: 'main' },
   { href: "/purchases", icon: Truck, label: "المشتريات", group: 'main' },
   { href: "/suppliers", icon: Landmark, label: "الموردون", group: 'main' },
   
