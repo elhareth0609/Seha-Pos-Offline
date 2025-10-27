@@ -52,8 +52,8 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
-import type { Medication, AppSettings } from "@/lib/types"
-import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package, Plus, X, Filter, ShoppingBasket, Percent, PlusCircle, Copy, Star } from "lucide-react"
+import type { Medication, AppSettings, BranchInventory } from "@/lib/types"
+import { MoreHorizontal, Trash2, Pencil, Printer, Upload, Package, Plus, X, Filter, ShoppingBasket, Percent, PlusCircle, Copy, Star, ArrowLeftRight } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import Barcode from '@/components/ui/barcode';
@@ -93,6 +93,7 @@ export default function InventoryPage() {
     verifyPin,
     addToOrderRequestCart,
     toggleFavoriteMedication,
+    searchInOtherBranches,
   } = useAuth();
   
   const [paginatedInventory, setPaginatedInventory] = React.useState<Medication[]>([]);
@@ -134,6 +135,11 @@ export default function InventoryPage() {
   const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
   const { settings: [settings] } = scopedData;
 
+  // State for branch search
+  const [isBranchSearchOpen, setIsBranchSearchOpen] = React.useState(false);
+  const [branchSearchLoading, setBranchSearchLoading] = React.useState(false);
+  const [branchSearchResults, setBranchSearchResults] = React.useState<BranchInventory[]>([]);
+  const [currentMedForBranchSearch, setCurrentMedForBranchSearch] = React.useState<Medication | null>(null);
 
   // Fetch data
   const fetchData = React.useCallback(async (page: number, limit: number, search: string) => {
@@ -435,7 +441,16 @@ export default function InventoryPage() {
         setEditingMed({ ...editingMed, image_url: '' });
     }
   };
-  
+
+  const handleBranchSearch = async (med: Medication) => {
+    setCurrentMedForBranchSearch(med);
+    setIsBranchSearchOpen(true);
+    setBranchSearchLoading(true);
+    const results = await searchInOtherBranches(med.id);
+    setBranchSearchResults(results);
+    setBranchSearchLoading(false);
+  };
+
   return (
     <>
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
@@ -614,6 +629,9 @@ export default function InventoryPage() {
                   <TableCell>{getStockStatus(item.stock, item.reorder_point)}</TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end">
+                      <Button variant="ghost" size="icon" onClick={() => handleBranchSearch(item)} className="hover:text-primary group">
+                          <ArrowLeftRight className="h-5 w-5 text-primary group-hover:text-white"/>
+                      </Button>
                       <Button 
                         variant="ghost" 
                         size="icon" 
@@ -929,6 +947,47 @@ export default function InventoryPage() {
             onOpenChange={setIsPinDialogOpen}
             onConfirm={handlePinConfirm}
         />
+      {/* Branch Search Dialog */}
+      <Dialog open={isBranchSearchOpen} onOpenChange={setIsBranchSearchOpen}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>البحث عن "{currentMedForBranchSearch?.name}" في الفروع الأخرى</DialogTitle>
+                  <DialogDescription>
+                      عرض الكميات المتوفرة من هذا الدواء في شبكة الصيدليات الخاصة بك.
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="max-h-96 overflow-y-auto">
+                  {branchSearchLoading ? (
+                      <div className="space-y-2 py-4">
+                          <Skeleton className="h-10 w-full" />
+                          <Skeleton className="h-10 w-full" />
+                          <Skeleton className="h-10 w-full" />
+                      </div>
+                  ) : branchSearchResults.length > 0 ? (
+                      <Table>
+                          <TableHeader>
+                              <TableRow>
+                                  <TableHead>اسم الفرع</TableHead>
+                                  <TableHead>الكمية المتوفرة</TableHead>
+                              </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                              {branchSearchResults.map(result => (
+                                  <TableRow key={result.pharmacy_id}>
+                                      <TableCell className="font-medium">{result.pharmacy_name}</TableCell>
+                                      <TableCell className="font-mono">{result.stock}</TableCell>
+                                  </TableRow>
+                              ))}
+                          </TableBody>
+                      </Table>
+                  ) : (
+                      <div className="py-10 text-center text-muted-foreground">
+                          لم يتم العثور على الدواء في أي فرع آخر.
+                      </div>
+                  )}
+              </div>
+          </DialogContent>
+      </Dialog>
     </>
   )
 }

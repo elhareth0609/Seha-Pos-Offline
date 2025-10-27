@@ -17,11 +17,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import type { User, Advertisement, Offer, SupportRequest, Medication } from '@/lib/types';
-import { useForm } from 'react-hook-form';
+import type { User, Advertisement, Offer, SupportRequest, Medication, PharmacyGroup } from '@/lib/types';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, Building, ImagePlus, Image as ImageIcon, LayoutDashboard, ShoppingCart,LockKeyhole, LockOpen, LockIcon, Boxes, BadgePercent, Phone, CalendarClock, Pencil, LifeBuoy, Upload, Pill } from 'lucide-react';
+import { MoreVertical, PlusCircle, Trash2, ToggleLeft, ToggleRight, Settings, LogOut, Eye, EyeOff, FileText, Users, Building, ImagePlus, Image as ImageIcon, LayoutDashboard, ShoppingCart,LockKeyhole, LockOpen, LockIcon, Boxes, BadgePercent, Phone, CalendarClock, Pencil, LifeBuoy, Upload, Pill, Users2, X, Group, Search } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -65,7 +65,7 @@ const fileToDataUri = (file: File): Promise<string> => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
         reader.onerror = reject;
-        reader.readAsDataURL(file);
+        // reader.readAsDataURL(file);
     });
 };
 
@@ -130,6 +130,137 @@ function AdminRow({ admin, onDelete, onToggleStatus, onEdit, pharmacySettings }:
                 </DropdownMenu>
             </TableCell>
         </TableRow>
+    )
+}
+
+function PharmacyGroupsManagement() {
+    const { pharmacyGroups, getPharmacyGroups, createPharmacyGroup, updatePharmacyGroup, deletePharmacyGroup, users, getAllPharmacySettings } = useAuth();
+    const [isCreateGroupOpen, setIsCreateGroupOpen] = React.useState(false);
+    const [newGroupName, setNewGroupName] = React.useState('');
+    const [selectedPharmacyIds, setSelectedPharmacyIds] = React.useState<string[]>([]);
+    const [pharmacySettings, setPharmacySettings] = React.useState<Record<string, any>>({});
+    const [pharmacySearchTerm, setPharmacySearchTerm] = React.useState('');
+
+    const allAdmins = users.filter(u => u.role === 'Admin');
+
+    React.useEffect(() => {
+        getPharmacyGroups();
+        getAllPharmacySettings().then(setPharmacySettings);
+    }, [getPharmacyGroups, getAllPharmacySettings]);
+
+    const unassignedPharmacies = React.useMemo(() => {
+        const assignedIds = new Set(pharmacyGroups.flatMap(g => g.pharmacy_ids));
+        return allAdmins.filter(admin => !assignedIds.has(admin.pharmacy_id));
+    }, [pharmacyGroups, allAdmins]);
+
+    const filteredUnassignedPharmacies = React.useMemo(() => {
+        if (!pharmacySearchTerm) {
+            return unassignedPharmacies;
+        }
+        return unassignedPharmacies.filter(admin => 
+            (pharmacySettings[admin.pharmacy_id]?.pharmacyName || `صيدلية ${admin.name}`).toLowerCase().includes(pharmacySearchTerm.toLowerCase())
+        );
+    }, [unassignedPharmacies, pharmacySearchTerm, pharmacySettings]);
+
+    const handleCreateGroup = async () => {
+        if (!newGroupName.trim() || selectedPharmacyIds.length === 0) {
+            // Handle error toast
+            return;
+        }
+        await createPharmacyGroup(newGroupName, selectedPharmacyIds);
+        setNewGroupName('');
+        setSelectedPharmacyIds([]);
+        setIsCreateGroupOpen(false);
+    };
+
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle className="flex items-center gap-2"><Group className="h-6 w-6 text-primary"/>إدارة مجموعات الصيدليات</CardTitle>
+                    <CardDescription>عرّف المجموعات لتمكين البحث عن الأدوية بين الفروع.</CardDescription>
+                </div>
+                <Button onClick={() => setIsCreateGroupOpen(true)}>إنشاء مجموعة جديدة</Button>
+            </CardHeader>
+            <CardContent>
+                {pharmacyGroups.length > 0 ? (
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {pharmacyGroups.map(group => (
+                            <Card key={group.id}>
+                                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                    <CardTitle className="text-lg">{group.name}</CardTitle>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4"/></Button></AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader><AlertDialogTitle>هل أنت متأكد من حذف المجموعة؟</AlertDialogTitle></AlertDialogHeader>
+                                            <AlertDialogFooter className="sm:space-x-reverse"><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction onClick={() => deletePharmacyGroup(group.id)} className="bg-destructive hover:bg-destructive/90">حذف</AlertDialogAction></AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </CardHeader>
+                                <CardContent>
+                                    <ul className="list-disc pl-5 text-muted-foreground text-sm space-y-1">
+                                        {group.pharmacy_ids.map(id => (
+                                            <li key={id}>{pharmacySettings[id]?.pharmacyName || `صيدلية ${id}`}</li>
+                                        ))}
+                                    </ul>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center text-muted-foreground py-8 border-2 border-dashed rounded-lg">
+                        <p>لم يتم إنشاء أي مجموعات بعد. ابدأ بإنشاء مجموعة جديدة.</p>
+                    </div>
+                )}
+            </CardContent>
+             <Dialog open={isCreateGroupOpen} onOpenChange={setIsCreateGroupOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>إنشاء مجموعة صيدليات جديدة</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="group-name">اسم المجموعة</Label>
+                            <Input id="group-name" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} placeholder="مثال: مجموعة فروع بغداد"/>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>اختر الصيدليات (غير المرتبطة بمجموعة)</Label>
+                            <div className="relative">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input 
+                                    placeholder="ابحث عن صيدلية..." 
+                                    value={pharmacySearchTerm} 
+                                    onChange={(e) => setPharmacySearchTerm(e.target.value)}
+                                    className="pl-8"
+                                />
+                            </div>
+                            <div className="max-h-60 overflow-y-auto space-y-2 rounded-md border p-2">
+                                {filteredUnassignedPharmacies.length > 0 ? filteredUnassignedPharmacies.map(admin => (
+                                    <div key={admin.pharmacy_id} className="flex items-center gap-2 rounded-md p-2 hover:bg-muted">
+                                        <Checkbox 
+                                            id={`pharm-${admin.pharmacy_id}`}
+                                            checked={selectedPharmacyIds.includes(admin.pharmacy_id)}
+                                            onCheckedChange={(checked) => {
+                                                setSelectedPharmacyIds(prev => 
+                                                    checked ? [...prev, admin.pharmacy_id] : prev.filter(id => id !== admin.pharmacy_id)
+                                                )
+                                            }}
+                                        />
+                                        <Label htmlFor={`pharm-${admin.pharmacy_id}`} className="w-full cursor-pointer">
+                                            {pharmacySettings[admin.pharmacy_id]?.pharmacyName || `صيدلية ${admin.name}`}
+                                        </Label>
+                                    </div>
+                                )) : <p className="text-center text-sm text-muted-foreground py-4">لا توجد صيدليات متاحة.</p>}
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
+                        <Button onClick={handleCreateGroup}>إنشاء المجموعة</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </Card>
     )
 }
 
@@ -471,6 +602,8 @@ export default function SuperAdminPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            <PharmacyGroupsManagement />
 
             <div className="grid gap-6 lg:grid-cols-1">
                 <Card className="lg:col-span-2">
