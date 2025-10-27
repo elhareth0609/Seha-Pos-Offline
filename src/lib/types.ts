@@ -23,7 +23,7 @@ export type UserPermissions = {
     manage_patients: boolean;
     manage_expiringSoon: boolean;
     manage_users: boolean;
-    manage_guide: boolean;
+    // manage_guide: boolean;
     manage_settings: boolean;
     manage_trash: boolean;
     manage_salesPriceModification: boolean;
@@ -36,7 +36,7 @@ export type UserPermissions = {
     manage_offers: boolean;
     manage_hr: boolean;
     manage_support: boolean;
-    manage_representatives: boolean;
+    // manage_representatives: boolean;
     manage_exchange: boolean;
 };
 

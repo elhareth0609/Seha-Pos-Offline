@@ -160,7 +160,7 @@ export default function HRPage() {
             manage_itemMovement: true, 
             manage_patients: true, 
             manage_expiringSoon: true,
-            manage_guide: true, 
+            // manage_guide: true, 
             manage_settings: false, 
             manage_trash: false, 
             manage_salesPriceModification: false,

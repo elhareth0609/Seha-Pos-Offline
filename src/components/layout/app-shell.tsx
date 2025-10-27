@@ -97,7 +97,7 @@ const allNavItems = [
   { href: "/trash", icon: Trash2, label: "سلة المحذوفات", group: 'admin' },
   { href: "/close-month", icon: FileArchive, label: "الحسابات الختامية", group: 'admin' },
   { href: "/settings", icon: Settings, label: "الإعدادات", group: 'admin' },
-  { href: "/guide", icon: HelpCircle, label: "دليل الاستخدام", group: 'admin' },
+  // { href: "/guide", icon: HelpCircle, label: "دليل الاستخدام", group: 'admin' },
   { href: "/support", icon: LifeBuoy, label: "الدعم الفني", group: 'admin' },
 ];
 
@@ -313,7 +313,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         manage_itemMovement: true, 
         manage_patients: true, 
         manage_expiringSoon: true, 
-        manage_guide: true, 
+        // manage_guide: true, 
         manage_settings: false, 
         manage_trash: false, 
         manage_salesPriceModification: false,
@@ -327,7 +327,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         manage_offers: true,
         manage_hr: false,
         manage_support: true,
-        manage_representatives: true,
+        // manage_representatives: true,
         manage_exchange: true,
     };
 
@@ -340,7 +340,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         '/item-movement': 'manage_itemMovement',
         '/patients': 'manage_patients',
         '/expiring-soon': 'manage_expiringSoon',
-        '/guide': 'manage_guide',
+        // '/guide': 'manage_guide',
         '/settings': 'manage_settings',
         '/trash': 'manage_trash',
         '/expenses': 'manage_expenses',
@@ -350,9 +350,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         '/offers': 'manage_offers',
         '/hr': 'manage_hr',
         '/support': 'manage_support',
-        '/clinical-training': 'manage_guide', // Assuming guide permission covers this
+        // '/clinical-training': 'manage_guide', // Assuming guide permission covers this
         '/exchange': 'manage_exchange',
-        '/representatives': 'manage_representatives', // Assuming representatives permission covers this for now
+        // '/representatives': 'manage_representatives', // Assuming representatives permission covers this for now
     };
 
     return allNavItems.filter(item => {
