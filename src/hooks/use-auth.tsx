@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative, Notification, SupportRequestPayload, PatientPaymentPayload, SupportRequest, PatientPayment, DrugRequest, RequestResponse, ExchangeItem } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative, Notification, SupportRequestPayload, PatientPaymentPayload, SupportRequest, PatientPayment, DrugRequest, RequestResponse, ExchangeItem, PharmacyGroup, BranchInventory } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 import { PinDialog } from '@/components/auth/PinDialog';
@@ -93,7 +93,8 @@ interface AuthContextType {
     getPaginatedInventory: (page: number, perPage: number, search: string, filters: Record<string, any>) => Promise<PaginatedResponse<Medication>>;
     searchAllInventory: (search: string) => Promise<Medication[]>;
     toggleFavoriteMedication: (medId: string) => Promise<void>;
-    
+    searchInOtherBranches: (medicationName: string) => Promise<BranchInventory[]>;
+
     // Central Drug Management (SuperAdmin)
     getCentralDrugs: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Medication>>;
     uploadCentralDrugList: (items: Partial<Medication>[]) => Promise<boolean>;
@@ -218,6 +219,13 @@ interface AuthContextType {
     deleteDrugRequest: (requestId: string) => Promise<boolean>;
     respondToDrugRequest: (requestId: string, price: number) => Promise<DrugRequest | null>;
     ignoreDrugRequest: (requestId: string) => Promise<boolean>;
+
+    // Pharmacy Groups
+    pharmacyGroups: PharmacyGroup[];
+    getPharmacyGroups: () => Promise<PharmacyGroup[]>;
+    createPharmacyGroup: (name: string, pharmacy_ids: string[]) => Promise<PharmacyGroup | null>;
+    updatePharmacyGroup: (groupId: string, data: { name?: string; pharmacy_ids?: string[] }) => Promise<PharmacyGroup | null>;
+    deletePharmacyGroup: (groupId: string) => Promise<boolean>;
 }
 
 export interface ScopedDataContextType {
@@ -390,7 +398,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [advertisements, setAdvertisements] = React.useState<Advertisement[]>([]);
     const [offers, setOffers] = React.useState<Offer[]>([]);
     const [supportRequests, setSupportRequests] = React.useState<SupportRequest[]>([]);
-    
+    const [pharmacyGroups, setPharmacyGroups] = React.useState<PharmacyGroup[]>([]);
+
     // Multi-invoice state
     const [activeInvoices, setActiveInvoices] = React.useState<ActiveInvoice[]>([initialActiveInvoice]);
     const [currentInvoiceIndex, setCurrentInvoiceIndex] = React.useState(0);
@@ -750,36 +759,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return [];
         }
     }, []);
-    
-const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage: number, search: string, type: 'expiring' | 'expired' | 'damaged') => {
-    try {
-        const params = new URLSearchParams({
-            paginate: "true",
-            page: String(page),
-            per_page: String(perPage),
-            search: search,
-            type: type,
-        });
-        const response = await apiRequest(`/expiring-soon?${params.toString()}`);
-        return {
-            data: response.data.data,
-            expiredMedicationsLength: response.expiredMedicationsLength,
-            expiringMedicationsLength: response.expiringMedicationsLength,
-            damagedMedicationsLength: response.damagedMedicationsLength,
-            current_page: response.data.current_page,
-            last_page: response.data.last_page,
-        };
-    } catch (e) {
-        return {
-            data: [],
-            expiredMedicationsLength: 0,
-            expiringMedicationsLength: 0,
-            damagedMedicationsLength: 0,
-            current_page: 1,
-            last_page: 1,
-        };
-    }
-}, []);
+
+    const searchInOtherBranches = React.useCallback(async (medicationName: string): Promise<BranchInventory[]> => {
+        try {
+            return await apiRequest(`/inventory/branches/${medicationName}`);
+        } catch (e) {
+            return [];
+        }
+    }, []);
+
+    const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage: number, search: string, type: 'expiring' | 'expired' | 'damaged') => {
+        try {
+            const params = new URLSearchParams({
+                paginate: "true",
+                page: String(page),
+                per_page: String(perPage),
+                search: search,
+                type: type,
+            });
+            const response = await apiRequest(`/expiring-soon?${params.toString()}`);
+            return {
+                data: response.data.data,
+                expiredMedicationsLength: response.expiredMedicationsLength,
+                expiringMedicationsLength: response.expiringMedicationsLength,
+                damagedMedicationsLength: response.damagedMedicationsLength,
+                current_page: response.data.current_page,
+                last_page: response.data.last_page,
+            };
+        } catch (e) {
+            return {
+                data: [],
+                expiredMedicationsLength: 0,
+                expiringMedicationsLength: 0,
+                damagedMedicationsLength: 0,
+                current_page: 1,
+                last_page: 1,
+            };
+        }
+    }, []);
 
     const getMedicationMovements = React.useCallback(async (medicationId: string) => {
         try {
@@ -1576,6 +1593,47 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         } catch (e) { return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Medication>; }
     }, []);
 
+    // Pharmacy Groups Management
+    const getPharmacyGroups = async (): Promise<PharmacyGroup[]> => {
+        try {
+            const groups = await apiRequest('/superadmin/pharmacy-groups');
+            setPharmacyGroups(groups);
+            return groups;
+        } catch (e) {
+            return [];
+        }
+    };
+
+    const createPharmacyGroup = async (name: string, pharmacy_ids: string[]): Promise<PharmacyGroup | null> => {
+        try {
+            const newGroup = await apiRequest('/superadmin/pharmacy-groups', 'POST', { name, pharmacy_ids });
+            setPharmacyGroups(prev => [...prev, newGroup]);
+            return newGroup;
+        } catch (e) {
+            return null;
+        }
+    };
+    
+    const updatePharmacyGroup = async (groupId: string, data: { name?: string; pharmacy_ids?: string[] }): Promise<PharmacyGroup | null> => {
+        try {
+            const updatedGroup = await apiRequest(`/superadmin/pharmacy-groups/${groupId}`, 'PUT', data);
+            setPharmacyGroups(prev => prev.map(g => g.id === groupId ? updatedGroup : g));
+            return updatedGroup;
+        } catch (e) {
+            return null;
+        }
+    };
+    
+    const deletePharmacyGroup = async (groupId: string): Promise<boolean> => {
+        try {
+            await apiRequest(`/superadmin/pharmacy-groups/${groupId}`, 'DELETE');
+            setPharmacyGroups(prev => prev.filter(g => g.id !== groupId));
+            return true;
+        } catch (e) {
+            return false;
+        }
+    };
+
     const scopedData: ScopedDataContextType = {
         inventory: [inventory, setInventory],
         sales: [sales, setSales],
@@ -1624,7 +1682,9 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             supportRequests, addSupportRequest, updateSupportRequestStatus,
             getExchangeItems, postExchangeItem, deleteExchangeItem,
             getDrugRequests, postDrugRequest, deleteDrugRequest, respondToDrugRequest, ignoreDrugRequest,
-            getCentralDrugs, uploadCentralDrugList
+            getCentralDrugs, uploadCentralDrugList, 
+            searchInOtherBranches,
+            pharmacyGroups, getPharmacyGroups, createPharmacyGroup, updatePharmacyGroup, deletePharmacyGroup,
         }}>
             {children}
         </AuthContext.Provider>

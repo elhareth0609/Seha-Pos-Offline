@@ -2,6 +2,12 @@
 
 import { z } from 'zod';
 
+export type PharmacyGroup = {
+    id: string;
+    name: string;
+    pharmacy_ids: string[];
+};
+
 export type SupportRequest = {
     id: string;
     pharmacy_id: string;
@@ -500,4 +506,9 @@ export type SupplierAnalyticsData = {
     net_debt: number;
 };
 
-    
+export type BranchInventory = {
+    pharmacy_id: string;
+    pharmacy_name: string;
+    medication_name: string;
+    stock: number;
+};

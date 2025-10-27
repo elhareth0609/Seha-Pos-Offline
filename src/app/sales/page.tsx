@@ -50,7 +50,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput, Notification } from "@/lib/types"
+import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput, Notification, BranchInventory } from "@/lib/types"
 import { PlusCircle, X, PackageSearch, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText, Calculator, Search, Plus, Minus, Star } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -379,6 +379,68 @@ function FavoritesPopover({ onSelect }: { onSelect: (med: Medication) => void })
     );
 }
 
+function BranchSearchDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
+    const { searchInOtherBranches } = useAuth();
+    const [branchSearchTerm, setBranchSearchTerm] = React.useState('');
+    const [branchSearchResults, setBranchSearchResults] = React.useState<BranchInventory[]>([]);
+    const [branchSearchLoading, setBranchSearchLoading] = React.useState(false);
+
+    const handleBranchSearch = async (term: string) => {
+        setBranchSearchTerm(term);
+        if (term.length > 2) {
+            setBranchSearchLoading(true);
+            const results = await searchInOtherBranches(term);
+            setBranchSearchResults(results);
+            setBranchSearchLoading(false);
+        } else {
+            setBranchSearchResults([]);
+        }
+    };
+    
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>البحث عن دواء في الأفرع</DialogTitle>
+                    <DialogDescription>
+                        ابحث عن أي دواء لمعرفة الكميات المتوفرة في شبكة صيدلياتك.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-4">
+                    <Input 
+                        placeholder="ابحث بالاسم التجاري أو العلمي..."
+                        value={branchSearchTerm}
+                        onChange={(e) => handleBranchSearch(e.target.value)}
+                        autoFocus
+                    />
+                    <div className="max-h-80 overflow-y-auto">
+                        {branchSearchLoading ? (
+                            <div className="space-y-2 py-4">
+                                <Skeleton className="h-10 w-full" />
+                                <Skeleton className="h-10 w-full" />
+                            </div>
+                        ) : branchSearchResults.length > 0 ? (
+                            <Table>
+                                <TableHeader><TableRow><TableHead>اسم الفرع</TableHead><TableHead>الكمية المتوفرة</TableHead></TableRow></TableHeader>
+                                <TableBody>
+                                    {branchSearchResults.map(result => (
+                                        <TableRow key={result.pharmacy_id}>
+                                            <TableCell className="font-medium">{result.pharmacy_name}</TableCell>
+                                            <TableCell className="font-mono">{result.stock}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        ) : (
+                            branchSearchTerm.length > 2 && <p className="text-center text-muted-foreground py-8">لم يتم العثور على الدواء في أي فرع آخر.</p>
+                        )}
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 export default function SalesPage() {
   const { 
     currentUser, 
@@ -397,7 +459,8 @@ export default function SalesPage() {
     searchAllSales,
     searchAllPatients,
     verifyPin,
-    toggleFavoriteMedication
+    toggleFavoriteMedication,
+    searchInOtherBranches,
   } = useAuth();
 
   const router = useRouter();
@@ -420,7 +483,8 @@ export default function SalesPage() {
   const [alternativeExpiryAlert, setAlternativeExpiryAlert] = React.useState<Notification | null>(null);
   const [barcodeConflictMeds, setBarcodeConflictMeds] = React.useState<Medication[]>([]);
   const [isBarcodeConflictDialogOpen, setIsBarcodeConflictDialogOpen] = React.useState(false);
-  
+    const [isBranchSearchOpen, setIsBranchSearchOpen] = React.useState(false);
+
   const [isDosingAssistantOpen, setIsDosingAssistantOpen] = React.useState(false);
 
   const [isPatientModalOpen, setIsPatientModalOpen] = React.useState(false);
@@ -920,6 +984,7 @@ export default function SalesPage() {
         <div className="hidden">
             <InvoiceTemplate ref={printComponentRef} sale={saleToPrint} settings={settings || null} />
         </div>
+        <BranchSearchDialog open={isBranchSearchOpen} onOpenChange={setIsBranchSearchOpen} />
         <BarcodeConflictDialog 
             open={isBarcodeConflictDialogOpen}
             onOpenChange={setIsBarcodeConflictDialogOpen}
@@ -984,6 +1049,9 @@ export default function SalesPage() {
                             </Card>
                         )}
                     </div>
+                    <Button variant="outline" size="icon" className="shrink-0" onClick={() => setIsBranchSearchOpen(true)}>
+                        <ArrowLeftRight />
+                    </Button>
                     <FavoritesPopover onSelect={addToCart} />
                     <Popover>
                         <PopoverTrigger asChild>
