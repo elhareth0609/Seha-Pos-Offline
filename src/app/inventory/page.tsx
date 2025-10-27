@@ -393,8 +393,41 @@ export default function InventoryPage() {
           return;
         }
 
-        const medicationsToProcess: Partial<Medication>[] = jsonData.map(row => ({
-          barcodes: row['الباركود'] ? String(row['الباركود']).split(',').map(s => s.trim()) : [],
+        // First filter out rows without barcodes
+        const rowsWithBarcodes = jsonData.filter((row, index) => {
+          // Check if barcode is in the first column (for rows without proper headers)
+          const firstColValue = row[Object.keys(row)[0]];
+          
+          // Check if the first column is a barcode (numeric and 13 digits)
+          const hasBarcodeInFirstCol = firstColValue && !isNaN(firstColValue) && String(firstColValue).length === 13;
+          
+          // Check if barcode is in the proper column
+          const hasBarcodeInProperCol = row['الباركود'];
+          
+          // Skip rows without barcodes
+          const hasBarcode = hasBarcodeInFirstCol || hasBarcodeInProperCol;
+          
+          if (!hasBarcode && index < 3) {
+            console.log(`Skipping row ${index} - no barcode found`);
+          }
+          
+          return hasBarcode;
+        });
+        
+        const medicationsToProcess: Partial<Medication>[] = rowsWithBarcodes.map(row => ({
+          barcodes: (() => {
+            // Check if barcode is in the first column (for rows without proper headers)
+            const firstColValue = row[Object.keys(row)[0]];
+            
+            // Check if the first column is a barcode (numeric and 13 digits)
+            if (firstColValue && !isNaN(firstColValue) && String(firstColValue).length === 13) {
+              return [String(firstColValue)];
+            } else if (row['الباركود']) {
+              return String(row['الباركود']).split(',').map(s => s.trim());
+            } else {
+              return [];
+            }
+          })(),
           name: row['الاسم التجاري'] || 'Unnamed Product',
           scientific_names: row['الاسم العلمي'] ? String(row['الاسم العلمي']).split(',').map(s => s.trim()) : [],
           stock: Number(row['الكمية']) || 0,
@@ -423,10 +456,18 @@ export default function InventoryPage() {
           dosage_form: row['الشكل الدوائي'],
         }));
         
-        await bulkAddOrUpdateInventory(medicationsToProcess);
+        const response = await bulkAddOrUpdateInventory(medicationsToProcess);
         
-        fetchData(1, perPage, "");
-        toast({ title: "تم الاستيراد بنجاح", description: `جاري معالجة ${medicationsToProcess.length} دواء.` });
+        if (response) {
+            fetchData(1, perPage, "");
+            
+            // Display the count of new and updated items
+            const { new_count, updated_count } = response;
+            toast({ 
+                title: "اكتمل الاستيراد", 
+                description: `تمت إضافة ${new_count} أصناف جديدة${updated_count !== undefined ? ` وتحديث ${updated_count} أصناف` : ''}.` 
+            });
+        }
 
       } catch (error) {
         console.error('Error importing from Excel:', error);

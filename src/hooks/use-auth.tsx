@@ -88,7 +88,7 @@ interface AuthContextType {
     updateMedication: (medId: string, data: Partial<Medication>) => Promise<boolean>;
     deleteMedication: (medId: string) => Promise<boolean>;
     markAsDamaged: (medId: string) => Promise<boolean>;
-    bulkAddOrUpdateInventory: (items: Partial<Medication>[]) => Promise<boolean>;
+    bulkAddOrUpdateInventory: (items: Partial<Medication>[]) => Promise<{ new_count: number; updated_count?: number; } | null>;
     getPaginatedInventory: (page: number, perPage: number, search: string, filters: Record<string, any>) => Promise<PaginatedResponse<Medication>>;
     searchAllInventory: (search: string) => Promise<Medication[]>;
     toggleFavoriteMedication: (medId: string) => Promise<void>;
@@ -977,16 +977,16 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
     const bulkAddOrUpdateInventory = async (items: Partial<Medication>[]) => {
         try {
             const { new_count, updated_count } = await apiRequest('/medications/bulk', 'POST', { items });
-            if (new_count && updated_count) {
-                toast({ title: "اكتمل الاستيراد", description: `تمت إضافة ${new_count} أصناف جديدة وتحديث ${updated_count} أصناف.` });
-                return true;
+            if (new_count !== undefined) {
+                toast({ title: "اكتمل الاستيراد", description: `تمت إضافة ${new_count} أصناف جديدة${updated_count !== undefined ? ` وتحديث ${updated_count} أصناف` : ''}.` });
+                return { new_count, updated_count };
             } else {
-                return false; 
+                return null;
             }
-        } catch (e) { 
-            return false; 
+        } catch (e) {
+            return null;
         }
-    }
+    };
 
     const uploadCentralDrugList = async (items: Partial<Medication>[]) => {
         try {
