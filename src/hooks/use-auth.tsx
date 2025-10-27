@@ -89,6 +89,7 @@ interface AuthContextType {
     deleteMedication: (medId: string) => Promise<boolean>;
     markAsDamaged: (medId: string) => Promise<boolean>;
     bulkAddOrUpdateInventory: (items: Partial<Medication>[]) => Promise<{ new_count: number; updated_count?: number; } | null>;
+    bulkUploadInventory: (file: File) => Promise<{ new_count: number; updated_count?: number; processed_medications?: number; } | null>;
     getPaginatedInventory: (page: number, perPage: number, search: string, filters: Record<string, any>) => Promise<PaginatedResponse<Medication>>;
     searchAllInventory: (search: string) => Promise<Medication[]>;
     toggleFavoriteMedication: (medId: string) => Promise<void>;
@@ -988,6 +989,40 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
         }
     };
 
+    const bulkUploadInventory = async (file: File) => {
+        const token = localStorage.getItem('authToken');
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const response = await fetch(`${API_URL}/medications/bulk-upload`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to upload file');
+            }
+            
+            const result = await response.json();
+            const { new_count, updated_count, processed_medications } = result;
+            
+            if (new_count !== undefined) {
+                toast({ title: "اكتمل الاستيراد", description: `تمت إضافة ${new_count} أصناف جديدة${updated_count !== undefined ? ` وتحديث ${updated_count} أصناف` : ''}.` });
+                return { new_count, updated_count, processed_medications };
+            } else {
+                return null;
+            }
+        } catch (e) {
+            toast({ title: "خطأ في الاستيراد", description: "حدث خطأ أثناء رفع الملف. يرجى المحاولة مرة أخرى." });
+            return null;
+        }
+    };
+
     const uploadCentralDrugList = async (items: Partial<Medication>[]) => {
         try {
             await apiRequest('/superadmin/drugs/bulk-upload', 'POST', { items });
@@ -1566,7 +1601,7 @@ const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage:
             getAllPharmacySettings, getPharmacyData, clearPharmacyData, closeMonth,
             advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement, incrementAdView,
             offers, addOffer, deleteOffer, incrementOfferView,
-            addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, getPaginatedInventory, searchAllInventory, markAsDamaged, toggleFavoriteMedication,
+            addMedication, updateMedication, deleteMedication, bulkAddOrUpdateInventory, bulkUploadInventory, getPaginatedInventory, searchAllInventory, markAsDamaged, toggleFavoriteMedication,
             getPaginatedExpiringSoon,
             getPaginatedItemMovements, getMedicationMovements,
             addSale, updateSale, deleteSale, getPaginatedSales, searchAllSales,

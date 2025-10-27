@@ -86,6 +86,7 @@ export default function InventoryPage() {
     updateMedication, 
     deleteMedication, 
     bulkAddOrUpdateInventory, 
+    bulkUploadInventory,
     addMedication,
     getPaginatedInventory,
     currentUser,
@@ -374,113 +375,37 @@ export default function InventoryPage() {
     fileInputRef.current?.click();
   };
   
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setIsImporting(true);
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-        if (jsonData.length === 0) {
-          toast({ variant: 'destructive', title: 'ملف فارغ' });
-          return;
-        }
+    try {
+      // Upload the file directly to the backend
+      const response = await bulkUploadInventory(file);
 
-        // First filter out rows without barcodes
-        const rowsWithBarcodes = jsonData.filter((row, index) => {
-          // Check if barcode is in the first column (for rows without proper headers)
-          const firstColValue = row[Object.keys(row)[0]];
-          
-          // Check if the first column is a barcode (numeric and 13 digits)
-          const hasBarcodeInFirstCol = firstColValue && !isNaN(firstColValue) && String(firstColValue).length === 13;
-          
-          // Check if barcode is in the proper column
-          const hasBarcodeInProperCol = row['الباركود'];
-          
-          // Skip rows without barcodes
-          const hasBarcode = hasBarcodeInFirstCol || hasBarcodeInProperCol;
-          
-          if (!hasBarcode && index < 3) {
-            console.log(`Skipping row ${index} - no barcode found`);
-          }
-          
-          return hasBarcode;
+      if (response) {
+        fetchData(1, perPage, "");
+
+        // Display the count of new and updated items
+        const { new_count, updated_count } = response;
+        toast({ 
+            title: "اكتمل الاستيراد", 
+            description: `تمت إضافة ${new_count} أصناف جديدة${updated_count !== undefined ? ` وتحديث ${updated_count} أصناف` : ''}.` 
         });
-        
-        const medicationsToProcess: Partial<Medication>[] = rowsWithBarcodes.map(row => ({
-          barcodes: (() => {
-            // Check if barcode is in the first column (for rows without proper headers)
-            const firstColValue = row[Object.keys(row)[0]];
-            
-            // Check if the first column is a barcode (numeric and 13 digits)
-            if (firstColValue && !isNaN(firstColValue) && String(firstColValue).length === 13) {
-              return [String(firstColValue)];
-            } else if (row['الباركود']) {
-              return String(row['الباركود']).split(',').map(s => s.trim());
-            } else {
-              return [];
-            }
-          })(),
-          name: row['الاسم التجاري'] || 'Unnamed Product',
-          scientific_names: row['الاسم العلمي'] ? String(row['الاسم العلمي']).split(',').map(s => s.trim()) : [],
-          stock: Number(row['الكمية']) || 0,
-          reorder_point: Number(row['نقطة اعادة الطلب']) || 10,
-          price: Number(row['سعر البيع']) || 0,
-          purchase_price: Number(row['سعر الشراء']) || 0,
-          expiration_date: (() => {
-            const val = row['تاريخ الانتهاء'];
-            if (!val) return new Date().toISOString().split('T')[0];
-            
-            // إذا كان التاريخ رقم Excel
-            if (typeof val === 'number') {
-              const jsDate = XLSX.SSF.parse_date_code(val);
-              return `${jsDate.y}-${String(jsDate.m).padStart(2, '0')}-${String(jsDate.d).padStart(2, '0')}`;
-            }
-            
-            // إذا كان التاريخ نص بصيغة yyyy-mm-dd أو مشابهة
-            const parsed = new Date(val);
-            if (!isNaN(parsed.getTime())) {
-              return parsed.toISOString().split('T')[0];
-            }
-
-            return new Date().toISOString().split('T')[0];
-          })(),
-          dosage: row['الجرعة'],
-          dosage_form: row['الشكل الدوائي'],
-        }));
-        
-        const response = await bulkAddOrUpdateInventory(medicationsToProcess);
-        
-        if (response) {
-            fetchData(1, perPage, "");
-            
-            // Display the count of new and updated items
-            const { new_count, updated_count } = response;
-            toast({ 
-                title: "اكتمل الاستيراد", 
-                description: `تمت إضافة ${new_count} أصناف جديدة${updated_count !== undefined ? ` وتحديث ${updated_count} أصناف` : ''}.` 
-            });
-        }
-
-      } catch (error) {
-        console.error('Error importing from Excel:', error);
-        toast({ variant: 'destructive', title: 'خطأ في الاستيراد' });
-      } finally {
-        setIsImporting(false);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
       }
-    };
-    reader.readAsArrayBuffer(file);
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'خطأ', description: 'فشل استيراد البيانات' });
+      console.error(error);
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
+
 
   const handleAddImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
