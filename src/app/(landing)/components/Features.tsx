@@ -103,14 +103,14 @@ export const Features = () => {
       color: "medical-info",
       benefit: "رعاية صيدلانية أفضل"
     },
-    {
-      icon: BookOpen,
-      title: "التعليم السريري المستمر",
-      description: "قسم تدريبي متكامل يشرح الأمراض الشائعة وربطها بالأدوية المتوفرة",
-      location: "قسم التدريب والتطوير",
-      color: "medical-purple",
-      benefit: "تطوير مهني مستمر"
-    },
+    // {
+    //   icon: BookOpen,
+    //   title: "التعليم السريري المستمر",
+    //   description: "قسم تدريبي متكامل يشرح الأمراض الشائعة وربطها بالأدوية المتوفرة",
+    //   location: "قسم التدريب والتطوير",
+    //   color: "medical-purple",
+    //   benefit: "تطوير مهني مستمر"
+    // },
     // {
     //   icon: UserCheck,
     //   title: "دليل المندوبين",
