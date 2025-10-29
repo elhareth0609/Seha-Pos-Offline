@@ -174,7 +174,7 @@ export default function HRPage() {
             manage_offers: false,
             manage_hr: false, 
             manage_support: false, 
-            manage_representatives: false,
+            // manage_representatives: false,
             manage_exchange: false
         };
         setCurrentUserPermissions(permissions);
