@@ -176,7 +176,7 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
             </DialogHeader>
             <div className="flex flex-col items-center justify-center space-y-4 py-8">
                 <PackageSearch className="w-16 h-16 text-muted-foreground" />
-                <p className="text-xl font-medium text-center">ستتوفر هاته الميزة قريبا</p>
+                <p className="text-xl font-medium text-center">ستتوفر الميزة قريبا</p>
             </div>
             <DialogFooter>
                 <DialogClose asChild>
