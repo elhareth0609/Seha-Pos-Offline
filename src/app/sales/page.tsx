@@ -174,53 +174,9 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
                     أدخل وزن المريض للحصول على اقتراحات للجرعات.
                 </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                    <div className="space-y-2">
-                        <Label htmlFor="patient-weight">وزن المريض (بالكيلوجرام)</Label>
-                        <Input id="patient-weight" type="number" step="0.1" value={patientWeight} onChange={(e) => setPatientWeight(e.target.value)} placeholder="مثال: 25.5" />
-                    </div>
-                     <div className="md:col-span-2">
-                         <Button onClick={handleCalculate} disabled={isLoading || cartItems.length === 0} className="w-full">
-                            {isLoading ? <BrainCircuit className="me-2 h-4 w-4 animate-spin" /> : <Thermometer className="me-2 h-4 w-4" />}
-                            حساب وتحليل
-                        </Button>
-                    </div>
-                </div>
-                
-                {isLoading && (
-                    <div className="space-y-2 pt-4">
-                        <Skeleton className="h-8 w-full" />
-                        <Skeleton className="h-8 w-full" />
-                    </div>
-                )}
-                
-                {results && (
-                    <div className="space-y-4 pt-4">
-                        <Alert variant="default">
-                            <AlertDescription>
-                                هذه النتائج هي مجرد اقتراحات من الذكاء الاصطناعي ولا تغني عن خبرة الصيدلي وقراره النهائي. يجب التحقق من الجرعات والتفاعلات دائمًا.
-                            </AlertDescription>
-                        </Alert>
-                        
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>الدواء</TableHead>
-                                    <TableHead>الجرعة المقترحة</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {results.medicationAnalysis.map((res, index) => (
-                                    <TableRow key={index}>
-                                        <TableCell className="font-medium">{res.tradeName}</TableCell>
-                                        <TableCell>{res.suggestedDose}</TableCell>
-                                    </TableRow>    
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                )}
+            <div className="flex flex-col items-center justify-center space-y-4 py-8">
+                <PackageSearch className="w-16 h-16 text-muted-foreground" />
+                <p className="text-xl font-medium text-center">ستتوفر هاته الميزة قريبا</p>
             </div>
             <DialogFooter>
                 <DialogClose asChild>
@@ -229,6 +185,53 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
             </DialogFooter>
         </DialogContent>
     );
+
+            //         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        //             <div className="space-y-2">
+        //                 <Label htmlFor="patient-weight">وزن المريض (بالكيلوجرام)</Label>
+        //                 <Input id="patient-weight" type="number" step="0.1" value={patientWeight} onChange={(e) => setPatientWeight(e.target.value)} placeholder="مثال: 25.5" />
+        //             </div>
+        //              <div className="md:col-span-2">
+        //                  <Button onClick={handleCalculate} disabled={isLoading || cartItems.length === 0} className="w-full">
+        //                     {isLoading ? <BrainCircuit className="me-2 h-4 w-4 animate-spin" /> : <Thermometer className="me-2 h-4 w-4" />}
+        //                     حساب وتحليل
+        //                 </Button>
+        //             </div>
+        //         </div>
+        //         {isLoading && (
+        //             <div className="space-y-2 pt-4">
+        //                 <Skeleton className="h-8 w-full" />
+        //                 <Skeleton className="h-8 w-full" />
+        //             </div>
+        //         )}
+                
+        //         {results && (
+        //             <div className="space-y-4 pt-4">
+        //                 <Alert variant="default">
+        //                     <AlertDescription>
+        //                         هذه النتائج هي مجرد اقتراحات من الذكاء الاصطناعي ولا تغني عن خبرة الصيدلي وقراره النهائي. يجب التحقق من الجرعات والتفاعلات دائمًا.
+        //                     </AlertDescription>
+        //                 </Alert>
+                        
+        //                 <Table>
+        //                     <TableHeader>
+        //                         <TableRow>
+        //                             <TableHead>الدواء</TableHead>
+        //                             <TableHead>الجرعة المقترحة</TableHead>
+        //                         </TableRow>
+        //                     </TableHeader>
+        //                     <TableBody>
+        //                         {results.medicationAnalysis.map((res, index) => (
+        //                             <TableRow key={index}>
+        //                                 <TableCell className="font-medium">{res.tradeName}</TableCell>
+        //                                 <TableCell>{res.suggestedDose}</TableCell>
+        //                             </TableRow>    
+        //                         ))}
+        //                     </TableBody>
+        //                 </Table>
+        //             </div>
+        //         )}
+
 }
 
 function BarcodeConflictDialog({ open, onOpenChange, conflictingMeds, onSelect }: { open: boolean, onOpenChange: (open: boolean) => void, conflictingMeds: Medication[], onSelect: (med: Medication) => void }) {
