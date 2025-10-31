@@ -755,7 +755,7 @@ export default function InventoryPage() {
                               <div className="space-y-2">
                                   <Label htmlFor="edit-scientific_names">الاسم العلمي (يفصل بفاصلة ,)</Label>
                                   <div className="relative">
-                                      <Input id="edit-scientific_names" value={editingMed.scientific_names?.join(', ') || ''}  onChange={e => setEditingMed(p => p ? {...p, scientific_names: e.target.value.split(',').map(s => s.trim())} : null)} />
+                                      <Input id="edit-scientific_names" value={Array.isArray(editingMed.scientific_names) ? editingMed.scientific_names.join(', ') : editingMed.scientific_names || ''}  onChange={e => setEditingMed(p => p ? {...p, scientific_names: e.target.value.split(',').map(s => s.trim())} : null)} />
                                       <Button type="button" size="icon" variant="ghost" className="absolute top-1/2 -translate-y-1/2 left-1 h-7 w-7" onClick={() => setEditingMed(p => p ? {...p, scientific_names: [...(p.scientific_names || []), '']} : null)}>
                                           <PlusCircle className="h-4 w-4" />
                                       </Button>
@@ -849,7 +849,7 @@ export default function InventoryPage() {
                         <div className="space-y-2">
                             <Label htmlFor="add-barcodes">الباركود (يفصل بفاصلة ,)</Label>
                              <div className="relative">
-                                <Input id="add-barcodes" value={newMed.barcodes?.join(', ') || ''} onChange={e => setNewMed(p => ({...p, barcodes: e.target.value.split(',').map(s => s.trim())}))} />
+                                <Input id="add-barcodes" value={Array.isArray(newMed.barcodes) ? newMed.barcodes.join(', ') : newMed.barcodes || ''} onChange={e => setNewMed(p => ({...p, barcodes: e.target.value.split(',').map(s => s.trim())}))} />
                                 <Button type="button" size="icon" variant="ghost" className="absolute top-1/2 -translate-y-1/2 left-1 h-7 w-7" onClick={() => setNewMed(p => ({...p, barcodes: [...(p.barcodes || []), '']}))}>
                                     <PlusCircle className="h-4 w-4" />
                                 </Button>
@@ -864,7 +864,7 @@ export default function InventoryPage() {
                         <div className="space-y-2">
                             <Label htmlFor="add-scientific_names">الاسم العلمي (يفصل بفاصلة ,)</Label>
                             <div className="relative">
-                                <Input id="add-scientific_names" value={newMed.scientific_names?.join(', ') || ''} onChange={e => setNewMed(p => ({...p, scientific_names: e.target.value.split(',').map(s => s.trim())}))} />
+                                <Input id="add-scientific_names" value={Array.isArray(newMed.scientific_names) ? newMed.scientific_names.join(', ') : newMed.scientific_names || ''} onChange={e => setNewMed(p => ({...p, scientific_names: e.target.value.split(',').map(s => s.trim())}))} />
                                 <Button type="button" size="icon" variant="ghost" className="absolute top-1/2 -translate-y-1/2 left-1 h-7 w-7" onClick={() => setNewMed(p => ({...p, scientific_names: [...(p.scientific_names || []), '']}))}>
                                     <PlusCircle className="h-4 w-4" />
                                 </Button>
