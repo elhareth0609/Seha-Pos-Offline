@@ -1,5 +1,3 @@
-
-
 "use client"
 
 import * as React from "react"
@@ -666,7 +664,8 @@ export default function SalesPage() {
   
     React.useEffect(() => {
         const handler = setTimeout(async () => {
-            if (searchTerm.length > 5 && suggestions.length === 0) {
+            // If search term is numeric and longer than 5 digits, it's likely a barcode
+            if (searchTerm.length > 5 && /^\d+$/.test(searchTerm) && suggestions.length === 0) {
                 await processBarcode(searchTerm);
             }
         });
@@ -674,7 +673,7 @@ export default function SalesPage() {
         return () => {
             clearTimeout(handler);
         };
-    }, [searchTerm, suggestions.length]);
+    }, [searchTerm, suggestions.length, processBarcode]);
 
 
   React.useEffect(() => {
@@ -690,7 +689,14 @@ export default function SalesPage() {
     const value = e.target.value;
     setSearchTerm(value);
 
-    if (value.length > 0) {
+    if (value.length > 3) {
+        // If first 3 characters are numbers, assume it's a barcode scan in progress
+        // Don't search until Enter is pressed
+        if (value.length > 3 && /^\d{3}/.test(value)) {
+            // This is likely a barcode, wait for Enter to be pressed
+            return;
+        }
+
         // Only disable search input if not likely to be a barcode scan
         // Barcode scanners typically input quickly and end with Enter
         // We'll delay disabling to allow barcode input to complete
