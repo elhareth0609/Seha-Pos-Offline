@@ -619,8 +619,8 @@ export default function InventoryPage() {
                         </div>
                     </div>
                   </TableCell>
-                  <TableCell className="font-mono text-xs">{item.barcodes?.join(', ')}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{item.scientific_names?.join(', ')}</TableCell>
+                  <TableCell className="font-mono text-xs">{Array.isArray(item.barcodes) ? item.barcodes.join(', ') : item.barcodes || ''}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{Array.isArray(item.scientific_names) ? item.scientific_names.join(', ') : item.scientific_names || ''}</TableCell>
                   <TableCell className="font-mono">{item.purchase_price}</TableCell>
                   <TableCell className="font-mono">{item.price}</TableCell>
                   <TableCell className="text-center font-mono">{item.stock}</TableCell>
@@ -740,7 +740,7 @@ export default function InventoryPage() {
                               <div className="space-y-2">
                                   <Label htmlFor="edit-barcodes">الباركود (يفصل بفاصلة ,)</Label>
                                   <div className="relative">
-                                      <Input id="edit-barcodes" value={editingMed.barcodes?.join(', ') || ''} onChange={e => setEditingMed(p => p ? {...p, barcodes: e.target.value.split(',').map(s => s.trim())} : null)} required />
+                                      <Input id="edit-barcodes" value={Array.isArray(editingMed.barcodes) ? editingMed.barcodes.join(', ') : editingMed.barcodes || ''} onChange={e => setEditingMed(p => p ? {...p, barcodes: e.target.value.split(',').map(s => s.trim())} : null)} required />
                                       <Button type="button" size="icon" variant="ghost" className="absolute top-1/2 -translate-y-1/2 left-1 h-7 w-7" onClick={() => setEditingMed(p => p ? {...p, barcodes: [...(p.barcodes || []), '']} : null)}>
                                           <PlusCircle className="h-4 w-4" />
                                       </Button>
