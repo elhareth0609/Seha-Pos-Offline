@@ -36,7 +36,7 @@ export type UserPermissions = {
     manage_previous_sales: boolean;
     manage_expenses: boolean;
     manage_tasks: boolean;
-    manage_close_month: boolean;
+    // manage_close_month: boolean;
     manage_archives: boolean;
     manage_order_requests: boolean;
     manage_offers: boolean;

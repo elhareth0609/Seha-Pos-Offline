@@ -134,9 +134,9 @@ export default function CloseMonthPage() {
     }
 
     React.useEffect(() => {
-        if (currentUser && currentUser.role !== 'Admin' && !currentUser.permissions?.manage_close_month) {
-            router.push('/');
-        }
+        // if (currentUser && currentUser.role !== 'Admin' && !currentUser.permissions?.manage_close_month) {
+        //     router.push('/');
+        // }
     }, [currentUser, router]);
 
     // --- Archive Effects ---
@@ -165,9 +165,9 @@ export default function CloseMonthPage() {
     }, [selectedArchiveId, getArchivedMonthData]);
 
 
-    if (currentUser && currentUser.role !== 'Admin' && !currentUser.permissions?.manage_close_month) {
-        return <div className="flex items-center justify-center min-h-screen"><p>ليس لديك صلاحية الوصول لهذه الصفحة.</p></div>;
-    }
+    // if (currentUser && currentUser.role !== 'Admin' && !currentUser.permissions?.manage_close_month) {
+    //     return <div className="flex items-center justify-center min-h-screen"><p>ليس لديك صلاحية الوصول لهذه الصفحة.</p></div>;
+    // }
 
     return (
         <div className="container mx-auto py-8 space-y-8">
