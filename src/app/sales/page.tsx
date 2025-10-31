@@ -721,7 +721,7 @@ export default function SalesPage() {
   }
 
   const handleSearchKeyDown = React.useCallback(async (event: React.KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Enter') {
+    if (event.key === 'Enter') {
         event.preventDefault();
         // Only process if not already processing a barcode and search term exists
         if(searchTerm) {

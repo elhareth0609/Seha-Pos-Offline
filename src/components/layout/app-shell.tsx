@@ -601,7 +601,7 @@ const handleBackup = async () => {
                                               </div>
                                           )
                                       })}
-                                     {currentUser?.role === 'Admin' && (
+                                     {/* {currentUser?.role === 'Admin' && (
                                       <>
                                         <h3 className="mb-4 text-lg font-semibold tracking-tight">النسخ الاحتياطي والاستيراد</h3>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -619,7 +619,7 @@ const handleBackup = async () => {
                                             </Card>
                                         </div>
                                       </>
-                                    )}
+                                    )} */}
                                   </div>
                                   </ScrollArea>
                                 </div>
