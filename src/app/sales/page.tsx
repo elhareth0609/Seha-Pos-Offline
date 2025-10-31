@@ -869,16 +869,17 @@ export default function SalesPage() {
     }
   }
 
-  const handleControlledDrugPinConfirm = async (pin: string) => {
-    const isValid = await verifyPin(pin);
-    if(isValid) {
-        setControlledDrugPin('');
-        setIsControlledDrugPinOpen(false);
-        setIsControlledDrugConfirmed(true);
-        setIsCheckoutOpen(true);
-    } else {
-        toast({ variant: 'destructive', title: "كلمة المرور غير صحيحة" });
-    }
+  const handleControlledDrugPinConfirm = async () => {
+    // تم تعديل الدالة لتأكيد مباشر بدون تحقق من كلمة المرور
+    setControlledDrugPin('');
+    setIsControlledDrugPinOpen(false);
+    setIsControlledDrugConfirmed(true);
+    setIsCheckoutOpen(true);
+    toast({ 
+        variant: "default", 
+        title: "تنبيه: دواء خاضع للرقابة",
+        description: "تأكد من توفر الوصفة الطبية وقم بترحيل المادة في سجل المؤثرات العقلية"
+    });
   }
 
   const handleDeleteCurrentSale = async () => {
@@ -1661,28 +1662,21 @@ export default function SalesPage() {
                         </div>
                     )}
                     <DialogDescription>
-                        هذه الفاتورة تحتوي على مادة خاضعة للرقابة. يتطلب صرفها إدخال كلمة مرور. صرف هذه المادة بدون وصفة طبية يعرضك للمساءلة القانونية التي قد تصل إلى السجن حسب أحكام القانون العراقي. لا تنسى ترحيل المادة في سجل المؤثرات العقلية.
+                        هذه الفاتورة تحتوي على مادة خاضعة للرقابة. صرف هذه المادة بدون وصفة طبية يعرضك للمساءلة القانونية التي قد تصل إلى السجن حسب أحكام القانون العراقي. لا تنسى ترحيل المادة في سجل المؤثرات العقلية.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-2 py-4">
-                    <Label htmlFor="controlled-drug-pin">كلمة المرور</Label>
-                    <Input
-                        id="controlled-drug-pin"
-                        type="password"
-                        value={controlledDrugPin}
-                        onChange={(e) => setControlledDrugPin(e.target.value)}
-                        autoFocus
-                        onKeyDown={(e) => {
-                            if(e.key === 'Enter' && controlledDrugPin) {
-                                e.preventDefault();
-                                handleControlledDrugPinConfirm(controlledDrugPin);
-                            }
-                        }}
-                    />
+                <div className="py-4">
+                    <Alert className="bg-amber-50 border-amber-200">
+                        <AlertTriangle className="h-4 w-4 text-amber-600" />
+                        <AlertTitle className="text-amber-800">تنبيه هام</AlertTitle>
+                        <AlertDescription className="text-amber-700">
+                            تأكد من توفر الوصفة الطبية اللازمة قبل صرف هذه المادة.
+                        </AlertDescription>
+                    </Alert>
                 </div>
                 <DialogFooter>
                     <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
-                    <Button variant="destructive" onClick={() => handleControlledDrugPinConfirm(controlledDrugPin)} disabled={!controlledDrugPin}>تأكيد ومتابعة</Button>
+                    <Button variant="destructive" onClick={() => handleControlledDrugPinConfirm()}>تأكيد ومتابعة</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
