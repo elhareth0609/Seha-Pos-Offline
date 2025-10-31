@@ -98,6 +98,7 @@ interface AuthContextType {
     // Central Drug Management (SuperAdmin)
     getCentralDrugs: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Medication>>;
     uploadCentralDrugList: (items: Partial<Medication>[]) => Promise<boolean>;
+    bulkUploadCentralDrugs: (file: File) => Promise<{ new_count: number; updated_count?: number; processed_medications?: number; } | null>;
 
     // Expiring Soon
     getPaginatedExpiringSoon: (page: number, perPage: number, search: string, type: 'expiring' | 'expired' | 'damaged') => Promise<{
@@ -1047,6 +1048,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (e) { return false; }
     }
 
+    const bulkUploadCentralDrugs = async (file: File) => {
+        const token = localStorage.getItem('authToken');
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch(`${API_URL}/superadmin/drugs/bulk-upload`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to upload file');
+            }
+
+            const result = await response.json();
+            const { new_count, updated_count, processed_medications } = result;
+
+            if (new_count !== undefined) {
+                toast({ title: "اكتمل الاستيراد", description: `تمت إضافة ${new_count} أصناف جديدة${updated_count !== undefined ? ` وتحديث ${updated_count} أصناف` : ''}.` });
+                return { new_count, updated_count, processed_medications };
+            } else {
+                return null;
+            }
+        } catch (e) {
+            toast({ title: "خطأ في الاستيراد", description: "حدث خطأ أثناء رفع الملف. يرجى المحاولة مرة أخرى." });
+            return null;
+        }
+    };
+
     const addSale = async (saleData: any) => {
         try {
             const { sale: newSale, updated_inventory } = await apiRequest('/sales', 'POST', saleData);
@@ -1682,7 +1717,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             supportRequests, addSupportRequest, updateSupportRequestStatus,
             getExchangeItems, postExchangeItem, deleteExchangeItem,
             getDrugRequests, postDrugRequest, deleteDrugRequest, respondToDrugRequest, ignoreDrugRequest,
-            getCentralDrugs, uploadCentralDrugList, 
+            getCentralDrugs, uploadCentralDrugList, bulkUploadCentralDrugs, 
             searchInOtherBranches,
             pharmacyGroups, getPharmacyGroups, createPharmacyGroup, updatePharmacyGroup, deletePharmacyGroup,
         }}>

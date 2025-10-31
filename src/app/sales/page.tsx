@@ -649,14 +649,16 @@ export default function SalesPage() {
 
             if (matchingMeds.length === 1) {
                 addToCart(matchingMeds[0]);
-                setSearchTerm(""); // Clear search term after adding item to prevent duplicate addition
             } else if (matchingMeds.length > 1) {
                 setBarcodeConflictMeds(matchingMeds);
                 setIsBarcodeConflictDialogOpen(true);
-                setSearchTerm(""); // Clear search term after showing conflict dialog
             } else {
                 toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'يرجى التأكد من الباركود أو البحث بالاسم.' });
             }
+
+            // Always clear search term and suggestions after processing
+            setSearchTerm("");
+            setSuggestions([]);
         } finally {
             setIsSearchLoading(false);
         }
@@ -689,14 +691,23 @@ export default function SalesPage() {
     setSearchTerm(value);
 
     if (value.length > 0) {
-        setIsSearchLoading(true);
-        try {
-            const results = await searchAllInventory(value);
-            setAllInventory(results); // Store all results for alternative check
-            setSuggestions(results.slice(0, 5));
-        } finally {
-            setIsSearchLoading(false);
-        }
+        // Only disable search input if not likely to be a barcode scan
+        // Barcode scanners typically input quickly and end with Enter
+        // We'll delay disabling to allow barcode input to complete
+        const searchTimer = setTimeout(async () => {
+            try {
+                const results = await searchAllInventory(value);
+                setAllInventory(results); // Store all results for alternative check
+                setSuggestions(results.slice(0, 5));
+            } finally {
+                setIsSearchLoading(false);
+            }
+        }, 300); // 300ms delay to allow barcode scanning to complete
+
+        // Set loading state after the delay to allow barcode input to complete
+        setTimeout(() => setIsSearchLoading(true), 200);
+
+        return () => clearTimeout(searchTimer);
     } else {
         setSuggestions([]);
         setAllInventory([]);
