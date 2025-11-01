@@ -1045,7 +1045,12 @@ export default function SalesPage() {
                                             <li
                                                 key={med.id}
                                                 className="group p-3 hover:bg-accent rounded-md flex justify-between items-center cursor-pointer"
-                                                onMouseDown={(e) => { e.preventDefault(); addToCart(med); }}
+                                                onMouseDown={(e) => { 
+                                                    e.preventDefault(); 
+                                                    addToCart(med);
+                                                    setNameSearchTerm("");
+                                                    setNameSuggestions([]);
+                                                }}
                                             >
                                                 <div className="flex items-center gap-3">
                                                     {typeof med.image_url === 'string' && med.image_url !== "" ? (
