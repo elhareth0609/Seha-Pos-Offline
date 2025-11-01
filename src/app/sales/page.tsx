@@ -478,6 +478,9 @@ export default function SalesPage() {
   const [searchTerm, setSearchTerm] = React.useState("")
   const [suggestions, setSuggestions] = React.useState<Medication[]>([])
   const [isSearchLoading, setIsSearchLoading] = React.useState(false);
+  const [nameSearchTerm, setNameSearchTerm] = React.useState("")
+  const [nameSuggestions, setNameSuggestions] = React.useState<Medication[]>([])
+  const [barcodeSearchTerm, setBarcodeSearchTerm] = React.useState("")
   const [isCheckoutOpen, setIsCheckoutOpen] = React.useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = React.useState(false);
   const [saleToPrint, setSaleToPrint] = React.useState<Sale | null>(null);
@@ -685,40 +688,46 @@ export default function SalesPage() {
   }, [searchAllInventory]);
 
 
-  const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNameSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setSearchTerm(value);
+    setNameSearchTerm(value);
 
-    if (value.length > 3) {
-        // If first 3 characters are numbers, assume it's a barcode scan in progress
-        // Don't search until Enter is pressed
-        if (value.length > 3 && /^\d{3}/.test(value)) {
-            // This is likely a barcode, wait for Enter to be pressed
-            return;
-        }
-
-        // Only disable search input if not likely to be a barcode scan
-        // Barcode scanners typically input quickly and end with Enter
-        // We'll delay disabling to allow barcode input to complete
-        const searchTimer = setTimeout(async () => {
-            try {
+    // if (value.length > 2) {
+        // setIsSearchLoading(true);
+        
+        // const searchTimer = setTimeout(async () => {
+            // try {
                 const results = await searchAllInventory(value);
-                setAllInventory(results); // Store all results for alternative check
-                setSuggestions(results.slice(0, 5));
-            } finally {
-                setIsSearchLoading(false);
-            }
-        }, 300); // 300ms delay to allow barcode scanning to complete
-
-        // Set loading state after the delay to allow barcode input to complete
-        setTimeout(() => setIsSearchLoading(true), 200);
-
-        return () => clearTimeout(searchTimer);
-    } else {
-        setSuggestions([]);
-        setAllInventory([]);
-    }
+                setAllInventory(results);
+                setNameSuggestions(results.slice(0, 5));
+            // } finally {
+            //     setIsSearchLoading(false);
+            // }
+        // }, 300);
+        
+        // return () => clearTimeout(searchTimer);
+    // } else {
+    //     setNameSuggestions([]);
+    //     setAllInventory([]);
+    // }
   }
+
+  const handleBarcodeSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setBarcodeSearchTerm(value);
+    // Don't search automatically for barcode - wait for Enter key
+  }
+
+  const handleBarcodeSearchKeyDown = React.useCallback(async (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        // Only process if barcode term exists
+        if(barcodeSearchTerm) {
+            await processBarcode(barcodeSearchTerm);
+            setBarcodeSearchTerm("");
+        }
+    }
+  }, [barcodeSearchTerm, processBarcode]);
 
   const handleSearchKeyDown = React.useCallback(async (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
@@ -1017,21 +1026,21 @@ export default function SalesPage() {
         />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:h-[calc(100vh-6rem)]">
             <div className="lg:col-span-2 flex flex-col gap-4">
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-col md:flex-row">
                     <div className="relative flex-1">
                         <Input 
-                            placeholder="امسح الباركود أو ابحث بالاسم التجاري أو العلمي..."
-                            value={searchTerm}
-                            onChange={handleSearchChange}
+                            placeholder="ابحث بالاسم التجاري أو العلمي..."
+                            value={nameSearchTerm}
+                            onChange={handleNameSearchChange}
                             onKeyDown={handleSearchKeyDown}
                             disabled={isSearchLoading}
                             autoFocus
                         />
-                        {suggestions.length > 0 && (
+                        {nameSuggestions.length > 0 && (
                             <Card className="absolute z-50 w-full mt-1 bg-background shadow-lg border">
                                 <CardContent className="p-0">
                                     <ul className="divide-y divide-border">
-                                        {suggestions.map(med => (
+                                        {nameSuggestions.map(med => (
                                             <li
                                                 key={med.id}
                                                 className="group p-3 hover:bg-accent rounded-md flex justify-between items-center cursor-pointer"
@@ -1069,6 +1078,15 @@ export default function SalesPage() {
                                 </CardContent>
                             </Card>
                         )}
+                    </div>
+                    <div className="relative flex-1">
+                        <Input
+                            placeholder="امسح الباركود..."
+                            value={barcodeSearchTerm}
+                            onChange={handleBarcodeSearchChange}
+                            onKeyDown={handleBarcodeSearchKeyDown}
+                            disabled={isSearchLoading}
+                        />
                     </div>
                     <Button variant="outline" size="icon" className="shrink-0" onClick={() => setIsBranchSearchOpen(true)}>
                         <ArrowLeftRight />
