@@ -650,6 +650,7 @@ export default function SalesPage() {
 
             if (matchingMeds.length === 1) {
                 addToCart(matchingMeds[0]);
+                // do fucuse in barcode input
             } else if (matchingMeds.length > 1) {
                 setBarcodeConflictMeds(matchingMeds);
                 setIsBarcodeConflictDialogOpen(true);
@@ -692,7 +693,7 @@ export default function SalesPage() {
     const value = e.target.value;
     setNameSearchTerm(value);
 
-    // if (value.length > 2) {
+    if (value.length > 0) {
         // setIsSearchLoading(true);
         
         // const searchTimer = setTimeout(async () => {
@@ -706,10 +707,10 @@ export default function SalesPage() {
         // }, 300);
         
         // return () => clearTimeout(searchTimer);
-    // } else {
-    //     setNameSuggestions([]);
-    //     setAllInventory([]);
-    // }
+    } else {
+        setNameSuggestions([]);
+        setAllInventory([]);
+    }
   }
 
   const handleBarcodeSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1036,7 +1037,7 @@ export default function SalesPage() {
                             disabled={isSearchLoading}
                             autoFocus
                         />
-                        {nameSuggestions.length > 0 && (
+                        {nameSearchTerm.length > 0 && nameSuggestions.length > 0 && (
                             <Card className="absolute z-50 w-full mt-1 bg-background shadow-lg border">
                                 <CardContent className="p-0">
                                     <ul className="divide-y divide-border">
@@ -1086,6 +1087,11 @@ export default function SalesPage() {
                             onChange={handleBarcodeSearchChange}
                             onKeyDown={handleBarcodeSearchKeyDown}
                             disabled={isSearchLoading}
+                            ref={(input) => {
+                                if (input && document.activeElement === document.body) {
+                                    input.focus();
+                                }
+                            }}
                         />
                     </div>
                     <Button variant="outline" size="icon" className="shrink-0" onClick={() => setIsBranchSearchOpen(true)}>
