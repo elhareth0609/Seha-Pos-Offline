@@ -1028,7 +1028,7 @@ export default function SalesPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:h-[calc(100vh-6rem)]">
             <div className="lg:col-span-2 flex flex-col gap-4">
                 <div className="flex gap-2 flex-col md:flex-row">
-                    <div className="relative flex-1">
+                    <div className="relative flex-[2]">
                         <Input 
                             placeholder="ابحث بالاسم التجاري أو العلمي..."
                             value={nameSearchTerm}
@@ -1040,7 +1040,7 @@ export default function SalesPage() {
                         {nameSearchTerm.length > 0 && nameSuggestions.length > 0 && (
                             <Card className="absolute z-50 w-full mt-1 bg-background shadow-lg border">
                                 <CardContent className="p-0">
-                                    <ul className="divide-y divide-border max-h-[30rem] overflow-y-auto overflow-x-auto">
+                                    <ul className="divide-y divide-border max-h-[30rem] overflow-y-auto">
                                         {nameSuggestions.map(med => (
                                             <li
                                                 key={med.id}
