@@ -65,7 +65,7 @@ const fileToDataUri = (file: File): Promise<string> => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
         reader.onerror = reject;
-        // reader.readAsDataURL(file);
+        reader.readAsDataURL(file);
     });
 };
 
@@ -449,6 +449,8 @@ export default function SuperAdminPage() {
     };
 
     const handleAddAdvertisement = async () => {
+                console.log("say hello Advertisement")
+
         if (!adTitle.trim() || !adImageFile) {
             toast({ variant: 'destructive', title: 'بيانات ناقصة', description: 'الرجاء إدخال عنوان واختيار صورة.' });
             return;
@@ -466,8 +468,13 @@ export default function SuperAdminPage() {
             toast({ variant: 'destructive', title: 'بيانات ناقصة', description: 'الرجاء إدخال عنوان وتاريخ انتهاء واختيار صورة للعرض.' });
             return;
         }
+        console.log("say hello offer")
+
         const imageDataUri = await fileToDataUri(offerImageFile);
+        console.log("say hello offer 1")
+
         await addOffer(offerTitle, imageDataUri, offerExpiry, offerContact);
+        console.log("say hello offer 2")
         setIsAddOfferOpen(false);
         setOfferTitle("");
         setOfferContact("");
