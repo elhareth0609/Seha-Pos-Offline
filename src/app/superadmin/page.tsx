@@ -468,13 +468,8 @@ export default function SuperAdminPage() {
             toast({ variant: 'destructive', title: 'بيانات ناقصة', description: 'الرجاء إدخال عنوان وتاريخ انتهاء واختيار صورة للعرض.' });
             return;
         }
-        console.log("say hello offer")
-
         const imageDataUri = await fileToDataUri(offerImageFile);
-        console.log("say hello offer 1")
-
         await addOffer(offerTitle, imageDataUri, offerExpiry, offerContact);
-        console.log("say hello offer 2")
         setIsAddOfferOpen(false);
         setOfferTitle("");
         setOfferContact("");
