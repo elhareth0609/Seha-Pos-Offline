@@ -1202,7 +1202,7 @@ export default function SalesPage() {
                                                                 <PopoverTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6 text-primary/70 hover:text-primary">
                                                                     <Replace className="h-4 w-4" /></Button>
                                                                 </PopoverTrigger>
-                                                                <PopoverContent className="w-80">
+                                                                <PopoverContent className="w-80 max-h-80 overflow-y-auto">
                                                                     <DialogHeader>
                                                                         <DialogTitle>بدائل متاحة</DialogTitle>
                                                                     </DialogHeader>
@@ -1210,16 +1210,14 @@ export default function SalesPage() {
                                                                         
                                                                         <div className="space-y-1">
                                                                             {alternatives.map(alt => (
-                                                                                <div key={alt.id} className="text-sm p-2 hover:bg-accent rounded-md flex justify-between items-center">
+                                                                                <div key={alt.id} className="text-sm p-2 hover:bg-accent rounded-md flex justify-between items-center group cursor-pointer" onClick={() => addToCart(alt)}>
                                                                                     <div>
                                                                                         <div>{alt.name}</div>
                                                                                         <div className="text-xs text-muted-foreground">المتوفر: {alt.stock}</div>
                                                                                     </div>
                                                                                     <div className="flex items-center gap-2">
                                                                                         <span className="font-mono">{alt.price}</span>
-                                                                                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => addToCart(alt)}>
-                                                                                            <PlusCircle className="h-4 w-4 text-green-600" />
-                                                                                        </Button>
+                                                                                        <PlusCircle className="h-4 w-4 text-green-600 group-hover:text-white" />
                                                                                     </div>
                                                                                 </div>
                                                                             ))}
@@ -1313,23 +1311,21 @@ export default function SalesPage() {
                                                                     <Replace className="h-4 w-4" />
                                                                 </Button>
                                                             </PopoverTrigger>
-                                                            <PopoverContent className="w-80">
+                                                            <PopoverContent className="w-80 max-h-80 overflow-y-auto">
                                                                 <DialogHeader>
                                                                     <DialogTitle>بدائل متاحة</DialogTitle>
                                                                 </DialogHeader>
                                                                 <div className="space-y-2">
                                                                     <div className="space-y-1">
                                                                         {alternatives.map(alt => (
-                                                                            <div key={alt.id} className="text-sm p-2 hover:bg-accent rounded-md flex justify-between items-center">
+                                                                            <div key={alt.id} className="text-sm p-2 hover:bg-accent rounded-md flex justify-between items-center group cursor-pointer" onClick={() => addToCart(alt)}>
                                                                                 <div>
                                                                                     <div>{alt.name}</div>
                                                                                     <div className="text-xs text-muted-foreground">المتوفر: {alt.stock}</div>
                                                                                 </div>
                                                                                 <div className="flex items-center gap-2">
                                                                                     <span className="font-mono">{alt.price}</span>
-                                                                                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => addToCart(alt)}>
-                                                                                        <PlusCircle className="h-4 w-4 text-green-600" />
-                                                                                    </Button>
+                                                                                    <PlusCircle className="h-4 w-4 text-green-600 group-hover:text-white" />
                                                                                 </div>
                                                                             </div>
                                                                         ))}
