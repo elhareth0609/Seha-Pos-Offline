@@ -146,7 +146,7 @@ function PharmacyGroupsManagement() {
     React.useEffect(() => {
         getPharmacyGroups();
         getAllPharmacySettings().then(setPharmacySettings);
-    }, [getPharmacyGroups, getAllPharmacySettings]);
+    }, []); // Empty dependency array to run only once on mount
 
     const unassignedPharmacies = React.useMemo(() => {
         const assignedIds = new Set(pharmacyGroups.flatMap(g => g.pharmacy_ids));
@@ -322,7 +322,7 @@ export default function SuperAdminPage() {
         defaultValues: { name: "", email: "", pin: "", province: "", dofied_id: "" },
     });
 
-    const fetchData = React.useCallback(async (page: number, limit: number, search: string) => {
+    const fetchData = React.useCallback(async (page: number, limit: number, search: string, fetchSettings = false) => {
         setLoading(true);
         try {
             const filters = {
@@ -334,20 +334,29 @@ export default function SuperAdminPage() {
             setTotalPages(data.last_page);
             setCurrentPage(data.current_page);
             
-            // جلب إعدادات الصيدليات
-            const settings = await getAllPharmacySettings();
-            setPharmacySettings(settings);
+            // جلب إعدادات الصيدليات (only when fetchSettings is true)
+            if (fetchSettings) {
+                const settings = await getAllPharmacySettings();
+                setPharmacySettings(settings);
+            }
         } catch (error) {
             console.error("Failed to fetch admins", error);
         } finally {
             setLoading(false);
         }
-    }, [getPaginatedUsers, statusFilter, provinceFilter]);
+    }, [getPaginatedUsers, statusFilter, provinceFilter, getAllPharmacySettings]);
+
+    // Fetch pharmacy settings only once on mount
+    React.useEffect(() => {
+        if (currentUser && currentUser.role === 'SuperAdmin') {
+            getAllPharmacySettings().then(setPharmacySettings);
+        }
+    }, [currentUser, getAllPharmacySettings]);
 
     React.useEffect(() => {
         if (currentUser && currentUser.role === 'SuperAdmin') {
              const handler = setTimeout(() => {
-                fetchData(currentPage, perPage, searchTerm);
+                fetchData(currentPage, perPage, searchTerm, false); // Don't fetch settings on every change
             }, 300);
             return () => clearTimeout(handler);
         }
