@@ -700,7 +700,7 @@ export default function SalesPage() {
             // try {
                 const results = await searchAllInventory(value);
                 setAllInventory(results);
-                setNameSuggestions(results.slice(0, 5));
+                setNameSuggestions(results);
             // } finally {
             //     setIsSearchLoading(false);
             // }
@@ -1040,7 +1040,7 @@ export default function SalesPage() {
                         {nameSearchTerm.length > 0 && nameSuggestions.length > 0 && (
                             <Card className="absolute z-50 w-full mt-1 bg-background shadow-lg border">
                                 <CardContent className="p-0">
-                                    <ul className="divide-y divide-border">
+                                    <ul className="divide-y divide-border max-h-[30rem] overflow-y-auto overflow-x-auto">
                                         {nameSuggestions.map(med => (
                                             <li
                                                 key={med.id}
