@@ -281,6 +281,7 @@ export default function SuperAdminPage() {
     const [pharmacyAdmins, setPharmacyAdmins] = React.useState<User[]>([]);
     const [totalPages, setTotalPages] = React.useState(1);
     const [currentPage, setCurrentPage] = React.useState(1);
+    const [totalPharmacies, setTotalPharmacies] = React.useState(0);
     const [perPage, setPerPage] = React.useState(10);
     const [loading, setLoading] = React.useState(true);
     const [searchTerm, setSearchTerm] = React.useState("");
@@ -333,6 +334,7 @@ export default function SuperAdminPage() {
             setPharmacyAdmins(data.data);
             setTotalPages(data.last_page);
             setCurrentPage(data.current_page);
+            setTotalPharmacies(data.total);
             
             // جلب إعدادات الصيدليات (only when fetchSettings is true)
             if (fetchSettings) {
@@ -582,7 +584,7 @@ export default function SuperAdminPage() {
                         <Building className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold font-mono">{pharmacyAdmins.length}</div>
+                        <div className="text-2xl font-bold font-mono">{totalPharmacies}</div>
                     </CardContent>
                 </Card>
                 <Card>
