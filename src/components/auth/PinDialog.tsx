@@ -15,6 +15,7 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { toast } from '@/hooks/use-toast';
 
 interface PinDialogProps {
   open: boolean;
@@ -28,6 +29,18 @@ export function PinDialog({ open, onOpenChange, onConfirm, title, description }:
   const [pin, setPin] = React.useState('');
 
   const handleConfirm = () => {
+    // Validate PIN: at least 8 characters and at least one letter
+    if (pin.length < 8) {
+        // alert("رمز PIN يجب أن يكون 8 أحرف على الأقل");
+        toast({ variant: 'destructive', title: 'رمز PIN يجب أن يكون 8 أحرف على الأقل' });
+        return;
+    }
+    if (!/[a-zA-Z]/.test(pin)) {
+        toast({ variant: 'destructive', title: 'رمز PIN يجب أن يحتوي على حرف واحد على الأقل' });
+        // alert("رمز PIN يجب أن يحتوي على حرف واحد على الأقل");
+        return;
+    }
+
     onConfirm(pin);
     setPin(''); // Reset after confirm
   };

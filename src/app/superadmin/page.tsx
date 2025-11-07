@@ -41,7 +41,7 @@ const iraqProvinces = [
 const addAdminSchema = z.object({
     name: z.string().min(3, { message: "الاسم مطلوب" }),
     email: z.string().email({ message: "بريد إلكتروني غير صالح" }),
-    pin: z.string().min(6, { message: "يجب أن يتكون رمز PIN من 6 أحرف على الأقل." }),
+    pin: z.string().refine(val => val.length >= 8 && /[a-zA-Z]/.test(val), { message: "يجب أن يتكون رمز PIN من 8 أحرف على الأقل ويحتوي على حرف واحد على الأقل." }),
     province: z.string({ required_error: "الرجاء اختيار محافظة" }),
     dofied_id: z.string().min(1, { message: "Dofied Id مطلوب" }),
 });
@@ -52,7 +52,7 @@ type AddAdminFormValues = z.infer<typeof addAdminSchema>;
 const editAdminSchema = z.object({
     name: z.string().min(3, { message: "الاسم مطلوب" }),
     email: z.string().email({ message: "بريد إلكتروني غير صالح" }),
-    pin: z.string().optional().refine(val => !val || val.length >= 6, { message: "رمز PIN يجب أن يكون 6 رموز على الأقل" }),
+    pin: z.string().optional().refine(val => !val || (val.length >= 8 && /[a-zA-Z]/.test(val)), { message: "رمز PIN يجب أن يكون 8 أحرف على الأقل ويحتوي على حرف واحد على الأقل" }),
     province: z.string({ required_error: "الرجاء اختيار محافظة" }),
     dofied_id: z.string().min(1, { message: "Dofied Id مطلوب" }),
 });

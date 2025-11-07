@@ -116,7 +116,7 @@ export default function CloseMonthPage() {
     }, [sales, expenses, timeLogs, users, suppliers, purchaseOrders, supplierReturns, payments, dateFrom, dateTo]);
 
     const handleConfirmClose = async () => {
-        if (pin.length < 6) {
+        if (pin.length < 8) {
             toast({ variant: 'destructive', title: 'رمز PIN قصير جدًا' });
             return;
         }
@@ -248,7 +248,7 @@ export default function CloseMonthPage() {
                     <Button 
                         variant="destructive" 
                         onClick={handleConfirmClose} 
-                        disabled={isClosing || pin.length < 6 || !dateFrom || !dateTo}
+                        disabled={isClosing || pin.length < 8 || !dateFrom || !dateTo}
                         className="w-full"
                         size="lg"
                     >

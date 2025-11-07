@@ -62,7 +62,7 @@ type SettingsFormValues = z.infer<typeof settingsSchema>
 const addUserSchema = z.object({
     name: z.string().min(3, { message: "الرجاء إدخال اسم مكون من 3 أحرف على الأقل." }),
     email: z.string().email({ message: "الرجاء إدخال بريد إلكتروني صالح."}),
-    pin: z.string().min(6, { message: "يجب أن يتكون رمز PIN من 6 أرقام عل الأقل." }),
+    pin: z.string().min(8, { message: "يجب أن يتكون رمز PIN من 8 أرقام عل الأقل." }),
 });
 
 type AddUserFormValues = z.infer<typeof addUserSchema>;
@@ -70,7 +70,7 @@ type AddUserFormValues = z.infer<typeof addUserSchema>;
 const editUserSchema = z.object({
     name: z.string().min(3, { message: "الرجاء إدخال اسم مكون من 3 أحرف على الأقل." }),
     email: z.string().email({ message: "الرجاء إدخال بريد إلكتروني صالح."}),
-    pin: z.string().optional().refine(val => !val || val.length < 6, { message: "يجب أن يتكون رمز PIN من 6 أرقام عل الأقل." }),
+    pin: z.string().optional().refine(val => !val || val.length < 8, { message: "يجب أن يتكون رمز PIN من 8 أرقام عل الأقل." }),
     confirmPin: z.string().optional(),
 }).refine(data => data.pin === data.confirmPin, {
     message: "رموز PIN غير متطابقة",

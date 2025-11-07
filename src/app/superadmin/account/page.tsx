@@ -17,7 +17,7 @@ import Link from 'next/link';
 const editSuperAdminSchema = z.object({
     name: z.string().min(3, { message: "الاسم مطلوب" }),
     email: z.string().email({ message: "بريد إلكتروني غير صالح" }),
-    pin: z.string().optional().refine(val => !val || val.length >= 6, { message: "رمز PIN يجب أن يكون 6 رموز على الأقل" }),
+    pin: z.string().optional().refine(val => !val || (val.length >= 8 && /[a-zA-Z]/.test(val)), { message: "رمز PIN يجب أن يكون 8 أحرف على الأقل ويحتوي على حرف واحد على الأقل" }),
     confirmPin: z.string().optional(),
 }).refine(data => {
     if (data.pin) {

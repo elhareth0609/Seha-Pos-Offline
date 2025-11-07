@@ -648,7 +648,7 @@ export default function SuppliersPage() {
                             )}
                         </CardContent>
                         <CardFooter className="flex-col sm:flex-row gap-2">
-                            <Button variant="outline" className="w-full" onClick={(e) => { e.preventDefault(); console.log("Button clicked"); alert("Button clicked"); handleShowStatement(account); }}>
+                            <Button variant="outline" className="w-full" onClick={(e) => { e.preventDefault(); console.log("Button clicked"); handleShowStatement(account); }}>
                                 <FileText className="me-2 h-4 w-4" /> كشف حساب
                             </Button>
                             <Button variant="success" onClick={() => { setSelectedSupplier(account); setIsPaymentDialogOpen(true); }} className="w-full">

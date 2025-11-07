@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
 import { LogIn, ShieldAlert } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
+import { toast } from '@/hooks/use-toast';
 
 function SuperAdminLoginDialog() {
     const { login } = useAuth();
@@ -73,6 +74,21 @@ export default function LoginPage() {
         const formData = new FormData(e.currentTarget as HTMLFormElement);
         const email = formData.get('email') as string;
         const pin = formData.get('pin') as string;
+        console.log(email, pin);
+
+        // Validate PIN: at least 8 characters and at least one letter
+        if (pin.length < 8) {
+            // alert("رمز PIN يجب أن يكون 8 أحرف على الأقل");
+            toast({ variant: 'destructive', title: 'رمز PIN يجب أن يكون 8 أحرف على الأقل' });
+            return;
+        }
+        if (!/[a-zA-Z]/.test(pin)) {
+            toast({ variant: 'destructive', title: 'رمز PIN يجب أن يحتوي على حرف واحد على الأقل' });
+            // alert("رمز PIN يجب أن يحتوي على حرف واحد على الأقل");
+            return;
+        }
+
+        
         await login(email, pin);
     };
 

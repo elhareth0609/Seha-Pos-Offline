@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
 import { LogIn } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
     const [email, setEmail] = React.useState('');
@@ -30,6 +31,18 @@ export default function LoginPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        // Validate PIN: at least 8 characters and at least one letter
+        if (pin.length < 8) {
+            // alert("رمز PIN يجب أن يكون 8 أحرف على الأقل");
+            toast({ variant: 'destructive', title: 'رمز PIN يجب أن يكون 8 أحرف على الأقل' });
+            return;
+        }
+        if (!/[a-zA-Z]/.test(pin)) {
+            toast({ variant: 'destructive', title: 'رمز PIN يجب أن يحتوي على حرف واحد على الأقل' });
+            // alert("رمز PIN يجب أن يحتوي على حرف واحد على الأقل");
+            return;
+        }
+
         await login(email, pin);
     };
 
