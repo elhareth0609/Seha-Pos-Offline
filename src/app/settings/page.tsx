@@ -357,7 +357,7 @@ export default function SettingsPage() {
             </Card>
         )} */}
 
-        {currentUser.role === 'Admin' && (
+        {/* {currentUser.role === 'Admin' && (
             <Card className="border-destructive">
                 <CardHeader>
                     <CardTitle>منطقة الخطر</CardTitle>
@@ -385,7 +385,7 @@ export default function SettingsPage() {
                     </AlertDialog>
                 </CardContent>
             </Card>
-        )}
+        )} */}
     </div>
   )
 }
