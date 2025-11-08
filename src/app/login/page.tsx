@@ -15,6 +15,7 @@ import { toast } from '@/hooks/use-toast';
 export default function LoginPage() {
     const [email, setEmail] = React.useState('');
     const [pin, setPin] = React.useState('');
+    const [showPin, setShowPin] = React.useState(false);
     const { login, isAuthenticated, loading, currentUser } = useAuth();
     const router = useRouter();
 
@@ -71,13 +72,30 @@ export default function LoginPage() {
                     </CardHeader>
                     <form onSubmit={handleSubmit}>
                         <CardContent className="space-y-4">
-                             <div className="space-y-2 text-right">
+                            <div className="space-y-2 text-right">
                                 <Label htmlFor="login-email">البريد الإلكتروني</Label>
                                 <Input id="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" required />
                             </div>
                             <div className="space-y-2 text-right">
                                 <Label htmlFor="login-pin">كلمة المرور (PIN)</Label>
-                                <Input id="login-pin" type="password"  value={pin} onChange={(e) => setPin(e.target.value)}  required placeholder="••••••" />
+                                <div className="relative">
+                                    <Input 
+                                        id="login-pin" 
+                                        type={showPin ? "text" : "password"}  
+                                        value={pin} 
+                                        onChange={(e) => setPin(e.target.value)}  
+                                        required 
+                                        placeholder="••••••" 
+                                        className="pl-12" // Add padding to make room for the button
+                                    />
+                                    <button
+                                        type="button"
+                                        className="absolute left-0 top-0 h-full px-3 text-sm text-gray-600 hover:text-gray-800"
+                                        onClick={() => setShowPin(!showPin)}
+                                    >
+                                        {showPin ? "إخفاء" : "إظهار"}
+                                    </button>
+                                </div>
                             </div>
                         </CardContent>
                         <CardFooter className="flex-col gap-4">

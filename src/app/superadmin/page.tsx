@@ -76,14 +76,6 @@ function AdminRow({ admin, onDelete, onToggleStatus, onEdit, pharmacySettings }:
         <TableRow>
             <TableCell className="font-medium">{pharmacySettings[admin.pharmacy_id]?.pharmacyName || "صيدلية " + admin.name}</TableCell>
             <TableCell className="hidden sm:table-cell">{admin.email}</TableCell>
-            <TableCell className="hidden lg:table-cell">
-                <div className="flex items-center gap-2">
-                    <span className="font-mono">{showPin ? admin.pin : '••••••'}</span>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowPin(p => !p)}>
-                        {showPin ? <LockOpen className="h-4 w-4" /> : <LockIcon className="h-4 w-4" />}
-                    </Button>
-                </div>
-            </TableCell>
             <TableCell className="hidden md:table-cell">{admin.province || 'غير محدد'}</TableCell>
             <TableCell className="hidden md:table-cell">{admin.dofied_id || 'غير محدد'}</TableCell>
             <TableCell>
@@ -292,6 +284,7 @@ export default function SuperAdminPage() {
     const [isAddAdminOpen, setIsAddAdminOpen] = React.useState(false);
     const [isEditAdminOpen, setIsEditAdminOpen] = React.useState(false);
     const [editingAdmin, setEditingAdmin] = React.useState<User | null>(null);
+    const [showPin, setShowPin] = React.useState(false);
 
     // Ads State
     const [isAddAdOpen, setIsAddAdOpen] = React.useState(false);
@@ -637,14 +630,49 @@ export default function SuperAdminPage() {
                                     <Form {...addAdminForm}>
                                         <form onSubmit={addAdminForm.handleSubmit(handleAddAdmin)} className="space-y-4 py-2">
                                             <FormField control={addAdminForm.control} name="name" render={({ field }) => (
-                                                <FormItem><FormLabel>اسم الصيدلية</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                                <FormItem>
+                                                    <FormLabel>اسم الصيدلية</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
                                             )} />
                                             <FormField control={addAdminForm.control} name="email" render={({ field }) => (
-                                                <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                                                <FormItem>
+                                                    <FormLabel>البريد الإلكتروني</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="email" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
                                             )} />
-                                            <FormField control={addAdminForm.control} name="pin" render={({ field }) => (
-                                                <FormItem><FormLabel>رمز PIN</FormLabel><FormControl><Input type="password"   {...field} /></FormControl><FormMessage /></FormItem>
-                                            )} />
+                                            <FormField 
+                                                control={addAdminForm.control} 
+                                                name="pin" 
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>رمز PIN</FormLabel>
+                                                        <FormControl>
+                                                            <div className="relative">
+                                                                <Input 
+                                                                    type={showPin ? "text" : "password"}
+                                                                    {...field}
+                                                                    className="pl-12" // Add padding to make room for the button
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    className="absolute left-0 top-0 h-full px-3 text-sm text-gray-600 hover:text-gray-800"
+                                                                    onClick={() => setShowPin(!showPin)}
+                                                                >
+                                                                    {showPin ? "إخفاء" : "إظهار"}
+                                                                </button>
+                                                            </div>
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} 
+                                            />
                                             <FormField control={addAdminForm.control} name="province" render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>المحافظة</FormLabel>
@@ -710,7 +738,6 @@ export default function SuperAdminPage() {
                                 <TableRow>
                                     <TableHead>اسم الصيدلية</TableHead>
                                     <TableHead className="hidden sm:table-cell">البريد الإلكتروني</TableHead>
-                                    <TableHead className="hidden lg:table-cell">رمز PIN</TableHead>
                                     <TableHead className="hidden md:table-cell">المحافظة</TableHead>
                                     <TableHead className="hidden md:table-cell">Dofied Id</TableHead>
                                     <TableHead>الحالة</TableHead>
@@ -721,7 +748,6 @@ export default function SuperAdminPage() {
                                 {loading ? Array.from({length: perPage}).map((_,i) => (
                                     <TableRow key={i}>
                                         <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                                        <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-48" /></TableCell>
                                         <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
                                         <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
                                         <TableCell><Skeleton className="h-6 w-16" /></TableCell>
@@ -1015,19 +1041,59 @@ export default function SuperAdminPage() {
                     <Form {...editAdminForm}>
                         <form onSubmit={editAdminForm.handleSubmit(handleEditAdmin)} className="space-y-4 py-2">
                             <FormField control={editAdminForm.control} name="name" render={({ field }) => (
-                                <FormItem><FormLabel>اسم الصيدلية</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem>
+                                    <FormLabel>اسم الصيدلية</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
                             )} />
                             <FormField control={editAdminForm.control} name="email" render={({ field }) => (
-                                <FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem>
+                                    <FormLabel>البريد الإلكتروني</FormLabel>
+                                    <FormControl>
+                                        <Input type="email" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
                             )} />
-                            <FormField control={editAdminForm.control} name="pin" render={({ field }) => (
-                                <FormItem><FormLabel>رمز PIN الجديد (اختياري)</FormLabel><FormControl><Input type="password" placeholder="اتركه فارغاً لعدم التغيير" {...field} /></FormControl><FormMessage /></FormItem>
-                            )} />
+                            <FormField 
+                                control={editAdminForm.control} 
+                                name="pin" 
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>رمز PIN الجديد (اختياري)</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <Input 
+                                                    type={showPin ? "text" : "password"} 
+                                                    placeholder="اتركه فارغاً لعدم التغيير" 
+                                                    {...field}
+                                                    className="pl-12" // Add padding to make room for the button
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="absolute left-0 top-0 h-full px-3 text-sm text-gray-600 hover:text-gray-800"
+                                                    onClick={() => setShowPin(!showPin)}
+                                                >
+                                                    {showPin ? "إخفاء" : "إظهار"}
+                                                </button>
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} 
+                            />
                             <FormField control={editAdminForm.control} name="province" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>المحافظة</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder="اختر محافظة..." /></SelectTrigger></FormControl>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="اختر محافظة..." />
+                                            </SelectTrigger>
+                                        </FormControl>
                                         <SelectContent>
                                             {iraqProvinces.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                                         </SelectContent>

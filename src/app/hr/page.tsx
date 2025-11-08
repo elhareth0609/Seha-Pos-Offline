@@ -86,7 +86,8 @@ export default function HRPage() {
     const [dateFrom, setDateFrom] = React.useState<string>("");
     const [dateTo, setDateTo] = React.useState<string>("");
     const [loading, setLoading] = React.useState(true);
-    
+    const [showPin, setShowPin] = React.useState(false);
+
     const addUserForm = useForm<AddUserFormValues>({
         resolver: zodResolver(addUserSchema),
         defaultValues: { name: "", email: "", pin: "" }
@@ -454,7 +455,33 @@ export default function HRPage() {
                         <form onSubmit={editUserForm.handleSubmit(onEditUserSubmit)} className="space-y-4 py-2">
                             <FormField control={editUserForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>الاسم</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={editUserForm.control} name="email" render={({ field }) => (<FormItem><FormLabel>البريد الإلكتروني</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={editUserForm.control} name="pin" render={({ field }) => (<FormItem><FormLabel>رمز PIN الجديد (اختياري)</FormLabel><FormControl><Input type="password"  {...field} placeholder="اتركه فارغًا لعدم التغيير" /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField 
+                                control={editUserForm.control} 
+                                name="pin" 
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>رمز PIN الجديد (اختياري)</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <Input 
+                                                    type={showPin ? "text" : "password"} 
+                                                    placeholder="اتركه فارغاً لعدم التغيير" 
+                                                    {...field}
+                                                    className="pl-12" // Add padding to make room for the button
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="absolute left-0 top-0 h-full px-3 text-sm text-gray-600 hover:text-gray-800"
+                                                    onClick={() => setShowPin(!showPin)}
+                                                >
+                                                    {showPin ? "إخفاء" : "إظهار"}
+                                                </button>
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} 
+                            />
                             <FormField control={editUserForm.control} name="confirmPin" render={({ field }) => (<FormItem><FormLabel>تأكيد رمز PIN الجديد</FormLabel><FormControl><Input type="password"  {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <DialogFooter className="pt-4"><DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose><Button type="submit" variant="success">حفظ التغييرات</Button></DialogFooter>
                         </form>

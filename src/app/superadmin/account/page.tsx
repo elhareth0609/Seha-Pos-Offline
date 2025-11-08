@@ -35,6 +35,7 @@ export default function SuperAdminAccountPage() {
     const { currentUser, updateUser } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
+    const [showPin, setShowPin] = React.useState(false);
 
     const form = useForm<EditSuperAdminFormValues>({
         resolver: zodResolver(editSuperAdminSchema),
@@ -100,13 +101,34 @@ export default function SuperAdminAccountPage() {
                                 </FormItem>
                             )} />
                             <p className="text-sm text-muted-foreground pt-2">اترك حقول رمز PIN فارغة إذا كنت لا ترغب في تغييره.</p>
-                            <FormField control={form.control} name="pin" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>رمز PIN الجديد</FormLabel>
-                                    <FormControl><Input type="password" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
+                            <FormField 
+                                control={form.control} 
+                                name="pin" 
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>رمز PIN الجديد (اختياري)</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <Input 
+                                                    type={showPin ? "text" : "password"} 
+                                                    placeholder="اتركه فارغاً لعدم التغيير" 
+                                                    {...field}
+                                                    className="pl-12" // Add padding to make room for the button
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="absolute left-0 top-0 h-full px-3 text-sm text-gray-600 hover:text-gray-800"
+                                                    onClick={() => setShowPin(!showPin)}
+                                                >
+                                                    {showPin ? "إخفاء" : "إظهار"}
+                                                </button>
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} 
+                            />
+
                             <FormField control={form.control} name="confirmPin" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>تأكيد رمز PIN الجديد</FormLabel>
