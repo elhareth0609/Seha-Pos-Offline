@@ -457,6 +457,7 @@ export default function SuppliersPage() {
         const returns = Array.isArray(supplierReturns) ? supplierReturns.filter(ret => ret.supplier_id == supplier.id) : [];
         const payments = supplierPayments?.supplierPayments ? supplierPayments.supplierPayments.filter(p => p.supplier_id == supplier.id) : [];
         const debts = supplierDebts?.supplierDebts ? supplierDebts.supplierDebts.filter(d => d.supplier_id == supplier.id) : [];
+
         const totalPurchases = purchases.reduce((acc, po) => {
             const total_amount = typeof po.total_amount === 'number' ? po.total_amount : parseFloat(String(po.total_amount || 0));
             return acc + (isNaN(total_amount) ? 0 : total_amount);
@@ -471,8 +472,12 @@ export default function SuppliersPage() {
             return acc + (isNaN(amount) ? 0 : amount);
         }, 0);
 
+        const totalDebts = debts.reduce((acc, p) => {
+            const amount = typeof p.amount === 'number' ? p.amount : parseFloat(String(p.amount || 0));
+            return acc + (isNaN(amount) ? 0 : amount);
+        }, 0);
 
-        const netDebt = totalPurchases - (totalReturns + totalPayments + debts.reduce((acc, d) => acc + d.amount, 0));
+        const netDebt = totalPurchases + totalDebts - (totalReturns + totalPayments);
         
         const supplierProductIds = new Set(purchases.flatMap(po => po.items.map(item => item.medication_id)));
         
@@ -485,6 +490,7 @@ export default function SuppliersPage() {
             totalPurchases,
             totalReturns,
             totalPayments,
+            totalDebts,
             netDebt,
             profitFromSupplier
         };
