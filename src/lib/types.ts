@@ -238,6 +238,22 @@ export type PatientPayment = {
     notes?: string;
 }
 
+export type SupplierDebt = {
+    id: string;
+    date: string;
+    supplier_id: string;
+    amount: number;
+    notes?: string;
+}
+
+export type PatientDebt = {
+    id: string;
+    date: string;
+    patient_id: string;
+    amount: number;
+    notes?: string;
+}
+
 export type Supplier = {
   id: string;
   name: string;

@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative, Notification, SupportRequestPayload, PatientPaymentPayload, SupportRequest, PatientPayment, DrugRequest, RequestResponse, ExchangeItem, PharmacyGroup, BranchInventory } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative, Notification, SupportRequestPayload, PatientPaymentPayload, SupportRequest, PatientPayment, DrugRequest, RequestResponse, ExchangeItem, PharmacyGroup, BranchInventory, PatientDebt, SupplierDebt } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 import { PinDialog } from '@/components/auth/PinDialog';
@@ -26,6 +26,10 @@ type AuthResponse = {
             supplierPayments: SupplierPayment[];
             patientPayments: PatientPayment[];
         };
+        debts: {
+            supplierDebts: SupplierDebt[];
+            patientDebts: PatientDebt[];
+        }
         purchaseOrders: PurchaseOrder[];
         supplierReturns: ReturnOrder[];
         timeLogs: TimeLog[];
@@ -132,6 +136,7 @@ interface AuthContextType {
 
     // Payments
     addPayment: (supplier_id: string, amount: number, notes?: string) => Promise<boolean>;
+    addDebt: (supplier_id: string, amount: number, notes?: string) => Promise<boolean>;
     addPatientPayment: (patient_id: string, amount: number, notes?: string) => Promise<boolean>;
     
     // Purchases and Returns
@@ -241,6 +246,13 @@ export interface ScopedDataContextType {
     }, React.Dispatch<React.SetStateAction<{
         supplierPayments: SupplierPayment[],
         patientPayments: PatientPayment[],
+    }>>],
+    debts: [{
+        supplierDebts: SupplierDebt[],
+        patientDebts: PatientDebt[],
+    }, React.Dispatch<React.SetStateAction<{
+        supplierDebts: SupplierDebt[],
+        patientDebts: PatientDebt[],
     }>>],
     purchaseOrders: [PurchaseOrder[], React.Dispatch<React.SetStateAction<PurchaseOrder[]>>];
     supplierReturns: [ReturnOrder[], React.Dispatch<React.SetStateAction<ReturnOrder[]>>];
@@ -388,6 +400,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [patients, setPatients] = React.useState<Patient[]>([]);
     const [trash, setTrash] = React.useState<TrashItem[]>([]);
     const [payments, setPayments] = React.useState<{ supplierPayments: SupplierPayment[], patientPayments: PatientPayment[] }>({ supplierPayments: [], patientPayments: [] });
+    const [debts, setDebts] = React.useState<{ supplierDebts: SupplierDebt[], patientDebts: PatientDebt[] }>({ supplierDebts: [], patientDebts: [] });
     const [purchaseOrders, setPurchaseOrders] = React.useState<PurchaseOrder[]>([]);
     const [supplierReturns, setSupplierReturns] = React.useState<ReturnOrder[]>([]);
     const [timeLogs, setTimeLogs] = React.useState<TimeLog[]>([]);
@@ -532,6 +545,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setPatients(pd.patients || []);
             setTrash(pd.trash || []);
             setPayments(pd.payments || { supplierPayments: [], patientPayments: [] });
+            setDebts(pd.debts || { supplierDebts: [], patientDebts: [] });
             setPurchaseOrders(pd.purchaseOrders || []);
             setSupplierReturns(pd.supplierReturns || []);
             setTimeLogs(pd.timeLogs || []);
@@ -1188,6 +1202,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return true;
         } catch (e) { return false; }
     }
+
+    const addDebt = async (supplier_id: string, amount: number, notes?: string) => {
+        try {
+            const newDebt = await apiRequest('/debts/supplier', 'POST', { supplier_id: supplier_id, amount, notes });
+            setDebts(prev => ({...prev, supplierDebts: [...(prev.supplierDebts || []), newDebt]}));
+            toast({ title: `تم تسجيل دفعة بمبلغ ${amount.toLocaleString()}` });
+            return true;
+        } catch (e) { return false; }
+    };
     
     const addPatientPayment = async (patient_id: string, amount: number, notes?: string) => {
         try {
@@ -1676,6 +1699,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         patients: [patients, setPatients],
         trash: [trash, setTrash],
         payments: [payments, setPayments],
+        debts: [debts, setDebts],
         purchaseOrders: [purchaseOrders, setPurchaseOrders],
         supplierReturns: [supplierReturns, setSupplierReturns],
         timeLogs: [timeLogs, setTimeLogs],
@@ -1720,6 +1744,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             getCentralDrugs, uploadCentralDrugList, bulkUploadCentralDrugs, 
             searchInOtherBranches,
             pharmacyGroups, getPharmacyGroups, createPharmacyGroup, updatePharmacyGroup, deletePharmacyGroup,
+            addDebt,
         }}>
             {children}
         </AuthContext.Provider>

@@ -1,5 +1,3 @@
-
-
 "use client"
 
 import * as React from "react"
@@ -48,7 +46,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Textarea } from "@/components/ui/textarea"
-import { DollarSign, FileText, Truck, Undo2, Wallet, Scale, MoreHorizontal, Pencil, Trash2, PlusCircle, ChevronDown, TrendingUp, AlertTriangle, Sparkles, Lightbulb } from "lucide-react"
+import { DollarSign, FileText, Truck, Undo2, Wallet, Scale, MoreHorizontal, Pencil, Trash2, PlusCircle, ChevronDown, TrendingUp, AlertTriangle, Sparkles, Lightbulb, Landmark } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -61,7 +59,7 @@ import { differenceInDays, parseISO, startOfToday } from 'date-fns'
 
 type StatementItem = {
     date: string;
-    type: 'شراء' | 'استرجاع' | 'دفعة';
+    type: 'شراء' | 'استرجاع' | 'دفعة' | 'دين';
     details: string;
     debit: number;
     credit: number;
@@ -194,6 +192,7 @@ export default function SuppliersPage() {
     updateSupplier, 
     deleteSupplier, 
     addPayment, 
+    addDebt,
     getPaginatedSuppliers,
     currentUser,
     verifyPin,
@@ -202,6 +201,7 @@ export default function SuppliersPage() {
   const [purchaseOrders] = scopedData.purchaseOrders;
   const [supplierReturns] = scopedData.supplierReturns;
   const [supplierPayments] = scopedData.payments;
+  const [supplierDebts] = scopedData.debts;
   const [sales] = scopedData.sales;
 
   const [suppliers, setSuppliers] = React.useState<Supplier[]>([]);
@@ -223,6 +223,12 @@ export default function SuppliersPage() {
   
   const [itemToDelete, setItemToDelete] = React.useState<Supplier | null>(null);
   const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
+
+  // State for Add Debt Dialog
+  const [isAddDebtOpen, setIsAddDebtOpen] = React.useState(false);
+  const [debtAmount, setDebtAmount] = React.useState('');
+  const [debtDescription, setDebtDescription] = React.useState('');
+
 
   const { toast } = useToast();
 
@@ -323,6 +329,26 @@ export default function SuppliersPage() {
     }
   }
 
+    const handleAddDebt = async () => {
+        if (!selectedSupplier) return;
+        const amount = parseFloat(debtAmount);
+        if (isNaN(amount) || amount <= 0) {
+            toast({ variant: 'destructive', title: 'مبلغ الدين غير صالح' });
+            return;
+        }
+
+        const success = await addDebt(selectedSupplier.id, amount, debtDescription);
+        if (success) {
+            toast({ title: 'تم تسجيل الدين بنجاح' });
+            fetchData(currentPage, perPage, supplierSearchTerm); // Re-fetch to update debts
+            setIsAddDebtOpen(false);
+            setDebtAmount('');
+            setDebtDescription('');
+            setSelectedSupplier(null);
+        }
+    };
+
+
   const handleExecuteSmartPayments = async (payments: { supplier_id: string, amount: number }[]) => {
       if (payments.length === 0) return;
       
@@ -361,6 +387,17 @@ export default function SuppliersPage() {
                 items: ret.items,
             }));
 
+        const supplierDebtsData = (supplierDebts?.supplierDebts || []).filter(d => d.supplier_id === supplier.id)
+            .map(d => ({ 
+                id: d.id,
+                date: d.date, 
+                type: 'دين' as const, 
+                details: `دين يدوي ${d.notes ? `(${d.notes})` : ''}`, 
+                debit: 0, 
+                credit: d.amount,
+                items: [],
+            }));
+
         const supplierPaymentsData = (supplierPayments?.supplierPayments || []).filter(p => p.supplier_id === supplier.id)
             .map(p => ({ 
                 id: p.id,
@@ -372,7 +409,7 @@ export default function SuppliersPage() {
                 items: [],
             }));
 
-        const allTransactions = [...supplierPurchases, ...supplierReturnsData, ...supplierPaymentsData]
+        const allTransactions = [...supplierPurchases, ...supplierReturnsData, ...supplierPaymentsData, ...supplierDebtsData]
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
         let runningBalance = 0;
@@ -394,14 +431,13 @@ export default function SuppliersPage() {
             else if (age <= 60) debtAging['31-60'] += amount;
             else if (age <= 90) debtAging['61-90'] += amount;
             else debtAging.over90 += amount;
-            console.log(debtAging);
         });
 
 
         setStatementData({ supplier, items: statementItems.reverse(), debtAging });
         setExpandedStatementRows(new Set());
         setIsStatementOpen(true);
-    }, [purchaseOrders, supplierReturns, supplierPayments]);
+    }, [purchaseOrders, supplierReturns, supplierPayments, supplierDebts]);
   
   const toggleStatementRow = (id: string) => {
     setExpandedStatementRows(prev => {
@@ -420,25 +456,23 @@ export default function SuppliersPage() {
         const purchases = Array.isArray(purchaseOrders) ? purchaseOrders.filter(po => po.supplier_id == supplier.id) : [];
         const returns = Array.isArray(supplierReturns) ? supplierReturns.filter(ret => ret.supplier_id == supplier.id) : [];
         const payments = supplierPayments?.supplierPayments ? supplierPayments.supplierPayments.filter(p => p.supplier_id == supplier.id) : [];
-        
-        // const totalPurchases = purchases.reduce((acc, po) => acc + (po.total_amount || 0), 0);
+        const debts = supplierDebts?.supplierDebts ? supplierDebts.supplierDebts.filter(d => d.supplier_id == supplier.id) : [];
         const totalPurchases = purchases.reduce((acc, po) => {
             const total_amount = typeof po.total_amount === 'number' ? po.total_amount : parseFloat(String(po.total_amount || 0));
             return acc + (isNaN(total_amount) ? 0 : total_amount);
-        }, 0);
-        // const totalReturns = returns.reduce((acc, ret) => acc + (ret.total_amount || 0), 0);
+        }, 0)
         const totalReturns = returns.reduce((acc, ret) => {
             const total_amount = typeof ret.total_amount === 'number' ? ret.total_amount : parseFloat(String(ret.total_amount || 0));
             return acc + (isNaN(total_amount) ? 0 : total_amount);
         }, 0);
-        // const totalPayments = payments.reduce((acc, p) => acc + p.amount, 0);
+
         const totalPayments = payments.reduce((acc, p) => {
             const amount = typeof p.amount === 'number' ? p.amount : parseFloat(String(p.amount || 0));
             return acc + (isNaN(amount) ? 0 : amount);
         }, 0);
 
 
-        const netDebt = totalPurchases - totalReturns - totalPayments;
+        const netDebt = totalPurchases - (totalReturns + totalPayments + debts.reduce((acc, d) => acc + d.amount, 0));
         
         const supplierProductIds = new Set(purchases.flatMap(po => po.items.map(item => item.medication_id)));
         
@@ -455,7 +489,7 @@ export default function SuppliersPage() {
             profitFromSupplier
         };
     });
-  }, [suppliers, purchaseOrders, supplierReturns, supplierPayments, sales]);
+  }, [suppliers, purchaseOrders, supplierReturns, supplierPayments, supplierDebts, sales]);
 
   if (loading && suppliers.length === 0) {
       return (
@@ -572,6 +606,11 @@ export default function SuppliersPage() {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onSelect={() => { setSelectedSupplier(account); setIsAddDebtOpen(true); }}>
+                                            <Landmark className="me-2 h-4 w-4 text-destructive" />
+                                            إضافة دين
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
                                         <DropdownMenuItem onSelect={() => { setEditingSupplier(account); setIsEditDialogOpen(true); }}>
                                             <Pencil className="me-2 h-4 w-4" />
                                             تعديل
@@ -705,6 +744,32 @@ export default function SuppliersPage() {
                     <Button type="submit" variant="success">حفظ الدفعة</Button>
                 </DialogFooter>
             </form>
+        </DialogContent>
+    </Dialog>
+
+    <Dialog open={isAddDebtOpen} onOpenChange={(open) => {
+        if (!open) { setSelectedSupplier(null); setDebtAmount(''); setDebtDescription(''); }
+        setIsAddDebtOpen(open);
+    }}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>إضافة دين للمورد: {selectedSupplier?.name}</DialogTitle>
+                <DialogDescription>سيتم تسجيل هذا المبلغ كدين مباشر على حساب المورد.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                    <Label htmlFor="debt-amount">مبلغ الدين</Label>
+                    <Input id="debt-amount" type="number" value={debtAmount} onChange={e => setDebtAmount(e.target.value)} required autoFocus/>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="debt-description">الوصف / البيان</Label>
+                    <Textarea id="debt-description" value={debtDescription} onChange={e => setDebtDescription(e.target.value)} placeholder="مثال: دين سابق، أجور نقل" required/>
+                </div>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
+                <Button onClick={handleAddDebt}>إضافة الدين</Button>
+            </DialogFooter>
         </DialogContent>
     </Dialog>
 
