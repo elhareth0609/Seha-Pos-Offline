@@ -370,7 +370,7 @@ export default function SuppliersPage() {
                 id: po.id,
                 date: po.date, 
                 type: 'شراء' as const, 
-                details: `فاتورة شراء #${po.id}`, 
+                details: `فاتورة شراء #${po.number}`, 
                 debit: po.total_amount, 
                 credit: 0,
                 items: po.items,

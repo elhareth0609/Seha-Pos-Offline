@@ -410,7 +410,7 @@ export default function PurchasesPage() {
     if (!supplier) return;
 
     const purchaseData = {
-        id: purchase_id,
+        number: purchase_id,
         supplier_id: supplier.id,
         supplier_name: supplier.name,
         date: new Date().toISOString().split('T')[0],
@@ -755,7 +755,7 @@ export default function PurchasesPage() {
                     )) : purchaseHistory.length > 0 ? purchaseHistory.map(po => (
                         <React.Fragment key={po.id}>
                             <TableRow onClick={() => toggleRow(po.id)} className="cursor-pointer bg-muted/30 font-semibold">
-                                <TableCell className="font-mono">{po.id}</TableCell>
+                                <TableCell className="font-mono">{po.number}</TableCell>
                                 <TableCell>
                                     <div className="flex items-center gap-2">
                                         <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", expandedRows.has(po.id) && "rotate-180")} />
