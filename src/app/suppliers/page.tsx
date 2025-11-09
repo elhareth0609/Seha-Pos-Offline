@@ -607,7 +607,7 @@ export default function SuppliersPage() {
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
                                         <DropdownMenuItem onSelect={() => { setSelectedSupplier(account); setIsAddDebtOpen(true); }}>
-                                            <Landmark className="me-2 h-4 w-4 text-destructive" />
+                                            <Landmark className="me-2 h-4 w-4" />
                                             إضافة دين
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
