@@ -381,7 +381,7 @@ export default function SuppliersPage() {
                 id: ret.id,
                 date: ret.date, 
                 type: 'استرجاع' as const, 
-                details: `إرجاع #${ret.id}`, 
+                details: `إرجاع #${ret.number}`, 
                 debit: 0, 
                 credit: ret.total_amount,
                 items: ret.items,

@@ -215,6 +215,7 @@ export type ReturnOrderItem = {
 
 export type ReturnOrder = {
   id: string;
+  number: string;
   supplier_id: string;
   supplier_name: string;
   date: string;
