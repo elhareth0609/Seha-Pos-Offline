@@ -56,7 +56,7 @@ const fileToDataUri = (file: File): Promise<string> => {
     });
 };
 
-const dosage_forms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion"];
+const dosage_forms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion", "spray"];
 
 type PurchaseItemFormData = Partial<PurchaseOrderItem> & { profit_margin?: number };
 

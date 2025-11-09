@@ -66,7 +66,7 @@ import { PinDialog } from "@/components/auth/PinDialog";
 import { cn } from "@/lib/utils"
 
 
-const dosage_forms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion"];
+const dosage_forms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion", "spray"];
 
 // Helper function to convert file to data URI
 const fileToDataUri = (file: File): Promise<string> => {
