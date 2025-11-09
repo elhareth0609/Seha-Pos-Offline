@@ -571,12 +571,12 @@ export default function PurchasesPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="purchase_id">رقم قائمة الشراء</Label>
-                            <Input id="purchase_id" value={purchase_id} onChange={e => setPurchaseId(e.target.value)} placeholder="مثال: PO-2024-001" required disabled={isPurchaseInfoLocked}/>
+                            <Input id="purchase_id" value={purchase_id} onChange={e => setPurchaseId(e.target.value)} placeholder="مثال: PO-2024-001" required disabled={isPurchaseInfoLocked && purchaseItems.length > 0}/>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="supplier_id">المورد</Label>
                             <div className="flex gap-2">
-                                <Select value={purchaseSupplierId} onValueChange={setPurchaseSupplierId} required disabled={isPurchaseInfoLocked}>
+                                <Select value={purchaseSupplierId} onValueChange={setPurchaseSupplierId} required disabled={isPurchaseInfoLocked && purchaseItems.length > 0}>
                                     <SelectTrigger id="supplier_id">
                                         <SelectValue placeholder="اختر موردًا" />
                                     </SelectTrigger>
@@ -825,11 +825,11 @@ export default function PurchasesPage() {
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="returnSlipId">رقم قائمة الاسترجاع</Label>
-                        <Input id="returnSlipId" value={returnSlipId} onChange={e => setReturnSlipId(e.target.value)} placeholder="مثال: RET-2024-001" required disabled={is_returnInfoLocked} />
+                        <Input id="returnSlipId" value={returnSlipId} onChange={e => setReturnSlipId(e.target.value)} placeholder="مثال: RET-2024-001" required disabled={is_returnInfoLocked && returnCart.length > 0} />
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="return-supplier_id">المورد</Label>
-                        <Select value={returnSupplierId} onValueChange={setReturnSupplierId} required disabled={is_returnInfoLocked}>
+                        <Select value={returnSupplierId} onValueChange={setReturnSupplierId} required disabled={is_returnInfoLocked && returnCart.length > 0}>
                             <SelectTrigger id="return-supplier_id">
                                 <SelectValue placeholder="اختر موردًا" />
                             </SelectTrigger>
