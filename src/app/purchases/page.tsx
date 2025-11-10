@@ -618,6 +618,11 @@ export default function PurchasesPage() {
                         <Label htmlFor="purchase-item-search">ابحث عن دواء أو أضف جديدًا</Label>
                         <Input 
                           id="purchase-item-search"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                            }
+                          }}
                           value={purchaseItemSearchTerm} 
                           onChange={handlePurchaseSearch}
                           placeholder="ابحث بالاسم، العلمي أو الباركود..."
@@ -844,7 +849,12 @@ export default function PurchasesPage() {
                     <div className="relative space-y-2">
                         <Label htmlFor="return-med-search">ابحث عن دواء (بالاسم، العلمي أو الباركود)</Label>
                         <Input 
-                            id="return-med-search" 
+                            id="return-med-search"
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                }
+                            }}
                             value={returnMedSearchTerm} 
                             onChange={handleReturnSearchChange} 
                             placeholder="ابحث هنا..."
