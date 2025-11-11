@@ -89,6 +89,11 @@ export default function PurchasesPage() {
   const [purchaseItems, setPurchaseItems] = React.useState<PurchaseOrderItem[]>([]);
   const [purchaseItemSearchTerm, setPurchaseItemSearchTerm] = React.useState('');
   const [purchaseItemSuggestions, setPurchaseItemSuggestions] = React.useState<Medication[]>([]);
+  const [purchaseItemNameSearchTerm, setPurchaseItemNameSearchTerm] = React.useState('');
+  const [purchaseItemNameSuggestions, setPurchaseItemNameSuggestions] = React.useState<Medication[]>([]);
+  const [purchaseItemBarcodeSearchTerm, setPurchaseItemBarcodeSearchTerm] = React.useState('');
+  const [purchaseItemBarcodeSuggestions, setPurchaseItemBarcodeSuggestions] = React.useState<Medication[]>([]);
+  const barcodeInputRef = React.useRef<HTMLInputElement>(null);
   const [isPurchaseInfoLocked, setIsPurchaseInfoLocked] = React.useState(false);
   
   // State for return form
@@ -98,6 +103,11 @@ export default function PurchasesPage() {
   const [is_returnInfoLocked, setIsReturnInfoLocked] = React.useState(false);
   const [returnMedSearchTerm, setReturnMedSearchTerm] = React.useState("");
   const [returnMedSuggestions, setReturnMedSuggestions] = React.useState<Medication[]>([]);
+  const [returnMedNameSearchTerm, setReturnMedNameSearchTerm] = React.useState("");
+  const [returnMedNameSuggestions, setReturnMedNameSuggestions] = React.useState<Medication[]>([]);
+  const [returnMedBarcodeSearchTerm, setReturnMedBarcodeSearchTerm] = React.useState("");
+  const [returnMedBarcodeSuggestions, setReturnMedBarcodeSuggestions] = React.useState<Medication[]>([]);
+  const returnBarcodeInputRef = React.useRef<HTMLInputElement>(null);
   const [selectedMedForReturn, setSelectedMedForReturn] = React.useState<Medication | null>(null);
   const [returnItemQuantity, setReturnItemQuantity] = React.useState("1");
   const [returnItemReason, setReturnItemReason] = React.useState("");
@@ -233,6 +243,19 @@ export default function PurchasesPage() {
         return () => clearTimeout(handler);
     }
   }, [activeTab, purchaseCurrentPage, purchasePerPage, purchaseSearchTerm, purchaseDateFrom, purchaseDateTo, fetchPurchaseHistory]);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (barcodeInputRef.current && !barcodeInputRef.current.contains(event.target as Node)) {
+        setPurchaseItemBarcodeSuggestions([]);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   
   React.useEffect(() => {
     if (activeTab === 'return-history') {
@@ -242,6 +265,19 @@ export default function PurchasesPage() {
         return () => clearTimeout(handler);
     }
   }, [activeTab, returnCurrentPage, returnPerPage, returnSearchTerm, returnDateFrom, returnDateTo, fetchReturnHistory]);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (returnBarcodeInputRef.current && !returnBarcodeInputRef.current.contains(event.target as Node)) {
+        setReturnMedBarcodeSuggestions([]);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   React.useEffect(() => {
     if (purchaseDraft && purchaseDraft.items.length > 0) {
@@ -283,17 +319,39 @@ export default function PurchasesPage() {
       }
   };
 
-  const handlePurchaseSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePurchaseNameSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setPurchaseItemSearchTerm(value);
+    setPurchaseItemNameSearchTerm(value);
 
     if (value.length > 0) {
         const results = await searchAllInventory(value);
-        setPurchaseItemSuggestions(results.slice(0, 5));
+        setPurchaseItemNameSuggestions(results.slice(0, 5));
     } else {
-        setPurchaseItemSuggestions([]);
+        setPurchaseItemNameSuggestions([]);
     }
   };
+
+  const handlePurchaseBarcodeSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPurchaseItemBarcodeSearchTerm(value);
+    // Don't search automatically for barcode - wait for Enter key
+    // Clear barcode suggestions when input is cleared
+    if (value.length === 0) {
+        setPurchaseItemBarcodeSuggestions([]);
+    }
+  }
+
+  const handlePurchaseBarcodeSearchKeyDown = React.useCallback(async (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        // Only process if barcode term exists
+        if(purchaseItemBarcodeSearchTerm) {
+            const results = await searchAllInventory(purchaseItemBarcodeSearchTerm);
+            setPurchaseItemBarcodeSuggestions(results.slice(0, 5));
+            setPurchaseItemBarcodeSearchTerm("");
+        }
+    }
+  }, [purchaseItemBarcodeSearchTerm]);
 
   const handleSelectMed = (med: Medication, asNewBatch: boolean = false) => {
     const medData: PurchaseItemFormData = {
@@ -309,8 +367,10 @@ export default function PurchasesPage() {
         medData.expiration_date = '';
     }
     setNewMedData(medData);
-    setPurchaseItemSearchTerm(med.name);
-    setPurchaseItemSuggestions([]);
+    setPurchaseItemNameSearchTerm(med.name);
+    setPurchaseItemNameSuggestions([]);
+    setPurchaseItemBarcodeSearchTerm("");
+    setPurchaseItemBarcodeSuggestions([]);
     document.getElementById("quantity")?.focus();
 };
 
@@ -392,8 +452,11 @@ export default function PurchasesPage() {
     setIsPurchaseInfoLocked(true);
     
     setNewMedData({});
-    setPurchaseItemSearchTerm("");
-    document.getElementById("purchase-item-search")?.focus();
+    setPurchaseItemNameSearchTerm("");
+    setPurchaseItemNameSuggestions([]);
+    setPurchaseItemBarcodeSearchTerm("");
+    setPurchaseItemBarcodeSuggestions([]);
+    document.getElementById("purchase-item-name-search")?.focus();
   };
 
   const handleRemoveFromPurchase = (medId: string) => {
@@ -439,22 +502,47 @@ export default function PurchasesPage() {
   };
 
 
-  const handleReturnSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleReturnNameSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setReturnMedSearchTerm(value);
+    setReturnMedNameSearchTerm(value);
     if (value.length > 0) {
         const results = await searchAllInventory(value);
         const filtered = results.filter(med => med.stock > 0);
-        setReturnMedSuggestions(filtered.slice(0, 5));
+        setReturnMedNameSuggestions(filtered.slice(0, 5));
     } else {
-        setReturnMedSuggestions([]);
+        setReturnMedNameSuggestions([]);
     }
   };
+
+  const handleReturnBarcodeSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setReturnMedBarcodeSearchTerm(value);
+    // Don't search automatically for barcode - wait for Enter key
+    // Clear barcode suggestions when input is cleared
+    if (value.length === 0) {
+        setReturnMedBarcodeSuggestions([]);
+    }
+  };
+
+  const handleReturnBarcodeSearchKeyDown = React.useCallback(async (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        // Only process if barcode term exists
+        if(returnMedBarcodeSearchTerm) {
+            const results = await searchAllInventory(returnMedBarcodeSearchTerm);
+            const filtered = results.filter(med => med.stock > 0);
+            setReturnMedBarcodeSuggestions(filtered.slice(0, 5));
+            setReturnMedBarcodeSearchTerm("");
+        }
+    }
+  }, [returnMedBarcodeSearchTerm]);
   
   const handleSelectMedForReturn = (med: Medication) => {
     setSelectedMedForReturn(med);
-    setReturnMedSearchTerm(med.name);
-    setReturnMedSuggestions([]);
+    setReturnMedNameSearchTerm(med.name);
+    setReturnMedNameSuggestions([]);
+    setReturnMedBarcodeSearchTerm("");
+    setReturnMedBarcodeSuggestions([]);
     document.getElementById("return-quantity")?.focus();
   };
 
@@ -491,10 +579,13 @@ export default function PurchasesPage() {
     setIsReturnInfoLocked(true);
     
     setSelectedMedForReturn(null);
-    setReturnMedSearchTerm("");
+    setReturnMedNameSearchTerm("");
+    setReturnMedBarcodeSearchTerm("");
+    setReturnMedNameSuggestions([]);
+    setReturnMedBarcodeSuggestions([]);
     setReturnItemQuantity("1");
     setReturnItemReason("");
-    document.getElementById("return-med-search")?.focus();
+    document.getElementById("return-med-name-search")?.focus();
   };
   
   const handleRemoveFromReturnCart = (medId: string) => {
@@ -614,25 +705,26 @@ export default function PurchasesPage() {
                         </div>
                     </div>
                      <hr className="my-4" />
-                    <div className="relative space-y-2">
-                        <Label htmlFor="purchase-item-search">ابحث عن دواء أو أضف جديدًا</Label>
-                        <Input 
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 space-y-2">
+                        <div className="relative space-y-2">
+                            <Label htmlFor="purchase-item-name-search">ابحث بالاسم أو الاسم العلمي</Label>
+                            <Input 
                           id="purchase-item-search"
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                               e.preventDefault();
                             }
                           }}
-                          value={purchaseItemSearchTerm} 
-                          onChange={handlePurchaseSearch}
-                          placeholder="ابحث بالاسم، العلمي أو الباركود..."
+                          value={purchaseItemNameSearchTerm} 
+                          onChange={handlePurchaseNameSearch}
+                          placeholder="ابحث بالاسم أو الاسم العلمي..."
                           autoComplete="off"
                         />
-                        {purchaseItemSuggestions.length > 0 && (
+                        {purchaseItemNameSuggestions.length > 0 && (
                              <Card className="absolute z-10 w-full mt-1 bg-background shadow-lg border">
                                 <CardContent className="p-0">
                                     <ul className="divide-y divide-border">
-                                        {purchaseItemSuggestions.map(med => (
+                                        {purchaseItemNameSuggestions.map(med => (
                                             <li key={med.id}>
                                                 <div className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center" onMouseDown={() => handleSelectMed(med)}>
                                                     <div>
@@ -651,7 +743,43 @@ export default function PurchasesPage() {
                                 </CardContent>
                             </Card>
                         )}
-                        <Button variant="link" size="sm" className="p-0 h-auto" onClick={openNewMedModal}>أو أضف دواء جديد غير موجود...</Button>
+                        </div>
+                        <div className="relative space-y-2">
+                            <Label htmlFor="purchase-item-barcode-search">امسح الباركود</Label>
+                            <Input
+                              id="purchase-item-barcode-search"
+                              ref={barcodeInputRef}
+                              value={purchaseItemBarcodeSearchTerm}
+                              onChange={handlePurchaseBarcodeSearchChange}
+                              onKeyDown={handlePurchaseBarcodeSearchKeyDown}
+                              placeholder="امسح الباركود..."
+                              autoComplete="off"
+                            />
+                            {purchaseItemBarcodeSuggestions.length > 0 && (
+                                 <Card className="absolute z-10 w-full mt-1 bg-background shadow-lg border">
+                                    <CardContent className="p-0">
+                                        <ul className="divide-y divide-border max-h-[30rem] overflow-y-auto">
+                                            {purchaseItemBarcodeSuggestions.map(med => (
+                                                <li key={med.id}>
+                                                    <div className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center" onMouseDown={() => handleSelectMed(med)}>
+                                                        <div>
+                                                          <div>{med.name}</div>
+                                                          <div className="text-xs text-muted-foreground">{med.scientific_names?.join(', ')}</div>
+                                                        </div>
+                                                        <span className="text-sm text-muted-foreground font-mono">الرصيد: {med.stock}</span>
+                                                    </div>
+                                                    <Button variant="link" size="sm" className="w-full justify-start text-xs h-auto px-3 py-1" onMouseDown={() => handleSelectMed(med, true)}>
+                                                        <FilePlus className="me-2 h-3 w-3" />
+                                                        هل هذه دفعة جديدة بتاريخ انتهاء مختلف؟ اضغط هنا
+                                                    </Button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
+                        <Button variant="link" size="sm" className="p-0 h-auto md:col-span-2" onClick={openNewMedModal}>أو أضف دواء جديد غير موجود...</Button>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
@@ -846,40 +974,74 @@ export default function PurchasesPage() {
                 </div>
                 
                 <form onSubmit={handleAddItemToReturnCart} className="p-4 border rounded-md space-y-4">
-                    <div className="relative space-y-2">
-                        <Label htmlFor="return-med-search">ابحث عن دواء (بالاسم، العلمي أو الباركود)</Label>
-                        <Input 
-                            id="return-med-search"
-                            onKeyDown={(e) => {
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 space-y-2">
+                        <div className="relative space-y-2">
+                            <Label htmlFor="return-med-name-search">ابحث بالاسم أو الاسم العلمي</Label>
+                            <Input 
+                              id="return-med-name-search"
+                              onKeyDown={(e) => {
                                 if (e.key === "Enter") {
-                                    e.preventDefault();
+                                  e.preventDefault();
                                 }
-                            }}
-                            value={returnMedSearchTerm} 
-                            onChange={handleReturnSearchChange} 
-                            placeholder="ابحث هنا..."
-                            autoComplete="off"
-                        />
-                        {returnMedSuggestions.length > 0 && (
-                            <Card className="absolute z-10 w-full mt-1 bg-background shadow-lg border">
-                                <CardContent className="p-0">
-                                    <ul className="divide-y divide-border">
-                                        {returnMedSuggestions.map(med => (
-                                            <li key={med.id} 
-                                                onMouseDown={() => handleSelectMedForReturn(med)}
-                                                className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
-                                            >
-                                                <div>
-                                                  <div>{med.name}</div>
-                                                  <div className="text-xs text-muted-foreground">{med.scientific_names?.join(', ')}</div>
-                                                </div>
-                                                <span className="text-sm text-muted-foreground font-mono">الرصيد: {med.stock}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </CardContent>
-                            </Card>
-                        )}
+                              }}
+                              value={returnMedNameSearchTerm} 
+                              onChange={handleReturnNameSearch}
+                              placeholder="ابحث بالاسم أو الاسم العلمي..."
+                              autoComplete="off"
+                            />
+                            {returnMedNameSuggestions.length > 0 && (
+                                 <Card className="absolute z-10 w-full mt-1 bg-background shadow-lg border">
+                                    <CardContent className="p-0">
+                                        <ul className="divide-y divide-border">
+                                            {returnMedNameSuggestions.map(med => (
+                                                <li key={med.id}
+                                                    onMouseDown={() => handleSelectMedForReturn(med)}
+                                                    className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
+                                                >
+                                                    <div>
+                                                      <div>{med.name}</div>
+                                                      <div className="text-xs text-muted-foreground">{med.scientific_names?.join(', ')}</div>
+                                                    </div>
+                                                    <span className="text-sm text-muted-foreground font-mono">الرصيد: {med.stock}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
+                        <div className="relative space-y-2">
+                            <Label htmlFor="return-med-barcode-search">امسح الباركود</Label>
+                            <Input
+                              id="return-med-barcode-search"
+                              ref={returnBarcodeInputRef}
+                              value={returnMedBarcodeSearchTerm}
+                              onChange={handleReturnBarcodeSearchChange}
+                              onKeyDown={handleReturnBarcodeSearchKeyDown}
+                              placeholder="امسح الباركود..."
+                              autoComplete="off"
+                            />
+                            {returnMedBarcodeSuggestions.length > 0 && (
+                                 <Card className="absolute z-10 w-full mt-1 bg-background shadow-lg border">
+                                    <CardContent className="p-0">
+                                        <ul className="divide-y divide-border max-h-[30rem] overflow-y-auto">
+                                            {returnMedBarcodeSuggestions.map(med => (
+                                                <li key={med.id}
+                                                    onMouseDown={() => handleSelectMedForReturn(med)}
+                                                    className="p-3 hover:bg-accent cursor-pointer rounded-md flex justify-between items-center"
+                                                >
+                                                    <div>
+                                                      <div>{med.name}</div>
+                                                      <div className="text-xs text-muted-foreground">{med.scientific_names?.join(', ')}</div>
+                                                    </div>
+                                                    <span className="text-sm text-muted-foreground font-mono">الرصيد: {med.stock}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
                     </div>
                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
