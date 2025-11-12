@@ -541,7 +541,7 @@ export default function SalesPage() {
     
         let closerExpiryAlternative: Medication | null = null;
         for (const alt of alternatives) {
-             if (alt.expiration_date && medication.expiration_date && parseISO(alt.expiration_date) < parseISO(medication.expiration_date)) {
+            if (alt.expiration_date && medication.expiration_date && parseISO(alt.expiration_date) < parseISO(medication.expiration_date)) {
                 if (!closerExpiryAlternative || (closerExpiryAlternative.expiration_date && parseISO(alt.expiration_date) < parseISO(closerExpiryAlternative.expiration_date))) {
                     closerExpiryAlternative = alt;
                 }
@@ -549,7 +549,7 @@ export default function SalesPage() {
         }
         
         if (closerExpiryAlternative) {
-             setAlternativeExpiryAlert({
+            setAlternativeExpiryAlert({
                 id: `alt_expiry_${medication.id}`,
                 type: 'alternative_expiry',
                 message: `تنبيه: يوجد بديل (${closerExpiryAlternative.name}) بتاريخ انتهاء أقرب. يُنصح ببيعه أولاً.`,
@@ -594,22 +594,22 @@ export default function SalesPage() {
                     )
                 }
             }
-             return {
-                ...invoice,
-                cart: [...invoice.cart, { 
-                    id: medication.id, 
-                    medication_id: medication.id, 
-                    name: medication.name, 
-                    scientific_names: medication.scientific_names, 
-                    quantity: 1, 
-                    price: medication.price || 0,
-                    purchase_price: medication.purchase_price || 0, 
-                    expiration_date: medication.expiration_date, 
-                    is_return: mode === 'return', 
-                    dosage: medication.dosage,
-                    dosage_form: medication.dosage_form,
-                }]
-             }
+            return {
+            ...invoice,
+            cart: [...invoice.cart, { 
+                id: medication.id, 
+                medication_id: medication.id, 
+                name: medication.name, 
+                scientific_names: medication.scientific_names, 
+                quantity: 1, 
+                price: medication.price || 0,
+                purchase_price: medication.purchase_price || 0, 
+                expiration_date: medication.expiration_date, 
+                is_return: mode === 'return', 
+                dosage: medication.dosage,
+                dosage_form: medication.dosage_form,
+            }]
+            }
         });
         
         checkAlternativeExpiry(medication);
@@ -637,7 +637,7 @@ export default function SalesPage() {
             setAlternativeExpiryAlert(null);
         }
     };
-  
+
     const processBarcode = async (barcode: string) => {
         setIsSearchLoading(true);
         try {
@@ -665,7 +665,7 @@ export default function SalesPage() {
             setIsSearchLoading(false);
         }
     };
-  
+
     React.useEffect(() => {
         const handler = setTimeout(async () => {
             // If search term is numeric and longer than 5 digits, it's likely a barcode
@@ -680,312 +680,312 @@ export default function SalesPage() {
     }, [searchTerm, suggestions.length, processBarcode]);
 
 
-  React.useEffect(() => {
-    async function fetchInventory() {
-        const results = await searchAllInventory('');
-        setAllInventory(results);
-    }
-    fetchInventory();
-  }, [searchAllInventory]);
-
-
-  const handleNameSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setNameSearchTerm(value);
-
-    if (value.length > 0) {
-        // setIsSearchLoading(true);
-        
-        // const searchTimer = setTimeout(async () => {
-            // try {
-                const results = await searchAllInventory(value);
-                setAllInventory(results);
-                setNameSuggestions(results);
-            // } finally {
-            //     setIsSearchLoading(false);
-            // }
-        // }, 300);
-        
-        // return () => clearTimeout(searchTimer);
-    } else {
-        setNameSuggestions([]);
-        setAllInventory([]);
-    }
-  }
-
-  const handleBarcodeSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setBarcodeSearchTerm(value);
-    // Don't search automatically for barcode - wait for Enter key
-  }
-
-  const handleBarcodeSearchKeyDown = React.useCallback(async (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-        event.preventDefault();
-        // Only process if barcode term exists
-        if(barcodeSearchTerm) {
-            await processBarcode(barcodeSearchTerm);
-            setBarcodeSearchTerm("");
+    React.useEffect(() => {
+        async function fetchInventory() {
+            const results = await searchAllInventory('');
+            setAllInventory(results);
         }
-    }
-  }, [barcodeSearchTerm, processBarcode]);
-
-  const handleSearchKeyDown = React.useCallback(async (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-        event.preventDefault();
-        // Only process if not already processing a barcode and search term exists
-        if(searchTerm) {
-            await processBarcode(searchTerm);
-        }
-    }
-  }, [searchTerm, processBarcode]);
-
-  const updateQuantity = (id: string, isReturn: boolean | undefined, newQuantityStr: string) => {
-    const newQuantity = parseFloat(newQuantityStr);
-    if (isNaN(newQuantity) || newQuantity < 0) return;
-    
-    updateActiveInvoice(invoice => ({
-        ...invoice,
-        cart: invoice.cart.map(item => (item.id === id && item.is_return === isReturn ? { ...item, quantity: newQuantity } : item))
-    }));
-  };
-
-  const updateTotalPrice = (id: string, isReturn: boolean | undefined, newTotalPriceStr: string) => {
-    if (!/^\d*\.?\d*$/.test(newTotalPriceStr)) return;
-    
-    const newTotalPrice = parseFloat(newTotalPriceStr);
-    if (isNaN(newTotalPrice) || newTotalPrice < 0) return;
-
-    updateActiveInvoice(invoice => ({
-        ...invoice,
-        cart: invoice.cart.map(item => {
-            if (item.id === id && item.is_return === isReturn) {
-                const newUnitPrice = item.quantity > 0 ? newTotalPrice / item.quantity : 0;
-                return { ...item, price: newUnitPrice };
-            }
-            return item;
-        })
-    }));
-  };
-
-  const subtotal = cart.reduce((total, item) => {
-      const itemTotal = (item.price || 0) * (item.quantity || 0);
-      return item.is_return ? total - itemTotal : total + itemTotal;
-  }, 0);
-
-  const totalProfit = cart.reduce((acc, item) => {
-      const itemProfit = ((item.price || 0) - (item.purchase_price || 0)) * (item.quantity || 0);
-      return item.is_return ? acc - itemProfit : acc + itemProfit;
-  }, 0);
-  
-  const discountAmount = React.useMemo(() => {
-    const value = parseFloat(String(discountValue));
-    if (isNaN(value) || value < 0) return 0;
-    if (discountType === 'percentage') {
-        return (subtotal * value) / 100;
-    }
-    return value;
-  }, [discountValue, discountType, subtotal]);
-
-  const finalTotal = subtotal - discountAmount;
-  const finalProfit = totalProfit - discountAmount;
-
-  const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
-  React.useEffect(() => {
-      async function getPatient() {
-          if (patientId) {
-              const results = await searchAllPatients(patientId);
-              const patient = results.find(p => p.id == patientId);
-              setSelectedPatient(patient || null);
-          } else {
-              setSelectedPatient(null);
-          }
-      }
-      getPatient();
-  }, [patientId, searchAllPatients]);
+        fetchInventory();
+    }, [searchAllInventory]);
 
 
-  const handleCheckout = async () => {
-    if (cart.length === 0) {
-      toast({ title: "السلة فارغة", description: "أضف منتجات إلى السلة قبل إتمام العملية.", variant: "destructive" })
-      return;
-    }
+    const handleNameSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setNameSearchTerm(value);
 
-    if (paymentMethod === 'credit' && !patientId) {
-        toast({ title: "مريض غير محدد", description: "يجب تحديد مريض (صديق صيدلية) للفواتير الآجلة.", variant: "destructive" })
-        return;
-    }
-    
-    for (const itemInCart of cart) {
-        if (!itemInCart.is_return) {
-            const med = allInventory?.find(m => m.id === itemInCart.id);
-            if (!med || Number(med.stock) < Number(itemInCart.quantity)) {
-                toast({ variant: 'destructive', title: `كمية غير كافية من ${itemInCart.name}`, description: `الكمية المطلوبة ${itemInCart.quantity}, المتوفر ${med?.stock ?? 0}` });
-                return;
-            }
-        }
-    }
-    
-    const controlledSubstances = settings.controlled_substances || [];
-    const drugsInCart = cart.filter(item => 
-        !item.is_return && item.scientific_names?.some(scName => 
-            controlledSubstances.map(cs => cs.toLowerCase()).includes(scName.toLowerCase())
-        )
-    );
-
-    if (drugsInCart.length > 0) {
-        // تحقق إذا كان الرمز قد تم تأكيده بالفعل
-        if (isControlledDrugConfirmed) {
-            setIsCheckoutOpen(true);
-            setIsControlledDrugConfirmed(false); // إعادة تعيين الحالة للاستخدام المستقبلي
+        if (value.length > 0) {
+            // setIsSearchLoading(true);
+            
+            // const searchTimer = setTimeout(async () => {
+                // try {
+                    const results = await searchAllInventory(value);
+                    setAllInventory(results);
+                    setNameSuggestions(results);
+                // } finally {
+                //     setIsSearchLoading(false);
+                // }
+            // }, 300);
+            
+            // return () => clearTimeout(searchTimer);
         } else {
-            setControlledDrugsInCart(drugsInCart.map(d => d.name));
-            setIsControlledDrugPinOpen(true);
-            // لا تفتح نافذة الدفع مباشرة، انتظر تأكيد الرمز
+            setNameSuggestions([]);
+            setAllInventory([]);
+        }
+    }
+
+    const handleBarcodeSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setBarcodeSearchTerm(value);
+        // Don't search automatically for barcode - wait for Enter key
+    }
+
+    const handleBarcodeSearchKeyDown = React.useCallback(async (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            // Only process if barcode term exists
+            if(barcodeSearchTerm) {
+                await processBarcode(barcodeSearchTerm);
+                setBarcodeSearchTerm("");
+            }
+        }
+    }, [barcodeSearchTerm, processBarcode]);
+
+    const handleSearchKeyDown = React.useCallback(async (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            // Only process if not already processing a barcode and search term exists
+            if(searchTerm) {
+                await processBarcode(searchTerm);
+            }
+        }
+    }, [searchTerm, processBarcode]);
+
+    const updateQuantity = (id: string, isReturn: boolean | undefined, newQuantityStr: string) => {
+        const newQuantity = parseFloat(newQuantityStr);
+        if (isNaN(newQuantity) || newQuantity < 0) return;
+        
+        updateActiveInvoice(invoice => ({
+            ...invoice,
+            cart: invoice.cart.map(item => (item.id === id && item.is_return === isReturn ? { ...item, quantity: newQuantity } : item))
+        }));
+    };
+
+    const updateTotalPrice = (id: string, isReturn: boolean | undefined, newTotalPriceStr: string) => {
+        if (!/^\d*\.?\d*$/.test(newTotalPriceStr)) return;
+        
+        const newTotalPrice = parseFloat(newTotalPriceStr);
+        if (isNaN(newTotalPrice) || newTotalPrice < 0) return;
+
+        updateActiveInvoice(invoice => ({
+            ...invoice,
+            cart: invoice.cart.map(item => {
+                if (item.id === id && item.is_return === isReturn) {
+                    const newUnitPrice = item.quantity > 0 ? newTotalPrice / item.quantity : 0;
+                    return { ...item, price: newUnitPrice };
+                }
+                return item;
+            })
+        }));
+    };
+
+    const subtotal = cart.reduce((total, item) => {
+        const itemTotal = (item.price || 0) * (item.quantity || 0);
+        return item.is_return ? total - itemTotal : total + itemTotal;
+    }, 0);
+
+    const totalProfit = cart.reduce((acc, item) => {
+        const itemProfit = ((item.price || 0) - (item.purchase_price || 0)) * (item.quantity || 0);
+        return item.is_return ? acc - itemProfit : acc + itemProfit;
+    }, 0);
+    
+    const discountAmount = React.useMemo(() => {
+        const value = parseFloat(String(discountValue));
+        if (isNaN(value) || value < 0) return 0;
+        if (discountType === 'percentage') {
+            return (subtotal * value) / 100;
+        }
+        return value;
+    }, [discountValue, discountType, subtotal]);
+
+    const finalTotal = subtotal - discountAmount;
+    const finalProfit = totalProfit - discountAmount;
+
+    const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
+    React.useEffect(() => {
+            async function getPatient() {
+                if (patientId) {
+                    const results = await searchAllPatients(patientId);
+                    const patient = results.find(p => p.id == patientId);
+                    setSelectedPatient(patient || null);
+                } else {
+                    setSelectedPatient(null);
+                }
+            }
+        getPatient();
+    }, [patientId, searchAllPatients]);
+
+
+    const handleCheckout = async () => {
+        if (cart.length === 0) {
+        toast({ title: "السلة فارغة", description: "أضف منتجات إلى السلة قبل إتمام العملية.", variant: "destructive" })
+        return;
+        }
+
+        if (paymentMethod === 'credit' && !patientId) {
+            toast({ title: "مريض غير محدد", description: "يجب تحديد مريض (صديق صيدلية) للفواتير الآجلة.", variant: "destructive" })
             return;
         }
-    } else {
-        setIsCheckoutOpen(true);
-    }
-  }
-  
-  const handleFinalizeSale = async () => {
-    if (!currentUser) return;
-    
-    const saleData = {
-        id: saleIdToUpdate, // Pass ID if updating
-        items: cart,
-        total: finalTotal,
-        profit: totalProfit,
-        discount: discountAmount,
-        patient_id: selectedPatient?.id || null,
-        patient_name: selectedPatient?.name,
-        employee_id: currentUser.id,
-        employee_name: currentUser.name,
-        payment_method: paymentMethod,
-    };
-    
-    const resultSale = saleIdToUpdate ? await updateSale(saleData) : await addSale(saleData);
-
-    if (resultSale) {
-        toast({ title: saleIdToUpdate ? "تم تحديث الفاتورة بنجاح" : "تمت العملية بنجاح", description: `تم تسجيل الفاتورة رقم ${resultSale.id}` });
         
-        setSaleToPrint(resultSale);
-        setIsCheckoutOpen(false);
-        setIsReceiptOpen(true);
-        const latestSales = await searchAllSales();
-        setSortedSales(latestSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        for (const itemInCart of cart) {
+            if (!itemInCart.is_return) {
+                const med = allInventory?.find(m => m.id === itemInCart.id);
+                if (!med || Number(med.stock) < Number(itemInCart.quantity)) {
+                    toast({ variant: 'destructive', title: `كمية غير كافية من ${itemInCart.name}`, description: `الكمية المطلوبة ${itemInCart.quantity}, المتوفر ${med?.stock ?? 0}` });
+                    return;
+                }
+            }
+        }
+        
+        const controlledSubstances = settings.controlled_substances || [];
+        const drugsInCart = cart.filter(item => 
+            !item.is_return && item.scientific_names?.some(scName => 
+                controlledSubstances.map(cs => cs.toLowerCase()).includes(scName.toLowerCase())
+            )
+        );
+
+        if (drugsInCart.length > 0) {
+            // تحقق إذا كان الرمز قد تم تأكيده بالفعل
+            if (isControlledDrugConfirmed) {
+                setIsCheckoutOpen(true);
+                setIsControlledDrugConfirmed(false); // إعادة تعيين الحالة للاستخدام المستقبلي
+            } else {
+                setControlledDrugsInCart(drugsInCart.map(d => d.name));
+                setIsControlledDrugPinOpen(true);
+                // لا تفتح نافذة الدفع مباشرة، انتظر تأكيد الرمز
+                return;
+            }
+        } else {
+            setIsCheckoutOpen(true);
+        }
+    }
+
+    const handleFinalizeSale = async () => {
+        if (!currentUser) return;
+        
+        const saleData = {
+            id: saleIdToUpdate, // Pass ID if updating
+            items: cart,
+            total: finalTotal,
+            profit: totalProfit,
+            discount: discountAmount,
+            patient_id: selectedPatient?.id || null,
+            patient_name: selectedPatient?.name,
+            employee_id: currentUser.id,
+            employee_name: currentUser.name,
+            payment_method: paymentMethod,
+        };
+        
+        const resultSale = saleIdToUpdate ? await updateSale(saleData) : await addSale(saleData);
+
+        if (resultSale) {
+            toast({ title: saleIdToUpdate ? "تم تحديث الفاتورة بنجاح" : "تمت العملية بنجاح", description: `تم تسجيل الفاتورة رقم ${resultSale.id}` });
+            
+            setSaleToPrint(resultSale);
+            setIsCheckoutOpen(false);
+            setIsReceiptOpen(true);
+            const latestSales = await searchAllSales();
+            setSortedSales(latestSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+            setAlternativeExpiryAlert(null);
+        }
+    }
+
+    const handleControlledDrugPinConfirm = async () => {
+        // تم تعديل الدالة لتأكيد مباشر بدون تحقق من كلمة المرور
+        setControlledDrugPin('');
+        setIsControlledDrugPinOpen(false);
+        setIsControlledDrugConfirmed(true);
+        setIsCheckoutOpen(true);
+        toast({ 
+            variant: "default", 
+            title: "تنبيه: دواء خاضع للرقابة",
+            description: "تأكد من توفر الوصفة الطبية وقم بترحيل المادة في سجل المؤثرات العقلية"
+        });
+    }
+
+    const handleDeleteCurrentSale = async () => {
+        if (!saleIdToUpdate) return;
+        if (currentUser?.require_pin_for_delete) {
+            setIsPinDialogOpen(true);
+        } else {
+            const success = await deleteSale(saleIdToUpdate);
+            if(success) {
+                setSortedSales(prev => prev.filter(s => s.id !== saleIdToUpdate));
+                closeInvoice(currentInvoiceIndex);
+                toast({ title: "تم حذف الفاتورة" });
+            }
+        }
+    }
+
+    const handlePinConfirmDelete = async (pin: string) => {
+        if (!saleIdToUpdate) return;
+        const isValid = await verifyPin(pin);
+        if (isValid) {
+            setIsPinDialogOpen(false);
+            const success = await deleteSale(saleIdToUpdate);
+            if(success) {
+                setSortedSales(prev => prev.filter(s => s.id !== saleIdToUpdate));
+                closeInvoice(currentInvoiceIndex);
+                toast({ title: "تم حذف الفاتورة" });
+            }
+        } else {
+            toast({ variant: 'destructive', title: "كلمة المرور غير صحيحة" });
+        }
+    };
+
+
+    const handleNewInvoiceClick = () => {
+        createNewInvoice();
+        setSearchTerm('');
+        setSaleToPrint(null);
         setAlternativeExpiryAlert(null);
+        setMode('sale');
+    };
+
+    const handleCloseInvoice = (index: number) => {
+        closeInvoice(index);
+        setSearchTerm('');
+        setSaleToPrint(null);
+        setAlternativeExpiryAlert(null);
+        setMode('sale');
+    };
+
+    const handleReviewClick = () => {
+        if(activeInvoices[0].cart.length > 0) {
+            const firstInvoiceToSave = { ...activeInvoices[0], reviewIndex: 0 };
+            const otherInvoices = activeInvoices.slice(1);
+            const invoicesToSave = [firstInvoiceToSave, ...otherInvoices];
+            localStorage.setItem('savedInvoices', JSON.stringify(invoicesToSave));
+        } else if (activeInvoices.length > 1) {
+            const invoicesToSave = activeInvoices.slice(1).map((inv, idx) => ({ ...inv, reviewIndex: idx + 1 }));
+            localStorage.setItem('savedInvoices', JSON.stringify(invoicesToSave));
+        }
+
+        router.push('/reports');
     }
-  }
 
-  const handleControlledDrugPinConfirm = async () => {
-    // تم تعديل الدالة لتأكيد مباشر بدون تحقق من كلمة المرور
-    setControlledDrugPin('');
-    setIsControlledDrugPinOpen(false);
-    setIsControlledDrugConfirmed(true);
-    setIsCheckoutOpen(true);
-    toast({ 
-        variant: "default", 
-        title: "تنبيه: دواء خاضع للرقابة",
-        description: "تأكد من توفر الوصفة الطبية وقم بترحيل المادة في سجل المؤثرات العقلية"
-    });
-  }
-
-  const handleDeleteCurrentSale = async () => {
-    if (!saleIdToUpdate) return;
-    if (currentUser?.require_pin_for_delete) {
-        setIsPinDialogOpen(true);
-    } else {
-        const success = await deleteSale(saleIdToUpdate);
-        if(success) {
-            setSortedSales(prev => prev.filter(s => s.id !== saleIdToUpdate));
-            closeInvoice(currentInvoiceIndex);
-            toast({ title: "تم حذف الفاتورة" });
+    const handleAddNewPatient = async () => {
+        const newPatient = await addPatient(newPatientName, newPatientPhone);
+        if (newPatient) {
+            updateActiveInvoice(prev => ({...prev, patientId: newPatient.id}));
+            toast({ title: "تم إضافة المريض", description: `تم تحديد ${newPatient.name} لهذه الفاتورة.` });
+            setNewPatientName("");
+            setNewPatientPhone("");
+            setPatientSearchTerm("");
+            setIsPatientModalOpen(false);
         }
     }
-  }
-  
-  const handlePinConfirmDelete = async (pin: string) => {
-    if (!saleIdToUpdate) return;
-    const isValid = await verifyPin(pin);
-    if (isValid) {
-        setIsPinDialogOpen(false);
-        const success = await deleteSale(saleIdToUpdate);
-        if(success) {
-            setSortedSales(prev => prev.filter(s => s.id !== saleIdToUpdate));
-            closeInvoice(currentInvoiceIndex);
-            toast({ title: "تم حذف الفاتورة" });
+
+    const handlePatientSearch = async (term: string) => {
+        setPatientSearchTerm(term);
+        if(term) {
+            const results = await searchAllPatients(term);
+            setPatientSuggestions(results);
+        } else {
+            setPatientSuggestions([]);
         }
-    } else {
-        toast({ variant: 'destructive', title: "كلمة المرور غير صحيحة" });
-    }
-  };
-
-
-  const handleNewInvoiceClick = () => {
-    createNewInvoice();
-    setSearchTerm('');
-    setSaleToPrint(null);
-    setAlternativeExpiryAlert(null);
-    setMode('sale');
-  };
-  
-  const handleCloseInvoice = (index: number) => {
-    closeInvoice(index);
-    setSearchTerm('');
-    setSaleToPrint(null);
-    setAlternativeExpiryAlert(null);
-    setMode('sale');
-  };
-  
-  const handleReviewClick = () => {
-    if(activeInvoices[0].cart.length > 0) {
-        const firstInvoiceToSave = { ...activeInvoices[0], reviewIndex: 0 };
-        const otherInvoices = activeInvoices.slice(1);
-        const invoicesToSave = [firstInvoiceToSave, ...otherInvoices];
-        localStorage.setItem('savedInvoices', JSON.stringify(invoicesToSave));
-    } else if (activeInvoices.length > 1) {
-        const invoicesToSave = activeInvoices.slice(1).map((inv, idx) => ({ ...inv, reviewIndex: idx + 1 }));
-        localStorage.setItem('savedInvoices', JSON.stringify(invoicesToSave));
     }
 
-    router.push('/reports');
-  }
+    const findAlternatives = (currentItem: SaleItem): Medication[] => {
+        if (!allInventory || !currentItem.scientific_names || currentItem.scientific_names.length === 0) {
+            return [];
+        }
+        const currentScientificNames = currentItem.scientific_names.map(s => s.toLowerCase());
 
-  const handleAddNewPatient = async () => {
-      const newPatient = await addPatient(newPatientName, newPatientPhone);
-      if (newPatient) {
-          updateActiveInvoice(prev => ({...prev, patientId: newPatient.id}));
-          toast({ title: "تم إضافة المريض", description: `تم تحديد ${newPatient.name} لهذه الفاتورة.` });
-          setNewPatientName("");
-          setNewPatientPhone("");
-          setPatientSearchTerm("");
-          setIsPatientModalOpen(false);
-      }
-  }
-
-  const handlePatientSearch = async (term: string) => {
-    setPatientSearchTerm(term);
-    if(term) {
-        const results = await searchAllPatients(term);
-        setPatientSuggestions(results);
-    } else {
-        setPatientSuggestions([]);
-    }
-  }
-
-  const findAlternatives = (currentItem: SaleItem): Medication[] => {
-    if (!allInventory || !currentItem.scientific_names || currentItem.scientific_names.length === 0) {
-        return [];
-    }
-    const currentScientificNames = currentItem.scientific_names.map(s => s.toLowerCase());
-
-    return allInventory.filter(med => 
-        med.id !== currentItem.id &&
-        med.scientific_names?.some(scName => currentScientificNames.includes(scName.toLowerCase()))
-    );
-};
+        return allInventory.filter(med => 
+            med.id !== currentItem.id &&
+            med.scientific_names?.some(scName => currentScientificNames.includes(scName.toLowerCase()))
+        );
+    };
 
     const handleDiscountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -998,18 +998,18 @@ export default function SalesPage() {
         updateActiveInvoice(prev => ({...prev, paymentMethod: value}));
     };
     
-  const handleModeChange = (newMode: 'sale' | 'return') => {
-    if (!newMode) return;
-    setMode(newMode);
-    updateActiveInvoice(invoice => {
-        return {
-            ...invoice,
-            cart: invoice.cart.map(item => ({ ...item, is_return: newMode === 'return' }))
-        }
-    });
-  };
+    const handleModeChange = (newMode: 'sale' | 'return') => {
+        if (!newMode) return;
+        setMode(newMode);
+        updateActiveInvoice(invoice => {
+            return {
+                ...invoice,
+                cart: invoice.cart.map(item => ({ ...item, is_return: newMode === 'return' }))
+            }
+        });
+    };
 
-  return (
+    return (
     <>
     <TooltipProvider>
         <div className="hidden">
@@ -1125,7 +1125,7 @@ export default function SalesPage() {
                             </div>
                         </PopoverContent>
                     </Popover>
-                     <Button variant="secondary" onClick={handleReviewClick}>
+                    <Button variant="secondary" onClick={handleReviewClick}>
                         <FileText className="me-2"/>
                         مراجعة الفواتير
                     </Button>
@@ -1134,8 +1134,8 @@ export default function SalesPage() {
                 <Card className="flex-1 flex flex-col">
                     <CardHeader className="py-4 border-b">
                         <div className="flex items-center justify-between gap-2">
-                             <div className="flex items-center gap-2 overflow-x-auto pb-2">
-                                 {activeInvoices.map((inv, index) => (
+                            <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                                {activeInvoices.map((inv, index) => (
                                     <Button 
                                         key={index} 
                                         variant={index === currentInvoiceIndex ? "secondary" : "ghost"}
@@ -1151,10 +1151,10 @@ export default function SalesPage() {
                                             </span>
                                         )}
                                     </Button>
-                                 ))}
-                                 <Button size="icon" variant="ghost" onClick={handleNewInvoiceClick}>
-                                    <PlusCircle className="h-4 w-4"/>
-                                 </Button>
+                                ))}
+                                <Button size="icon" variant="ghost" onClick={handleNewInvoiceClick}>
+                                <PlusCircle className="h-4 w-4"/>
+                                </Button>
                             </div>
                             <ToggleGroup type="single" value={mode} onValueChange={(value: 'sale' | 'return') => handleModeChange(value)} size="sm">
                                 <ToggleGroupItem value="sale" aria-label="Toggle sale">
@@ -1167,7 +1167,7 @@ export default function SalesPage() {
                         </div>
                 </CardHeader>
                 <CardContent className="p-0 flex-1 flex flex-col">
-                     {alternativeExpiryAlert && (
+                    {alternativeExpiryAlert && (
                         <Alert variant="default" className="m-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 border-yellow-400">
                             <AlertDescription className="text-yellow-700 dark:text-yellow-400 flex items-center justify-between">
                                 <span>{alternativeExpiryAlert.message}</span>
@@ -1265,147 +1265,147 @@ export default function SalesPage() {
                                                                 </TooltipContent>
                                                             </Tooltip>
                                                         )}
-                                                     </div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                             <div className="text-xs text-muted-foreground mt-1 flex gap-2">
-                                                <span>الرصيد: {stock}</span>
-                                                {!item.is_return && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
-                                                <span>| الشراء: <span className="font-mono">{item.purchase_price || 0}</span></span>
-                                             </div>
+                                            <div className="text-xs text-muted-foreground mt-1 flex gap-2">
+                                            <span>الرصيد: {stock}</span>
+                                            {!item.is_return && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
+                                            <span>| الشراء: <span className="font-mono">{item.purchase_price || 0}</span></span>
+                                            </div>
                                         </div>
                                     )
                                 })}
                             </div>
 
-                          <Table className="hidden md:table">
-                              <TableHeader className="sticky top-0 bg-background z-10">
-                                  <TableRow>
-                                      <TableHead>المنتج</TableHead>
-                                      <TableHead className="w-[150px] text-center">الكمية</TableHead>
-                                      <TableHead className="w-[120px] text-center">السعر</TableHead>
-                                      <TableHead className="w-12"></TableHead>
-                                  </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                  {cart.map((item) => {
-                                    const medInInventory = allInventory?.find(med => med.id === item.id);
-                                    const stock = medInInventory?.stock ?? 0;
-                                    const remainingStock = stock - (item.quantity || 0);
-                                    const isBelowCost = (Number(item.price) || 0) < (Number(item.purchase_price) || 0);
-                                    const alternatives = findAlternatives(item);
+                            <Table className="hidden md:table">
+                                    <TableHeader className="sticky top-0 bg-background z-10">
+                                        <TableRow>
+                                            <TableHead>المنتج</TableHead>
+                                            <TableHead className="w-[150px] text-center">الكمية</TableHead>
+                                            <TableHead className="w-[120px] text-center">السعر</TableHead>
+                                            <TableHead className="w-12"></TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                            {cart.map((item) => {
+                                                const medInInventory = allInventory?.find(med => med.id === item.id);
+                                                const stock = medInInventory?.stock ?? 0;
+                                                const remainingStock = stock - (item.quantity || 0);
+                                                const isBelowCost = (Number(item.price) || 0) < (Number(item.purchase_price) || 0);
+                                                const alternatives = findAlternatives(item);
 
-                                    return (
-                                        <TableRow key={`${item.id}-${item.is_return}`} className={cn(item.is_return && "bg-red-50 dark:bg-red-900/20", "cursor-pointer")} onClick={() => {
-                                            const medication = allInventory.find(med => med.id === item.id);
-                                            if (medication) checkAlternativeExpiry(medication);
-                                        }}>
+                                                return (
+                                                    <TableRow key={`${item.id}-${item.is_return}`} className={cn(item.is_return && "bg-red-50 dark:bg-red-900/20", "cursor-pointer")} onClick={() => {
+                                                        const medication = allInventory.find(med => med.id === item.id);
+                                                        if (medication) checkAlternativeExpiry(medication);
+                                                    }}>
 
-                                            <TableCell>
-                                                <div className="flex items-center gap-1">
-                                                    <span className="font-medium">{item.name} {item.dosage} {item.dosage_form}</span>
-                                                    {alternatives.length > 0 && (
-                                                        <Popover>
-                                                            <PopoverTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-primary/70 hover:text-primary">
-                                                                    <Replace className="h-4 w-4" />
-                                                                </Button>
-                                                            </PopoverTrigger>
-                                                            <PopoverContent className="w-80 max-h-80 overflow-y-auto">
-                                                                <DialogHeader>
-                                                                    <DialogTitle>بدائل متاحة</DialogTitle>
-                                                                </DialogHeader>
-                                                                <div className="space-y-2">
-                                                                    <div className="space-y-1">
-                                                                        {alternatives.map(alt => (
-                                                                            <div key={alt.id} className="text-sm p-2 hover:bg-accent rounded-md flex justify-between items-center group cursor-pointer" onClick={() => addToCart(alt)}>
-                                                                                <div>
-                                                                                    <div>{alt.name}</div>
-                                                                                    <div className="text-xs text-muted-foreground">المتوفر: {alt.stock}</div>
-                                                                                </div>
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <span className="font-mono">{alt.price}</span>
-                                                                                    <PlusCircle className="h-4 w-4 text-green-600 group-hover:text-white" />
+                                                        <TableCell>
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="font-medium">{item.name} {item.dosage} {item.dosage_form}</span>
+                                                                {alternatives.length > 0 && (
+                                                                    <Popover>
+                                                                        <PopoverTrigger asChild>
+                                                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-primary/70 hover:text-primary">
+                                                                                <Replace className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </PopoverTrigger>
+                                                                        <PopoverContent className="w-80 max-h-80 overflow-y-auto">
+                                                                            <DialogHeader>
+                                                                                <DialogTitle>بدائل متاحة</DialogTitle>
+                                                                            </DialogHeader>
+                                                                            <div className="space-y-2">
+                                                                                <div className="space-y-1">
+                                                                                    {alternatives.map(alt => (
+                                                                                        <div key={alt.id} className="text-sm p-2 hover:bg-accent rounded-md flex justify-between items-center group cursor-pointer" onClick={() => addToCart(alt)}>
+                                                                                            <div>
+                                                                                                <div>{alt.name}</div>
+                                                                                                <div className="text-xs text-muted-foreground">المتوفر: {alt.stock}</div>
+                                                                                            </div>
+                                                                                            <div className="flex items-center gap-2">
+                                                                                                <span className="font-mono">{alt.price}</span>
+                                                                                                <PlusCircle className="h-4 w-4 text-green-600 group-hover:text-white" />
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    ))}
                                                                                 </div>
                                                                             </div>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                            </PopoverContent>
-                                                        </Popover>
-                                                    )}
-                                                </div>
-                                                <div className="text-xs text-muted-foreground">({(item.scientific_names || []).join(', ')})</div>
-                                                <div className="text-xs text-muted-foreground flex gap-2">
-                                                    <span>الرصيد: {stock}</span> 
-                                                    {!item.is_return && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
-                                                    <span>| الشراء: <span className="font-mono">{item.purchase_price || 0}</span></span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                             <div className="flex items-center justify-center">
-                                                <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-e-none" onClick={() => updateQuantity(item.id, item.is_return, String((item.quantity || 0) + 1))}>
-                                                    <Plus className="h-4 w-4" />
-                                                </Button>
-                                                <Input id={`quantity-${item.id}`} type="number" value={item.quantity || 1} onChange={(e) => updateQuantity(item.id, item.is_return, e.target.value)} min={0} className="w-16 h-9 text-center font-mono rounded-none border-x-0" />
-                                                <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-s-none" onClick={() => updateQuantity(item.id, item.is_return, String(Math.max(0, (item.quantity || 0) - 1)))}>
-                                                    <Minus className="h-4 w-4" />
-                                                </Button>
-                                             </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="relative">
-                                                    <Input 
-                                                      type="text"
-                                                      pattern="[0-9]*"
-                                                      value={((item.price || 0) * (item.quantity || 0))}
-                                                      onChange={(e) => updateTotalPrice(item.id, item.is_return, e.target.value)} 
-                                                      className={cn("w-24 h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )}
-                                                      step="1"
-                                                      min="0" 
-                                                      disabled={!priceModificationAllowed} />
-                                                    {isBelowCost && !item.is_return && (
-                                                      <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                          <div className="absolute -top-2 -left-2 text-destructive" title="السعر أقل من الكلفة!">
-                                                            <AlertTriangle className="h-4 w-4" />
-                                                          </div>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            <p>السعر أقل من الكلفة!</p>
-                                                        </TooltipContent>
-                                                      </Tooltip>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-left">
-                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.id, item.is_return)}><X className="h-4 w-4" /></Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                  })}
-                              </TableBody>
-                          </Table>
-                          </>
-                      ) : (
-                          <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
-                              <PackageSearch className="h-16 w-16 mb-4" />
-                              <p className="text-lg">{saleIdToUpdate ? 'لا توجد أصناف في هذه الفاتورة' : 'الفاتورة فارغة'}</p>
-                              <p className="text-sm">أضف منتجات لبدء عملية البيع.</p>
-                          </div>
-                      )}
-                      </ScrollArea>
-                  </CardContent>
-              </Card>
-          </div>
+                                                                        </PopoverContent>
+                                                                    </Popover>
+                                                                )}
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground">({(item.scientific_names || []).join(', ')})</div>
+                                                            <div className="text-xs text-muted-foreground flex gap-2">
+                                                                <span>الرصيد: {stock}</span> 
+                                                                {!item.is_return && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
+                                                                <span>| الشراء: <span className="font-mono">{item.purchase_price || 0}</span></span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex items-center justify-center">
+                                                                <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-e-none" onClick={() => updateQuantity(item.id, item.is_return, String((item.quantity || 0) + 1))}>
+                                                                    <Plus className="h-4 w-4" />
+                                                                </Button>
+                                                                <Input id={`quantity-${item.id}`} type="number" value={item.quantity || 1} onChange={(e) => updateQuantity(item.id, item.is_return, e.target.value)} min={0} className="w-16 h-9 text-center font-mono rounded-none border-x-0" />
+                                                                <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-s-none" onClick={() => updateQuantity(item.id, item.is_return, String(Math.max(0, (item.quantity || 0) - 1)))}>
+                                                                    <Minus className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="relative">
+                                                                <Input 
+                                                                    type="text"
+                                                                    pattern="[0-9]*"
+                                                                    value={((item.price || 0) * (item.quantity || 0))}
+                                                                    onChange={(e) => updateTotalPrice(item.id, item.is_return, e.target.value)} 
+                                                                    className={cn("w-24 h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive" )}
+                                                                    step="1"
+                                                                    min="0" 
+                                                                    disabled={!priceModificationAllowed} />
+                                                                {isBelowCost && !item.is_return && (
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <div className="absolute -top-2 -left-2 text-destructive" title="السعر أقل من الكلفة!">
+                                                                                <AlertTriangle className="h-4 w-4" />
+                                                                            </div>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>السعر أقل من الكلفة!</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-left">
+                                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.id, item.is_return)}><X className="h-4 w-4" /></Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                    </TableBody>
+                            </Table>
+                            </>
+                        ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
+                                        <PackageSearch className="h-16 w-16 mb-4" />
+                                        <p className="text-lg">{saleIdToUpdate ? 'لا توجد أصناف في هذه الفاتورة' : 'الفاتورة فارغة'}</p>
+                                        <p className="text-sm">أضف منتجات لبدء عملية البيع.</p>
+                                </div>
+                        )}
+                        </ScrollArea>
+                    </CardContent>
+                </Card>
+            </div>
 
-          <div className="lg:col-span-1">
-               <Card className="sticky top-6">
-                  <CardContent className="flex flex-col gap-4 pt-6">
-                      <div className="mb-2">
-                        <AdCarousel page="sales"/>
-                      </div>
-                       <div className="relative">
+            <div className="lg:col-span-1">
+                <Card className="sticky top-6">
+                    <CardContent className="flex flex-col gap-4 pt-6">
+                        <div className="mb-2">
+                            <AdCarousel page="sales"/>
+                        </div>
+                        <div className="relative">
                             <Dialog open={isPatientModalOpen} onOpenChange={setIsPatientModalOpen}>
                                 <DialogTrigger asChild>
                                     <Button variant="outline" className="w-full justify-between text-left font-normal">
@@ -1451,188 +1451,204 @@ export default function SalesPage() {
                                     <X className="h-4 w-4" />
                                 </Button>
                             )}
-                       </div>
-                      <Separator />
+                        </div>
+                        <Separator />
 
-                      <div className="flex justify-between w-full text-md">
-                          <span>المجموع</span>
-                          <span className="font-mono">{subtotal.toLocaleString()}</span>
-                      </div>
-                       <div className={cn(
-                           "flex justify-between w-full text-md",
-                           finalProfit >= 0 ? "text-green-600" : "text-destructive"
-                        )}>
-                          <span className="flex items-center gap-1"><TrendingUp className="h-4 w-4" /> الربح الصافي</span>
-                          <span className="font-semibold font-mono">{finalProfit.toLocaleString()}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="discount" className="text-md shrink-0">خصم</Label>
-                        <Input 
-                        id="discount" 
-                        type="number" 
-                        value={discountValue || ''} 
-                        onChange={handleDiscountChange}
-                        className="h-9 w-full bg-background ltr:text-left rtl:text-right font-mono" 
-                        placeholder="0" 
-                        inputMode="decimal"
-                        pattern="[0-9]*\.?[0-9]*"
-                        />
-                        <RadioGroup defaultValue="fixed" value={discountType} onValueChange={(value: any) => updateActiveInvoice(prev => ({...prev, discountType: value}))} className="flex">
-                            <Button type="button" size="sm" variant={discountType === 'fixed' ? 'secondary' : 'ghost'} onClick={() => updateActiveInvoice(prev => ({...prev, discountType: 'fixed'}))}>IQD</Button>
-                            <Button type="button" size="icon" variant={discountType === 'percentage' ? 'secondary' : 'ghost'} onClick={() => updateActiveInvoice(prev => ({...prev, discountType: 'percentage'}))} className="h-9 w-9"><Percent className="h-4 w-4" /></Button>
-                        </RadioGroup>
-                      </div>
-                      <Separator />
-                      <div className="flex justify-between w-full text-lg font-semibold">
-                          <span>الإجمالي</span>
-                           <span className={cn("font-mono", finalTotal < 0 ? 'text-destructive' : '')}>{finalTotal.toLocaleString()}</span>
-                      </div>
-                  </CardContent>
-                  <CardFooter className="flex flex-col items-stretch gap-2">
-                       <div className="flex items-center gap-2">
-                           <Dialog>
-                               <DialogTrigger asChild>
-                                   <Button variant="outline" size="icon">
-                                       <Calculator />
-                                   </Button>
-                               </DialogTrigger>
-                               <DialogContent className="w-auto p-0 border-0 bg-transparent shadow-none">
+                        <div className="flex justify-between w-full text-md">
+                            <span>المجموع</span>
+                            <span className="font-mono">{subtotal.toLocaleString()}</span>
+                        </div>
+                        <div className={cn(
+                            "flex justify-between w-full text-md",
+                            finalProfit >= 0 ? "text-green-600" : "text-destructive"
+                            )}>
+                            <span className="flex items-center gap-1"><TrendingUp className="h-4 w-4" /> الربح الصافي</span>
+                            <span className="font-semibold font-mono">{finalProfit.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Label htmlFor="discount" className="text-md shrink-0">خصم</Label>
+                            <Input 
+                                id="discount" 
+                                type="number" 
+                                value={discountValue || ''} 
+                                onChange={handleDiscountChange}
+                                className="h-9 w-full bg-background ltr:text-left rtl:text-right font-mono" 
+                                placeholder="0" 
+                                inputMode="decimal"
+                                pattern="[0-9]*\.?[0-9]*"
+                                />
+                            <RadioGroup defaultValue="fixed" value={discountType} onValueChange={(value: any) => updateActiveInvoice(prev => ({...prev, discountType: value}))} className="flex">
+                                <Button type="button" size="sm" variant={discountType === 'fixed' ? 'secondary' : 'ghost'} onClick={() => updateActiveInvoice(prev => ({...prev, discountType: 'fixed'}))}>IQD</Button>
+                                <Button type="button" size="icon" variant={discountType === 'percentage' ? 'secondary' : 'ghost'} onClick={() => updateActiveInvoice(prev => ({...prev, discountType: 'percentage'}))} className="h-9 w-9"><Percent className="h-4 w-4" /></Button>
+                            </RadioGroup>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between w-full text-lg font-semibold">
+                                <span>الإجمالي</span>
+                                <span className={cn("font-mono", finalTotal < 0 ? 'text-destructive' : '')}>{finalTotal.toLocaleString()}</span>
+                        </div>
+                    </CardContent>
+                    <CardFooter className="flex flex-col items-stretch gap-2">
+                        <div className="flex items-center gap-2">
+                            <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" size="icon">
+                                            <Calculator />
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="w-auto p-0 border-0 bg-transparent shadow-none">
+                                            <DialogHeader>
+                                                <DialogTitle className="sr-only">Calculator</DialogTitle>
+                                            </DialogHeader>
+                                            <CalculatorComponent />
+                                    </DialogContent>
+                            </Dialog>
+                            <Dialog open={isDosingAssistantOpen} onOpenChange={setIsDosingAssistantOpen}>
+                                    <DialogTrigger asChild>
+                                            <Button size="icon" variant="outline" className="relative" disabled={!isOnline || cart.length === 0} aria-label="مساعد الجرعات">
+                                                    <Thermometer />
+                                                    {isOnline ? (
+                                                        <Wifi className="absolute top-1 right-1 h-3 w-3 text-green-500" />
+                                                    ) : (
+                                                        <WifiOff className="absolute top-1 right-1 h-3 w-3 text-muted-foreground" />
+                                                    )}
+                                            </Button>
+                                    </DialogTrigger>
+                                <DosingAssistant cartItems={cart} />
+                            </Dialog>
+                            <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button size="lg" className="flex-1" onClick={handleCheckout} disabled={cart.length === 0} variant={saleIdToUpdate ? 'default' : 'success'}>
+                                            {saleIdToUpdate ? 'تحديث الفاتورة' : (mode === 'return' ? 'إتمام الاسترجاع' : 'إتمام العملية')}
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>{saleIdToUpdate ? 'تأكيد التعديل' : 'تأكيد الفاتورة'}</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="space-y-4">
+                                            <div className="max-h-64 overflow-y-auto p-1">
+                                                    <Table>
+                                                            <TableHeader>
+                                                                <TableRow>
+                                                                    <TableHead>المنتج</TableHead>
+                                                                    <TableHead className="text-center">الكمية</TableHead>
+                                                                    <TableHead className="text-left">السعر</TableHead>
+                                                                </TableRow>
+                                                            </TableHeader>
+                                                            <TableBody>
+                                                                {cart.map(item => (
+                                                                    <TableRow key={`${item.id}-${item.is_return}`} className={cn(item.is_return && "text-destructive")}>
+                                                                        <TableCell>{item.name} {item.is_return && "(مرتجع)"}</TableCell>
+                                                                        <TableCell className="text-center font-mono">{item.quantity}</TableCell>
+                                                                        <TableCell className="text-left font-mono">{((item.is_return ? -1 : 1) * (item.price || 0) * (item.quantity || 0)).toLocaleString()}</TableCell>
+                                                                    </TableRow>
+                                                                ))}
+                                                            </TableBody>
+                                                    </Table>
+                                            </div>
+                                            <Separator/>
+                                            <div className="space-y-2 text-sm font-mono">
+                                                {selectedPatient && 
+                                                    <div className="flex justify-between">
+                                                        <span>المريض:</span>
+                                                        <span>{selectedPatient.name}</span>
+                                                    </div>
+                                                }
+                                                <div className="flex justify-between">
+                                                    <span>المجموع:</span>
+                                                    <span>{subtotal.toLocaleString()}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span>الخصم:</span>
+                                                    <span>-{discountAmount.toLocaleString()}</span>
+                                                </div>
+                                                <div className={cn("flex justify-between", finalProfit >= 0 ? "text-green-600" : "text-destructive")}>
+                                                    <span>الربح الصافي:</span>
+                                                    <span>{finalProfit.toLocaleString()}</span>
+                                                </div>
+                                                <div className="flex justify-between font-bold text-lg">
+                                                    <span>الإجمالي النهائي:</span>
+                                                    <span>{finalTotal.toLocaleString()}</span>
+                                                </div>
+                                            </div>
+                                            <Separator />
+                                            <RadioGroup defaultValue="cash" value={paymentMethod} onValueChange={handlePaymentMethodChange} className="grid grid-cols-3 gap-4 pt-2">
+                                                    <Label htmlFor="payment-cash" className="flex items-center justify-center gap-2 cursor-pointer rounded-md border p-3 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
+                                                        <RadioGroupItem value="cash" id="payment-cash" />
+                                                        نقداً
+                                                    </Label>
+                                                    <Label htmlFor="payment-card" className="flex items-center justify-center gap-2 cursor-pointer rounded-md border p-3 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
+                                                        <RadioGroupItem value="card" id="payment-card" />
+                                                        بطاقة
+                                                    </Label>
+                                                    <Label htmlFor="payment-credit" className="flex items-center justify-center gap-2 cursor-pointer rounded-md border p-3 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
+                                                        <RadioGroupItem value="credit" id="payment-credit" />
+                                                        آجل (دين)
+                                                    </Label>
+                                            </RadioGroup>
+                                        </div>
+                                        <DialogFooter className='sm:space-x-reverse'>
+                                                <DialogClose asChild>
+                                                    <Button variant="outline">إلغاء</Button>
+                                                </DialogClose>
+                                                <Button onClick={handleFinalizeSale} variant={saleIdToUpdate ? 'default' : 'success'}>
+                                                    {saleIdToUpdate ? 'تأكيد التعديل' : (mode === 'return' ? 'تأكيد الاسترجاع' : 'تأكيد البيع')}
+                                                </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                            </Dialog>
+                        </div>
+                        {activeInvoices.length === 1 && activeInvoice.cart.length > 0 && (
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="outline" className="w-full" disabled={cart.length === 0}>
+                                        <X className="me-2"/>
+                                        {saleIdToUpdate ? 'إلغاء التعديل' : 'إلغاء الفاتورة'}
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
                                     <DialogHeader>
-                                      <DialogTitle className="sr-only">Calculator</DialogTitle>
+                                        <DialogTitle>هل أنت متأكد؟</DialogTitle>
+                                        <DialogDescription>
+                                            {saleIdToUpdate ? 'سيتم تجاهل جميع التغييرات التي قمت بها.' : 'سيتم حذف جميع الأصناف من السلة الحالية.'}
+                                        </DialogDescription>
                                     </DialogHeader>
-                                    <CalculatorComponent />
-                               </DialogContent>
-                           </Dialog>
-                          <Dialog open={isDosingAssistantOpen} onOpenChange={setIsDosingAssistantOpen}>
-                              <DialogTrigger asChild>
-                                  <Button size="icon" variant="outline" className="relative" disabled={!isOnline || cart.length === 0} aria-label="مساعد الجرعات">
-                                      <Thermometer />
-                                      {isOnline ? (
-                                          <Wifi className="absolute top-1 right-1 h-3 w-3 text-green-500" />
-                                      ) : (
-                                          <WifiOff className="absolute top-1 right-1 h-3 w-3 text-muted-foreground" />
-                                      )}
-                                  </Button>
-                              </DialogTrigger>
-                              <DosingAssistant cartItems={cart} />
-                          </Dialog>
-                          <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-                              <DialogTrigger asChild>
-                                  <Button size="lg" className="flex-1" onClick={handleCheckout} disabled={cart.length === 0} variant={saleIdToUpdate ? 'default' : 'success'}>
-                                      {saleIdToUpdate ? 'تحديث الفاتورة' : (mode === 'return' ? 'إتمام الاسترجاع' : 'إتمام العملية')}
-                                  </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                  <DialogHeader>
-                                      <DialogTitle>{saleIdToUpdate ? 'تأكيد التعديل' : 'تأكيد الفاتورة'}</DialogTitle>
-                                  </DialogHeader>
-                                  <div className="space-y-4">
-                                      <div className="max-h-64 overflow-y-auto p-1">
-                                          <Table>
-                                              <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>المنتج</TableHead>
-                                                    <TableHead className="text-center">الكمية</TableHead>
-                                                    <TableHead className="text-left">السعر</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                              <TableBody>
-                                                  {cart.map(item => (
-                                                      <TableRow key={`${item.id}-${item.is_return}`} className={cn(item.is_return && "text-destructive")}>
-                                                          <TableCell>{item.name} {item.is_return && "(مرتجع)"}</TableCell>
-                                                          <TableCell className="text-center font-mono">{item.quantity}</TableCell>
-                                                          <TableCell className="text-left font-mono">{((item.is_return ? -1 : 1) * (item.price || 0) * (item.quantity || 0)).toLocaleString()}</TableCell>
-                                                      </TableRow>
-                                                  ))}
-                                              </TableBody>
-                                          </Table>
-                                      </div>
-                                      <Separator/>
-                                      <div className="space-y-2 text-sm font-mono">
-                                          {selectedPatient && <div className="flex justify-between"><span>المريض:</span><span>{selectedPatient.name}</span></div>}
-                                          <div className="flex justify-between"><span>المجموع:</span><span>{subtotal.toLocaleString()}</span></div>
-                                          <div className="flex justify-between"><span>الخصم:</span><span>-{discountAmount.toLocaleString()}</span></div>
-                                           <div className={cn("flex justify-between", finalProfit >= 0 ? "text-green-600" : "text-destructive")}>
-                                               <span>الربح الصافي:</span>
-                                               <span>{finalProfit.toLocaleString()}</span>
-                                           </div>
-                                          <div className="flex justify-between font-bold text-lg"><span>الإجمالي النهائي:</span><span>{finalTotal.toLocaleString()}</span></div>
-                                      </div>
-                                      <Separator />
-                                       <RadioGroup defaultValue="cash" value={paymentMethod} onValueChange={handlePaymentMethodChange} className="grid grid-cols-3 gap-4 pt-2">
-                                            <Label htmlFor="payment-cash" className="flex items-center justify-center gap-2 cursor-pointer rounded-md border p-3 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
-                                                <RadioGroupItem value="cash" id="payment-cash" />
-                                                نقداً
-                                            </Label>
-                                            <Label htmlFor="payment-card" className="flex items-center justify-center gap-2 cursor-pointer rounded-md border p-3 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
-                                                <RadioGroupItem value="card" id="payment-card" />
-                                                بطاقة
-                                             </Label>
-                                             <Label htmlFor="payment-credit" className="flex items-center justify-center gap-2 cursor-pointer rounded-md border p-3 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
-                                                <RadioGroupItem value="credit" id="payment-credit" />
-                                                آجل (دين)
-                                             </Label>
-                                        </RadioGroup>
-                                  </div>
-                                  <DialogFooter className='sm:space-x-reverse'>
-                                      <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
-                                      <Button onClick={handleFinalizeSale} variant={saleIdToUpdate ? 'default' : 'success'}>
-                                        {saleIdToUpdate ? 'تأكيد التعديل' : (mode === 'return' ? 'تأكيد الاسترجاع' : 'تأكيد البيع')}
-                                      </Button>
-                                  </DialogFooter>
-                              </DialogContent>
-                          </Dialog>
-                      </div>
-                      {activeInvoices.length === 1 && activeInvoice.cart.length > 0 && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="outline" className="w-full" disabled={cart.length === 0}>
-                                    <X className="me-2"/>
-                                    {saleIdToUpdate ? 'إلغاء التعديل' : 'إلغاء الفاتورة'}
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>هل أنت متأكد؟</DialogTitle>
-                                    <DialogDescription>
-                                        {saleIdToUpdate ? 'سيتم تجاهل جميع التغييرات التي قمت بها.' : 'سيتم حذف جميع الأصناف من السلة الحالية.'}
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>تراجع</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => {
-                                        closeInvoice(currentInvoiceIndex);
-                                        setAlternativeExpiryAlert(null);
-                                    }} className={buttonVariants({ variant: "destructive" })}>نعم</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                      )}
-                      {saleIdToUpdate && canManagePreviousSales && (
-                         <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                  <Button variant="destructive" className="w-full">
-                                      <Trash2 className="me-2"/>
-                                      حذف الفاتورة نهائياً
-                                  </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                  <DialogHeader>
-                                      <DialogTitle>هل أنت متأكد من حذف الفاتورة؟</DialogTitle>
-                                      <AlertDialogDescription>
-                                          لا يمكن التراجع عن هذا الإجراء. سيتم إعادة كميات الأصناف المباعة إلى المخزون.
-                                      </AlertDialogDescription>
-                                  </DialogHeader>
-                                  <AlertDialogFooter className='sm:space-x-reverse'>
-                                      <AlertDialogCancel>تراجع</AlertDialogCancel>
-                                      <AlertDialogAction onClick={handleDeleteCurrentSale} className={buttonVariants({ variant: "destructive" })}>نعم، قم بالحذف</AlertDialogAction>
-                                  </AlertDialogFooter>
-                              </AlertDialogContent>
-                          </AlertDialog>
-                      )}
-                  </CardFooter>
-              </Card>
-          </div>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>تراجع</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => {
+                                            closeInvoice(currentInvoiceIndex);
+                                            setAlternativeExpiryAlert(null);
+                                        }} className={buttonVariants({ variant: "destructive" })}>نعم</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        )}
+                        {saleIdToUpdate && canManagePreviousSales && (
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" className="w-full">
+                                        <Trash2 className="me-2"/>
+                                        حذف الفاتورة نهائياً
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>هل أنت متأكد من حذف الفاتورة؟</DialogTitle>
+                                        <AlertDialogDescription>
+                                            لا يمكن التراجع عن هذا الإجراء. سيتم إعادة كميات الأصناف المباعة إلى المخزون.
+                                        </AlertDialogDescription>
+                                    </DialogHeader>
+                                    <AlertDialogFooter className='sm:space-x-reverse'>
+                                        <AlertDialogCancel>تراجع</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDeleteCurrentSale} className={buttonVariants({ variant: "destructive" })}>نعم، قم بالحذف</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        )}
+                    </CardFooter>
+                </Card>
+            </div>
         <Dialog open={isReceiptOpen} onOpenChange={(open) => {
             if (!open) closeInvoice(currentInvoiceIndex, true);
             setIsReceiptOpen(open);
@@ -1708,5 +1724,5 @@ export default function SalesPage() {
     </div>
     </TooltipProvider>
     </>
-  )
+)
 }

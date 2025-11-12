@@ -7,7 +7,7 @@ import { Building, Target, Users, Zap, Smartphone, Download } from "lucide-react
 
 export const About = () => {
   return (
-    <section id="about" className="py-24 bg-gradient-to-b from-accent/10 to-background" dir="rtl">
+    <section id="about" className="py-24 bg-gradient-to-b from-accent/10 to-background">
       <div className="container mx-auto px-6">
         {/* Header */}
         <div className="text-center mb-20 animate-fade-in">
