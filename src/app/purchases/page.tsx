@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Image from 'next/image';
+import { useEffect, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -133,6 +134,12 @@ export default function PurchasesPage() {
   const [returnDateTo, setReturnDateTo] = React.useState('');
 
   const [activeTab, setActiveTab] = React.useState("new-purchase");
+  
+  // Refs for suggestion containers
+  const nameSearchContainerRef = useRef<HTMLDivElement>(null);
+  const barcodeSearchContainerRef = useRef<HTMLDivElement>(null);
+  const returnNameSearchContainerRef = useRef<HTMLDivElement>(null);
+  const returnBarcodeSearchContainerRef = useRef<HTMLDivElement>(null);
 
   // State for modal to add a completely new medication
   const [isAddNewMedModalOpen, setIsAddNewMedModalOpen] = React.useState(false);
@@ -373,6 +380,39 @@ export default function PurchasesPage() {
     setPurchaseItemBarcodeSuggestions([]);
     document.getElementById("quantity")?.focus();
 };
+
+  // Handle clicks outside suggestion containers
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Check if click is outside the name search container
+      if (nameSearchContainerRef.current && !nameSearchContainerRef.current.contains(event.target as Node)) {
+        setPurchaseItemNameSuggestions([]);
+      }
+      
+      // Check if click is outside the barcode search container
+      if (barcodeSearchContainerRef.current && !barcodeSearchContainerRef.current.contains(event.target as Node)) {
+        setPurchaseItemBarcodeSuggestions([]);
+      }
+      
+      // Check if click is outside the return name search container
+      if (returnNameSearchContainerRef.current && !returnNameSearchContainerRef.current.contains(event.target as Node)) {
+        setReturnMedNameSuggestions([]);
+      }
+      
+      // Check if click is outside the return barcode search container
+      if (returnBarcodeSearchContainerRef.current && !returnBarcodeSearchContainerRef.current.contains(event.target as Node)) {
+        setReturnMedBarcodeSuggestions([]);
+      }
+    };
+
+    // Add event listener when component mounts
+    document.addEventListener("mousedown", handleClickOutside);
+    
+    // Clean up event listener when component unmounts
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const openNewMedModal = () => {
     setNewMedData({
@@ -706,7 +746,7 @@ export default function PurchasesPage() {
                     </div>
                      <hr className="my-4" />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 space-y-2">
-                        <div className="relative space-y-2">
+                        <div className="relative space-y-2" ref={nameSearchContainerRef}>
                             <Label htmlFor="purchase-item-name-search">ابحث بالاسم أو الاسم العلمي</Label>
                             <Input 
                                 id="purchase-item-search"
@@ -744,7 +784,7 @@ export default function PurchasesPage() {
                             </Card>
                         )}
                         </div>
-                        <div className="relative space-y-2">
+                        <div className="relative space-y-2" ref={barcodeSearchContainerRef}>
                             <Label htmlFor="purchase-item-barcode-search">امسح الباركود</Label>
                             <Input
                               id="purchase-item-barcode-search"
@@ -975,7 +1015,7 @@ export default function PurchasesPage() {
                 
                 <form onSubmit={handleAddItemToReturnCart} className="p-4 border rounded-md space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 space-y-2">
-                        <div className="relative space-y-2">
+                        <div className="relative space-y-2" ref={returnNameSearchContainerRef}>
                             <Label htmlFor="return-med-name-search">ابحث بالاسم أو الاسم العلمي</Label>
                             <Input 
                               id="return-med-name-search"
@@ -1010,7 +1050,7 @@ export default function PurchasesPage() {
                                 </Card>
                             )}
                         </div>
-                        <div className="relative space-y-2">
+                        <div className="relative space-y-2" ref={returnBarcodeSearchContainerRef}>
                             <Label htmlFor="return-med-barcode-search">امسح الباركود</Label>
                             <Input
                               id="return-med-barcode-search"
