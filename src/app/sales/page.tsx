@@ -497,6 +497,7 @@ export default function SalesPage() {
   const [newPatientName, setNewPatientName] = React.useState("");
   const [newPatientPhone, setNewPatientPhone] = React.useState("");
   const [sortedSales, setSortedSales] = React.useState<Sale[]>([]);
+  const [hasLoadedPatients, setHasLoadedPatients] = React.useState(false);
 
   const [mode, setMode] = React.useState<'sale' | 'return'>('sale');
   
@@ -527,6 +528,16 @@ export default function SalesPage() {
         }
         fetchInitialSales();
     }, [searchAllSales]);
+
+    // Load all patients when component mounts
+    React.useEffect(() => {
+        async function fetchAllPatients() {
+            const allPatients = await searchAllPatients("");
+            setPatientSuggestions(allPatients);
+            setHasLoadedPatients(true);
+        }
+        fetchAllPatients();
+    }, [searchAllPatients]);
 
     const checkAlternativeExpiry = React.useCallback((medication: Medication) => {
         if (!medication.scientific_names || medication.scientific_names.length === 0 || mode === 'return') {
@@ -971,7 +982,14 @@ export default function SalesPage() {
             const results = await searchAllPatients(term);
             setPatientSuggestions(results);
         } else {
-            setPatientSuggestions([]);
+            // If search term is empty and we haven't loaded patients yet, load all patients
+            if (!hasLoadedPatients) {
+                const allPatients = await searchAllPatients("");
+                setPatientSuggestions(allPatients);
+                setHasLoadedPatients(true);
+            } else {
+                setPatientSuggestions([]);
+            }
         }
     }
 
