@@ -1405,7 +1405,7 @@ export default function SalesPage() {
                       <div className="mb-2">
                         <AdCarousel page="sales"/>
                       </div>
-                       <div className="space-y-2 relative">
+                       <div className="relative">
                             <Dialog open={isPatientModalOpen} onOpenChange={setIsPatientModalOpen}>
                                 <DialogTrigger asChild>
                                     <Button variant="outline" className="w-full justify-between text-left font-normal">

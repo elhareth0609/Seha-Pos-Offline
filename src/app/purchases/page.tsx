@@ -709,17 +709,17 @@ export default function PurchasesPage() {
                         <div className="relative space-y-2">
                             <Label htmlFor="purchase-item-name-search">ابحث بالاسم أو الاسم العلمي</Label>
                             <Input 
-                          id="purchase-item-search"
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                            }
-                          }}
-                          value={purchaseItemNameSearchTerm} 
-                          onChange={handlePurchaseNameSearch}
-                          placeholder="ابحث بالاسم أو الاسم العلمي..."
-                          autoComplete="off"
-                        />
+                                id="purchase-item-search"
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    }
+                                }}
+                                value={purchaseItemNameSearchTerm} 
+                                onChange={handlePurchaseNameSearch}
+                                placeholder="ابحث بالاسم أو الاسم العلمي..."
+                                autoComplete="off"
+                            />
                         {purchaseItemNameSuggestions.length > 0 && (
                              <Card className="absolute z-10 w-full mt-1 bg-background shadow-lg border">
                                 <CardContent className="p-0">

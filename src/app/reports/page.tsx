@@ -105,7 +105,7 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
 };
 
 export default function ReportsPage() {
-    const { currentUser, users, scopedData, deleteSale, updateActiveInvoice, getPaginatedSales, verifyPin, switchToInvoice } = useAuth();
+    const { currentUser, users, scopedData, deleteSale, updateActiveInvoice, getPaginatedSales, verifyPin, switchToInvoice, getPaginatedPatients } = useAuth();
     const [settings] = scopedData.settings;
     
     const [sales, setSales] = React.useState<Sale[]>([]);
@@ -113,6 +113,8 @@ export default function ReportsPage() {
     const [currentPage, setCurrentPage] = React.useState(1);
     const [perPage, setPerPage] = React.useState(10);
     const [loading, setLoading] = React.useState(true);
+    const [patients, setPatients] = React.useState<any[]>([]);
+    const [patientsMap, setPatientsMap] = React.useState<Map<string, string>>(new Map());
     
     const [searchTerm, setSearchTerm] = React.useState("");
     const [isClient, setIsClient] = React.useState(false);
@@ -131,6 +133,24 @@ export default function ReportsPage() {
 
     const canManagePreviousSales = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_previous_sales;
 
+    const fetchPatients = React.useCallback(async () => {
+        try {
+            // Fetch all patients (using a high per_page value to get all patients)
+            const patientsData = await getPaginatedPatients(1, 1000, "");
+            
+            // Create a map of patient_id to patient_name for quick lookup
+            const map = new Map<string, string>();
+            patientsData.data.forEach((patient: any) => {
+                map.set(patient.id, patient.name);
+            });
+            
+            setPatients(patientsData.data);
+            setPatientsMap(map);
+        } catch (error) {
+            console.error("Failed to fetch patients", error);
+        }
+    }, [getPaginatedPatients]);
+
     const fetchData = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string, empId: string, pMethod: string, invType: string) => {
         setLoading(true);
         try {
@@ -145,7 +165,15 @@ export default function ReportsPage() {
                 });
             }
 
-            setSales(filteredData);
+            // Add patientName to each sale based on patient_id
+            const salesWithPatientNames = filteredData.map(sale => {
+                if (sale.patient_id && patientsMap.has(sale.patient_id)) {
+                    return { ...sale, patientName: patientsMap.get(sale.patient_id) };
+                }
+                return sale;
+            });
+
+            setSales(salesWithPatientNames);
             setTotalPages(data.last_page);
             setCurrentPage(data.current_page);
         } catch (error) {
@@ -153,10 +181,15 @@ export default function ReportsPage() {
         } finally {
             setLoading(false);
         }
-    }, [getPaginatedSales]);
+    }, [getPaginatedSales, patientsMap]);
 
     React.useEffect(() => {
         setIsClient(true);
+        // Fetch patients once when the component mounts
+        fetchPatients();
+    }, [fetchPatients]);
+
+    React.useEffect(() => {
         const handler = setTimeout(() => {
             fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, invoiceType);
         }, 300);
