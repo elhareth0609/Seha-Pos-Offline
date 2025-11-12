@@ -24,7 +24,7 @@ export const About = () => {
         </div>
 
         {/* Main Content */}
-        <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
+        <div className="grid lg:grid-cols-1 gap-12 items-center mb-16">
           {/* Company Info */}
           <div className="space-y-6 animate-fade-in" style={{animationDelay: "0.2s"}}>
             <Card className="border-0 bg-gradient-card hover:shadow-glow hover:scale-[1.02] transition-all duration-500">
@@ -48,7 +48,7 @@ export const About = () => {
           </div>
 
           {/* Products */}
-          <div className="space-y-6 animate-fade-in" style={{animationDelay: "0.4s"}}>
+          {/* <div className="space-y-6 animate-fade-in" style={{animationDelay: "0.4s"}}>
             <Card className="border-0 bg-gradient-card hover:shadow-glow hover:scale-[1.02] transition-all duration-500">
               <CardContent className="p-8">
                 <h3 className="text-2xl font-bold mb-6 text-foreground">برامجنا الرئيسية</h3>
@@ -61,7 +61,6 @@ export const About = () => {
                       <h4 className="font-semibold text-foreground mb-2">برنامج ربط المندوبين والصيدليات</h4>
                       <p className="text-sm text-muted-foreground mb-4">هو أول برنامج عراقي لربط المندوبين والصيدليات ليسهل التواصل المباشر بين الطرفين وترتيب المواعيد كذلك نظام طلبات مبسط للمندوبين والعديد من التقارير الأخرى</p>
                       
-                      {/* App Download Buttons */}
                       <div className="mt-4">
                         <h6 className="font-medium text-foreground mb-3 flex items-center gap-2 text-sm">
                           <Smartphone className="h-4 w-4 text-medical-primary" />
@@ -70,14 +69,14 @@ export const About = () => {
                         <div className="flex flex-col sm:flex-row gap-2">
                           <Button size="sm" className="bg-black hover:bg-black/90 text-white flex items-center gap-2 px-4 py-2 rounded-lg text-xs hover:scale-105 transition-all duration-300" onClick={() => window.open('https://apps.apple.com/us/app/midgram/id6748060505', '_blank')}>
                             <div className="flex flex-col items-start">
-                              {/* <span className="text-xs opacity-80">متاح على</span> */}
+
                               <span className="font-semibold">App Store</span>
                             </div>
                             <Download className="h-4 w-4" />
                           </Button>
                           <Button size="sm" className="bg-gradient-to-b from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white flex items-center gap-2 px-4 py-2 rounded-lg text-xs hover:scale-105 transition-all duration-300" onClick={() => window.open('https://play.google.com/store/apps/details?id=com.wepioners.midgram', '_blank')}>
                             <div className="flex flex-col items-start">
-                              {/* <span className="text-xs opacity-80">احصل عليه من</span> */}
+
                               <span className="font-semibold">Google Play</span>
                             </div>
                             <Download className="h-4 w-4" />
@@ -99,7 +98,7 @@ export const About = () => {
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </div> */}
         </div>
 
         {/* Vision */}
