@@ -28,6 +28,16 @@ export default function RootLayout({
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/icon.png" />
+        {/* Google tag (gtag.js) */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-WY8W91N31Q"></script>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-WY8W91N31Q');
+          `
+        }} />
       </head>
       <body className={`${tajawal.variable} font-body antialiased`}>
         <AuthProvider>
