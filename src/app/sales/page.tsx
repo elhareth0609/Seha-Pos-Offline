@@ -997,11 +997,15 @@ export default function SalesPage() {
         if (!allInventory || !currentItem.scientific_names || currentItem.scientific_names.length === 0) {
             return [];
         }
-        const currentScientificNames = currentItem.scientific_names.map(s => s.toLowerCase());
+        const currentScientificNames = currentItem.scientific_names
+            .filter(s => s != null) // 过滤掉null/undefined值
+            .map(s => s.toLowerCase());
 
         return allInventory.filter(med => 
             med.id !== currentItem.id &&
-            med.scientific_names?.some(scName => currentScientificNames.includes(scName.toLowerCase()))
+            med.scientific_names?.some(scName => 
+                scName != null && currentScientificNames.includes(scName.toLowerCase())
+            )
         );
     };
 
