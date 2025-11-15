@@ -157,6 +157,10 @@ export default function PurchasesPage() {
   // State for editing purchase item
   const [editingPurchaseItem, setEditingPurchaseItem] = React.useState<PurchaseItemFormData | null>(null);
   const [isEditItemOpen, setIsEditItemOpen] = React.useState(false);
+  
+  // State for editing return item
+  const [editingReturnItem, setEditingReturnItem] = React.useState<ReturnOrderItem | null>(null);
+  const [isEditReturnItemOpen, setIsEditReturnItemOpen] = React.useState(false);
 
     const calculateProfitMargin = (purchasePrice: number, sellPrice: number) => {
         if (!purchasePrice || purchasePrice <= 0) return 0;
@@ -496,11 +500,6 @@ export default function PurchasesPage() {
         const success = await addPurchaseOrder(purchaseData);
 
         if (success) {
-            // setPurchaseId('');
-            // setPurchaseSupplierId('');
-            // setPurchaseItems([]);
-            // setIsPurchaseInfoLocked(false);
-            // setPurchaseOrderIdToUpdate(null);
             resetPurchaseForm();
             fetchPurchaseHistory(1, purchasePerPage, '', '', '');
         }
@@ -617,7 +616,6 @@ export default function PurchasesPage() {
         }
         
         const supplier = suppliers.find(s => s.id === returnSupplierId);
-        console.log("Return cart:", returnCart);
         if (!supplier) return;
         
         const returnData = {
@@ -633,11 +631,6 @@ export default function PurchasesPage() {
         const success = await addReturnOrder(returnData);
         
         if(success) {
-            // setReturnSlipId("");
-            // setReturnSupplierId("");
-            // setReturnCart([]);
-            // setIsReturnInfoLocked(false);
-            // setReturnOrderIdToUpdate(null);
             resetReturnForm();
             fetchReturnHistory(1, returnPerPage, '', '', '');
         }
@@ -651,6 +644,12 @@ export default function PurchasesPage() {
         setIsEditItemOpen(true);
     };
     
+    
+    const openEditReturnItemDialog = (item: ReturnOrderItem) => {
+        setEditingReturnItem(item);
+        setIsEditReturnItemOpen(true);
+    };
+
     const handleUpdatePurchaseItem = (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingPurchaseItem) return;
@@ -660,6 +659,16 @@ export default function PurchasesPage() {
         setPurchaseItems(prev => prev.map(item => item.id === updatedItem.id ? updatedItem as PurchaseOrderItem : item));
         setIsEditItemOpen(false);
         setEditingPurchaseItem(null);
+    };
+
+
+    const handleUpdateReturnItem = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingReturnItem) return;
+
+        setReturnCart(prev => prev.map(item => item.id === editingReturnItem.id ? editingReturnItem : item));
+        setIsEditReturnItemOpen(false);
+        setEditingReturnItem(null);
     };
 
     const handleEditPurchaseOrder = (order: PurchaseOrder) => {
@@ -1169,10 +1178,13 @@ export default function PurchasesPage() {
                             <TableCell className="font-mono">{item.quantity}</TableCell>
                             <TableCell>{item.reason}</TableCell>
                             <TableCell className="font-mono">{(item.quantity * item.purchase_price).toLocaleString()}</TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleRemoveFromReturnCart(item.medication_id)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                            <TableCell className="flex items-center gap-1">
+                                <Button variant="ghost" size="icon" className="text-blue-600 h-8 w-8" onClick={() => openEditReturnItemDialog(item)}>
+                                    <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleRemoveFromReturnCart(item.medication_id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -1466,6 +1478,39 @@ export default function PurchasesPage() {
                         <DialogFooter className="pt-2">
                             <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
                             <Button type="submit" variant="success">حفظ التغييرات</Button>
+                        </DialogFooter>
+                    </form>
+                )}
+            </DialogContent>
+        </Dialog>
+        <Dialog open={isEditReturnItemOpen} onOpenChange={setIsEditReturnItemOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>تعديل الصنف المرتجع: {editingReturnItem?.name}</DialogTitle>
+                </DialogHeader>
+                {editingReturnItem && (
+                     <form onSubmit={handleUpdateReturnItem} className="space-y-4 pt-2">
+                         <div className="space-y-2">
+                            <Label htmlFor="edit-return-quantity">الكمية</Label>
+                            <Input 
+                                id="edit-return-quantity" 
+                                type="number" 
+                                value={editingReturnItem.quantity} 
+                                onChange={e => setEditingReturnItem(p => p ? {...p, quantity: parseInt(e.target.value, 10)} : null)}
+                                required
+                            />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="edit-return-reason">السبب</Label>
+                            <Input 
+                                id="edit-return-reason" 
+                                value={editingReturnItem.reason} 
+                                onChange={e => setEditingReturnItem(p => p ? {...p, reason: e.target.value} : null)}
+                            />
+                        </div>
+                        <DialogFooter>
+                            <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                            <Button type="submit" variant="success">حفظ</Button>
                         </DialogFooter>
                     </form>
                 )}
