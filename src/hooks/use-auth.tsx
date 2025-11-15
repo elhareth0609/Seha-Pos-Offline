@@ -1225,7 +1225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const newDebt = await apiRequest('/debts/supplier', 'POST', { supplier_id, amount, notes });
             setDebts(prev => ({...prev, supplierDebts: [...(prev.supplierDebts || []), newDebt]}));
-            toast({ title: `تم تسجيل دفعة بمبلغ ${amount.toLocaleString()}` });
+            toast({ title: `تم تسجيل دين بمبلغ ${amount.toLocaleString()}` });
             return true;
         } catch (e) { return false; }
     };
@@ -1268,7 +1268,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             if(data.id) {
                 const { return_order, updated_inventory } = await apiRequest(`/return-orders/${data.id}`, 'PUT', data);
-                setSupplierReturns(prev => prev.map(ro => ro.id === data.id ? return_order : ro));
+                setSupplierReturns(prev => (prev || []).map(ro => ro.id === data.id ? return_order : ro));
                 setInventory(updated_inventory);
                 toast({ title: "تم تعديل قائمة الإرجاع بنجاح" });
             } else {

@@ -325,7 +325,7 @@ export default function PurchasesPage() {
                 setPurchaseItemBarcodeSearchTerm("");
             }
         }
-    }, [purchaseItemBarcodeSearchTerm]);
+    }, [purchaseItemBarcodeSearchTerm, searchAllInventory]);
 
     const handleSelectMed = (med: Medication, asNewBatch: boolean = false) => {
         const medData: PurchaseItemFormData = {
@@ -464,13 +464,22 @@ export default function PurchasesPage() {
         setPurchaseItems(prev => prev.filter(item => item.id !== medId));
     }
 
+    const resetPurchaseForm = () => {
+        setPurchaseId('');
+        setPurchaseSupplierId('');
+        setPurchaseItems([]);
+        setIsPurchaseInfoLocked(false);
+        setPurchaseOrderIdToUpdate(null);
+        setNewMedData({});
+    }
+
     const handleFinalizePurchase = async () => {
         if (purchaseItems.length === 0) {
             toast({ variant: "destructive", title: "القائمة فارغة", description: "الرجاء إضافة أصناف إلى قائمة الشراء أولاً." });
             return;
         }
 
-        const supplier = suppliers.find(s => s.id.toString() === purchaseSupplierId);
+        const supplier = suppliers.find(s => s.id === purchaseSupplierId);
         if (!supplier) return;
 
         const purchaseData = {
@@ -487,11 +496,12 @@ export default function PurchasesPage() {
         const success = await addPurchaseOrder(purchaseData);
 
         if (success) {
-            setPurchaseId('');
-            setPurchaseSupplierId('');
-            setPurchaseItems([]);
-            setIsPurchaseInfoLocked(false);
-            setPurchaseOrderIdToUpdate(null);
+            // setPurchaseId('');
+            // setPurchaseSupplierId('');
+            // setPurchaseItems([]);
+            // setIsPurchaseInfoLocked(false);
+            // setPurchaseOrderIdToUpdate(null);
+            resetPurchaseForm();
             fetchPurchaseHistory(1, purchasePerPage, '', '', '');
         }
     }
@@ -535,7 +545,7 @@ export default function PurchasesPage() {
                 setReturnMedBarcodeSearchTerm("");
             }
         }
-    }, [returnMedBarcodeSearchTerm]);
+    }, [returnMedBarcodeSearchTerm, searchAllInventory]);
 
     const handleSelectMedForReturn = (med: Medication) => {
         setSelectedMedForReturn(med);
@@ -592,13 +602,22 @@ export default function PurchasesPage() {
         setReturnCart(prev => prev.filter(item => item.medication_id !== medId));
     }
 
+    const resetReturnForm = () => {
+        setReturnSlipId("");
+        setReturnSupplierId("");
+        setReturnCart([]);
+        setIsReturnInfoLocked(false);
+        setReturnOrderIdToUpdate(null);
+    };
+
     const handleFinalizeReturn = async () => {
         if (returnCart.length === 0) {
-        toast({ variant: "destructive", title: "القائمة فارغة", description: "الرجاء إضافة أصناف إلى قائمة الاسترجاع أولاً." });
-        return;
+            toast({ variant: "destructive", title: "القائمة فارغة", description: "الرجاء إضافة أصناف إلى قائمة الاسترجاع أولاً." });
+            return;
         }
-
-        const supplier = suppliers.find(s => s.id.toString() === returnSupplierId);
+        
+        const supplier = suppliers.find(s => s.id === returnSupplierId);
+        console.log("Return cart:", returnCart);
         if (!supplier) return;
         
         const returnData = {
@@ -614,11 +633,12 @@ export default function PurchasesPage() {
         const success = await addReturnOrder(returnData);
         
         if(success) {
-            setReturnSlipId("");
-            setReturnSupplierId("");
-            setReturnCart([]);
-            setIsReturnInfoLocked(false);
-            setReturnOrderIdToUpdate(null);
+            // setReturnSlipId("");
+            // setReturnSupplierId("");
+            // setReturnCart([]);
+            // setIsReturnInfoLocked(false);
+            // setReturnOrderIdToUpdate(null);
+            resetReturnForm();
             fetchReturnHistory(1, returnPerPage, '', '', '');
         }
     }
@@ -645,7 +665,7 @@ export default function PurchasesPage() {
     const handleEditPurchaseOrder = (order: PurchaseOrder) => {
         setPurchaseOrderIdToUpdate(order.id);
         setPurchaseId(order.number);
-        setPurchaseSupplierId(order.supplier_id?.toString() || "");
+        setPurchaseSupplierId(order.supplier_id || "");
         
         const itemsWithCorrectDate = order.items.map(item => {
             const expirationDate = item.medication?.expiration_date;
@@ -700,7 +720,15 @@ export default function PurchasesPage() {
       <TabsContent value="new-purchase" dir="rtl">
         <Card>
           <CardHeader>
-            <CardTitle>استلام بضاعة جديدة</CardTitle>
+            <div className="flex justify-between items-start">
+                <CardTitle>استلام بضاعة جديدة</CardTitle>
+                {purchaseOrderIdToUpdate && (
+                    <Button variant="outline" onClick={resetPurchaseForm}>
+                        <X className="me-2 h-4 w-4"/>
+                        إغلاق عملية التعديل
+                    </Button>
+                )}
+            </div>
             <CardDescription>
               أضف الأصناف المستلمة إلى القائمة أدناه ثم اضغط على "إتمام عملية الاستلام" لحفظها.
             </CardDescription>
@@ -1006,7 +1034,15 @@ export default function PurchasesPage() {
        <TabsContent value="new-return" dir="rtl">
          <Card>
             <CardHeader>
-                <CardTitle>إنشاء قائمة إرجاع للمورد</CardTitle>
+                <div className="flex justify-between items-start">
+                    <CardTitle>إنشاء قائمة إرجاع للمورد</CardTitle>
+                    {returnOrderIdToUpdate && (
+                        <Button variant="outline" onClick={resetReturnForm}>
+                            <X className="me-2 h-4 w-4"/>
+                            إغلاق عملية التعديل
+                        </Button>
+                    )}
+                </div>
                 <CardDescription>
                 استخدم هذا النموذج لإنشاء قائمة بالأدوية المرتجعة للمورد.
                 </CardDescription>
