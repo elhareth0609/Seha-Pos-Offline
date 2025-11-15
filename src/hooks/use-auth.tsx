@@ -1243,7 +1243,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             if(data.id) {
                 const { purchase_order, updated_inventory } = await apiRequest(`/purchase-orders/${data.id}`, 'PUT', data);
-                setPurchaseOrders(prev => prev.map(po => po.id === data.id ? purchase_order : po));
+                setPurchaseOrders(prev => (prev || []).map(po => po.id === data.id ? purchase_order : po));
                 setInventory(updated_inventory);
                 toast({ title: "تم تعديل قائمة الشراء بنجاح" });
             } else {
@@ -1573,10 +1573,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             suppliers.forEach(supplier => {
                 if (!supplier.debt_limit || supplier.debt_limit <= 0) return;
 
-                const purchases = purchaseOrders.filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.total_amount, 0);
-                const returns = supplierReturns.filter(r => r.supplier_id === supplier.id).reduce((sum, r) => sum + r.total_amount, 0);
+                const purchases = purchaseOrders.filter(p => p && p.supplier_id === supplier.id).reduce((sum, p) => sum + p.total_amount, 0);
+                const returns = supplierReturns.filter(r => r && r.supplier_id === supplier.id).reduce((sum, r) => sum + r.total_amount, 0);
                 
-                const supplierPaymentsData = payments.supplierPayments.filter(p => p.supplier_id === supplier.id).reduce((sum, p) => sum + p.amount, 0);
+                const supplierPaymentsData = payments.supplierPayments.filter(p => p && p.supplier_id === supplier.id).reduce((sum, p) => sum + p.amount, 0);
                 const netDebt = purchases - returns - supplierPaymentsData;
 
                 if(netDebt > supplier.debt_limit) {
@@ -1588,7 +1588,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // New Purchase Order
         if (purchaseOrders && Array.isArray(purchaseOrders)) {
             purchaseOrders.forEach(po => {
-                if (isSameDay(new Date(po.date), today)) {
+                if (po && po.date && isSameDay(new Date(po.date), today)) {
                     generatedNotifications.push({ id: `new_po_${po.id}`, type: 'new_purchase_order', message: `تم استلام قائمة شراء جديدة #${po.id} من ${po.supplier_name}.`, data: { purchaseOrderId: po.id }, read: false, created_at: po.date });
                 }
             });
