@@ -191,6 +191,7 @@ export type PurchaseOrderItem = {
   reorder_point?: number;
   stock?: number;
   is_new?: boolean;
+  medication?: Medication;
 };
 
 export type PurchaseOrder = {

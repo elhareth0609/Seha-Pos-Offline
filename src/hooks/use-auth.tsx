@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative, Notification, SupportRequestPayload, PatientPaymentPayload, SupportRequest, PatientPayment, DrugRequest, RequestResponse, ExchangeItem, PharmacyGroup, BranchInventory, PatientDebt, SupplierDebt } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative, Notification, SupportRequestPayload, PatientPaymentPayload, SupportRequest, PatientPayment, DrugRequest, RequestResponse, ExchangeItem, PharmacyGroup, BranchInventory, PatientDebt, SupplierDebt, ReturnOrderItem } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 import { PinDialog } from '@/components/auth/PinDialog';
@@ -141,7 +141,9 @@ interface AuthContextType {
     
     // Purchases and Returns
     addPurchaseOrder: (data: any) => Promise<boolean>;
+    deletePurchaseOrder: (orderId: string) => Promise<boolean>;
     addReturnOrder: (data: any) => Promise<boolean>;
+    deleteReturnOrder: (orderId: string) => Promise<boolean>;
     getPaginatedPurchaseOrders: (page: number, perPage: number, search: string, dateFrom?: string, dateTo?: string) => Promise<PaginatedResponse<PurchaseOrder>>;
     getPaginatedReturnOrders: (page: number, perPage: number, search: string, dateFrom?: string, dateTo?: string) => Promise<PaginatedResponse<ReturnOrder>>;
     
@@ -205,6 +207,17 @@ interface AuthContextType {
         invoiceId: string;
         supplierId: string;
         items: PurchaseOrderItem[];
+    }>>;
+
+    returnDraft: {
+        slipId: string;
+        supplierId: string;
+        items: ReturnOrderItem[];
+    };
+    setReturnDraft: React.Dispatch<React.SetStateAction<{
+        slipId: string;
+        supplierId: string;
+        items: ReturnOrderItem[];
     }>>;
 
     addRepresentative: (rep: Omit<MedicalRepresentative, 'id'>) => Promise<MedicalRepresentative | null>;
@@ -425,6 +438,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         items: PurchaseOrderItem[];
     }>({ invoiceId: '', supplierId: '', items: [] });
     
+    const [returnDraft, setReturnDraft] = React.useState<{
+        slipId: string;
+        supplierId: string;
+        items: ReturnOrderItem[];
+    }>({ slipId: '', supplierId: '', items: [] });
 
     const getOrderRequestCart = async () => {
         try {
@@ -1196,7 +1214,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const addPayment = async (supplier_id: string, amount: number, notes?: string) => {
         try {
-            const newPayment = await apiRequest('/payments/supplier', 'POST', { supplier_id: supplier_id, amount, notes });
+            const newPayment = await apiRequest('/payments/supplier', 'POST', { supplier_id, amount, notes });
             setPayments(prev => ({...prev, supplierPayments: [...(prev.supplierPayments || []), newPayment]}));
             toast({ title: `تم تسجيل دفعة بمبلغ ${amount.toLocaleString()}` });
             return true;
@@ -1205,7 +1223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const addDebt = async (supplier_id: string, amount: number, notes?: string) => {
         try {
-            const newDebt = await apiRequest('/debts/supplier', 'POST', { supplier_id: supplier_id, amount, notes });
+            const newDebt = await apiRequest('/debts/supplier', 'POST', { supplier_id, amount, notes });
             setDebts(prev => ({...prev, supplierDebts: [...(prev.supplierDebts || []), newDebt]}));
             toast({ title: `تم تسجيل دفعة بمبلغ ${amount.toLocaleString()}` });
             return true;
@@ -1223,23 +1241,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const addPurchaseOrder = async (data: any) => {
         try {
-            const { purchase_order, updated_inventory } = await apiRequest('/purchase-orders', 'POST', data);
-            setPurchaseOrders(prev => [purchase_order, ...prev]);
-            setInventory(updated_inventory);
-            toast({ title: "تم تسجيل قائمة الشراء بنجاح" });
+            if(data.id) {
+                const { purchase_order, updated_inventory } = await apiRequest(`/purchase-orders/${data.id}`, 'PUT', data);
+                setPurchaseOrders(prev => prev.map(po => po.id === data.id ? purchase_order : po));
+                setInventory(updated_inventory);
+                toast({ title: "تم تعديل قائمة الشراء بنجاح" });
+            } else {
+                const { purchase_order, updated_inventory } = await apiRequest('/purchase-orders', 'POST', data);
+                setPurchaseOrders(prev => [purchase_order, ...prev]);
+                setInventory(updated_inventory);
+                toast({ title: "تم تسجيل قائمة الشراء بنجاح" });
+            }
             return true;
         } catch (e) { return false; }
     };
-    
+
+
+    const deletePurchaseOrder = async (orderId: string) => {
+        try {
+            await apiRequest(`/purchase-orders/${orderId}`, 'DELETE');
+            return true;
+        } catch(e) { return false; }
+    }
+
     const addReturnOrder = async (data: any) => {
         try {
-            const { return_order, updated_inventory } = await apiRequest('/return-orders', 'POST', data);
-            setSupplierReturns(prev => [return_order, ...prev]);
-            setInventory(updated_inventory);
-            toast({ title: "تم تسجيل قائمة الإرجاع بنجاح" });
+            if(data.id) {
+                const { return_order, updated_inventory } = await apiRequest(`/return-orders/${data.id}`, 'PUT', data);
+                setSupplierReturns(prev => prev.map(ro => ro.id === data.id ? return_order : ro));
+                setInventory(updated_inventory);
+                toast({ title: "تم تعديل قائمة الإرجاع بنجاح" });
+            } else {
+                const { return_order, updated_inventory } = await apiRequest('/return-orders', 'POST', data);
+                setSupplierReturns(prev => [return_order, ...prev]);
+                setInventory(updated_inventory);
+                toast({ title: "تم تسجيل قائمة الإرجاع بنجاح" });
+            }
             return true;
         } catch (e) { return false; }
     };
+
+    const deleteReturnOrder = async (orderId: string) => {
+        try {
+            await apiRequest(`/return-orders/${orderId}`, 'DELETE');
+            return true;
+        } catch(e) { return false; }
+    }
 
     const getPaginatedExpenses = React.useCallback(async (page: number, perPage: number, search: string) => {
         try {
@@ -1725,8 +1772,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             addSupplier, updateSupplier, deleteSupplier, getPaginatedSuppliers,
             addPatient, updatePatient, deletePatient, getPaginatedPatients, searchAllPatients,
             addPayment, addPatientPayment,
-            addPurchaseOrder,
-            addReturnOrder, getPaginatedPurchaseOrders, getPaginatedReturnOrders,
+            addPurchaseOrder, deletePurchaseOrder,  
+            addReturnOrder, deleteReturnOrder, getPaginatedPurchaseOrders, getPaginatedReturnOrders,
             getPaginatedExpenses, addExpense, updateExpense, deleteExpense, getRecurringExpenses, addRecurringExpense, deleteRecurringExpense,
             getPaginatedTasks, getMineTasks, addTask, updateTask, updateStatusTask, deleteTask,
             restoreItem, permDelete, clearTrash, getPaginatedTrash,
@@ -1737,6 +1784,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             getArchivedMonths, getArchivedMonthData,
             getOrderRequestCart, addToOrderRequestCart, removeFromOrderRequestCart, updateOrderRequestItem, duplicateOrderRequestItem, updatePreferenceScore,
             purchaseDraft, setPurchaseDraft,
+            returnDraft, setReturnDraft,
             getNotifications,
             supportRequests, addSupportRequest, updateSupportRequestStatus,
             getExchangeItems, postExchangeItem, deleteExchangeItem,
