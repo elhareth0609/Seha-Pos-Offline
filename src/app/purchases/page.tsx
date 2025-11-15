@@ -470,7 +470,7 @@ export default function PurchasesPage() {
             return;
         }
 
-        const supplier = suppliers.find(s => s.id == purchaseSupplierId);
+        const supplier = suppliers.find(s => s.id.toString() === purchaseSupplierId);
         if (!supplier) return;
 
         const purchaseData = {
@@ -598,7 +598,7 @@ export default function PurchasesPage() {
         return;
         }
 
-        const supplier = suppliers.find(s => s.id == returnSupplierId);
+        const supplier = suppliers.find(s => s.id.toString() === returnSupplierId);
         if (!supplier) return;
         
         const returnData = {

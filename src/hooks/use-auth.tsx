@@ -1518,7 +1518,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const today = startOfToday();
     
         // Inventory Notifications
-        inventory.forEach(med => {
+        if (inventory && Array.isArray(inventory)) {
+            inventory.forEach(med => {
             if (med.stock <= 0) {
                 generatedNotifications.push({ id: `out_of_stock_${med.id}`, type: 'out_of_stock', message: `نفد من المخزون: ${med.name}.`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
             } else if (med.stock < med.reorder_point) {
@@ -1536,10 +1537,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     }
                 }
             }
-        });
+            });
+        }
 
         // Sales Notifications (Admin only)
-        if(currentUser?.role === 'Admin') {
+        if(currentUser?.role === 'Admin' && sales && Array.isArray(sales)) {
             sales.forEach(sale => {
                 if (sale.discount && sale.discount > 20000) { 
                      generatedNotifications.push({ id: `large_discount_${sale.id}`, type: 'large_discount', message: `خصم كبير بقيمة ${sale.discount.toLocaleString()} في الفاتورة #${sale.id}.`, data: { saleId: sale.id }, read: false, created_at: sale.date });
@@ -1553,11 +1555,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Task Notifications
-        tasks.forEach(task => {
+        if (tasks && Array.isArray(tasks)) {
+            tasks.forEach(task => {
             if (!task.completed && task.user_id === currentUser?.id) {
                 generatedNotifications.push({ id: `task_assigned_${task.id}`, type: 'task_assigned', message: `مهمة جديدة: ${task.description}`, data: { taskId: task.id, userId: task.user_id }, read: false, created_at: task.created_at });
             }
-        });
+            });
+        }
         
         // Month End Reminder (Admin only)
         if (currentUser?.role === 'Admin' && isSameDay(new Date(), endOfMonth(new Date()))) {
@@ -1565,7 +1569,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Supplier Debt Limit (Admin only)
-        if (currentUser?.role === 'Admin' && payments && payments.supplierPayments) {
+        if (currentUser?.role === 'Admin' && payments && payments.supplierPayments && suppliers && Array.isArray(suppliers)) {
             suppliers.forEach(supplier => {
                 if (!supplier.debt_limit || supplier.debt_limit <= 0) return;
 
@@ -1582,11 +1586,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         // New Purchase Order
-        purchaseOrders.forEach(po => {
-            if (isSameDay(new Date(po.date), today)) {
-                 generatedNotifications.push({ id: `new_po_${po.id}`, type: 'new_purchase_order', message: `تم استلام قائمة شراء جديدة #${po.id} من ${po.supplier_name}.`, data: { purchaseOrderId: po.id }, read: false, created_at: po.date });
-            }
-        });
+        if (purchaseOrders && Array.isArray(purchaseOrders)) {
+            purchaseOrders.forEach(po => {
+                if (isSameDay(new Date(po.date), today)) {
+                    generatedNotifications.push({ id: `new_po_${po.id}`, type: 'new_purchase_order', message: `تم استلام قائمة شراء جديدة #${po.id} من ${po.supplier_name}.`, data: { purchaseOrderId: po.id }, read: false, created_at: po.date });
+                }
+            });
+        }
     
         return Promise.resolve(generatedNotifications.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
     }, [inventory, sales, tasks, settings.expirationThresholdDays, currentUser, suppliers, purchaseOrders, supplierReturns, payments]);
