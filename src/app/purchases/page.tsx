@@ -645,15 +645,16 @@ export default function PurchasesPage() {
     const handleEditPurchaseOrder = (order: PurchaseOrder) => {
         setPurchaseOrderIdToUpdate(order.id);
         setPurchaseId(order.number);
-        console.log(order.supplier_id)
-        setPurchaseSupplierId(order.supplier_id);
+        setPurchaseSupplierId(order.supplier_id?.toString() || "");
         
         const itemsWithCorrectDate = order.items.map(item => {
             const expirationDate = item.medication?.expiration_date;
 
             return {
                 ...item,
-                expiration_date: expirationDate ? new Date(expirationDate).toISOString().split('T')[0] : ''
+                expiration_date: expirationDate ? new Date(expirationDate).toISOString().split('T')[0] : '',
+                price: item.medication?.price,
+                barcodes: item.medication?.barcodes || [],
             };
         });
 
