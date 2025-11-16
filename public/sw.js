@@ -5,7 +5,7 @@ const urlsToCache = [
   '/login',
   '/dashboard',
   '/manifest.json',
-  '/icon.png',
+  '/favicon.png',
   '/landing/f695b7c1-a4db-4a2c-9044-9a3530dc8159.png',
   // Add other important assets for offline access
 ];

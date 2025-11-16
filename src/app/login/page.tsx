@@ -62,7 +62,7 @@ export default function LoginPage() {
                     <CardHeader className="text-center">
                          <div className="mx-auto mb-4">
                              <Link href="/">
-                                <img src="/icon.png" alt="Site Icon" className="h-12 w-12" />
+                                <img src="/favicon.png" alt="Site Icon" className="h-12 w-12" />
                             </Link>
                         </div>
                         <CardTitle className="text-2xl">مرحبًا بعودتك!</CardTitle>

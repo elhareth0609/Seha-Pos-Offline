@@ -481,7 +481,7 @@ const handleBackup = async () => {
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4 pb-4 border-b">
                     <div className="flex flex-1 items-center justify-start gap-2">
                         <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                            <img src="/icon.png" alt="Site Icon" className="h-6 w-6" />
+                            <img src="/favicon.png" alt="Site Icon" className="h-6 w-6" />
                         </Link>
                         <div className="flex items-center gap-2">
                             <Sheet open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>

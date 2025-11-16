@@ -27,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/icon.png" />
+        <link rel="icon" href="/favicon.png" />
         {/* Google tag (gtag.js) */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZMLZTYMWQ3"></script>
         <script dangerouslySetInnerHTML={{

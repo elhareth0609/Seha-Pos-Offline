@@ -483,7 +483,9 @@ export default function PurchasesPage() {
             return;
         }
 
-        const supplier = suppliers.find(s => s.id === purchaseSupplierId);
+        const supplier = suppliers.find(s => String(s.id) === String(purchaseSupplierId));
+        console.log(typeof purchaseSupplierId); // likely "string"
+        console.log(typeof suppliers[0].id);    // likely "number"
         if (!supplier) return;
 
         const purchaseData = {
@@ -674,7 +676,7 @@ export default function PurchasesPage() {
     const handleEditPurchaseOrder = (order: PurchaseOrder) => {
         setPurchaseOrderIdToUpdate(order.id);
         setPurchaseId(order.number);
-        setPurchaseSupplierId(order.supplier_id || "");
+        setPurchaseSupplierId(String(order.supplier_id));
         
         const itemsWithCorrectDate = order.items.map(item => {
             const expirationDate = item.medication?.expiration_date;

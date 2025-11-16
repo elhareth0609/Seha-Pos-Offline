@@ -102,7 +102,7 @@ export default function LoginPage() {
                  <Card className="w-full shadow-2xl animate-in fade-in zoom-in-95">
                     <CardHeader className="text-center">
                          <div className="mx-auto mb-4">
-                            <img src="/icon.png" alt="Site Icon" className="h-12 w-12" />
+                            <img src="/favicon.png" alt="Site Icon" className="h-12 w-12" />
                         </div>
                         <CardTitle className="text-2xl">مرحبًا بعودتك!</CardTitle>
                         <CardDescription>
