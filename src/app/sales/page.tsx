@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -467,7 +468,7 @@ export default function SalesPage() {
   const router = useRouter();
 
   const [settings] = scopedData.settings;
-  const [allInventory, setAllInventory] = React.useState<Medication[]>([]);
+  const [fullInventory, setFullInventory] = React.useState<Medication[]>([]);
 
   const activeInvoice = activeInvoices[currentInvoiceIndex];
   if (!activeInvoice) {
@@ -476,7 +477,6 @@ export default function SalesPage() {
   const { cart, discountType, discountValue, patientId, paymentMethod, saleIdToUpdate } = activeInvoice;
   
   const [searchTerm, setSearchTerm] = React.useState("")
-  const [suggestions, setSuggestions] = React.useState<Medication[]>([])
   const [isSearchLoading, setIsSearchLoading] = React.useState(false);
   const [nameSearchTerm, setNameSearchTerm] = React.useState("")
   const [nameSuggestions, setNameSuggestions] = React.useState<Medication[]>([])
@@ -545,7 +545,7 @@ export default function SalesPage() {
             return;
         }
     
-        const alternatives = allInventory.filter(med => 
+        const alternatives = fullInventory.filter(med => 
             med.id !== medication.id &&
             med.scientific_names?.some(scName => medication.scientific_names!.includes(scName))
         );
@@ -571,7 +571,7 @@ export default function SalesPage() {
         } else {
             setAlternativeExpiryAlert(null);
         }
-    }, [allInventory, mode]);
+    }, [fullInventory, mode]);
 
     const addToCart = React.useCallback((medication: Medication) => {
         // Expiry check
@@ -625,7 +625,6 @@ export default function SalesPage() {
         
         checkAlternativeExpiry(medication);
         setSearchTerm("")
-        setSuggestions([])
     }, [mode, updateActiveInvoice, toast, checkAlternativeExpiry])
     
     const removeFromCart = React.useCallback((id: string, isReturn: boolean | undefined) => {
@@ -652,16 +651,18 @@ export default function SalesPage() {
     const processBarcode = async (barcode: string) => {
         setIsSearchLoading(true);
         try {
-            const results = await searchAllInventory(barcode);
-            setAllInventory(results); // Make sure full inventory is available for checks
+            // Ensure full inventory is loaded if not already
+            if (fullInventory.length === 0) {
+                const results = await searchAllInventory('');
+                setFullInventory(results);
+            }
 
-            const matchingMeds = results.filter(med => 
+            const matchingMeds = fullInventory.filter(med => 
                 med.barcodes && med.barcodes.some(bc => bc && bc.toLowerCase() === barcode.toLowerCase())
             );
 
             if (matchingMeds.length === 1) {
                 addToCart(matchingMeds[0]);
-                // do fucuse in barcode input
             } else if (matchingMeds.length > 1) {
                 setBarcodeConflictMeds(matchingMeds);
                 setIsBarcodeConflictDialogOpen(true);
@@ -669,9 +670,7 @@ export default function SalesPage() {
                 toast({ variant: 'destructive', title: 'لم يتم العثور على المنتج', description: 'يرجى التأكد من الباركود أو البحث بالاسم.' });
             }
 
-            // Always clear search term and suggestions after processing
             setSearchTerm("");
-            setSuggestions([]);
         } finally {
             setIsSearchLoading(false);
         }
@@ -679,8 +678,7 @@ export default function SalesPage() {
 
     React.useEffect(() => {
         const handler = setTimeout(async () => {
-            // If search term is numeric and longer than 5 digits, it's likely a barcode
-            if (searchTerm.length > 5 && /^\d+$/.test(searchTerm) && suggestions.length === 0) {
+            if (searchTerm.length > 5 && /^\d+$/.test(searchTerm)) {
                 await processBarcode(searchTerm);
             }
         });
@@ -688,13 +686,13 @@ export default function SalesPage() {
         return () => {
             clearTimeout(handler);
         };
-    }, [searchTerm, suggestions.length, processBarcode]);
+    }, [searchTerm]);
 
 
     React.useEffect(() => {
         async function fetchInventory() {
             const results = await searchAllInventory('');
-            setAllInventory(results);
+            setFullInventory(results);
         }
         fetchInventory();
     }, [searchAllInventory]);
@@ -705,35 +703,21 @@ export default function SalesPage() {
         setNameSearchTerm(value);
 
         if (value.length > 0) {
-            // setIsSearchLoading(true);
-            
-            // const searchTimer = setTimeout(async () => {
-                // try {
-                    const results = await searchAllInventory(value);
-                    setAllInventory(results);
-                    setNameSuggestions(results);
-                // } finally {
-                //     setIsSearchLoading(false);
-                // }
-            // }, 300);
-            
-            // return () => clearTimeout(searchTimer);
+            const results = await searchAllInventory(value);
+            setNameSuggestions(results);
         } else {
             setNameSuggestions([]);
-            setAllInventory([]);
         }
     }
 
     const handleBarcodeSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setBarcodeSearchTerm(value);
-        // Don't search automatically for barcode - wait for Enter key
     }
 
     const handleBarcodeSearchKeyDown = React.useCallback(async (event: React.KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Enter') {
             event.preventDefault();
-            // Only process if barcode term exists
             if(barcodeSearchTerm) {
                 await processBarcode(barcodeSearchTerm);
                 setBarcodeSearchTerm("");
@@ -744,7 +728,6 @@ export default function SalesPage() {
     const handleSearchKeyDown = React.useCallback(async (event: React.KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Enter') {
             event.preventDefault();
-            // Only process if not already processing a barcode and search term exists
             if(searchTerm) {
                 await processBarcode(searchTerm);
             }
@@ -829,7 +812,7 @@ export default function SalesPage() {
         
         for (const itemInCart of cart) {
             if (!itemInCart.is_return) {
-                const med = allInventory?.find(m => m.id === itemInCart.id);
+                const med = fullInventory?.find(m => m.id === itemInCart.id);
                 if (!med || Number(med.stock) < Number(itemInCart.quantity)) {
                     toast({ variant: 'destructive', title: `كمية غير كافية من ${itemInCart.name}`, description: `الكمية المطلوبة ${itemInCart.quantity}, المتوفر ${med?.stock ?? 0}` });
                     return;
@@ -994,14 +977,14 @@ export default function SalesPage() {
     }
 
     const findAlternatives = (currentItem: SaleItem): Medication[] => {
-        if (!allInventory || !currentItem.scientific_names || currentItem.scientific_names.length === 0) {
+        if (!fullInventory || !currentItem.scientific_names || currentItem.scientific_names.length === 0) {
             return [];
         }
         const currentScientificNames = currentItem.scientific_names
             .filter(s => s != null) // 过滤掉null/undefined值
             .map(s => s.toLowerCase());
 
-        return allInventory.filter(med => 
+        return fullInventory.filter(med => 
             med.id !== currentItem.id &&
             med.scientific_names?.some(scName => 
                 scName != null && currentScientificNames.includes(scName.toLowerCase())
@@ -1205,14 +1188,14 @@ export default function SalesPage() {
                         <>
                             <div className="md:hidden divide-y divide-border">
                                 {cart.map((item) => {
-                                    const medInInventory = allInventory?.find(med => med.id === item.id);
+                                    const medInInventory = fullInventory?.find(med => med.id === item.id);
                                     const stock = medInInventory?.stock ?? 0;
                                     const remainingStock = stock - (item.quantity || 0);
                                     const isBelowCost = (Number(item.price) || 0) < (Number(item.purchase_price) || 0);
                                     const alternatives = findAlternatives(item);
                                     return (
                                         <div key={`${item.id}-${item.is_return}`} className={cn("flex flex-col gap-3 p-3", item.is_return && "bg-red-50 dark:bg-red-900/20")} onClick={() => {
-                                            const medication = allInventory.find(med => med.id === item.id);
+                                            const medication = fullInventory.find(med => med.id === item.id);
                                             if (medication) checkAlternativeExpiry(medication);
                                         }}>
                                             <div className="flex justify-between items-start gap-2">
@@ -1311,7 +1294,7 @@ export default function SalesPage() {
                                     </TableHeader>
                                     <TableBody>
                                             {cart.map((item) => {
-                                                const medInInventory = allInventory?.find(med => med.id === item.id);
+                                                const medInInventory = fullInventory.find(med => med.id === item.id);
                                                 const stock = medInInventory?.stock ?? 0;
                                                 const remainingStock = stock - (item.quantity || 0);
                                                 const isBelowCost = (Number(item.price) || 0) < (Number(item.purchase_price) || 0);
@@ -1319,7 +1302,7 @@ export default function SalesPage() {
 
                                                 return (
                                                     <TableRow key={`${item.id}-${item.is_return}`} className={cn(item.is_return && "bg-red-50 dark:bg-red-900/20", "cursor-pointer")} onClick={() => {
-                                                        const medication = allInventory.find(med => med.id === item.id);
+                                                        const medication = fullInventory.find(med => med.id === item.id);
                                                         if (medication) checkAlternativeExpiry(medication);
                                                     }}>
 
