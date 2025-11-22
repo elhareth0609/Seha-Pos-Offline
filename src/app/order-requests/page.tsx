@@ -206,7 +206,7 @@ export default function OrderRequestsPage() {
         }
     }
 
-    const drafts: Record<string, { supplier_id: string; supplier_name: string; id: string; date: string, items: PurchaseOrderItem[] }> = {};
+    const drafts: Record<string, { supplier_id: string; supplier_name: string; id: string; number: string; date: string, items: PurchaseOrderItem[] }> = {};
 
     orderRequestCart.forEach(item => {
         const editableData = editableOrderItems[item.id];
@@ -217,6 +217,7 @@ export default function OrderRequestsPage() {
             const supplier = suppliers.find(s => s.id === supplier_id);
             drafts[key] = {
                 id: invoice_id!,
+                number: invoice_id!,
                 supplier_id: supplier_id!,
                 supplier_name: supplier?.name || 'مورد غير معروف',
                 date: date!,
