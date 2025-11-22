@@ -36,6 +36,7 @@ import {
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
+  AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
@@ -488,6 +489,8 @@ export default function SalesPage() {
   const [barcodeConflictMeds, setBarcodeConflictMeds] = React.useState<Medication[]>([]);
   const [isBarcodeConflictDialogOpen, setIsBarcodeConflictDialogOpen] = React.useState(false);
     const [isBranchSearchOpen, setIsBranchSearchOpen] = React.useState(false);
+    const [isProcessingSale, setIsProcessingSale] = React.useState(false);
+
 
   const [isDosingAssistantOpen, setIsDosingAssistantOpen] = React.useState(false);
 
@@ -844,8 +847,11 @@ export default function SalesPage() {
     }
 
     const handleFinalizeSale = async () => {
-        if (!currentUser) return;
-        
+        if (!currentUser || isProcessingSale) return;
+        setIsProcessingSale(true);
+
+        try {
+
         const saleData = {
             id: saleIdToUpdate, // Pass ID if updating
             items: cart,
@@ -870,6 +876,11 @@ export default function SalesPage() {
             const latestSales = await searchAllSales();
             setSortedSales(latestSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
             setAlternativeExpiryAlert(null);
+            }
+        } catch (error) {
+            // Errors are already toasted in apiRequest
+        } finally {
+            setIsProcessingSale(false);
         }
     }
 
@@ -1523,8 +1534,8 @@ export default function SalesPage() {
                             </Dialog>
                             <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
                                     <DialogTrigger asChild>
-                                        <Button size="lg" className="flex-1" onClick={handleCheckout} disabled={cart.length === 0} variant={saleIdToUpdate ? 'default' : 'success'}>
-                                            {saleIdToUpdate ? 'تحديث الفاتورة' : (mode === 'return' ? 'إتمام الاسترجاع' : 'إتمام العملية')}
+                                        <Button size="lg" className="flex-1" onClick={handleCheckout} disabled={cart.length === 0 || isProcessingSale} variant={saleIdToUpdate ? 'default' : 'success'}>
+                                            {isProcessingSale ? "جاري الحفظ..." : (saleIdToUpdate ? 'تحديث الفاتورة' : (mode === 'return' ? 'إتمام الاسترجاع' : 'إتمام العملية'))}
                                         </Button>
                                     </DialogTrigger>
                                     <DialogContent>
@@ -1595,10 +1606,10 @@ export default function SalesPage() {
                                         </div>
                                         <DialogFooter className='sm:space-x-reverse'>
                                                 <DialogClose asChild>
-                                                    <Button variant="outline">إلغاء</Button>
+                                                    <Button variant="outline" disabled={isProcessingSale}>إلغاء</Button>
                                                 </DialogClose>
-                                                <Button onClick={handleFinalizeSale} variant={saleIdToUpdate ? 'default' : 'success'}>
-                                                    {saleIdToUpdate ? 'تأكيد التعديل' : (mode === 'return' ? 'تأكيد الاسترجاع' : 'تأكيد البيع')}
+                                                <Button onClick={handleFinalizeSale} disabled={isProcessingSale} variant={saleIdToUpdate ? 'default' : 'success'}>
+                                                     {isProcessingSale ? 'جاري الحفظ...' : (saleIdToUpdate ? 'تأكيد التعديل' : (mode === 'return' ? 'تأكيد الاسترجاع' : 'تأكيد البيع'))}
                                                 </Button>
                                         </DialogFooter>
                                     </DialogContent>
@@ -1613,12 +1624,12 @@ export default function SalesPage() {
                                     </Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>هل أنت متأكد؟</DialogTitle>
-                                        <DialogDescription>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                                        <AlertDialogDescription>
                                             {saleIdToUpdate ? 'سيتم تجاهل جميع التغييرات التي قمت بها.' : 'سيتم حذف جميع الأصناف من السلة الحالية.'}
-                                        </DialogDescription>
-                                    </DialogHeader>
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
                                     <AlertDialogFooter>
                                         <AlertDialogCancel>تراجع</AlertDialogCancel>
                                         <AlertDialogAction onClick={() => {
