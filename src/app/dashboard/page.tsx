@@ -221,70 +221,75 @@ function ExpirationSuggestions() {
 }
 
 export default function Dashboard() {
-  const { currentUser, scopedData, updateTask, updateStatusTask, addToOrderRequestCart } = useAuth();
-  const [inventory] = scopedData.inventory;
-  const [sales] = scopedData.sales;
-  const [settings] = scopedData.settings;
-  const [expenses] = scopedData.expenses;
-  const [tasks, setTasks] = React.useState<Task[]>([]);
+    const { currentUser, scopedData, updateTask, updateStatusTask, addToOrderRequestCart } = useAuth();
+    const [inventory] = scopedData.inventory;
+    const [sales] = scopedData.sales;
+    const [settings] = scopedData.settings;
+    const [expenses] = scopedData.expenses;
+    const [{ supplierDebts }] = scopedData.debts;
+    const [purchaseOrders] = scopedData.purchaseOrders;
+    const [supplierReturns] = scopedData.supplierReturns;
+    const [{ supplierPayments }] = scopedData.payments;
 
-  const [isClient, setIsClient] = React.useState(false);
-  const [dateFrom, setDateFrom] = React.useState<string>(startOfMonth(new Date()).toISOString().split('T')[0]);
-  const [dateTo, setDateTo] = React.useState<string>(endOfMonth(new Date()).toISOString().split('T')[0]);
-  const [leastSoldDays, setLeastSoldDays] = React.useState(30);
+    const [tasks, setTasks] = React.useState<Task[]>([]);
+
+    const [isClient, setIsClient] = React.useState(false);
+    const [dateFrom, setDateFrom] = React.useState<string>(startOfMonth(new Date()).toISOString().split('T')[0]);
+    const [dateTo, setDateTo] = React.useState<string>(endOfMonth(new Date()).toISOString().split('T')[0]);
+    const [leastSoldDays, setLeastSoldDays] = React.useState(30);
 
 
-  React.useEffect(() => {
-    setIsClient(true);
-    if (scopedData.tasks) {
-      setTasks(scopedData.tasks[0]);
+    React.useEffect(() => {
+        setIsClient(true);
+        if (scopedData.tasks) {
+        setTasks(scopedData.tasks[0]);
+        }
+    }, [scopedData.tasks]);
+    
+    const handleTaskStatusChange = async (taskId: string, completed: boolean) => {
+        const success = await updateStatusTask(taskId, { completed });
+        if(success) {
+        setTasks(prevTasks => prevTasks.map(task => 
+            task.id === taskId ? { ...task, completed } : task
+        ));
+        }
+    };
+    
+    const userTasks = React.useMemo(() => {
+        if (!currentUser || !tasks) return [];
+        return tasks.filter(task => task.user_id === currentUser.id && !task.completed);
+    }, [currentUser, tasks]);
+
+
+    const handleTimeFilterChange = (value: string) => {
+        const now = new Date();
+        switch (value) {
+            case 'today':
+                setDateFrom(now.toISOString().split('T')[0]);
+                setDateTo(now.toISOString().split('T')[0]);
+                break;
+            case 'week':
+                setDateFrom(startOfWeek(now, { weekStartsOn: 6 }).toISOString().split('T')[0]);
+                setDateTo(endOfWeek(now, { weekStartsOn: 6 }).toISOString().split('T')[0]);
+                break;
+            case 'month':
+                setDateFrom(startOfMonth(now).toISOString().split('T')[0]);
+                setDateTo(endOfMonth(now).toISOString().split('T')[0]);
+                break;
+            case 'last_month':
+                const lastMonth = subMonths(now, 1);
+                setDateFrom(startOfMonth(lastMonth).toISOString().split('T')[0]);
+                setDateTo(endOfMonth(lastMonth).toISOString().split('T')[0]);
+                break;
+            case 'year':
+                setDateFrom(startOfYear(now).toISOString().split('T')[0]);
+                setDateTo(endOfYear(now).toISOString().split('T')[0]);
+                break;
+            default:
+                setDateFrom("");
+                setDateTo("");
+        }
     }
-  }, [scopedData.tasks]);
-  
-  const handleTaskStatusChange = async (taskId: string, completed: boolean) => {
-    const success = await updateStatusTask(taskId, { completed });
-    if(success) {
-       setTasks(prevTasks => prevTasks.map(task => 
-           task.id === taskId ? { ...task, completed } : task
-       ));
-    }
-  };
-  
-  const userTasks = React.useMemo(() => {
-    if (!currentUser || !tasks) return [];
-    return tasks.filter(task => task.user_id === currentUser.id && !task.completed);
-  }, [currentUser, tasks]);
-
-
-  const handleTimeFilterChange = (value: string) => {
-    const now = new Date();
-    switch (value) {
-        case 'today':
-            setDateFrom(now.toISOString().split('T')[0]);
-            setDateTo(now.toISOString().split('T')[0]);
-            break;
-        case 'week':
-            setDateFrom(startOfWeek(now, { weekStartsOn: 6 }).toISOString().split('T')[0]);
-            setDateTo(endOfWeek(now, { weekStartsOn: 6 }).toISOString().split('T')[0]);
-            break;
-        case 'month':
-            setDateFrom(startOfMonth(now).toISOString().split('T')[0]);
-            setDateTo(endOfMonth(now).toISOString().split('T')[0]);
-            break;
-        case 'last_month':
-            const lastMonth = subMonths(now, 1);
-            setDateFrom(startOfMonth(lastMonth).toISOString().split('T')[0]);
-            setDateTo(endOfMonth(lastMonth).toISOString().split('T')[0]);
-            break;
-        case 'year':
-            setDateFrom(startOfYear(now).toISOString().split('T')[0]);
-            setDateTo(endOfYear(now).toISOString().split('T')[0]);
-            break;
-        default:
-            setDateFrom("");
-            setDateTo("");
-    }
-  }
 
   const lowStockItems = inventory.filter(
     (item) => item.stock > 0 && item.stock <= item.reorder_point
@@ -339,7 +344,7 @@ export default function Dashboard() {
     return { topByQuantity, topByProfit };
   }, [sales, inventory]);
 
-  const leastSellingMedications = React.useMemo(() => {
+    const leastSellingMedications = React.useMemo(() => {
     if (leastSoldDays <= 0) return [];
     
     const cutoffDate = subMonths(new Date(), leastSoldDays / 30);
@@ -358,7 +363,7 @@ export default function Dashboard() {
   }, [sales, inventory, leastSoldDays]);
 
   const dashboardStats = React.useMemo(() => {
-    if (!isClient) return { totalRevenue: 0, totalProfit: 0, profitMargin: 0, invoiceCount: 0, totalExpenses: 0, dailyCustomers: 0, expiringRatio: 0, totalProducts: 0, totalInventoryValue: 0 };
+    if (!isClient) return { totalRevenue: 0, totalProfit: 0, profitMargin: 0, invoiceCount: 0, totalExpenses: 0, dailyCustomers: 0, expiringRatio: 0, totalProducts: 0, totalInventoryValue: 0, totalSupplierDebt: 0 };
     
     const from = dateFrom ? new Date(dateFrom) : null;
     const to = dateTo ? new Date(dateTo) : null;
@@ -397,8 +402,38 @@ export default function Dashboard() {
 
     const totalProducts = inventory.length;
 
-    return { totalRevenue: currentTotalRevenue, totalProfit: netProfit, profitMargin: currentProfitMargin, invoiceCount, totalExpenses: totalExpensesAmount, dailyCustomers, expiringRatio, totalProducts, totalInventoryValue };
-  }, [sales, expenses, inventory, expiringSoonItems, dateFrom, dateTo, isClient]);
+    // حساب إجمالي ديون الموردين
+    // الحصول على بيانات المشتريات والمرتجعات والمدفوعات
+
+    // حساب إجمالي المشتريات
+    const totalPurchases = purchaseOrders.reduce((acc, order) => {
+      const total = typeof order.total_amount === 'number' ? order.total_amount : parseFloat(String(order.total_amount || 0));
+      return acc + (isNaN(total) ? 0 : total);
+    }, 0);
+
+    // حساب إجمالي المرتجعات
+    const totalReturns = supplierReturns.reduce((acc, returnOrder) => {
+      const total = typeof returnOrder.total_amount === 'number' ? returnOrder.total_amount : parseFloat(String(returnOrder.total_amount || 0));
+      return acc + (isNaN(total) ? 0 : total);
+    }, 0);
+
+    // حساب إجمالي المدفوعات
+    const totalPayments = supplierPayments.reduce((acc, payment) => {
+      const amount = typeof payment.amount === 'number' ? payment.amount : parseFloat(String(payment.amount || 0));
+      return acc + (isNaN(amount) ? 0 : amount);
+    }, 0);
+
+    // حساب إجمالي ديون الموردين
+    const totalDebts = supplierDebts.reduce((acc, debt) => {
+      const amount = typeof debt.amount === 'number' ? debt.amount : parseFloat(String(debt.amount || 0));
+      return acc + (isNaN(amount) ? 0 : amount);
+    }, 0);
+
+    // حساب صافي ديون الموردين
+    const totalSupplierDebt = totalPurchases + totalDebts - (totalReturns + totalPayments);
+
+    return { totalRevenue: currentTotalRevenue, totalProfit: netProfit, profitMargin: currentProfitMargin, invoiceCount, totalExpenses: totalExpensesAmount, dailyCustomers, expiringRatio, totalProducts, totalInventoryValue, totalSupplierDebt };
+  }, [sales, expenses, inventory, expiringSoonItems, dateFrom, dateTo, isClient, supplierDebts, purchaseOrders, supplierReturns, supplierPayments]);
 
 
   if (!isClient) {
@@ -435,9 +470,9 @@ export default function Dashboard() {
                         اختر الفترة الزمنية لعرض إحصائيات المبيعات والأرباح.
                     </CardDescription>
                 </div>
-                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <div className="grid grid-cols-2 gap-2 flex-grow">
-                         <div className="space-y-1">
+                        <div className="space-y-1">
                             <Label htmlFor="date-from" className="text-xs">من</Label>
                             <Input id="date-from" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-9"/>
                         </div>
@@ -446,7 +481,7 @@ export default function Dashboard() {
                             <Input id="date-to" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-9"/>
                         </div>
                     </div>
-                     <div className="flex items-end">
+                    <div className="flex items-end">
                         <Tabs defaultValue="month" onValueChange={handleTimeFilterChange} dir="ltr">
                             <TabsList className="h-9">
                                 <TabsTrigger value="today">اليوم</TabsTrigger>
@@ -466,7 +501,7 @@ export default function Dashboard() {
                         <DollarSign className="h-5 w-5" />
                     </div>
                     <div className="text-3xl font-bold font-mono">
-                          {dashboardStats.totalRevenue.toLocaleString()}
+                        {dashboardStats.totalRevenue.toLocaleString()}
                     </div>
                     <p className="text-xs text-muted-foreground font-mono">من {dashboardStats.invoiceCount} فاتورة</p>
                 </div>
@@ -491,7 +526,7 @@ export default function Dashboard() {
                     <p className="text-xs text-muted-foreground">الربح بعد طرح الخصومات والصرفيات</p>
                 </div>
             </CardContent>
-             <CardContent className="grid gap-6 pt-2 sm:grid-cols-2 lg:grid-cols-3">
+            <CardContent className="grid gap-6 pt-2 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
                     <div className="flex items-center justify-between text-muted-foreground">
                         <span className="text-sm font-medium">هامش الربح</span>
@@ -519,7 +554,7 @@ export default function Dashboard() {
                         {dashboardStats.totalProducts.toLocaleString()}
                     </div>
                 </div>
-                 <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
+                <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
                     <div className="flex items-center justify-between text-muted-foreground">
                         <span className="text-sm font-medium">قيمة المخزون الإجمالية</span>
                         <Warehouse className="h-5 w-5" />
@@ -528,13 +563,22 @@ export default function Dashboard() {
                         {dashboardStats.totalInventoryValue.toLocaleString()}
                     </div>
                 </div>
-                 <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
+                <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
                     <div className="flex items-center justify-between text-muted-foreground">
                         <span className="text-sm font-medium">نسبة المخزون قريب الانتهاء</span>
                         <AlertTriangle className="h-5 w-5 text-yellow-600" />
                     </div>
                     <div className="text-3xl font-bold font-mono text-yellow-600">
                         {dashboardStats.expiringRatio.toFixed(1)}%
+                    </div>
+                </div>
+                <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4 shadow-sm">
+                    <div className="flex items-center justify-between text-muted-foreground">
+                        <span className="text-sm font-medium">إجمالي ديون الموردين</span>
+                        <Users className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div className="text-3xl font-bold font-mono text-purple-600">
+                        {dashboardStats.totalSupplierDebt.toLocaleString()}
                     </div>
                 </div>
             </CardContent>
