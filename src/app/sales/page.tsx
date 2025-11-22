@@ -658,7 +658,7 @@ export default function SalesPage() {
             }
 
             const matchingMeds = fullInventory.filter(med => 
-                med.barcodes && med.barcodes.some(bc => bc && bc.toLowerCase() === barcode.toLowerCase())
+                med.barcodes && Array.isArray(med.barcodes) && med.barcodes.some(bc => bc && bc.toLowerCase() === barcode.toLowerCase())
             );
 
             if (matchingMeds.length === 1) {
