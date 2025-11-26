@@ -468,6 +468,13 @@ export default function SalesPage() {
 
     const router = useRouter();
 
+    React.useEffect(() => {
+        if (currentUser && currentUser.role === 'Employee' && !currentUser.permissions?.manage_sales) {
+            router.replace('/dashboard');
+            console.log(currentUser.permissions?.manage_sales);
+        }
+    }, [currentUser, router]);
+
     const [settings = {} as AppSettings] = scopedData.settings || [];
     const [inventory = []] = scopedData.inventory || [];
     const [fullInventory, setFullInventory] = React.useState<Medication[]>(inventory);
