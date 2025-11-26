@@ -468,8 +468,8 @@ export default function SalesPage() {
 
     const router = useRouter();
 
-    const [settings] = scopedData.settings;
-    const [inventory] = scopedData.inventory;
+    const [settings = {} as AppSettings] = scopedData.settings || [];
+    const [inventory = []] = scopedData.inventory || [];
     const [fullInventory, setFullInventory] = React.useState<Medication[]>(inventory);
 
     const activeInvoice = activeInvoices[currentInvoiceIndex];
