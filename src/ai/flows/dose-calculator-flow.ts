@@ -45,7 +45,7 @@ Very important: Be creative in your answers and do not copy the examples above. 
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'mistralai/mistral-nemo',
+        model: 'x-ai/grok-4.1-fast:free',
         messages: [
           {
             role: 'user',
