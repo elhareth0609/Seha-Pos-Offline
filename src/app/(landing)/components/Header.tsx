@@ -41,11 +41,11 @@ export const Header = () => {
                 بوابة الأطباء
               </Link>
             </Button>
-            <Button asChild variant="ghost" className="font-medium hover:scale-105 transition-transform duration-200">
+            {/* <Button asChild variant="ghost" className="font-medium hover:scale-105 transition-transform duration-200">
               <Link href={isAuthenticated ? "/dashboard" : "/login"}>
                 {isAuthenticated ? "لوحة التحكم" : "تسجيل الدخول"}
               </Link>
-            </Button>
+            </Button> */}
           </div>
 
           {/* Mobile Menu Button */}
@@ -73,11 +73,11 @@ export const Header = () => {
                     بوابة الأطباء
                   </Link>
                 </Button>
-                <Button asChild variant="ghost" className="font-medium justify-start hover:scale-105 transition-transform duration-200">
+                {/* <Button asChild variant="ghost" className="font-medium justify-start hover:scale-105 transition-transform duration-200">
                   <Link href={isAuthenticated ? "/dashboard" : "/login"}>
                     {isAuthenticated ? "لوحة التحكم" : "تسجيل الدخول"}
                   </Link>
-                </Button>
+                </Button> */}
               </div>
             </nav>
           </div>
