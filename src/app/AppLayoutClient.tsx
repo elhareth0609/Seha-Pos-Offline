@@ -42,7 +42,8 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
         if (loading) return;
 
         // If user is not authenticated and trying to access a protected route, redirect to login
-        if (!isAuthenticated && !PUBLIC_ROUTES.includes(pathname)) {
+        // Allow doctor routes to handle their own auth
+        if (!isAuthenticated && !PUBLIC_ROUTES.includes(pathname) && !pathname.startsWith('/doctor')) {
             router.replace('/login');
             return;
         }
@@ -84,7 +85,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
     }
 
     // Public routes are rendered without the AppShell and ThemeProvider
-    if (PUBLIC_ROUTES.includes(pathname)) {
+    if (PUBLIC_ROUTES.includes(pathname) || pathname?.startsWith('/doctor')) {
         return <>{children}</>;
     }
 

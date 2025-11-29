@@ -72,21 +72,21 @@ interface AuthContextType {
     toggleUserStatus: (user: User) => Promise<boolean>;
     getAllPharmacySettings: () => Promise<Record<string, AppSettings>>;
     getPharmacyData: (pharmacyId: string) => Promise<{ users: User[], sales: Sale[], inventory: Medication[], purchaseOrders: PurchaseOrder[], suppliers: Supplier[], payments: any, supplierReturns: ReturnOrder[] }>;
-    
+
     advertisements: Advertisement[];
     addAdvertisement: (title: string, image_url: string) => Promise<void>;
     updateAdvertisement: (adId: string, data: Partial<Omit<Advertisement, 'id' | 'created_at'>>) => Promise<void>;
     deleteAdvertisement: (adId: string) => Promise<void>;
     incrementAdView: (adId: string) => Promise<void>;
-    
+
     offers: Offer[];
     addOffer: (title: string, image_url: string, expiration_date: string, contact_number?: string) => Promise<void>;
     deleteOffer: (offerId: string) => Promise<void>;
     incrementOfferView: (offerId: string) => Promise<void>;
-    
+
     clearPharmacyData: () => Promise<void>;
     closeMonth: (pin: string, dateFrom: string, dateTo: string) => Promise<boolean>;
-    
+
     scopedData: ScopedDataContextType;
 
     // Inventory Management
@@ -122,7 +122,7 @@ interface AuthContextType {
     deleteSale: (saleId: string) => Promise<boolean>;
     getPaginatedSales: (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string) => Promise<PaginatedResponse<Sale>>;
     searchAllSales: (search?: string) => Promise<Sale[]>;
-    
+
     // Suppliers
     addSupplier: (data: Partial<Supplier>) => Promise<Supplier | null>;
     updateSupplier: (supplier_id: string, data: Partial<Supplier>) => Promise<boolean>;
@@ -140,7 +140,7 @@ interface AuthContextType {
     addPayment: (supplier_id: string, amount: number, notes?: string) => Promise<boolean>;
     addDebt: (supplier_id: string, amount: number, notes?: string) => Promise<boolean>;
     addPatientPayment: (patient_id: string, amount: number, notes?: string) => Promise<boolean>;
-    
+
     // Purchases and Returns
     addPurchaseOrder: (data: any) => Promise<boolean>;
     deletePurchaseOrder: (orderId: string) => Promise<boolean>;
@@ -148,7 +148,7 @@ interface AuthContextType {
     deleteReturnOrder: (orderId: string) => Promise<boolean>;
     getPaginatedPurchaseOrders: (page: number, perPage: number, search: string, dateFrom?: string, dateTo?: string) => Promise<PaginatedResponse<PurchaseOrder>>;
     getPaginatedReturnOrders: (page: number, perPage: number, search: string, dateFrom?: string, dateTo?: string) => Promise<PaginatedResponse<ReturnOrder>>;
-    
+
     // Expenses
     getPaginatedExpenses: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Expense>>;
     addExpense: (amount: number, description: string) => Promise<boolean>;
@@ -172,10 +172,10 @@ interface AuthContextType {
     permDelete: (itemId: string) => Promise<boolean>;
     clearTrash: () => Promise<boolean>;
     getPaginatedTrash: (page: number, perPage: number) => Promise<PaginatedResponse<TrashItem>>;
-    
+
     // Users (for SuperAdmin)
     getPaginatedUsers: (role: 'Admin' | 'Employee', page: number, perPage: number, search: string, filters?: { status?: string, province?: string }) => Promise<PaginatedResponse<User>>;
-    
+
     getPaginatedItemMovements: (page: number, perPage: number, search: string, medication_id: string, scientificName?: string) => Promise<PaginatedResponse<TransactionHistoryItem>>;
     getMedicationMovements: (medId: string) => Promise<TransactionHistoryItem[]>;
 
@@ -186,10 +186,10 @@ interface AuthContextType {
     switchToInvoice: (index: number) => void;
     createNewInvoice: () => void;
     closeInvoice: (index: number, isAfterSale?: boolean) => void;
-    
+
     verifyPin: (pin: string, isDeletePin?: boolean) => Promise<boolean>;
     updateUserPinRequirement: (userId: string, requirePin: boolean) => Promise<void>;
-    
+
     getArchivedMonths: () => Promise<MonthlyArchive[]>;
     getArchivedMonthData: (archiveId: string) => Promise<ArchivedMonthData | null>;
 
@@ -226,7 +226,7 @@ interface AuthContextType {
 
     // Notifications
     getNotifications: () => Promise<Notification[]>;
-    
+
     // Support
     supportRequests: SupportRequest[];
     addSupportRequest: (data: SupportRequestPayload) => Promise<boolean>;
@@ -247,7 +247,7 @@ interface AuthContextType {
     createPharmacyGroup: (name: string, pharmacy_ids: string[]) => Promise<PharmacyGroup | null>;
     updatePharmacyGroup: (groupId: string, data: { name?: string; pharmacy_ids?: string[] }) => Promise<PharmacyGroup | null>;
     deletePharmacyGroup: (groupId: string) => Promise<boolean>;
-    
+
     // Doctors
     getDoctors: () => Promise<Doctor[]>;
     addDoctor: (name: string) => Promise<Doctor | null>;
@@ -368,7 +368,7 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
         await queueRequest(`${API_URL}${endpoint}`, options);
         toast({ title: 'أنت غير متصل', description: 'تم حفظ طلبك وسيتم إرساله عند عودة الاتصال بالإنترنت.' });
         // Return a mocked successful response for offline actions to update UI optimistically
-        return { message: 'Request queued for sync' }; 
+        return { message: 'Request queued for sync' };
     }
 
     try {
@@ -377,7 +377,7 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
         if (response.status === 204) return null;
 
         const responseData = await response.json();
-        
+
         if (!response.ok) {
             const errorMessage = responseData.message || 'An API error occurred';
 
@@ -451,7 +451,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [settings, setSettings] = React.useState<AppSettings>(fallbackAppSettings);
     const [expenses, setExpenses] = React.useState<Expense[]>([]);
     const [tasks, setTasks] = React.useState<Task[]>([]);
-    
+
     const [activeTimeLogId, setActiveTimeLogId] = React.useState<string | null>(null);
     const [advertisements, setAdvertisements] = React.useState<Advertisement[]>([]);
     const [offers, setOffers] = React.useState<Offer[]>([]);
@@ -470,7 +470,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         supplierId: string;
         items: PurchaseOrderItem[];
     }>({ invoiceId: '', supplierId: '', items: [] });
-    
+
     const [returnDraft, setReturnDraft] = React.useState<{
         slipId: string;
         supplierId: string;
@@ -480,9 +480,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const getOrderRequestCart = async () => {
         try {
             return await apiRequest('/order-requests');
-        } catch(e) { return []; }
+        } catch (e) { return []; }
     }
-    
+
     const [addingToCart, setAddingToCart] = React.useState(false);
     const addToOrderRequestCart = async (item: Medication | { medication_id: string; name: string }) => {
         if (addingToCart) return;
@@ -501,7 +501,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setAddingToCart(false);
         }
     };
-    
+
     const duplicateOrderRequestItem = async (orderItemId: string) => {
         const originalItem = orderRequestCart.find(item => item.id === orderItemId);
         if (!originalItem) return;
@@ -509,15 +509,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const newItemData = { medication_id: originalItem.medication_id, quantity: 1, is_new: true };
             const savedItem = await apiRequest('/order-requests', 'POST', newItemData);
-            
+
             const originalIndex = orderRequestCart.findIndex(item => item.id === orderItemId);
-            
+
             setOrderRequestCart(currentCart => {
                 const newCart = [...currentCart];
                 newCart.splice(originalIndex + 1, 0, savedItem);
                 return newCart;
             });
-            
+
             toast({ title: 'تم تكرار الصنف', description: `تمت إضافة نسخة جديدة من ${originalItem.name}.` });
         } catch (e) {
             toast({ variant: 'destructive', title: 'فشل التكرار', description: 'لم يتم تكرار الطلب. الرجاء المحاولة مرة أخرى.' });
@@ -531,7 +531,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!skipToast) {
                 toast({ title: "تم الحذف من الطلبات" });
             }
-        } catch(e) {
+        } catch (e) {
             toast({ variant: 'destructive', title: "فشل الحذف", description: "لم يتم حذف الطلب. الرجاء المحاولة مرة أخرى." });
         }
     };
@@ -546,8 +546,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const updateActiveInvoice = React.useCallback((updater: (invoice: ActiveInvoice) => ActiveInvoice) => {
-        setActiveInvoices(prevInvoices => 
-            prevInvoices.map((invoice, index) => 
+        setActiveInvoices(prevInvoices =>
+            prevInvoices.map((invoice, index) =>
                 index === currentInvoiceIndex ? updater(invoice) : invoice
             )
         );
@@ -585,9 +585,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAdvertisements(data.advertisements || []);
         setOffers(data.offers || []);
         setSupportRequests(data.support_requests || []);
-        
+
         const pd = data.pharmacy_data;
-        if(pd) {
+        if (pd) {
             const activeLog = pd.timeLogs?.find(log => log.user_id === data.user.id && !log.clock_out);
             if (activeLog) setActiveTimeLogId(activeLog.id);
             setInventory(pd.inventory || []);
@@ -616,17 +616,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const data: AuthResponse = await apiRequest('/login', 'POST', { email, pin });
             setAllData(data);
             if (data.user.role !== 'SuperAdmin' && data.user.role !== 'Admin') {
-                const newTimeLog = await apiRequest('/time-logs', 'POST', {user_id: data.user.id, clock_in: new Date().toISOString()});
+                const newTimeLog = await apiRequest('/time-logs', 'POST', { user_id: data.user.id, clock_in: new Date().toISOString() });
                 setActiveTimeLogId(newTimeLog.id);
             }
             return data.user;
-        } catch (error: any) { 
-            return null; 
-        } finally { 
-            setLoading(false); 
+        } catch (error: any) {
+            return null;
+        } finally {
+            setLoading(false);
         }
     };
-    
+
     const logout = async () => {
         try {
             if (currentUser?.role === 'Employee') {
@@ -643,7 +643,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             router.push('/');
         }
     };
-    
+
     const createPharmacyAdmin = async (name: string, email: string, pin: string, province: string, dofied_id: string) => {
         try {
             const newUser = await apiRequest('/superadmin/pharmacies', 'POST', { name, email, pin, province, dofied_id });
@@ -653,13 +653,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const registerUser = async (name: string, email: string, pin: string) => {
-       try {
+        try {
             const newUser = await apiRequest('/admin/users', 'POST', { name, email, pin });
             setUsers(prev => [...prev, newUser]);
             return true;
         } catch (error: any) { return false; }
     }
-    
+
     const updateUser = async (userId: string, data: Partial<User>) => {
         try {
             const updatedUser = await apiRequest(`/users/${userId}`, 'PUT', data);
@@ -668,11 +668,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return true;
         } catch (error: any) { return false; }
     };
-    
+
     const deleteUser = async (userId: string, permanent: boolean = false) => {
         try {
             if (permanent) {
-                 await apiRequest(`/users/${userId}`, 'DELETE', { permanent: true });
+                await apiRequest(`/users/${userId}`, 'DELETE', { permanent: true });
             } else {
                 const trashedItem = await apiRequest(`/users/${userId}`, 'DELETE');
                 setTrash(prev => [...prev, trashedItem]);
@@ -681,16 +681,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return true;
         } catch (error: any) { return false; }
     };
-    
+
     const toggleUserStatus = async (user: User) => {
         try {
             const { status } = await apiRequest(`/users/${user.id}/status`, 'PUT');
             // In SuperAdmin, we don't have access to all users, so just toast
-            toast({title: `تم تغيير حالة حساب ${user.name} إلى ${status === 'active' ? 'فعال' : 'معلق'}`});
+            toast({ title: `تم تغيير حالة حساب ${user.name} إلى ${status === 'active' ? 'فعال' : 'معلق'}` });
             return true;
         } catch (error: any) { return false; }
     };
-    
+
     const updateUserPermissions = async (userId: string, permissions: UserPermissions) => {
         try {
             await apiRequest(`/users/${userId}/permissions`, 'PUT', { permissions });
@@ -699,7 +699,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return true;
         } catch (error: any) { return false; }
     };
-    
+
     const updateUserHourlyRate = async (userId: string, rate: number) => {
         try {
             await apiRequest(`/users/${userId}/hourly-rate`, 'PUT', { hourly_rate: rate });
@@ -708,15 +708,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return true;
         } catch (error: any) { return false; }
     };
-    
+
     const getAllPharmacySettings = async (): Promise<Record<string, AppSettings>> => {
         try {
             return await apiRequest('/superadmin/pharmacies/settings');
-        } catch(e: any) { return {}; }
+        } catch (e: any) { return {}; }
     };
 
     const getPharmacyData = async (pharmacyId: string) => {
-         try {
+        try {
             const data = await apiRequest(`/superadmin/pharmacies/${pharmacyId}`);
             return {
                 sales: data.sales || [],
@@ -727,17 +727,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 payments: data.payments || { supplierPayments: [], patientPayments: [] },
                 supplierReturns: data.supplierReturns || [],
             };
-        } catch(e: any) { 
-            return { sales: [], inventory: [], users: [], purchaseOrders: [], suppliers:[], payments:{}, supplierReturns:[] }; 
+        } catch (e: any) {
+            return { sales: [], inventory: [], users: [], purchaseOrders: [], suppliers: [], payments: {}, supplierReturns: [] };
         }
     };
-    
+
     const clearPharmacyData = async () => {
         try {
             await apiRequest('/settings/clear-data', 'DELETE');
             toast({ title: "تم مسح البيانات بنجاح" });
             logout();
-        } catch (e: any) {}
+        } catch (e: any) { }
     };
 
     const closeMonth = async (pin: string, dateFrom: string, dateTo: string) => {
@@ -755,52 +755,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const addAdvertisement = async (title: string, image_url: string) => {
-         try {
+        try {
             const newAd = await apiRequest('/advertisements', 'POST', { title, image_url });
             setAdvertisements(prev => [...prev, newAd]);
-        } catch(e: any) {}
+        } catch (e: any) { }
     };
 
     const updateAdvertisement = async (adId: string, data: Partial<Omit<Advertisement, 'id' | 'created_at'>>) => {
         try {
             const updatedAd = await apiRequest(`/advertisements/${adId}`, 'PUT', data);
             setAdvertisements(prev => prev.map(ad => ad.id === adId ? updatedAd : ad));
-        } catch(e: any) {}
+        } catch (e: any) { }
     };
 
     const deleteAdvertisement = async (adId: string) => {
         try {
             await apiRequest(`/advertisements/${adId}`, 'DELETE');
             setAdvertisements(prev => prev.filter(ad => ad.id !== adId));
-        } catch(e: any) {}
+        } catch (e: any) { }
     };
 
     const incrementAdView = async (adId: string) => {
         try {
             await apiRequest(`/advertisements/${adId}/view`, 'POST');
             setAdvertisements(prev => prev.map(ad => ad.id === adId ? { ...ad, views: (ad.views || 0) + 1 } : ad));
-        } catch(e: any) {}
+        } catch (e: any) { }
     };
-    
+
     const addOffer = async (title: string, image_url: string, expiration_date: string, contact_number?: string) => {
-         try {
+        try {
             const newOffer = await apiRequest('/offers', 'POST', { title, image_url, expiration_date, contact_number });
             setOffers(prev => [...prev, newOffer]);
-        } catch(e: any) {}
+        } catch (e: any) { }
     };
-    
+
     const deleteOffer = async (offerId: string) => {
         try {
             await apiRequest(`/offers/${offerId}`, 'DELETE');
             setOffers(prev => prev.filter(offer => offer.id !== offerId));
-        } catch(e: any) {}
+        } catch (e: any) { }
     };
 
     const incrementOfferView = async (offerId: string) => {
         try {
             await apiRequest(`/offers/${offerId}/view`, 'POST');
             setOffers(prev => prev.map(offer => offer.id === offerId ? { ...offer, views: (offer.views || 0) + 1 } : offer));
-        } catch(e: any) {}
+        } catch (e: any) { }
     }
 
     const getPaginatedInventory = React.useCallback(async (page: number, perPage: number, search: string, filters: Record<string, any> = {}) => {
@@ -908,7 +908,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Patient>;
         }
     }, []);
-    
+
     const searchAllPatients = React.useCallback(async (search: string) => {
         try {
             const params = new URLSearchParams({ search });
@@ -932,7 +932,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Supplier>;
         }
     }, []);
-    
+
     const getPaginatedTrash = React.useCallback(async (page: number, perPage: number) => {
         try {
             const params = new URLSearchParams({
@@ -946,7 +946,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<TrashItem>;
         }
     }, []);
-    
+
     const getPaginatedUsers = React.useCallback(async (role: 'Admin' | 'Employee', page: number, perPage: number, search: string, filters: { status?: string, province?: string } = {}) => {
         try {
             const params = new URLSearchParams({
@@ -963,7 +963,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<User>;
         }
     }, []);
-    
+
     const getPaginatedSales = React.useCallback(async (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string) => {
         try {
             const params = new URLSearchParams({
@@ -1000,8 +1000,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 per_page: String(perPage),
                 search: search,
             });
-            if(dateFrom) params.append('date_from', dateFrom);
-            if(dateTo) params.append('date_to', dateTo);
+            if (dateFrom) params.append('date_from', dateFrom);
+            if (dateTo) params.append('date_to', dateTo);
 
             const data = await apiRequest(`/purchase-orders?${params.toString()}`);
             return data;
@@ -1009,7 +1009,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<PurchaseOrder>;
         }
     }, []);
-    
+
     const getPaginatedReturnOrders = React.useCallback(async (page: number, perPage: number, search: string, dateFrom?: string, dateTo?: string) => {
         try {
             const params = new URLSearchParams({
@@ -1018,8 +1018,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 per_page: String(perPage),
                 search: search,
             });
-             if(dateFrom) params.append('date_from', dateFrom);
-            if(dateTo) params.append('date_to', dateTo);
+            if (dateFrom) params.append('date_from', dateFrom);
+            if (dateTo) params.append('date_to', dateTo);
             const data = await apiRequest(`/return-orders?${params.toString()}`);
             return data;
         } catch (e) {
@@ -1042,7 +1042,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return true;
         } catch (e) { return false; }
     }
-    
+
     const deleteMedication = async (medId: string) => {
         try {
             const trashedItem = await apiRequest(`/medications/${medId}`, 'DELETE');
@@ -1051,7 +1051,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return true;
         } catch (e) { return false; }
     }
-    
+
     const markAsDamaged = async (medId: string) => {
         try {
             await apiRequest(`/medications/${medId}/damage`, 'POST');
@@ -1059,7 +1059,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return true;
         } catch (e) { return false; }
     };
-    
+
     const bulkAddOrUpdateInventory = async (items: Partial<Medication>[]) => {
         try {
             const { new_count, updated_count } = await apiRequest('/medications/bulk', 'POST', { items });
@@ -1080,7 +1080,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const formData = new FormData();
             formData.append('file', file);
-            
+
             const response = await fetch(`${API_URL}/medications/bulk-upload`, {
                 method: 'POST',
                 body: formData,
@@ -1088,14 +1088,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            
+
             if (!response.ok) {
                 throw new Error('Failed to upload file');
             }
-            
+
             const result = await response.json();
             const { new_count, updated_count, processed_medications } = result;
-            
+
             if (new_count !== undefined) {
                 toast({ title: "اكتمل الاستيراد", description: `تمت إضافة ${new_count} أصناف جديدة${updated_count !== undefined ? ` وتحديث ${updated_count} أصناف` : ''}.` });
                 return { new_count, updated_count, processed_medications };
@@ -1162,7 +1162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return newSale;
         } catch (e) { return null; }
     }
-    
+
     const updateSale = async (saleData: any) => {
         try {
             const { sale: updatedSale, updated_inventory } = await apiRequest(`/sales/${saleData.id}`, 'PUT', saleData);
@@ -1197,7 +1197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setSuppliers(prev => [newSupplier, ...prev]);
             toast({ title: "تمت إضافة المورد بنجاح" });
             return newSupplier;
-        } catch(e) { return null; }
+        } catch (e) { return null; }
     }
 
     const updateSupplier = async (supplier_id: string, data: Partial<Supplier>) => {
@@ -1250,7 +1250,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const addPayment = async (supplier_id: string, amount: number, notes?: string) => {
         try {
             const newPayment = await apiRequest('/payments/supplier', 'POST', { supplier_id, amount, notes });
-            setPayments(prev => ({...prev, supplierPayments: [...(prev.supplierPayments || []), newPayment]}));
+            setPayments(prev => ({ ...prev, supplierPayments: [...(prev.supplierPayments || []), newPayment] }));
             toast({ title: `تم تسجيل دفعة بمبلغ ${amount.toLocaleString()}` });
             return true;
         } catch (e) { return false; }
@@ -1259,24 +1259,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const addDebt = async (supplier_id: string, amount: number, notes?: string) => {
         try {
             const newDebt = await apiRequest('/debts/supplier', 'POST', { supplier_id, amount, notes });
-            setDebts(prev => ({...prev, supplierDebts: [...(prev.supplierDebts || []), newDebt]}));
+            setDebts(prev => ({ ...prev, supplierDebts: [...(prev.supplierDebts || []), newDebt] }));
             toast({ title: `تم تسجيل دين بمبلغ ${amount.toLocaleString()}` });
             return true;
         } catch (e) { return false; }
     };
-    
+
     const addPatientPayment = async (patient_id: string, amount: number, notes?: string) => {
         try {
             const newPayment = await apiRequest('/payments/patient', 'POST', { patient_id, amount, notes });
-            setPayments(prev => ({...prev, patientPayments: [...(prev.patientPayments || []), newPayment]}));
+            setPayments(prev => ({ ...prev, patientPayments: [...(prev.patientPayments || []), newPayment] }));
             toast({ title: `تم تسجيل دفعة بمبلغ ${amount.toLocaleString()}` });
             return true;
-        } catch(e) { return false; }
+        } catch (e) { return false; }
     }
 
     const addPurchaseOrder = async (data: any) => {
         try {
-            if(data.id) {
+            if (data.id) {
                 const { purchase_order, updated_inventory } = await apiRequest(`/purchase-orders/${data.id}`, 'PUT', data);
                 setPurchaseOrders(prev => (prev || []).map(po => po.id === data.id ? purchase_order : po));
                 setInventory(updated_inventory);
@@ -1296,12 +1296,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             await apiRequest(`/purchase-orders/${orderId}`, 'DELETE');
             return true;
-        } catch(e) { return false; }
+        } catch (e) { return false; }
     }
 
     const addReturnOrder = async (data: any) => {
         try {
-            if(data.id) {
+            if (data.id) {
                 const { return_order, updated_inventory } = await apiRequest(`/return-orders/${data.id}`, 'PUT', data);
                 setSupplierReturns(prev => (prev || []).map(ro => ro.id === data.id ? return_order : ro));
                 setInventory(updated_inventory);
@@ -1320,7 +1320,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             await apiRequest(`/return-orders/${orderId}`, 'DELETE');
             return true;
-        } catch(e) { return false; }
+        } catch (e) { return false; }
     }
 
     const getPaginatedExpenses = React.useCallback(async (page: number, perPage: number, search: string) => {
@@ -1346,7 +1346,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return true;
         } catch (e) { return false; }
     };
-    
+
     const updateExpense = async (id: string, amount: number, description: string) => {
         try {
             const updatedExpense = await apiRequest(`/expenses/${id}`, 'PUT', { amount, description });
@@ -1355,7 +1355,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return true;
         } catch (e) { return false; }
     };
-    
+
     const deleteExpense = async (id: string) => {
         try {
             await apiRequest(`/expenses/${id}`, 'DELETE');
@@ -1391,7 +1391,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return false;
         }
     };
-    
+
     const getPaginatedTasks = React.useCallback(async (page: number, perPage: number, filters: { user_id?: string, completed?: boolean }) => {
         try {
             const params = new URLSearchParams({
@@ -1399,9 +1399,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 page: String(page),
                 per_page: String(perPage),
             });
-            if(filters.user_id) params.append('user_id', filters.user_id);
-            if(filters.completed !== undefined) params.append('completed', String(filters.completed));
-            
+            if (filters.user_id) params.append('user_id', filters.user_id);
+            if (filters.completed !== undefined) params.append('completed', String(filters.completed));
+
             const data = await apiRequest(`/tasks?${params.toString()}`);
             return data;
         } catch (e) {
@@ -1459,7 +1459,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const { restored_item, item_type } = await apiRequest(`/trash/${itemId}`, 'PUT');
             setTrash(prev => prev.filter(t => t.id !== itemId));
-            switch(item_type) {
+            switch (item_type) {
                 case 'medication': setInventory(prev => [restored_item, ...prev]); break;
                 case 'patient': setPatients(prev => [restored_item, ...prev]); break;
                 case 'supplier': setSuppliers(prev => [restored_item, ...prev]); break;
@@ -1469,27 +1469,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             toast({ title: "تم استعادة العنصر بنجاح" });
             return true;
-        } catch(e) { return false; }
+        } catch (e) { return false; }
     }
-    
+
     const permDelete = async (itemId: string) => {
-         try {
+        try {
             await apiRequest(`/trash/${itemId}`, 'DELETE');
             setTrash(prev => prev.filter(t => t.id !== itemId));
             toast({ title: "تم حذف العنصر نهائيًا" });
             return true;
-        } catch(e) { return false; }
+        } catch (e) { return false; }
     }
-    
+
     const clearTrash = async () => {
         try {
             await apiRequest('/trash/clear', 'DELETE');
             setTrash([]);
             toast({ title: "تم تفريغ سلة المحذوفات" });
             return true;
-        } catch(e) { return false; }
+        } catch (e) { return false; }
     }
-    
+
     const verifyPin = async (pin: string, isDeletePin: boolean = false) => {
         try {
             const response = await apiRequest('/verify-pin', 'POST', { pin, is_delete_pin: isDeletePin });
@@ -1498,27 +1498,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return false;
         }
     };
-    
+
     const updateUserPinRequirement = async (userId: string, requirePin: boolean) => {
         try {
             await apiRequest(`/users/${userId}/require-pin`, 'PUT', { require_pin_for_delete: requirePin });
             setUsers(prev => prev.map(u => u.id === userId ? { ...u, require_pin_for_delete: requirePin } : u));
             toast({ title: "تم تحديث إعدادات الأمان" });
-        } catch(e) {}
+        } catch (e) { }
     }
-    
+
     const getArchivedMonths = async (): Promise<MonthlyArchive[]> => {
         try {
             return await apiRequest('/archives');
-        } catch(e) {
+        } catch (e) {
             return [];
         }
     }
-    
+
     const getArchivedMonthData = async (archiveId: string): Promise<ArchivedMonthData | null> => {
         try {
             return await apiRequest(`/archives/${archiveId}`);
-        } catch(e) {
+        } catch (e) {
             return null;
         }
     }
@@ -1531,59 +1531,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         toast({ title: "تمت إضافة المندوب بنجاح" });
         return newRep;
     };
-    
+
     const addSupportRequest = async (data: SupportRequestPayload) => {
         try {
             await apiRequest('/support-requests', 'POST', data);
             return true;
-        } catch(e) {
+        } catch (e) {
             return false;
         }
     };
-    
+
     const updateSupportRequestStatus = async (id: string, status: 'new' | 'contacted') => {
         try {
             const updatedRequest = await apiRequest(`/support-requests/${id}/status`, 'PUT', { status });
             setSupportRequests(prev => prev.map(req => req.id === id ? updatedRequest : req));
-        } catch (e) {}
+        } catch (e) { }
     }
 
     const getNotifications = React.useCallback(async (): Promise<Notification[]> => {
         const generatedNotifications: Notification[] = [];
         const today = startOfToday();
-    
+
         // Inventory Notifications
         if (inventory && Array.isArray(inventory)) {
             inventory.forEach(med => {
-            if (med.stock <= 0) {
-                generatedNotifications.push({ id: `out_of_stock_${med.id}`, type: 'out_of_stock', message: `نفد من المخزون: ${med.name}.`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
-            } else if (med.stock < med.reorder_point) {
-                generatedNotifications.push({ id: `low_stock_${med.id}`, type: 'low_stock', message: `مخزون منخفض: ${med.name}. الكمية المتبقية: ${med.stock}`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
-            }
-    
-            if (med.expiration_date) {
-                const expDate = parseISO(med.expiration_date);
-                if (expDate < today) {
-                    generatedNotifications.push({ id: `expired_${med.id}`, type: 'expired', message: `دواء منتهي: ${med.name}. الرجاء نقله إلى التالف.`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
-                } else {
-                    const daysLeft = differenceInDays(expDate, today);
-                    if (daysLeft <= settings.expirationThresholdDays) {
-                         generatedNotifications.push({ id: `expiring_soon_${med.id}`, type: 'expiring_soon', message: `قريب الانتهاء: ${med.name} خلال ${daysLeft} يوم.`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
+                if (med.stock <= 0) {
+                    generatedNotifications.push({ id: `out_of_stock_${med.id}`, type: 'out_of_stock', message: `نفد من المخزون: ${med.name}.`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
+                } else if (med.stock < med.reorder_point) {
+                    generatedNotifications.push({ id: `low_stock_${med.id}`, type: 'low_stock', message: `مخزون منخفض: ${med.name}. الكمية المتبقية: ${med.stock}`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
+                }
+
+                if (med.expiration_date) {
+                    const expDate = parseISO(med.expiration_date);
+                    if (expDate < today) {
+                        generatedNotifications.push({ id: `expired_${med.id}`, type: 'expired', message: `دواء منتهي: ${med.name}. الرجاء نقله إلى التالف.`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
+                    } else {
+                        const daysLeft = differenceInDays(expDate, today);
+                        if (daysLeft <= settings.expirationThresholdDays) {
+                            generatedNotifications.push({ id: `expiring_soon_${med.id}`, type: 'expiring_soon', message: `قريب الانتهاء: ${med.name} خلال ${daysLeft} يوم.`, data: { medicationId: med.id }, read: false, created_at: new Date().toISOString() });
+                        }
                     }
                 }
-            }
             });
         }
 
         // Sales Notifications (Admin only)
-        if(currentUser?.role === 'Admin' && sales && Array.isArray(sales)) {
+        if (currentUser?.role === 'Admin' && sales && Array.isArray(sales)) {
             sales.forEach(sale => {
-                if (sale.discount && sale.discount > 20000) { 
-                     generatedNotifications.push({ id: `large_discount_${sale.id}`, type: 'large_discount', message: `خصم كبير بقيمة ${sale.discount.toLocaleString()} في الفاتورة #${sale.id}.`, data: { saleId: sale.id }, read: false, created_at: sale.date });
+                if (sale.discount && sale.discount > 20000) {
+                    generatedNotifications.push({ id: `large_discount_${sale.id}`, type: 'large_discount', message: `خصم كبير بقيمة ${sale.discount.toLocaleString()} في الفاتورة #${sale.id}.`, data: { saleId: sale.id }, read: false, created_at: sale.date });
                 }
                 sale.items.forEach(item => {
                     if (!item.is_return && item.price < item.purchase_price) {
-                         generatedNotifications.push({ id: `below_cost_${sale.id}_${item.medication_id}`, type: 'sale_below_cost', message: `تم بيع ${item.name} بأقل من الكلفة في الفاتورة #${sale.id}.`, data: { saleId: sale.id, medicationId: item.medication_id }, read: false, created_at: sale.date });
+                        generatedNotifications.push({ id: `below_cost_${sale.id}_${item.medication_id}`, type: 'sale_below_cost', message: `تم بيع ${item.name} بأقل من الكلفة في الفاتورة #${sale.id}.`, data: { saleId: sale.id, medicationId: item.medication_id }, read: false, created_at: sale.date });
                     }
                 })
             });
@@ -1592,12 +1592,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Task Notifications
         if (tasks && Array.isArray(tasks)) {
             tasks.forEach(task => {
-            if (!task.completed && task.user_id === currentUser?.id) {
-                generatedNotifications.push({ id: `task_assigned_${task.id}`, type: 'task_assigned', message: `مهمة جديدة: ${task.description}`, data: { taskId: task.id, userId: task.user_id }, read: false, created_at: task.created_at });
-            }
+                if (!task.completed && task.user_id === currentUser?.id) {
+                    generatedNotifications.push({ id: `task_assigned_${task.id}`, type: 'task_assigned', message: `مهمة جديدة: ${task.description}`, data: { taskId: task.id, userId: task.user_id }, read: false, created_at: task.created_at });
+                }
             });
         }
-        
+
         // Month End Reminder (Admin only)
         if (currentUser?.role === 'Admin' && isSameDay(new Date(), endOfMonth(new Date()))) {
             generatedNotifications.push({ id: 'month_end_reminder', type: 'month_end_reminder', message: 'تذكير: اليوم هو نهاية الشهر. لا تنسَ إقفال الحسابات.', data: {}, read: false, created_at: new Date().toISOString() });
@@ -1610,16 +1610,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                 const purchases = purchaseOrders.filter(p => p && p.supplier_id === supplier.id).reduce((sum, p) => sum + p.total_amount, 0);
                 const returns = supplierReturns.filter(r => r && r.supplier_id === supplier.id).reduce((sum, r) => sum + r.total_amount, 0);
-                
+
                 const supplierPaymentsData = payments.supplierPayments.filter(p => p && p.supplier_id === supplier.id).reduce((sum, p) => sum + p.amount, 0);
                 const netDebt = purchases - returns - supplierPaymentsData;
 
-                if(netDebt > supplier.debt_limit) {
+                if (netDebt > supplier.debt_limit) {
                     generatedNotifications.push({ id: `debt_limit_${supplier.id}`, type: 'supplier_debt_limit', message: `تجاوز حد الدين للمورد ${supplier.name}. الدين الحالي: ${netDebt.toLocaleString()}`, data: { supplierId: supplier.id }, read: false, created_at: new Date().toISOString() });
                 }
             });
         }
-        
+
         // New Purchase Order
         if (purchaseOrders && Array.isArray(purchaseOrders)) {
             purchaseOrders.forEach(po => {
@@ -1628,8 +1628,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
             });
         }
-    
-        return Promise.resolve(generatedNotifications.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+
+        return Promise.resolve(generatedNotifications.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
     }, [inventory, sales, tasks, settings.expirationThresholdDays, currentUser, suppliers, purchaseOrders, supplierReturns, payments]);
 
 
@@ -1650,7 +1650,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return [];
         }
     };
-    
+
     const postExchangeItem = async (item: Omit<ExchangeItem, 'id' | 'pharmacyName' | 'pharmacy_id'>): Promise<ExchangeItem | null> => {
         try {
             const newItem = await apiRequest('/exchange/items', 'POST', item);
@@ -1668,7 +1668,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return false;
         }
     };
-    
+
     const getDrugRequests = async (): Promise<DrugRequest[]> => {
         try {
             return await apiRequest('/exchange/requests');
@@ -1676,7 +1676,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return [];
         }
     };
-    
+
     const postDrugRequest = async (request: Omit<DrugRequest, 'id' | 'pharmacy_id' | 'pharmacyName' | 'province' | 'status' | 'responses' | 'ignoredBy'>): Promise<DrugRequest | null> => {
         try {
             const newRequest = await apiRequest('/exchange/requests', 'POST', request);
@@ -1694,7 +1694,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return false;
         }
     };
-    
+
     const respondToDrugRequest = async (requestId: string, price: number): Promise<DrugRequest | null> => {
         try {
             const updatedRequest = await apiRequest(`/exchange/requests/${requestId}/respond`, 'POST', { price });
@@ -1703,7 +1703,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return null;
         }
     };
-    
+
     const ignoreDrugRequest = async (requestId: string): Promise<boolean> => {
         try {
             await apiRequest(`/exchange/requests/${requestId}/ignore`, 'POST');
@@ -1721,16 +1721,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const setScopedSettings = async (value: AppSettings | ((val: AppSettings) => AppSettings)) => {
-       const newSettings = typeof value === 'function' ? value(settings) : value;
-       try {
-           const updatedSettings = await apiRequest('/settings', 'POST', newSettings);
-           setSettings(updatedSettings); // Update local state with the response from the server
-           toast({ title: "تم حفظ الإعدادات" });
-       } catch (error: any) {
-           // The apiRequest function already shows a toast on error
-       }
+        const newSettings = typeof value === 'function' ? value(settings) : value;
+        try {
+            const updatedSettings = await apiRequest('/settings', 'POST', newSettings);
+            setSettings(updatedSettings); // Update local state with the response from the server
+            toast({ title: "تم حفظ الإعدادات" });
+        } catch (error: any) {
+            // The apiRequest function already shows a toast on error
+        }
     };
-    
+
     // Central Drug Management
     const getCentralDrugs = React.useCallback(async (page: number, perPage: number, search: string) => {
         try {
@@ -1759,7 +1759,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return null;
         }
     };
-    
+
     const updatePharmacyGroup = async (groupId: string, data: { name?: string; pharmacy_ids?: string[] }): Promise<PharmacyGroup | null> => {
         try {
             const updatedGroup = await apiRequest(`/superadmin/pharmacy-groups/${groupId}`, 'PUT', data);
@@ -1769,7 +1769,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return null;
         }
     };
-    
+
     const deletePharmacyGroup = async (groupId: string): Promise<boolean> => {
         try {
             await apiRequest(`/superadmin/pharmacy-groups/${groupId}`, 'DELETE');
@@ -1781,7 +1781,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     // Doctor Management
-    const getDoctors = async (): Promise<Doctor[]> => {
+    const getDoctors = React.useCallback(async (): Promise<Doctor[]> => {
         try {
             const fetchedDoctors = await apiRequest('/doctors');
             setDoctors(fetchedDoctors);
@@ -1789,9 +1789,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
             return [];
         }
-    };
+    }, []);
 
-    const addDoctor = async (name: string): Promise<Doctor | null> => {
+    const addDoctor = React.useCallback(async (name: string): Promise<Doctor | null> => {
         try {
             const newDoctor = await apiRequest('/doctors', 'POST', { name });
             setDoctors(prev => [...prev, newDoctor]);
@@ -1800,9 +1800,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
             return null;
         }
-    };
+    }, []);
 
-    const updateDoctor = async (id: string, data: Partial<Doctor>): Promise<Doctor | null> => {
+    const updateDoctor = React.useCallback(async (id: string, data: Partial<Doctor>): Promise<Doctor | null> => {
         try {
             const updatedDoctor = await apiRequest(`/doctors/${id}`, 'PUT', data);
             setDoctors(prev => prev.map(d => d.id === id ? updatedDoctor : d));
@@ -1811,9 +1811,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
             return null;
         }
-    };
+    }, []);
 
-    const deleteDoctor = async (id: string): Promise<boolean> => {
+    const deleteDoctor = React.useCallback(async (id: string): Promise<boolean> => {
         try {
             await apiRequest(`/doctors/${id}`, 'DELETE');
             setDoctors(prev => prev.filter(d => d.id !== id));
@@ -1822,9 +1822,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
             return false;
         }
-    };
-    
-    const getDoctorSuggestions = async (doctorId?: string): Promise<DoctorSuggestion[]> => {
+    }, []);
+
+    const getDoctorSuggestions = React.useCallback(async (doctorId?: string): Promise<DoctorSuggestion[]> => {
         try {
             const url = doctorId ? `/doctors/suggestions?doctor_id=${doctorId}` : '/doctors/suggestions';
             const suggestions = await apiRequest(url);
@@ -1833,9 +1833,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
             return [];
         }
-    };
+    }, []);
 
-    const loginDoctor = async (loginKey: string): Promise<Doctor | null> => {
+    const loginDoctor = React.useCallback(async (loginKey: string): Promise<Doctor | null> => {
         try {
             const { doctor, token } = await apiRequest('/doctor/login', 'POST', { login_key: loginKey });
             localStorage.setItem('doctorToken', token);
@@ -1844,30 +1844,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
             return null;
         }
-    };
-    
-    const logoutDoctor = () => {
+    }, []);
+
+    const logoutDoctor = React.useCallback(() => {
         localStorage.removeItem('doctorToken');
         setCurrentDoctor(null);
         router.push('/doctor/login');
-    };
-    
-    const searchMedicationForDoctor = async (query: string): Promise<Medication[]> => {
+    }, [router]);
+
+    const searchMedicationForDoctor = React.useCallback(async (query: string): Promise<Medication[]> => {
         try {
             return await apiRequest(`/doctor/inventory/search?q=${query}`);
         } catch (e) {
             return [];
         }
-    };
-    
-    const addDoctorSuggestion = async (suggestion: string): Promise<DoctorSuggestion | null> => {
+    }, []);
+
+    const addDoctorSuggestion = React.useCallback(async (suggestion: string): Promise<DoctorSuggestion | null> => {
         try {
             const newSuggestion = await apiRequest('/doctor/suggestions', 'POST', { suggestion });
             return newSuggestion;
         } catch (e) {
             return null;
         }
-    };
+    }, []);
 
     const scopedData: ScopedDataContextType = {
         inventory: [inventory, setInventory],
@@ -1891,9 +1891,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isAuthenticatedDoctor = !!currentDoctor;
 
     return (
-        <AuthContext.Provider value={{ 
-            currentUser, users, setUsers, isAuthenticated, loading, 
-            login, logout, registerUser, deleteUser, updateUser, 
+        <AuthContext.Provider value={{
+            currentUser, users, setUsers, isAuthenticated, loading,
+            login, logout, registerUser, deleteUser, updateUser,
             updateUserPermissions, updateUserHourlyRate, createPharmacyAdmin, toggleUserStatus, scopedData,
             getAllPharmacySettings, getPharmacyData, clearPharmacyData, closeMonth,
             advertisements, addAdvertisement, updateAdvertisement, deleteAdvertisement, incrementAdView,
@@ -1905,7 +1905,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             addSupplier, updateSupplier, deleteSupplier, getPaginatedSuppliers,
             addPatient, updatePatient, deletePatient, getPaginatedPatients, searchAllPatients,
             addPayment, addPatientPayment,
-            addPurchaseOrder, deletePurchaseOrder,  
+            addPurchaseOrder, deletePurchaseOrder,
             addReturnOrder, deleteReturnOrder, getPaginatedPurchaseOrders, getPaginatedReturnOrders,
             getPaginatedExpenses, addExpense, updateExpense, deleteExpense, getRecurringExpenses, addRecurringExpense, deleteRecurringExpense,
             getPaginatedTasks, getMineTasks, addTask, updateTask, updateStatusTask, deleteTask,
@@ -1922,7 +1922,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             supportRequests, addSupportRequest, updateSupportRequestStatus,
             getExchangeItems, postExchangeItem, deleteExchangeItem,
             getDrugRequests, postDrugRequest, deleteDrugRequest, respondToDrugRequest, ignoreDrugRequest,
-            getCentralDrugs, uploadCentralDrugList, bulkUploadCentralDrugs, 
+            getCentralDrugs, uploadCentralDrugList, bulkUploadCentralDrugs,
             searchInOtherBranches,
             pharmacyGroups, getPharmacyGroups, createPharmacyGroup, updatePharmacyGroup, deletePharmacyGroup,
             addDebt,
@@ -1936,9 +1936,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useAuth() {
-  const context = React.useContext(AuthContext);
-  if (context === null) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+    const context = React.useContext(AuthContext);
+    if (context === null) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
 }
