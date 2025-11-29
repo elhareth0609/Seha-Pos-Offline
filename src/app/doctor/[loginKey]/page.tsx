@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { LogOut, PackageSearch, Search, Send } from 'lucide-react';
+import { LogOut, PackageSearch, Search, Send, X } from 'lucide-react';
 import type { Medication } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -34,7 +34,7 @@ export default function DoctorSearchPage() {
         }
         // Validate login key
         if (!loading && isAuthenticatedDoctor && currentDoctor?.login_key !== params.loginKey) {
-             logoutDoctor();
+            logoutDoctor();
         }
     }, [loading, isAuthenticatedDoctor, currentDoctor, params.loginKey, router, logoutDoctor]);
 
@@ -47,6 +47,12 @@ export default function DoctorSearchPage() {
         const results = await searchMedicationForDoctor(searchTerm);
         setSearchResults(results);
         setIsSearching(false);
+    };
+
+    const handleClearSearch = () => {
+        setSearchTerm('');
+        setSearchResults([]);
+        setSearchPerformed(false);
     };
 
     const handleAddSuggestion = async () => {
@@ -70,7 +76,7 @@ export default function DoctorSearchPage() {
             </div>
         );
     }
-    
+
     return (
         <div className="min-h-screen bg-muted/40 p-4 sm:p-8">
             <header className="max-w-4xl mx-auto flex justify-between items-center mb-6">
@@ -79,11 +85,11 @@ export default function DoctorSearchPage() {
                     <p className="text-sm text-muted-foreground">يمكنك البحث عن توفر الأدوية هنا.</p>
                 </div>
                 <Button variant="ghost" onClick={logoutDoctor}>
-                    <LogOut className="me-2"/>
+                    <LogOut className="me-2" />
                     تسجيل الخروج
                 </Button>
             </header>
-            
+
             <main className="max-w-4xl mx-auto space-y-6">
                 <Card>
                     <CardHeader>
@@ -91,12 +97,17 @@ export default function DoctorSearchPage() {
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSearch} className="flex gap-2">
-                            <Input 
+                            <Input
                                 placeholder="ابحث بالاسم التجاري أو العلمي..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 autoFocus
                             />
+                            {searchTerm && (
+                                <Button type="button" variant="ghost" size="icon" onClick={handleClearSearch}>
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            )}
                             <Button type="submit" disabled={isSearching}>
                                 {isSearching ? 'جاري البحث...' : <Search />}
                             </Button>
@@ -141,7 +152,7 @@ export default function DoctorSearchPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-2">
-                            <Textarea 
+                            <Textarea
                                 placeholder="اكتب اسم الدواء المقترح وأي تفاصيل أخرى (اختياري)..."
                                 value={suggestion}
                                 onChange={(e) => setSuggestion(e.target.value)}
@@ -150,7 +161,7 @@ export default function DoctorSearchPage() {
                     </CardContent>
                     <CardFooter>
                         <Button onClick={handleAddSuggestion} disabled={isSubmittingSuggestion}>
-                            {isSubmittingSuggestion ? 'جاري الإرسال...' : <><Send className="me-2"/> إرسال المقترح</>}
+                            {isSubmittingSuggestion ? 'جاري الإرسال...' : <><Send className="me-2" /> إرسال المقترح</>}
                         </Button>
                     </CardFooter>
                 </Card>
