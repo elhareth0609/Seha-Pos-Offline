@@ -63,6 +63,7 @@ const permissionLabels: { key: keyof Omit<UserPermissions, 'guide'>; label: stri
     // { key: 'manage_close_month', label: 'الوصول إلى إغلاق الشهر' },
     { key: 'manage_order_requests', label: 'الوصول إلى طلبات الطلب' },
     { key: 'manage_offers', label: 'الوصول إلى العروض' },
+    { key: 'manage_doctors', label: 'الوصول إلى الأطباء' },
     { key: 'manage_hr', label: 'الوصول إلى شؤون الموظفين' },
     { key: 'manage_exchange', label: 'الوصول إلى Pharma Swap' },
     // { key: 'manage_representatives', label: 'الوصول إلى المندوبين' },
@@ -176,7 +177,8 @@ export default function HRPage() {
             manage_hr: false, 
             manage_support: false, 
             // manage_representatives: false,
-            manage_exchange: false
+            manage_exchange: false,
+            manage_doctors: false
         };
         setCurrentUserPermissions(permissions);
         setIsPermissionsDialogOpen(true);

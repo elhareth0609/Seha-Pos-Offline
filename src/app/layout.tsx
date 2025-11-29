@@ -4,6 +4,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/hooks/use-auth';
 import AppLayoutClient from './AppLayoutClient';
+import { DoctorAuthProvider } from '@/hooks/use-doctor-auth';
+import { DoctorLayout } from '@/components/layout/doctor-layout';
 
 // Use the Tajawal font from Google Fonts
 import { Tajawal } from 'next/font/google';

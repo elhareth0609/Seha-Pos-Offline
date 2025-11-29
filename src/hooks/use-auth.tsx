@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative, Notification, SupportRequestPayload, PatientPaymentPayload, SupportRequest, PatientPayment, DrugRequest, RequestResponse, ExchangeItem, PharmacyGroup, BranchInventory, PatientDebt, SupplierDebt, ReturnOrderItem } from '@/lib/types';
+import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Supplier, Patient, TrashItem, SupplierPayment, PurchaseOrder, ReturnOrder, Advertisement, Offer, SaleItem, PaginatedResponse, TransactionHistoryItem, Expense, Task, MonthlyArchive, ArchivedMonthData, OrderRequestItem, PurchaseOrderItem, MedicalRepresentative, Notification, SupportRequestPayload, PatientPaymentPayload, SupportRequest, PatientPayment, DrugRequest, RequestResponse, ExchangeItem, PharmacyGroup, BranchInventory, PatientDebt, SupplierDebt, ReturnOrderItem, Doctor, DoctorSuggestion } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 import { PinDialog } from '@/components/auth/PinDialog';
@@ -36,6 +36,8 @@ type AuthResponse = {
         expenses: Expense[];
         tasks: Task[];
         orderRequests: OrderRequestItem[];
+        doctors: Doctor[];
+        doctorSuggestions: DoctorSuggestion[];
     };
     all_users_in_pharmacy: User[];
     advertisements: Advertisement[];
@@ -245,8 +247,20 @@ interface AuthContextType {
     createPharmacyGroup: (name: string, pharmacy_ids: string[]) => Promise<PharmacyGroup | null>;
     updatePharmacyGroup: (groupId: string, data: { name?: string; pharmacy_ids?: string[] }) => Promise<PharmacyGroup | null>;
     deletePharmacyGroup: (groupId: string) => Promise<boolean>;
+    
+    // Doctors
+    getDoctors: () => Promise<Doctor[]>;
+    addDoctor: (name: string) => Promise<Doctor | null>;
+    updateDoctor: (id: string, data: Partial<Doctor>) => Promise<Doctor | null>;
+    deleteDoctor: (id: string) => Promise<boolean>;
+    getDoctorSuggestions: (doctorId?: string) => Promise<DoctorSuggestion[]>;
+    loginDoctor: (loginKey: string) => Promise<Doctor | null>;
+    logoutDoctor: () => void;
+    searchMedicationForDoctor: (query: string) => Promise<Medication[]>;
+    addDoctorSuggestion: (suggestion: string) => Promise<DoctorSuggestion | null>;
+    currentDoctor: Doctor | null;
+    isAuthenticatedDoctor: boolean;
 }
-
 export interface ScopedDataContextType {
     inventory: [Medication[], React.Dispatch<React.SetStateAction<Medication[]>>];
     sales: [Sale[], React.Dispatch<React.SetStateAction<Sale[]>>];
@@ -273,6 +287,8 @@ export interface ScopedDataContextType {
     settings: [AppSettings, (value: AppSettings | ((val: AppSettings) => AppSettings)) => void];
     expenses: [Expense[], React.Dispatch<React.SetStateAction<Expense[]>>];
     tasks: [Task[], React.Dispatch<React.SetStateAction<Task[]>>];
+    doctors: [Doctor[], React.Dispatch<React.SetStateAction<Doctor[]>>];
+    doctorSuggestions: [DoctorSuggestion[], React.Dispatch<React.SetStateAction<DoctorSuggestion[]>>];
 }
 
 const AuthContext = React.createContext<AuthContextType | null>(null);
@@ -331,12 +347,15 @@ async function queueRequest(url: string, options: RequestInit) {
 
 async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?: object) {
     const token = localStorage.getItem('authToken');
+    const doctorToken = localStorage.getItem('doctorToken');
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
     };
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
+    } else if (doctorToken) {
+        headers['Authorization'] = `Bearer ${doctorToken}`;
     }
 
     const options = {
@@ -365,6 +384,7 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
             // If the error message is "Unauthenticated", redirect to login page
             if (errorMessage === "Unauthenticated") {
                 localStorage.removeItem('authToken');
+                localStorage.removeItem('doctorToken');
                 window.location.href = '/';
                 throw new Error('Session expired. Please login again.');
             }
@@ -385,6 +405,7 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [currentUser, setCurrentUser] = React.useState<User | null>(null);
+    const [currentDoctor, setCurrentDoctor] = React.useState<Doctor | null>(null);
     const [users, setUsers] = React.useState<User[]>([]);
     const [loading, setLoading] = React.useState(true);
     const router = useRouter();
@@ -393,6 +414,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     React.useEffect(() => {
         const initializeAuth = async () => {
             const token = localStorage.getItem('authToken');
+            const doctorToken = localStorage.getItem('doctorToken');
+
             if (token) {
                 try {
                     const data: AuthResponse = await apiRequest('/user');
@@ -400,12 +423,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 } catch (error) {
                     localStorage.removeItem('authToken');
                 }
+            } else if (doctorToken) {
+                try {
+                    const data: Doctor = await apiRequest('/doctor/profile');
+                    setCurrentDoctor(data);
+                } catch (error) {
+                    localStorage.removeItem('doctorToken');
+                }
             }
             setLoading(false);
         };
 
         initializeAuth();
     }, []);
+
 
     const [inventory, setInventory] = React.useState<Medication[]>([]);
     const [sales, setSales] = React.useState<Sale[]>([]);
@@ -426,6 +457,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [offers, setOffers] = React.useState<Offer[]>([]);
     const [supportRequests, setSupportRequests] = React.useState<SupportRequest[]>([]);
     const [pharmacyGroups, setPharmacyGroups] = React.useState<PharmacyGroup[]>([]);
+    const [doctors, setDoctors] = React.useState<Doctor[]>([]);
+    const [doctorSuggestions, setDoctorSuggestions] = React.useState<DoctorSuggestion[]>([]);
 
     // Multi-invoice state
     const [activeInvoices, setActiveInvoices] = React.useState<ActiveInvoice[]>([initialActiveInvoice]);
@@ -571,6 +604,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setTasks(pd.tasks || []);
             setSettings(pd.settings || fallbackAppSettings);
             setOrderRequestCart(pd.orderRequests || []);
+            setDoctors(pd.doctors || []);
+            setDoctorSuggestions(pd.doctorSuggestions || []);
         }
         localStorage.setItem('authToken', data.token);
     };
@@ -1745,6 +1780,95 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    // Doctor Management
+    const getDoctors = async (): Promise<Doctor[]> => {
+        try {
+            const fetchedDoctors = await apiRequest('/doctors');
+            setDoctors(fetchedDoctors);
+            return fetchedDoctors;
+        } catch (e) {
+            return [];
+        }
+    };
+
+    const addDoctor = async (name: string): Promise<Doctor | null> => {
+        try {
+            const newDoctor = await apiRequest('/doctors', 'POST', { name });
+            setDoctors(prev => [...prev, newDoctor]);
+            toast({ title: "تم إضافة الطبيب بنجاح" });
+            return newDoctor;
+        } catch (e) {
+            return null;
+        }
+    };
+
+    const updateDoctor = async (id: string, data: Partial<Doctor>): Promise<Doctor | null> => {
+        try {
+            const updatedDoctor = await apiRequest(`/doctors/${id}`, 'PUT', data);
+            setDoctors(prev => prev.map(d => d.id === id ? updatedDoctor : d));
+            toast({ title: "تم تحديث بيانات الطبيب" });
+            return updatedDoctor;
+        } catch (e) {
+            return null;
+        }
+    };
+
+    const deleteDoctor = async (id: string): Promise<boolean> => {
+        try {
+            await apiRequest(`/doctors/${id}`, 'DELETE');
+            setDoctors(prev => prev.filter(d => d.id !== id));
+            toast({ title: "تم حذف الطبيب" });
+            return true;
+        } catch (e) {
+            return false;
+        }
+    };
+    
+    const getDoctorSuggestions = async (doctorId?: string): Promise<DoctorSuggestion[]> => {
+        try {
+            const url = doctorId ? `/doctors/suggestions?doctor_id=${doctorId}` : '/doctors/suggestions';
+            const suggestions = await apiRequest(url);
+            setDoctorSuggestions(suggestions);
+            return suggestions;
+        } catch (e) {
+            return [];
+        }
+    };
+
+    const loginDoctor = async (loginKey: string): Promise<Doctor | null> => {
+        try {
+            const { doctor, token } = await apiRequest('/doctor/login', 'POST', { login_key: loginKey });
+            localStorage.setItem('doctorToken', token);
+            setCurrentDoctor(doctor);
+            return doctor;
+        } catch (e) {
+            return null;
+        }
+    };
+    
+    const logoutDoctor = () => {
+        localStorage.removeItem('doctorToken');
+        setCurrentDoctor(null);
+        router.push('/doctor/login');
+    };
+    
+    const searchMedicationForDoctor = async (query: string): Promise<Medication[]> => {
+        try {
+            return await apiRequest(`/doctor/inventory/search?q=${query}`);
+        } catch (e) {
+            return [];
+        }
+    };
+    
+    const addDoctorSuggestion = async (suggestion: string): Promise<DoctorSuggestion | null> => {
+        try {
+            const newSuggestion = await apiRequest('/doctor/suggestions', 'POST', { suggestion });
+            return newSuggestion;
+        } catch (e) {
+            return null;
+        }
+    };
+
     const scopedData: ScopedDataContextType = {
         inventory: [inventory, setInventory],
         sales: [sales, setSales],
@@ -1759,9 +1883,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         settings: [settings, setScopedSettings],
         expenses: [expenses, setExpenses],
         tasks: [tasks, setTasks],
+        doctors: [doctors, setDoctors],
+        doctorSuggestions: [doctorSuggestions, setDoctorSuggestions],
     };
 
     const isAuthenticated = !!currentUser;
+    const isAuthenticatedDoctor = !!currentDoctor;
 
     return (
         <AuthContext.Provider value={{ 
@@ -1799,6 +1926,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             searchInOtherBranches,
             pharmacyGroups, getPharmacyGroups, createPharmacyGroup, updatePharmacyGroup, deletePharmacyGroup,
             addDebt,
+            getDoctors, addDoctor, updateDoctor, deleteDoctor, getDoctorSuggestions,
+            loginDoctor, logoutDoctor, searchMedicationForDoctor, addDoctorSuggestion,
+            currentDoctor, isAuthenticatedDoctor,
         }}>
             {children}
         </AuthContext.Provider>

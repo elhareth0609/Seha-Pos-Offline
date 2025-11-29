@@ -26,6 +26,7 @@ const allNavItems = [
     { href: "/expiring-soon", permissionKey: 'manage_expiringSoon' },
     { href: "/trash", permissionKey: 'manage_trash' },
     { href: "/guide", permissionKey: 'manage_guide' },
+    { href: "/doctors", permissionKey: 'manage_doctors' },
     { href: "/settings", permissionKey: 'manage_settings' },
     { href: "/hr", permissionKey: 'manage_hr' },
 ];
