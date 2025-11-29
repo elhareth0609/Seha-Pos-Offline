@@ -2,6 +2,22 @@
 
 import { z } from 'zod';
 
+export type Doctor = {
+    id: string;
+    name: string;
+    login_key: string;
+    pharmacy_id: string;
+    created_at: string;
+};
+
+export type DoctorSuggestion = {
+    id: string;
+    doctor_id: string;
+    doctor_name: string;
+    suggestion: string;
+    created_at: string;
+};
+
 export type PharmacyGroup = {
     id: string;
     name: string;
@@ -44,6 +60,7 @@ export type UserPermissions = {
     manage_support: boolean;
     // manage_representatives: boolean;
     manage_exchange: boolean;
+    manage_doctors: boolean;
 };
 
 export type Notification = {

@@ -36,11 +36,16 @@ export const Header = () => {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-4">
-            <Button asChild variant="ghost" className="font-medium hover:scale-105 transition-transform duration-200">
+            <Button asChild variant="outline" className="font-medium hover:scale-105 transition-transform duration-200">
+              <Link href="/doctor/login">
+                بوابة الأطباء
+              </Link>
+            </Button>
+            {/* <Button asChild variant="ghost" className="font-medium hover:scale-105 transition-transform duration-200">
               <Link href={isAuthenticated ? "/dashboard" : "/login"}>
                 {isAuthenticated ? "لوحة التحكم" : "تسجيل الدخول"}
               </Link>
-            </Button>
+            </Button> */}
           </div>
 
           {/* Mobile Menu Button */}
@@ -63,11 +68,16 @@ export const Header = () => {
                 من نحن
               </a>
               <div className="flex flex-col gap-3 pt-4 border-t border-border/50">
-                <Button asChild variant="ghost" className="font-medium justify-start hover:scale-105 transition-transform duration-200">
-                    <Link href={isAuthenticated ? "/dashboard" : "/login"}>
-                        {isAuthenticated ? "لوحة التحكم" : "تسجيل الدخول"}
-                    </Link>
+                <Button asChild variant="outline" className="font-medium justify-start hover:scale-105 transition-transform duration-200">
+                  <Link href="/doctor/login">
+                    بوابة الأطباء
+                  </Link>
                 </Button>
+                {/* <Button asChild variant="ghost" className="font-medium justify-start hover:scale-105 transition-transform duration-200">
+                  <Link href={isAuthenticated ? "/dashboard" : "/login"}>
+                    {isAuthenticated ? "لوحة التحكم" : "تسجيل الدخول"}
+                  </Link>
+                </Button> */}
               </div>
             </nav>
           </div>
