@@ -24,7 +24,7 @@ export default function LoginPage() {
              if (currentUser?.role === 'SuperAdmin') {
                 router.replace('/superadmin');
             } else {
-                router.replace('/dashboard');
+                router.replace('/sales');
             }
         }
     }, [isAuthenticated, loading, router, currentUser]);

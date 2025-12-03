@@ -11,24 +11,10 @@ import { ThemeProvider } from "next-themes";
 
 
 const allNavItems = [
-    { href: "/dashboard", permissionKey: null },
     { href: "/sales", permissionKey: 'manage_sales' },
     { href: "/inventory", permissionKey: 'manage_inventory' },
-    { href: "/exchange", permissionKey: 'manage_exchange' },
-    //   { href: "/representatives", permissionKey: 'manage_representatives' },
-    { href: "/purchases", permissionKey: 'manage_purchases' },
-    { href: "/suppliers", permissionKey: 'manage_suppliers' },
     { href: "/reports", permissionKey: 'manage_reports' },
-    { href: "/expenses", permissionKey: 'manage_expenses' },
-    { href: "/tasks", permissionKey: 'manage_tasks' },
-    { href: "/item-movement", permissionKey: 'manage_itemMovement' },
     { href: "/patients", permissionKey: 'manage_patients' },
-    { href: "/expiring-soon", permissionKey: 'manage_expiringSoon' },
-    { href: "/trash", permissionKey: 'manage_trash' },
-    { href: "/guide", permissionKey: 'manage_guide' },
-    { href: "/doctors", permissionKey: 'manage_doctors' },
-    { href: "/settings", permissionKey: 'manage_settings' },
-    { href: "/hr", permissionKey: 'manage_hr' },
 ];
 
 const PUBLIC_ROUTES = ['/', '/login', '/signup', '/welcome'];
@@ -56,7 +42,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
             }
 
             if (currentUser.role !== 'SuperAdmin' && pathname.startsWith('/superadmin')) {
-                router.replace('/dashboard');
+                router.replace('/sales');
                 return;
             }
 
@@ -68,7 +54,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
                 const userPermissions = currentUser.permissions as UserPermissions;
 
                 if (requiredPermission && (!userPermissions || !userPermissions[requiredPermission as keyof UserPermissions])) {
-                    router.replace('/dashboard');
+                    router.replace('/sales');
                 }
             }
         }

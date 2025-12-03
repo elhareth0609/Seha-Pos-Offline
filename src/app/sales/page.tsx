@@ -472,7 +472,7 @@ export default function SalesPage() {
 
     React.useEffect(() => {
         if (currentUser && currentUser.role === 'Employee' && !currentUser.permissions?.manage_sales) {
-            router.replace('/dashboard');
+            router.replace('/sales');
             console.log(currentUser.permissions?.manage_sales);
         }
     }, [currentUser, router]);

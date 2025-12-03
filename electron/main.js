@@ -21,6 +21,7 @@ function createWindow() {
         },
         icon: path.join(__dirname, '../public/icons/icon-512x512.png'),
         show: false, // Don't show until ready
+        autoHideMenuBar: true, // Hide the menu bar (File, Edit, View)
     });
 
     // Show window when ready to avoid visual flash
