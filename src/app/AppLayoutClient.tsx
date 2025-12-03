@@ -31,7 +31,7 @@ const allNavItems = [
     { href: "/hr", permissionKey: 'manage_hr' },
 ];
 
-const PUBLIC_ROUTES = ['/', '/login', '/signup'];
+const PUBLIC_ROUTES = ['/', '/login', '/signup', '/welcome'];
 
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
     const { loading, isAuthenticated, currentUser } = useAuth();

@@ -1,6 +1,9 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const isDev = require('electron-is-dev');
+const Store = require('electron-store');
+
+const store = new Store();
 
 let mainWindow;
 
@@ -25,9 +28,19 @@ function createWindow() {
         mainWindow.show();
     });
 
+    // Check if this is the first launch
+    const isFirstLaunch = !store.get('hasLaunched', false);
+
+    // Determine the route to load
+    let route = '/login'; // Default to login
+    if (isFirstLaunch) {
+        route = '/welcome';
+        store.set('hasLaunched', true);
+    }
+
     // Load the app
     const startUrl = isDev
-        ? 'http://localhost:9002' // Next.js dev server
+        ? `http://localhost:9002${route}` // Next.js dev server with route
         : `file://${path.join(__dirname, '../out/index.html')}`; // Static export
 
     mainWindow.loadURL(startUrl);

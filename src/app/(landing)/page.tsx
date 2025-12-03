@@ -1,26 +1,21 @@
 
 "use client";
 
-import { Hero } from "./components/Hero";
-import { Features } from "./components/Features";
-import { About } from "./components/About";
-import { Header } from "./components/Header";
-import { Footer } from "./components/Footer";
-import { ThemeProvider } from "next-themes";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 const Index = () => {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to login page
+    router.replace('/login');
+  }, [router]);
+
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem themes={['light', 'dark']}>
-      <div className="min-h-screen bg-background text-foreground">
-        <Header />
-        <main>
-          <Hero />
-          <Features />
-          <About />
-        </main>
-        <Footer />
-      </div>
-    </ThemeProvider>
+    <div className="flex items-center justify-center min-h-screen bg-muted/40">
+      <p className="text-muted-foreground">جاري التحميل...</p>
+    </div>
   );
 };
 
