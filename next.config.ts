@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfiguration = {
-  // Static export for Electron
+  // Static export for Electron production builds
   output: 'export',
 
   // Preserve your existing configuration

@@ -1,9 +1,9 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
-const isDev = require('electron-is-dev');
 const Store = require('electron-store');
 
 const store = new Store();
+const isDev = !app.isPackaged;
 
 let mainWindow;
 

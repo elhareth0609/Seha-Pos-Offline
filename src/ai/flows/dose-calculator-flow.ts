@@ -1,135 +1,25 @@
-'use server';
+// 'use server';
+// Note: This AI dose calculator feature is disabled in production builds
+// because it requires server-side API calls with the OpenRouter API key.
+// To enable it, you would need to set up a proper API route.
 
 import {
-    DoseCalculationInputSchema,
-    DoseCalculationOutputSchema,
-    type DoseCalculationInput,
-    type DoseCalculationOutput
+  DoseCalculationInputSchema,
+  DoseCalculationOutputSchema,
+  type DoseCalculationInput,
+  type DoseCalculationOutput
 } from '@/lib/types';
 
-// Function to calculate dose using direct API call to OpenRouter
-async function calculateDoseWithOpenRouter(input: DoseCalculationInput): Promise<DoseCalculationOutput> {
-  // Format the prompt based on the input
-  const medicationsText = input.medications.map(med => 
-    `- ${med.tradeName} (${med.scientific_names ? med.scientific_names.join(', ') : 'N/A'})`
-  ).join('\n');
-
-const prompt = `You are an expert Iraqi pharmacist assistant. Provide dosage analysis for the given medications based on the patient's weight. Your response must be in valid JSON format only.
-
-You must return JSON in the exact format below:
-{
-  "medicationAnalysis": [
-    {
-      "tradeName": "Medication name",
-      "suggestedDose": "A very short and direct dose with frequency and simple instructions. Example: 'One tablet daily after food'."
-    }
-  ],
-  "interactions": []
-}
-
-Patient weight: ${input.patientWeight} kg
-Medications:
-${medicationsText}
-
-Very important: Be creative in your answers and do not copy the examples above. Keep your answers extremely concise. You must always provide a specific dose and never use the phrase 'Please consult the pharmacist'.
-`;
-
-
-  try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'http://localhost:9002/',
-        'X-Title': 'Seha-Pos',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'x-ai/grok-4.1-fast:free',
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        response_format: { type: 'json_object' },
-        max_tokens: 256
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-
-    const data = await response.json();
-    let content = data.choices[0].message.content;
-
-    console.log('OpenRouter response:', content);
-    
-    // Clean up content to handle potential formatting issues
-    content = content.trim();
-
-    // Try to extract JSON if it's wrapped in markdown code blocks
-    const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-    if (jsonMatch) {
-      content = jsonMatch[1];
-    }
-
-    // Try to parse the response as JSON
-    try {
-      console.log('Parsed response:', content);
-      const parsedResponse = JSON.parse(content);
-      console.log('Parsed response:', parsedResponse);
-      // Ensure the response has the required structure
-      if (!parsedResponse.interactions) {
-        parsedResponse.interactions = [];
-      }
-      
-      // Validate the response structure
-      const validatedResponse = DoseCalculationOutputSchema.parse(parsedResponse);
-      return validatedResponse;
-    } catch (parseError) {
-        console.error('Failed to parse API response as JSON:', parseError);
-        console.error('Raw content:', content);
-        
-        // If parsing fails, try to construct a valid response from the partial data
-        if (content.includes('medicationAnalysis')) {
-          try {
-            const partialResponse = JSON.parse(content);
-            if (partialResponse.medicationAnalysis) {
-              return {
-                medicationAnalysis: partialResponse.medicationAnalysis
-              };
-            }
-          } catch (e) {
-            console.error('Failed to parse partial response:', e);
-          }
-        }
-        
-        // If all parsing attempts fail, return a default response
-        return {
-          medicationAnalysis: input.medications.map(med => ({
-            tradeName: med.tradeName,
-            suggestedDose: "الرجاء استشارة الصيدلي",
-            instructions: "لا توجد معلومات كافية"
-          }))
-        };
-    }
-  } catch (error) {
-    console.error('Error calculating dose:', error);
-    // Return a default response in case of error
-    return {
-      medicationAnalysis: input.medications.map(med => ({
-        tradeName: med.tradeName,
-        suggestedDose: "الرجاء استشارة الصيدلي",
-        instructions: "حدث خطأ في المعالجة"
-      }))
-    };
-  }
-}
-
+// Disabled for static export - would need API route implementation
 export async function calculateDose(input: DoseCalculationInput): Promise<DoseCalculationOutput> {
-  return calculateDoseWithOpenRouter(input);
+  // Return a placeholder response
+  return {
+    medicationAnalysis: input.medications.map(med => ({
+      tradeName: med.tradeName,
+      suggestedDose: "الرجاء استشارة الصيدلي",
+      instructions: "ميزة حساب الجرعة غير متاحة في وضع عدم الاتصال"
+    }))
+  };
 }
 
 export type { DoseCalculationInput, DoseCalculationOutput };
