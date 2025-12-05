@@ -1,5 +1,5 @@
 {
-  "name": "nextn",
+  "name": "midgram-offline",
   "version": "0.1.0",
   "private": true,
   "main": "electron/main.js",
@@ -101,9 +101,11 @@
     },
     "files": [
       "out/**/*",
+      "out/_next/**/*",
+      "out/icons/**/*",
+      "out/landing/**/*",
       "electron/**/*",
-      "public/**/*",
-      "node_modules/**/*"
+      "public/**/*"
     ],
     "win": {
       "target": "nsis",
