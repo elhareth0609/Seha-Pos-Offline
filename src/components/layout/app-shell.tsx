@@ -1,45 +1,15 @@
-
 "use client";
 
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Boxes,
-  CalendarX2,
-  LayoutDashboard,
-  Truck,
   ShoppingCart,
   UserCircle,
-  FileDown,
-  Upload,
-  Settings,
   Menu,
   FileText,
-  Landmark,
   LogOut,
   Users,
-  HelpCircle,
-  Repeat,
-  Trash2,
-  Coins,
-  ListChecks,
-  CheckCircle,
-  FileArchive,
-  ShoppingBasket,
-  BadgePercent,
-  Contact,
-  Bell,
-  Package,
-  AlertTriangle,
-  ArrowRight,
-  DollarSign,
-  Receipt,
-  UserCog,
-  LifeBuoy,
-  HeartPulse,
-  Stethoscope,
-  ArrowLeftRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -72,6 +42,7 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { ThemeToggle } from "../ui/theme-toggle";
+import { NetworkStatus } from "@/components/ui/network-status";
 
 const allNavItems = [
   { href: "/sales", icon: ShoppingCart, label: "المبيعات", group: 'main' },
@@ -218,6 +189,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {children}
             </div>
           </main>
+          <NetworkStatus />
         </div>
       </Sheet>
     </TooltipProvider>

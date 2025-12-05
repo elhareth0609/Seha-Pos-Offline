@@ -50,7 +50,7 @@ interface AuthContextType {
     logout: () => void;
     updateUserHourlyRate: (userId: string, rate: number) => Promise<boolean>;
     getAllPharmacySettings: () => Promise<Record<string, AppSettings>>;
-    getPharmacyData: (pharmacyId: string) => Promise<{ users: User[], sales: Sale[], inventory: Medication[]}>;
+    getPharmacyData: (pharmacyId: string) => Promise<{ users: User[], sales: Sale[], inventory: Medication[] }>;
 
     advertisements: Advertisement[];
 
@@ -392,7 +392,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 users: data.users || [],
             };
         } catch (e: any) {
-            return { sales: [], inventory: [], users: []};
+            return { sales: [], inventory: [], users: [] };
         }
     };
 
@@ -463,7 +463,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const searchAllInventory = React.useCallback(async (search: string) => {
         if (!navigator.onLine) {
             let allItems = await db.inventory.toArray();
-            if (search) {
+            if (search && typeof search === 'string') {
                 const lowerSearch = search.toLowerCase();
                 allItems = allItems.filter(i =>
                     i.name.toLowerCase().includes(lowerSearch) ||
@@ -532,7 +532,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const searchAllPatients = React.useCallback(async (search: string) => {
         if (!navigator.onLine) {
             let allItems = await db.patients.toArray();
-            if (search) {
+            if (search && typeof search === 'string') {
                 const lowerSearch = search.toLowerCase();
                 allItems = allItems.filter(p => p.name.toLowerCase().includes(lowerSearch) || p.phone?.includes(search));
             }
@@ -624,7 +624,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const searchAllSales = React.useCallback(async (search: string = "") => {
         if (!navigator.onLine) {
             let allSales = await db.sales.toArray();
-            if (search) {
+            if (search && typeof search === 'string') {
                 const lowerSearch = search.toLowerCase();
                 allSales = allSales.filter(s => s.id.toLowerCase().includes(lowerSearch) || s.patientName?.toLowerCase().includes(lowerSearch));
             }
