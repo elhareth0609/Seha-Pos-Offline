@@ -36,7 +36,10 @@ export function useSync(refreshData: () => Promise<void>) {
                         headers['Authorization'] = `Bearer ${token}`;
                     }
 
-                    const response = await fetch(req.url, {
+                    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+                    const fullUrl = req.url.startsWith('http') ? req.url : `${API_URL}${req.url}`;
+
+                    const response = await fetch(fullUrl, {
                         method: req.method,
                         headers,
                         body: req.body ? JSON.stringify(req.body) : undefined,
