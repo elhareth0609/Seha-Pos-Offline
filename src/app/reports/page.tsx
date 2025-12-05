@@ -498,7 +498,7 @@ export default function ReportsPage() {
                                                     <Printer className="me-2 h-4 w-4" />
                                                     طباعة
                                                 </Button>
-                                                {canManagePreviousSales && (
+                                                {/* {canManagePreviousSales && (
                                                     <>
                                                         <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditSale(sale); }}>
                                                             <Pencil className="me-2 h-4 w-4" />
@@ -527,7 +527,7 @@ export default function ReportsPage() {
                                                             </AlertDialogContent>
                                                         </AlertDialog>
                                                     </>
-                                                )}
+                                                )} */}
                                             </div>
                                         </TableCell>
                                          <TableCell>

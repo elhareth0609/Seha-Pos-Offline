@@ -31,12 +31,9 @@ export function useSync(refreshData: () => Promise<void>) {
                     // Ideally, we should reuse the apiRequest logic but avoid circular dependencies.
                     // For now, let's grab the token from localStorage directly.
                     const token = localStorage.getItem('authToken');
-                    const doctorToken = localStorage.getItem('doctorToken');
 
                     if (token) {
                         headers['Authorization'] = `Bearer ${token}`;
-                    } else if (doctorToken) {
-                        headers['Authorization'] = `Bearer ${doctorToken}`;
                     }
 
                     const response = await fetch(req.url, {

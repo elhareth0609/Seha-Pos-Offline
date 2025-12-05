@@ -12,7 +12,6 @@ import { ThemeProvider } from "next-themes";
 
 const allNavItems = [
     { href: "/sales", permissionKey: 'manage_sales' },
-    { href: "/inventory", permissionKey: 'manage_inventory' },
     { href: "/reports", permissionKey: 'manage_reports' },
     { href: "/patients", permissionKey: 'manage_patients' },
 ];
@@ -28,8 +27,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
         if (loading) return;
 
         // If user is not authenticated and trying to access a protected route, redirect to login
-        // Allow doctor routes to handle their own auth
-        if (!isAuthenticated && !PUBLIC_ROUTES.includes(pathname) && !pathname.startsWith('/doctor/')) {
+        if (!isAuthenticated && !PUBLIC_ROUTES.includes(pathname)) {
             router.replace('/login');
             return;
         }
@@ -71,7 +69,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
     }
 
     // Public routes are rendered without the AppShell and ThemeProvider
-    if (PUBLIC_ROUTES.includes(pathname) || pathname?.startsWith('/doctor/')) {
+    if (PUBLIC_ROUTES.includes(pathname)) {
         return <>{children}</>;
     }
 

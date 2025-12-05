@@ -456,7 +456,6 @@ export default function SalesPage() {
         switchToInvoice,
         createNewInvoice,
         closeInvoice,
-        addPatient,
         addSale,
         updateSale,
         deleteSale,
@@ -968,18 +967,6 @@ export default function SalesPage() {
         router.push('/reports');
     }
 
-    const handleAddNewPatient = async () => {
-        const newPatient = await addPatient(newPatientName, newPatientPhone);
-        if (newPatient) {
-            updateActiveInvoice(prev => ({ ...prev, patientId: newPatient.id }));
-            toast({ title: "تم إضافة المريض", description: `تم تحديد ${newPatient.name} لهذه الفاتورة.` });
-            setNewPatientName("");
-            setNewPatientPhone("");
-            setPatientSearchTerm("");
-            setIsPatientModalOpen(false);
-        }
-    }
-
     const handlePatientSearch = async (term: string) => {
         setPatientSearchTerm(term);
         if (term) {
@@ -1456,14 +1443,6 @@ export default function SalesPage() {
                                                     ))}
                                                 </ScrollArea>
                                                 <Separator />
-                                                <div className="space-y-2">
-                                                    <h4 className="font-medium">أو إضافة جديد</h4>
-                                                    <Input placeholder="اسم المريض الجديد" value={newPatientName} onChange={e => setNewPatientName(e.target.value)} />
-                                                    <Input placeholder="رقم الهاتف (اختياري)" value={newPatientPhone} onChange={e => setNewPatientPhone(e.target.value)} />
-                                                    <Button onClick={handleAddNewPatient} className="w-full" variant="success">
-                                                        <UserPlus className="me-2" /> إضافة وتحديد
-                                                    </Button>
-                                                </div>
                                             </div>
                                         </DialogContent>
                                     </Dialog>

@@ -75,7 +75,6 @@ import { ThemeToggle } from "../ui/theme-toggle";
 
 const allNavItems = [
   { href: "/sales", icon: ShoppingCart, label: "المبيعات", group: 'main' },
-  { href: "/inventory", icon: Boxes, label: "المخزون", group: 'main' },
   { href: "/reports", icon: FileText, label: "الفواتير", group: 'analysis' },
   { href: "/patients", icon: Users, label: "أصدقاء الصيدلية", group: 'tools' },
 ];
@@ -88,120 +87,15 @@ const navGroups = [
   { key: 'admin', title: 'الإدارة والنظام' }
 ]
 
-function TasksSheet() {
-  const { currentUser, updateTask, updateStatusTask, getMineTasks } = useAuth();
-  const [tasks, setTasks] = React.useState<Task[]>([]);
-  const [loading, setLoading] = React.useState<boolean>(true);
-
-  React.useEffect(() => {
-    const fetchTasks = async () => {
-      setLoading(true);
-      try {
-        if (currentUser?.role === 'Employee') {
-          const tasks = await getMineTasks(currentUser?.id);
-          setTasks(tasks);
-        }
-      } catch (error) {
-        console.error('Error fetching tasks:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTasks();
-  }, [currentUser, getMineTasks]);
-
-  const handleTaskStatusChange = async (taskId: string, completed: boolean) => {
-    const success = await updateStatusTask(taskId, { completed });
-    if (success) {
-      setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
-    }
-  };
-
-  return (
-    <SheetContent>
-      <SheetHeader>
-        <SheetTitle>مهامي</SheetTitle>
-      </SheetHeader>
-      <ScrollArea className="h-[calc(100vh-8rem)] mt-4">
-        <div className="space-y-4">
-          {loading ? (
-            <div className="flex justify-center items-center py-10">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
-            </div>
-          ) : tasks.length > 0 ? tasks.map(task => (
-            <div key={task.id} className="flex items-center space-x-2 p-2 border rounded-md">
-              <Checkbox
-                id={`task-sheet-${task.id}`}
-                checked={task.completed}
-                onCheckedChange={(checked) => handleTaskStatusChange(task.id, !!checked)}
-              />
-              <Label
-                htmlFor={`task-sheet-${task.id}`}
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1"
-              >
-                {task.description}
-              </Label>
-            </div>
-          )) : (
-            <div className="text-center text-muted-foreground py-10 flex flex-col items-center">
-              <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
-              <p>لا توجد مهام حالية. عمل رائع!</p>
-            </div>
-          )}
-        </div>
-      </ScrollArea>
-    </SheetContent>
-  )
-}
-
-const getNotificationIcon = (type: Notification['type']) => {
-  switch (type) {
-    case 'out_of_stock':
-    case 'low_stock':
-      return <Package className="h-4 w-4 text-yellow-500" />;
-    case 'expired':
-    case 'expiring_soon':
-      return <AlertTriangle className="h-4 w-4 text-destructive" />;
-    case 'task_assigned':
-      return <ListChecks className="h-4 w-4 text-blue-500" />;
-    case 'sale_below_cost':
-    case 'large_discount':
-      return <DollarSign className="h-4 w-4 text-orange-500" />;
-    case 'supplier_debt_limit':
-      return <Landmark className="h-4 w-4 text-red-700" />;
-    case 'month_end_reminder':
-      return <FileArchive className="h-4 w-4 text-indigo-500" />;
-    case 'new_purchase_order':
-      return <Receipt className="h-4 w-4 text-green-500" />;
-    default:
-      return <Bell className="h-4 w-4 text-muted-foreground" />;
-  }
-}
-
 export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { toast } = useToast();
-  const { currentUser, logout, getNotifications } = useAuth();
+  const { currentUser, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [notifications, setNotifications] = React.useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = React.useState(0);
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
 
-
-  React.useEffect(() => {
-    const fetchNotifications = async () => {
-      const notifs = await getNotifications();
-      setNotifications(notifs);
-      setUnreadCount(notifs.filter(n => !n.read).length);
-    };
-
-    if (currentUser) {
-      fetchNotifications();
-      // Optionally, set up an interval to fetch notifications periodically
-      const intervalId = setInterval(fetchNotifications, 5 * 60 * 1000); // every 5 minutes
-      return () => clearInterval(intervalId);
-    }
-  }, [currentUser, getNotifications]);
 
   const navItems = React.useMemo(() => {
     if (!currentUser) return [];
@@ -210,58 +104,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const permissions: UserPermissions = currentUser.permissions || {
       manage_sales: true,
       manage_inventory: true,
-      manage_purchases: false,
-      manage_suppliers: false,
       manage_reports: false,
-      manage_itemMovement: true,
       manage_patients: true,
-      manage_expiringSoon: true,
-      // manage_guide: true, 
-      manage_settings: false,
-      manage_trash: false,
       manage_salesPriceModification: false,
-      manage_users: false,
       manage_previous_sales: false,
-      manage_expenses: false,
-      manage_tasks: false,
-      // manage_close_month: false,
-      manage_archives: false,
-      manage_order_requests: false,
-      manage_offers: true,
-      manage_hr: false,
-      manage_support: true,
-      // manage_representatives: true,
-      manage_exchange: true,
-      manage_doctors: false,
     };
 
     const permissionMap: { [key: string]: keyof UserPermissions } = {
       '/sales': 'manage_sales',
-      '/inventory': 'manage_inventory',
-      '/purchases': 'manage_purchases',
-      '/suppliers': 'manage_suppliers',
       '/reports': 'manage_reports',
-      '/item-movement': 'manage_itemMovement',
       '/patients': 'manage_patients',
-      '/expiring-soon': 'manage_expiringSoon',
-      // '/guide': 'manage_guide',
-      '/settings': 'manage_settings',
-      '/trash': 'manage_trash',
-      '/expenses': 'manage_expenses',
-      '/tasks': 'manage_tasks',
-      // '/close-month': 'manage_close_month',
-      '/order-requests': 'manage_order_requests',
-      '/offers': 'manage_offers',
-      '/hr': 'manage_hr',
-      '/support': 'manage_support',
-      // '/clinical-training': 'manage_guide', // Assuming guide permission covers this
-      '/exchange': 'manage_exchange',
-      '/doctors': 'manage_doctors',
-      // '/representatives': 'manage_representatives', // Assuming representatives permission covers this for now
     };
 
     return allNavItems.filter(item => {
-      if (item.href === '/dashboard' || item.href === '/representatives') return true;
+      if (item.href === '/dashboard') return true;
       const permissionKey = permissionMap[item.href];
       if (!permissionKey) return true;
       return permissions[permissionKey];
@@ -363,7 +219,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </main>
         </div>
-        <TasksSheet />
       </Sheet>
     </TooltipProvider>
   );
