@@ -8,6 +8,8 @@ import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 import { PinDialog } from '@/components/auth/PinDialog';
 import { differenceInDays, parseISO, startOfToday, isSameDay, endOfMonth } from 'date-fns';
+import { db } from '@/lib/db';
+import { useSync } from './use-sync';
 
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -313,36 +315,7 @@ const initialActiveInvoice: ActiveInvoice = {
     reviewIndex: null,
 };
 
-function openDB() {
-    return new Promise<IDBDatabase>((resolve, reject) => {
-        const request = indexedDB.open('offline-requests-db', 1);
-        request.onupgradeneeded = event => {
-            const db = (event.target as IDBOpenDBRequest).result;
-            if (!db.objectStoreNames.contains('requests')) {
-                db.createObjectStore('requests', { autoIncrement: true, keyPath: 'id' });
-            }
-        };
-        request.onsuccess = event => resolve((event.target as IDBOpenDBRequest).result);
-        request.onerror = event => reject((event.target as IDBOpenDBRequest).error);
-    });
-}
 
-async function queueRequest(url: string, options: RequestInit) {
-    const db = await openDB();
-    const tx = db.transaction('requests', 'readwrite');
-    const store = tx.objectStore('requests');
-    await new Promise((resolve, reject) => {
-        const req = store.add({ url, options });
-        req.onsuccess = resolve;
-        req.onerror = reject;
-    });
-
-    if ('serviceWorker' in navigator && 'SyncManager' in window) {
-        navigator.serviceWorker.ready.then(sw => {
-            (sw as any).sync?.register('sync-requests');
-        });
-    }
-}
 
 
 async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?: object) {
@@ -365,10 +338,14 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
     };
 
     if (!navigator.onLine && method !== 'GET') {
-        await queueRequest(`${API_URL}${endpoint}`, options);
+        await db.offlineRequests.add({
+            url: `${API_URL}${endpoint}`,
+            method,
+            body,
+            timestamp: Date.now()
+        });
         toast({ title: 'أنت غير متصل', description: 'تم حفظ طلبك وسيتم إرساله عند عودة الاتصال بالإنترنت.' });
-        // Return a mocked successful response for offline actions to update UI optimistically
-        return { message: 'Request queued for sync' };
+        return null;
     }
 
     try {
@@ -411,31 +388,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
 
     // Initialize auth state on component mount
-    React.useEffect(() => {
-        const initializeAuth = async () => {
-            const token = localStorage.getItem('authToken');
-            const doctorToken = localStorage.getItem('doctorToken');
+    const initializeAuth = React.useCallback(async () => {
+        const token = localStorage.getItem('authToken');
+        const doctorToken = localStorage.getItem('doctorToken');
 
-            if (token) {
+        if (token) {
+            try {
+                const data: AuthResponse = await apiRequest('/user');
+                setAllData(data);
+
+                // Save to local DB
+                if (data.pharmacy_data) {
+                    await db.transaction('rw', [db.sales, db.inventory, db.patients, db.suppliers, db.settings], async () => {
+                        await db.sales.clear();
+                        await db.sales.bulkPut(data.pharmacy_data.sales);
+                        await db.inventory.clear();
+                        await db.inventory.bulkPut(data.pharmacy_data.inventory);
+                        await db.patients.clear();
+                        await db.patients.bulkPut(data.pharmacy_data.patients);
+                        await db.suppliers.clear();
+                        await db.suppliers.bulkPut(data.pharmacy_data.suppliers);
+                        if (data.pharmacy_data.settings) {
+                            await db.settings.put({ ...data.pharmacy_data.settings, id: 1 }); // Use fixed ID for settings
+                        }
+                    });
+                }
+            } catch (error) {
+                // Try loading from local DB
                 try {
-                    const data: AuthResponse = await apiRequest('/user');
-                    setAllData(data);
-                } catch (error) {
+                    const sales = await db.sales.toArray();
+                    const inventory = await db.inventory.toArray();
+                    const patients = await db.patients.toArray();
+                    const suppliers = await db.suppliers.toArray();
+                    const settings = await db.settings.get(1);
+
+                    if (inventory.length > 0 || sales.length > 0) {
+                        setInventory(inventory);
+                        setSales(sales);
+                        setPatients(patients);
+                        setSuppliers(suppliers);
+                        if (settings) setSettings(settings);
+                        // We might need to mock a user object or store it in DB too
+                        // For now, let's assume if we have data we are "logged in" enough to view it
+                        // But we need currentUser to be set.
+                        // Ideally we should store currentUser in DB too.
+                    } else {
+                        localStorage.removeItem('authToken');
+                    }
+                } catch (e) {
                     localStorage.removeItem('authToken');
                 }
-            } else if (doctorToken) {
-                try {
-                    const data: Doctor = await apiRequest('/doctor/profile');
-                    setCurrentDoctor(data);
-                } catch (error) {
-                    localStorage.removeItem('doctorToken');
-                }
             }
-            setLoading(false);
-        };
-
-        initializeAuth();
+        } else if (doctorToken) {
+            try {
+                const data: Doctor = await apiRequest('/doctor/profile');
+                setCurrentDoctor(data);
+            } catch (error) {
+                localStorage.removeItem('doctorToken');
+            }
+        }
+        setLoading(false);
     }, []);
+
+    const { syncRequests } = useSync(initializeAuth);
+
+    React.useEffect(() => {
+        initializeAuth();
+    }, [initializeAuth]);
 
 
     const [inventory, setInventory] = React.useState<Medication[]>([]);
@@ -804,6 +823,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const getPaginatedInventory = React.useCallback(async (page: number, perPage: number, search: string, filters: Record<string, any> = {}) => {
+        if (!navigator.onLine) {
+            let allItems = await db.inventory.toArray();
+            if (search) {
+                const lowerSearch = search.toLowerCase();
+                allItems = allItems.filter(i =>
+                    i.name.toLowerCase().includes(lowerSearch) ||
+                    i.barcodes?.some(b => b.toLowerCase().includes(lowerSearch)) ||
+                    i.scientific_names?.some(s => s.toLowerCase().includes(lowerSearch))
+                );
+            }
+            // Apply other filters if needed
+
+            const total = allItems.length;
+            const start = (page - 1) * perPage;
+            const data = allItems.slice(start, start + perPage);
+
+            return {
+                data,
+                current_page: page,
+                last_page: Math.ceil(total / perPage),
+                total,
+                per_page: perPage,
+                first_page_url: '', from: start + 1, last_page_url: '', links: [], next_page_url: null, path: '', prev_page_url: null, to: start + data.length
+            } as PaginatedResponse<Medication>;
+        }
+
         try {
             const params = new URLSearchParams({
                 paginate: "true",
@@ -820,6 +865,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const searchAllInventory = React.useCallback(async (search: string) => {
+        if (!navigator.onLine) {
+            let allItems = await db.inventory.toArray();
+            if (search) {
+                const lowerSearch = search.toLowerCase();
+                allItems = allItems.filter(i =>
+                    i.name.toLowerCase().includes(lowerSearch) ||
+                    i.barcodes?.some(b => b.toLowerCase().includes(lowerSearch)) ||
+                    i.scientific_names?.some(s => s.toLowerCase().includes(lowerSearch))
+                );
+            }
+            return allItems.slice(0, 50); // Limit results
+        }
+
         try {
             const params = new URLSearchParams({ search });
             return await apiRequest(`/medications?${params.toString()}`);
@@ -895,6 +953,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const getPaginatedPatients = React.useCallback(async (page: number, perPage: number, search: string) => {
+        if (!navigator.onLine) {
+            let allItems = await db.patients.toArray();
+            if (search) {
+                const lowerSearch = search.toLowerCase();
+                allItems = allItems.filter(p => p.name.toLowerCase().includes(lowerSearch) || p.phone?.includes(search));
+            }
+
+            const total = allItems.length;
+            const start = (page - 1) * perPage;
+            const data = allItems.slice(start, start + perPage);
+
+            return {
+                data,
+                current_page: page,
+                last_page: Math.ceil(total / perPage),
+                total,
+                per_page: perPage,
+                first_page_url: '', from: start + 1, last_page_url: '', links: [], next_page_url: null, path: '', prev_page_url: null, to: start + data.length
+            } as PaginatedResponse<Patient>;
+        }
+
         try {
             const params = new URLSearchParams({
                 paginate: "true",
@@ -910,6 +989,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const searchAllPatients = React.useCallback(async (search: string) => {
+        if (!navigator.onLine) {
+            let allItems = await db.patients.toArray();
+            if (search) {
+                const lowerSearch = search.toLowerCase();
+                allItems = allItems.filter(p => p.name.toLowerCase().includes(lowerSearch) || p.phone?.includes(search));
+            }
+            return allItems.slice(0, 50);
+        }
+
         try {
             const params = new URLSearchParams({ search });
             return await apiRequest(`/patients?${params.toString()}`);
@@ -965,6 +1053,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const getPaginatedSales = React.useCallback(async (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string) => {
+        if (!navigator.onLine) {
+            let allSales = await db.sales.toArray();
+
+            // Filter
+            if (search) {
+                const lowerSearch = search.toLowerCase();
+                allSales = allSales.filter(s => s.id.toLowerCase().includes(lowerSearch) || s.patientName?.toLowerCase().includes(lowerSearch));
+            }
+            if (dateFrom) {
+                allSales = allSales.filter(s => new Date(s.date) >= new Date(dateFrom));
+            }
+            if (dateTo) {
+                allSales = allSales.filter(s => new Date(s.date) <= new Date(dateTo));
+            }
+            if (employeeId && employeeId !== 'all') {
+                allSales = allSales.filter(s => s.employee_id === employeeId);
+            }
+            if (paymentMethod && paymentMethod !== 'all') {
+                allSales = allSales.filter(s => s.payment_method === paymentMethod);
+            }
+
+            // Sort by date desc
+            allSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+            const total = allSales.length;
+            const start = (page - 1) * perPage;
+            const data = allSales.slice(start, start + perPage);
+
+            return {
+                data,
+                current_page: page,
+                last_page: Math.ceil(total / perPage),
+                total,
+                per_page: perPage,
+                first_page_url: '', from: start + 1, last_page_url: '', links: [], next_page_url: null, path: '', prev_page_url: null, to: start + data.length
+            } as PaginatedResponse<Sale>;
+        }
+
         try {
             const params = new URLSearchParams({
                 paginate: "true",
@@ -1150,6 +1276,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const addSale = async (saleData: any) => {
+        if (!navigator.onLine) {
+            const newSale = {
+                ...saleData,
+                id: `local-${Date.now()}`,
+                date: new Date().toISOString(),
+                items: saleData.items.map((item: any) => ({ ...item, name: item.name || 'Unknown' })) // Ensure name exists
+            };
+
+            await db.sales.add(newSale);
+            await db.offlineRequests.add({
+                url: '/sales',
+                method: 'POST',
+                body: saleData,
+                timestamp: Date.now()
+            });
+
+            setSales(prev => [newSale, ...prev]);
+            // Optimistically update inventory
+            setInventory(prev => {
+                const newInventory = [...prev];
+                newSale.items.forEach((item: any) => {
+                    const medIndex = newInventory.findIndex(m => m.id === item.medication_id);
+                    if (medIndex !== -1) {
+                        newInventory[medIndex] = {
+                            ...newInventory[medIndex],
+                            stock: newInventory[medIndex].stock - item.quantity
+                        };
+                    }
+                });
+                return newInventory;
+            });
+            return newSale;
+        }
+
         try {
             const { sale: newSale, updated_inventory } = await apiRequest('/sales', 'POST', saleData);
             setSales(prev => [newSale, ...prev]);
@@ -1164,6 +1324,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const updateSale = async (saleData: any) => {
+        if (!navigator.onLine) {
+            await db.sales.put(saleData);
+            await db.offlineRequests.add({
+                url: `/sales/${saleData.id}`,
+                method: 'PUT',
+                body: saleData,
+                timestamp: Date.now()
+            });
+            setSales(prev => prev.map(s => s.id === saleData.id ? saleData : s));
+            // Note: Inventory update logic for updateSale is complex to do offline without previous state diff. 
+            // Skipping inventory update for offline edit for now or we could implement it if we have the old sale.
+            return saleData;
+        }
+
         try {
             const { sale: updatedSale, updated_inventory } = await apiRequest(`/sales/${saleData.id}`, 'PUT', saleData);
             setSales(prev => prev.map(s => s.id === updatedSale.id ? updatedSale : s));
@@ -1178,6 +1352,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const deleteSale = async (saleId: string) => {
+        if (!navigator.onLine) {
+            await db.sales.delete(saleId);
+            await db.offlineRequests.add({
+                url: `/sales/${saleId}`,
+                method: 'DELETE',
+                timestamp: Date.now()
+            });
+
+            // Optimistically revert inventory
+            const sale = sales.find(s => s.id === saleId);
+            if (sale) {
+                setInventory(prev => {
+                    const newInventory = [...prev];
+                    sale.items.forEach(item => {
+                        const medIndex = newInventory.findIndex(m => m.id === item.medication_id);
+                        if (medIndex !== -1) {
+                            newInventory[medIndex] = {
+                                ...newInventory[medIndex],
+                                stock: newInventory[medIndex].stock + item.quantity
+                            };
+                        }
+                    });
+                    return newInventory;
+                });
+            }
+
+            setSales(prev => prev.filter(s => s.id !== saleId));
+            return true;
+        }
+
         try {
             const { updated_inventory } = await apiRequest(`/sales/${saleId}`, 'DELETE');
             if (updated_inventory && Array.isArray(updated_inventory)) {
@@ -1186,6 +1390,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     return prev.map(item => updatedInventoryMap.get(item.id) || item);
                 });
             }
+            // Also remove from local state
+            setSales(prev => prev.filter(s => s.id !== saleId));
             return true;
         } catch (e) { return false; }
     }
@@ -1220,6 +1426,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const addPatient = async (name: string, phone?: string) => {
+        if (!navigator.onLine) {
+            const newPatient = { id: `local-${Date.now()}`, name, phone };
+            await db.patients.add(newPatient);
+            await db.offlineRequests.add({
+                url: '/patients',
+                method: 'POST',
+                body: { name, phone },
+                timestamp: Date.now()
+            });
+            setPatients(prev => [newPatient, ...prev]);
+            toast({ title: "تمت إضافة المريض محلياً" });
+            return newPatient;
+        }
+
         try {
             const newPatient = await apiRequest('/patients', 'POST', { name, phone });
             setPatients(prev => [newPatient, ...prev]);

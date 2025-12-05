@@ -30,7 +30,7 @@ self.addEventListener('activate', event => {
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.filter(name => name !== CACHE_NAME)
-                 .map(name => caches.delete(name))
+          .map(name => caches.delete(name))
       );
     })
   );
@@ -71,51 +71,4 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// Background Sync for offline requests
-function openDB() {
-    return new Promise((resolve, reject) => {
-        const request = self.indexedDB.open('offline-requests-db', 1);
-        request.onupgradeneeded = event => {
-            const db = event.target.result;
-            if (!db.objectStoreNames.contains('requests')) {
-                db.createObjectStore('requests', { autoIncrement: true, keyPath: 'id' });
-            }
-        };
-        request.onsuccess = event => resolve(event.target.result);
-        request.onerror = event => reject(event.target.error);
-    });
-}
 
-async function syncRequests() {
-    const db = await openDB();
-    const tx = db.transaction('requests', 'readwrite');
-    const store = tx.objectStore('requests');
-    const requests = await new Promise((resolve, reject) => {
-        const req = store.getAll();
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-    });
-
-    if (requests && requests.length > 0) {
-        for (const req of requests) {
-            try {
-                const response = await fetch(req.url, req.options);
-                if (response.ok) {
-                   await new Promise((resolve, reject) => {
-                        const deleteReq = store.delete(req.id);
-                        deleteReq.onsuccess = resolve;
-                        deleteReq.onerror = reject;
-                   });
-                }
-            } catch (error) {
-                console.error('Sync failed for request:', req.url, error);
-            }
-        }
-    }
-}
-
-self.addEventListener('sync', event => {
-    if (event.tag === 'sync-requests') {
-        event.waitUntil(syncRequests());
-    }
-});
