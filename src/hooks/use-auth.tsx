@@ -887,6 +887,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const searchInOtherBranches = React.useCallback(async (medicationName: string): Promise<BranchInventory[]> => {
+        if (!navigator.onLine) {
+            return [];
+        }
         try {
             return await apiRequest(`/inventory/branches/${medicationName}`);
         } catch (e) {
@@ -895,6 +898,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const getPaginatedExpiringSoon = React.useCallback(async (page: number, perPage: number, search: string, type: 'expiring' | 'expired' | 'damaged') => {
+        if (!navigator.onLine) {
+            // For now, return empty or implement local filtering if needed. 
+            // Implementing full local filtering for expiring/damaged is complex without mirroring all logic.
+            // Returning empty to avoid error.
+            return {
+                data: [],
+                expiredMedicationsLength: 0,
+                expiringMedicationsLength: 0,
+                damagedMedicationsLength: 0,
+                current_page: 1,
+                last_page: 1,
+            };
+        }
+
         try {
             const params = new URLSearchParams({
                 paginate: "true",
@@ -925,6 +942,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const getMedicationMovements = React.useCallback(async (medicationId: string) => {
+        if (!navigator.onLine) return { data: [] };
         try {
             const data = await apiRequest(`/medications/${medicationId}/movements`);
             return data;
@@ -935,6 +953,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Update getPaginatedItemMovements to handle medication_id
     const getPaginatedItemMovements = React.useCallback(async (page: number, perPage: number, search: string, medicationId?: string, scientificName?: string) => {
+        if (!navigator.onLine) return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<TransactionHistoryItem>;
         try {
             const params = new URLSearchParams({
                 paginate: "true",
@@ -1110,6 +1129,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const searchAllSales = React.useCallback(async (search: string = "") => {
+        if (!navigator.onLine) {
+            let allSales = await db.sales.toArray();
+            if (search) {
+                const lowerSearch = search.toLowerCase();
+                allSales = allSales.filter(s => s.id.toLowerCase().includes(lowerSearch) || s.patientName?.toLowerCase().includes(lowerSearch));
+            }
+            // Sort by date desc
+            allSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            return allSales.slice(0, 50);
+        }
+
         try {
             const params = new URLSearchParams({ search });
             return await apiRequest(`/sales?${params.toString()}`);
