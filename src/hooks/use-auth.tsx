@@ -203,6 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Initialize auth state on component mount
     const initializeAuth = React.useCallback(async () => {
         const token = localStorage.getItem('authToken');
+        console.log('token', token);
 
         if (token) {
             try {
@@ -308,6 +309,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
     const setAllData = (data: AuthResponse) => {
+        console.log('setAllData', data);
         setCurrentUser(data.user);
         setUsers(data.all_users_in_pharmacy || []);
         setAdvertisements(data.advertisements || []);

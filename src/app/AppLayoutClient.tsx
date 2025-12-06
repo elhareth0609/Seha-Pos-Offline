@@ -24,7 +24,9 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
     const router = useRouter();
 
     React.useEffect(() => {
-        console.log('dddddddd')
+        console.log('loading', loading)
+        console.log('currentUser', currentUser)
+        console.log('isAuthenticated', isAuthenticated)
         if (loading) return;
 
         // If user is not authenticated and trying to access a protected route, redirect to login
@@ -60,12 +62,21 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
         );
     }
 
+    // Normalize pathname (remove trailing slash for matching)
+    const normalizedPathname = pathname.endsWith('/') && pathname !== '/'
+        ? pathname.slice(0, -1)
+        : pathname;
+
+    console.log('🔍 Checking route:', { pathname, normalizedPathname, isPublic: PUBLIC_ROUTES.includes(normalizedPathname) });
+
     // Public routes are rendered without the AppShell and ThemeProvider
-    if (PUBLIC_ROUTES.includes(pathname)) {
+    if (PUBLIC_ROUTES.includes(normalizedPathname)) {
+        console.log('✅ Rendering public route:', normalizedPathname);
         return <>{children}</>;
     }
 
-    // If authenticated, but user data is not yet available, show loader
+    // If on a protected route but user data is not yet available, show loader
+    // This should only happen briefly during the authentication check
     if (!currentUser) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-muted/40">
