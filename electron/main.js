@@ -1,6 +1,6 @@
 const { app, BrowserWindow, protocol } = require('electron');
 const path = require('path');
-const fs = require('fs');
+const url = require('url');
 const Store = require('electron-store');
 
 const store = new Store();
@@ -18,14 +18,13 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
             contextIsolation: true,
-            webSecurity: true,
+            webSecurity: false,
         },
         icon: path.join(__dirname, '../public/icons/icon-512x512.png'),
-        show: false, // Don't show until ready
-        autoHideMenuBar: true, // Hide the menu bar (File, Edit, View)
+        show: false,
+        autoHideMenuBar: true,
     });
 
-    // Show window when ready to avoid visual flash
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
     });
@@ -34,50 +33,84 @@ function createWindow() {
     const isFirstLaunch = !store.get('hasLaunched', false);
 
     // Determine the route to load
-    let route = '/login'; // Default to login
+    let htmlFile = 'login.html';
     if (isFirstLaunch) {
-        route = '/welcome';
+        htmlFile = 'welcome.html';
         store.set('hasLaunched', true);
     }
 
     // Load the app
     if (isDev) {
+        const route = htmlFile === 'welcome.html' ? '/welcome' : '/login';
         mainWindow.loadURL(`http://localhost:9002${route}`);
+        mainWindow.webContents.openDevTools();
     } else {
-        // Register a custom file protocol to serve static assets
-        protocol.registerFileProtocol('app', (request, callback) => {
-            // Get the URL path after app://
-            const urlPath = request.url.substr(6);
+        // Debug: Check what files are available FIRST
+        const fs = require('fs');
+        console.log('=== DEBUGGING FILE STRUCTURE ===');
+        console.log('__dirname:', __dirname);
+        console.log('app.getAppPath():', app.getAppPath());
+        console.log('process.resourcesPath:', process.resourcesPath);
+        
+        // Check if out directory exists in different locations
+        const locations = [
+            path.join(__dirname, '../out'),
+            path.join(app.getAppPath(), 'out'),
+            path.join(process.resourcesPath, 'out'),
+            path.join(process.resourcesPath, 'app.asar', 'out'),
+        ];
 
-            // Handle static assets from _next directory
-            if (urlPath.startsWith('/_next/')) {
-                const filePath = path.join(__dirname, '../out', urlPath);
-                callback({ path: filePath });
-                return;
+        locations.forEach(location => {
+            console.log(`\nChecking: ${location}`);
+            try {
+                if (fs.existsSync(location)) {
+                    console.log('  ✓ EXISTS');
+                    const files = fs.readdirSync(location);
+                    console.log('  Files:', files.slice(0, 5));
+                } else {
+                    console.log('  ✗ DOES NOT EXIST');
+                }
+            } catch (err) {
+                console.log('  ✗ ERROR:', err.message);
             }
+        });
 
-            // Handle other files
-            const filePath = path.join(__dirname, '../out', urlPath === '/' ? 'index.html' : urlPath);
+        // Check what's in the parent directory
+        try {
+            const parentDir = path.join(__dirname, '..');
+            console.log('\nParent directory contents:', fs.readdirSync(parentDir));
+        } catch (err) {
+            console.error('Error reading parent:', err);
+        }
+        
+        console.log('=== END DEBUG ===\n');
+
+        // Register custom protocol to serve files from app.asar
+        protocol.registerFileProtocol('app', (request, callback) => {
+            const url = request.url.substr(6); // Remove 'app://'
+            const filePath = path.normalize(`${__dirname}/../${url}`);
+            console.log('Protocol handler - requested:', url, '-> resolved to:', filePath);
             callback({ path: filePath });
         });
 
-        // Read and modify the index.html to use our custom protocol
-        const indexPath = path.join(__dirname, '../out/index.html');
-        let indexContent = fs.readFileSync(indexPath, 'utf8');
+        // Load using custom protocol
+        console.log('Attempting to load:', `app://out/${htmlFile}`);
+        mainWindow.loadURL(`app://out/${htmlFile}`);
 
-        // Replace absolute paths with our custom protocol
-        indexContent = indexContent.replace(/href="\/_next\//g, 'href="app:///_next/');
-        indexContent = indexContent.replace(/src="\/_next\//g, 'src="app:///_next/');
-        indexContent = indexContent.replace(/href="\//g, 'href="app:///');
-        indexContent = indexContent.replace(/src="\//g, 'src="app:///');
+        // Debugging
+        mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+            console.error('Failed to load:', errorCode, errorDescription, validatedURL);
+            console.error('__dirname:', __dirname);
+            console.error('Attempted path:', path.join(__dirname, '../out', htmlFile));
+        });
 
-        // Load the modified content
-        mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(indexContent));
-    }
+        mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+            console.log('Renderer console:', message);
+        });
 
-    // Open DevTools in development
-    if (isDev) {
-        mainWindow.webContents.openDevTools();
+        mainWindow.webContents.on('did-finish-load', () => {
+            console.log('Page loaded successfully');
+        });
     }
 
     mainWindow.on('closed', () => {
@@ -85,12 +118,10 @@ function createWindow() {
     });
 }
 
-// App lifecycle
 app.whenReady().then(() => {
     createWindow();
 
     app.on('activate', () => {
-        // On macOS, re-create window when dock icon is clicked
         if (BrowserWindow.getAllWindows().length === 0) {
             createWindow();
         }
@@ -98,13 +129,123 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-    // On macOS, apps stay active until user quits explicitly
     if (process.platform !== 'darwin') {
         app.quit();
     }
 });
 
-// Handle any uncaught exceptions
 process.on('uncaughtException', (error) => {
     console.error('Uncaught Exception:', error);
 });
+
+
+// const { app, BrowserWindow, protocol } = require('electron');
+// const path = require('path');
+// const fs = require('fs');
+// const Store = require('electron-store');
+
+// const store = new Store();
+// const isDev = !app.isPackaged;
+
+// let mainWindow;
+
+// function createWindow() {
+//     mainWindow = new BrowserWindow({
+//         width: 1400,
+//         height: 900,
+//         minWidth: 1024,
+//         minHeight: 768,
+//         webPreferences: {
+//             preload: path.join(__dirname, 'preload.js'),
+//             nodeIntegration: false,
+//             contextIsolation: true,
+//             webSecurity: true,
+//         },
+//         icon: path.join(__dirname, '../public/icons/icon-512x512.png'),
+//         show: false, // Don't show until ready
+//         autoHideMenuBar: true, // Hide the menu bar (File, Edit, View)
+//     });
+
+//     // Show window when ready to avoid visual flash
+//     mainWindow.once('ready-to-show', () => {
+//         mainWindow.show();
+//     });
+
+//     // Check if this is the first launch
+//     const isFirstLaunch = !store.get('hasLaunched', false);
+
+//     // Determine the route to load
+//     let route = '/login'; // Default to login
+//     if (isFirstLaunch) {
+//         route = '/welcome';
+//         store.set('hasLaunched', true);
+//     }
+
+//     // Load the app
+//     if (isDev) {
+//         mainWindow.loadURL(`http://localhost:9002${route}`);
+//     } else {
+//         // Register a custom file protocol to serve static assets
+//         protocol.registerFileProtocol('app', (request, callback) => {
+//             // Get the URL path after app://
+//             const urlPath = request.url.substr(6);
+
+//             // Handle static assets from _next directory
+//             if (urlPath.startsWith('/_next/')) {
+//                 const filePath = path.join(__dirname, '../out', urlPath);
+//                 callback({ path: filePath });
+//                 return;
+//             }
+
+//             // Handle other files
+//             const filePath = path.join(__dirname, '../out', urlPath === '/' ? 'index.html' : urlPath);
+//             callback({ path: filePath });
+//         });
+
+//         // Read and modify the index.html to use our custom protocol
+//         const indexPath = path.join(__dirname, '../out/index.html');
+//         let indexContent = fs.readFileSync(indexPath, 'utf8');
+
+//         // Replace absolute paths with our custom protocol
+//         indexContent = indexContent.replace(/href="\/_next\//g, 'href="app:///_next/');
+//         indexContent = indexContent.replace(/src="\/_next\//g, 'src="app:///_next/');
+//         indexContent = indexContent.replace(/href="\//g, 'href="app:///');
+//         indexContent = indexContent.replace(/src="\//g, 'src="app:///');
+
+//         // Load the modified content
+//         mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(indexContent));
+//     }
+
+//     // Open DevTools in development
+//     if (isDev) {
+//         mainWindow.webContents.openDevTools();
+//     }
+
+//     mainWindow.on('closed', () => {
+//         mainWindow = null;
+//     });
+// }
+
+// // App lifecycle
+// app.whenReady().then(() => {
+//     createWindow();
+
+//     app.on('activate', () => {
+//         // On macOS, re-create window when dock icon is clicked
+//         if (BrowserWindow.getAllWindows().length === 0) {
+//             createWindow();
+//         }
+//     });
+// });
+
+// app.on('window-all-closed', () => {
+//     // On macOS, apps stay active until user quits explicitly
+//     if (process.platform !== 'darwin') {
+//         app.quit();
+//     }
+// });
+
+// // Handle any uncaught exceptions
+// process.on('uncaughtException', (error) => {
+//     console.error('Uncaught Exception:', error);
+// });

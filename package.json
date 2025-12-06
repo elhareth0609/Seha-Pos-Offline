@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "postinstall": "patch-package",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:9002 && cross-env NODE_ENV=development electron .\"",
-    "electron:build": "next build && electron-builder",
+    "electron:build": "next build && electron-builder --config electron-builder.json5",
     "electron:start": "electron ."
   },
   "engines": {
@@ -97,15 +97,13 @@
     "appId": "com.midgram.midgram-offline",
     "productName": "Midgram Offline",
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "electron/assets"
     },
     "files": [
-      "out/**/*",
-      "out/_next/**/*",
-      "out/icons/**/*",
-      "out/landing/**/*",
       "electron/**/*",
-      "public/**/*"
+      "out/**/*",
+      "package.json"
     ],
     "win": {
       "target": "nsis",
@@ -113,11 +111,11 @@
     },
     "mac": {
       "target": "dmg",
-      "icon": "assets/icon.icns"
+      "icon": "electron/assets/icon.icns"
     },
     "linux": {
       "target": "AppImage",
-      "icon": "assets/icon.png"
+      "icon": "electron/assets/icon.png"
     },
     "nsis": {
       "oneClick": false,
@@ -128,4 +126,5 @@
       "runAfterFinish": false
     }
   }
+
 }
