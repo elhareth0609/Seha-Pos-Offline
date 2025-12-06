@@ -33,16 +33,15 @@ function createWindow() {
     const isFirstLaunch = !store.get('hasLaunched', false);
 
     // Determine the route to load
-    let htmlFile = 'login.html';
+    let route = 'login';
     if (isFirstLaunch) {
-        htmlFile = 'welcome.html';
+        route = 'welcome';
         store.set('hasLaunched', true);
     }
 
     // Load the app
     if (isDev) {
-        const route = htmlFile === 'welcome.html' ? '/welcome' : '/login';
-        mainWindow.loadURL(`http://localhost:9002${route}`);
+        mainWindow.loadURL(`http://localhost:9002/${route}`);
         mainWindow.webContents.openDevTools();
     } else {
         // Debug: Check what files are available FIRST
@@ -52,38 +51,55 @@ function createWindow() {
         console.log('app.getAppPath():', app.getAppPath());
         console.log('process.resourcesPath:', process.resourcesPath);
         
-        // Check if out directory exists in different locations
-        const locations = [
-            path.join(__dirname, '../out'),
-            path.join(app.getAppPath(), 'out'),
-            path.join(process.resourcesPath, 'out'),
-            path.join(process.resourcesPath, 'app.asar', 'out'),
-        ];
-
-        locations.forEach(location => {
-            console.log(`\nChecking: ${location}`);
-            try {
-                if (fs.existsSync(location)) {
-                    console.log('  ✓ EXISTS');
-                    const files = fs.readdirSync(location);
-                    console.log('  Files:', files.slice(0, 5));
-                } else {
-                    console.log('  ✗ DOES NOT EXIST');
-                }
-            } catch (err) {
-                console.log('  ✗ ERROR:', err.message);
-            }
-        });
-
-        // Check what's in the parent directory
+        // Check the out directory structure
+        const outDir = path.join(__dirname, '../out');
+        console.log('\nChecking out directory:', outDir);
         try {
-            const parentDir = path.join(__dirname, '..');
-            console.log('\nParent directory contents:', fs.readdirSync(parentDir));
+            if (fs.existsSync(outDir)) {
+                console.log('  ✓ EXISTS');
+                const files = fs.readdirSync(outDir);
+                console.log('  All files:', files);
+                
+                // Look for HTML files
+                const htmlFiles = files.filter(f => f.endsWith('.html'));
+                console.log('  HTML files:', htmlFiles);
+                
+                // Check for folders (Next.js with trailingSlash creates folders)
+                const folders = files.filter(f => {
+                    const stat = fs.statSync(path.join(outDir, f));
+                    return stat.isDirectory();
+                });
+                console.log('  Folders:', folders);
+            }
         } catch (err) {
-            console.error('Error reading parent:', err);
+            console.error('Error reading out directory:', err);
         }
         
         console.log('=== END DEBUG ===\n');
+
+        // Determine the correct HTML file path
+        // Next.js with trailingSlash creates: route/index.html
+        // Next.js without trailingSlash creates: route.html
+        let htmlPath;
+        const possiblePaths = [
+            `${route}.html`,           // e.g., login.html
+            `${route}/index.html`,     // e.g., login/index.html
+            `${route}`,                // folder name
+        ];
+
+        for (const testPath of possiblePaths) {
+            const fullPath = path.join(outDir, testPath);
+            if (fs.existsSync(fullPath)) {
+                htmlPath = testPath;
+                console.log('Found HTML at:', testPath);
+                break;
+            }
+        }
+
+        if (!htmlPath) {
+            console.error('Could not find HTML file for route:', route);
+            htmlPath = 'index.html'; // Fallback
+        }
 
         // Register custom protocol to serve files from app.asar
         protocol.registerFileProtocol('app', (request, callback) => {
@@ -94,14 +110,12 @@ function createWindow() {
         });
 
         // Load using custom protocol
-        console.log('Attempting to load:', `app://out/${htmlFile}`);
-        mainWindow.loadURL(`app://out/${htmlFile}`);
+        console.log('Attempting to load:', `app://out/${htmlPath}`);
+        mainWindow.loadURL(`app://out/${htmlPath}`);
 
         // Debugging
         mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
             console.error('Failed to load:', errorCode, errorDescription, validatedURL);
-            console.error('__dirname:', __dirname);
-            console.error('Attempted path:', path.join(__dirname, '../out', htmlFile));
         });
 
         mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
@@ -137,7 +151,6 @@ app.on('window-all-closed', () => {
 process.on('uncaughtException', (error) => {
     console.error('Uncaught Exception:', error);
 });
-
 
 // const { app, BrowserWindow, protocol } = require('electron');
 // const path = require('path');
