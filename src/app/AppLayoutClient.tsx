@@ -24,6 +24,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
     const router = useRouter();
 
     React.useEffect(() => {
+        console.log('dddddddd')
         if (loading) return;
 
         // If user is not authenticated and trying to access a protected route, redirect to login
@@ -34,15 +35,6 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
         // If user is authenticated, handle role-based redirects and permissions
         if (isAuthenticated && currentUser) {
-            if (currentUser.role === 'SuperAdmin' && !pathname.startsWith('/superadmin')) {
-                router.replace('/superadmin');
-                return;
-            }
-
-            if (currentUser.role !== 'SuperAdmin' && pathname.startsWith('/superadmin')) {
-                router.replace('/sales');
-                return;
-            }
 
             if (currentUser.role === 'Employee') {
                 const currentNavItem = allNavItems.find(item =>
@@ -75,28 +67,6 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
     // If authenticated, but user data is not yet available, show loader
     if (!currentUser) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-muted/40">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            </div>
-        );
-    }
-
-    // Check if SuperAdmin needs to be redirected - show loading instead of flashing dashboard
-    if (currentUser.role === 'SuperAdmin' && !pathname.startsWith('/superadmin')) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-muted/40">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            </div>
-        );
-    }
-
-    // Handle SuperAdmin routes
-    if (pathname?.startsWith('/superadmin')) {
-        if (currentUser.role === 'SuperAdmin') {
-            return <>{children}</>;
-        }
-        // This shouldn't happen due to redirect check above, but just in case
         return (
             <div className="flex items-center justify-center min-h-screen bg-muted/40">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />

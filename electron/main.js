@@ -103,15 +103,24 @@ function createWindow() {
 
         // Register custom protocol to serve files from app.asar
         protocol.registerFileProtocol('app', (request, callback) => {
-            const url = request.url.substr(6); // Remove 'app://'
-            const filePath = path.normalize(`${__dirname}/../${url}`);
-            console.log('Protocol handler - requested:', url, '-> resolved to:', filePath);
+            let url = request.url.substr(6); // Remove 'app://'
+            
+            // Remove leading 'out/' if present since we're already in the out directory
+            if (url.startsWith('out/')) {
+                url = url.substr(4);
+            }
+            
+            const filePath = path.normalize(`${__dirname}/../out/${url}`);
+            console.log('Protocol handler - requested:', request.url, '-> resolved to:', filePath);
             callback({ path: filePath });
         });
 
         // Load using custom protocol
         console.log('Attempting to load:', `app://out/${htmlPath}`);
         mainWindow.loadURL(`app://out/${htmlPath}`);
+        
+        // Open DevTools to see what's happening
+        mainWindow.webContents.openDevTools();
 
         // Debugging
         mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
@@ -119,11 +128,21 @@ function createWindow() {
         });
 
         mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
-            console.log('Renderer console:', message);
+            console.log(`[Renderer ${level}]:`, message);
+            if (line) console.log(`  at line ${line} in ${sourceId}`);
         });
 
         mainWindow.webContents.on('did-finish-load', () => {
             console.log('Page loaded successfully');
+            
+            // Inject script to check for errors
+            mainWindow.webContents.executeJavaScript(`
+                console.log('=== CLIENT SIDE DEBUG ===');
+                console.log('Location:', window.location.href);
+                console.log('Document ready state:', document.readyState);
+                console.log('Body exists:', !!document.body);
+                console.log('=== END CLIENT DEBUG ===');
+            `).catch(err => console.error('Failed to execute debug script:', err));
         });
     }
 

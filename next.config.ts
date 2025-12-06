@@ -9,11 +9,11 @@ const nextConfiguration = {
     unoptimized: true,
   },
 
-  // Important: Use empty string for asset prefix in production
-  // This ensures paths are relative and work with the app:// protocol
+  // IMPORTANT: Empty string for relative paths in Electron
   assetPrefix: '',
+  basePath: '',
   
-  // Ensure trailing slashes for better static routing
+  // Ensure trailing slashes for proper routing
   trailingSlash: true,
 
   // Add webpack configuration to fix the Handlebars warning
@@ -40,7 +40,6 @@ const nextConfiguration = {
 
 require('dotenv').config();
 module.exports = nextConfiguration;
-
 
 
 // /** @type {import('next').NextConfig} */
