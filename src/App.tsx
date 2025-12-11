@@ -26,7 +26,22 @@ const PUBLIC_ROUTES = ['/', '/login', '/signup', '/welcome'];
 
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
     const { loading, isAuthenticated, currentUser } = useAuth();
-    const pathname = window.location.pathname;
+    // Use hash for routing in Electron environment
+    const getHashPath = () => {
+        const hash = window.location.hash;
+        return hash ? hash.slice(1) : '/'; // Remove # and return path or default to '/'
+    };
+    const [pathname, setPathname] = React.useState(getHashPath());
+    
+    // Update pathname when hash changes
+    React.useEffect(() => {
+        const handleHashChange = () => {
+            setPathname(getHashPath());
+        };
+        
+        window.addEventListener('hashchange', handleHashChange);
+        return () => window.removeEventListener('hashchange', handleHashChange);
+    }, []);
 
     React.useEffect(() => {
         console.log('loading', loading)
@@ -36,7 +51,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
         // If user is not authenticated and trying to access a protected route, redirect to login
         if (!isAuthenticated && !PUBLIC_ROUTES.includes(pathname)) {
-            window.location.href = '/login';
+            window.location.hash = '#/login';
             return;
         }
 
@@ -50,7 +65,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
                 const userPermissions = currentUser.permissions as UserPermissions;
 
                 if (requiredPermission && (!userPermissions || !userPermissions[requiredPermission as keyof UserPermissions])) {
-                    window.location.href = '/sales';
+                    window.location.hash = '#/sales';
                 }
             }
         }
@@ -102,6 +117,13 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+    // Ensure hash routing works properly in Electron
+    React.useEffect(() => {
+        if (!window.location.hash) {
+            window.location.hash = '#/' ;
+        }
+    }, []);
+    
     return (
         <Router>
             <AuthProvider>
