@@ -42,6 +42,18 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
         window.addEventListener('hashchange', handleHashChange);
         return () => window.removeEventListener('hashchange', handleHashChange);
     }, []);
+    
+    // Update pathname on initial load
+    React.useEffect(() => {
+        setPathname(getHashPath());
+    }, []);
+    
+    // Update pathname when authentication state changes
+    React.useEffect(() => {
+        if (isAuthenticated && currentUser) {
+            setPathname(getHashPath());
+        }
+    }, [isAuthenticated, currentUser]);
 
     React.useEffect(() => {
         console.log('loading', loading)
