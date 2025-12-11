@@ -19,6 +19,7 @@ export default defineConfig({
         manualChunks: undefined,
       },
     },
+    copyPublicDir: true,
   },
   define: {
     global: 'globalThis',
