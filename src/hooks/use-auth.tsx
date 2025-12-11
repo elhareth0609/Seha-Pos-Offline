@@ -1,10 +1,7 @@
 
 
-"use client";
-
 import * as React from 'react';
 import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Patient, Advertisement, SaleItem, PaginatedResponse, Expense, MedicalRepresentative, Notification, PharmacyGroup, BranchInventory } from '@/lib/types';
-import { useRouter } from 'next/navigation';
 import { toast } from './use-toast';
 import { PinDialog } from '@/components/auth/PinDialog';
 import { differenceInDays, parseISO, startOfToday, isSameDay, endOfMonth } from 'date-fns';
@@ -12,7 +9,7 @@ import { db } from '@/lib/db';
 import { useSync } from './use-sync';
 
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 type AuthResponse = {
     token: string;
@@ -198,7 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [currentUser, setCurrentUser] = React.useState<User | null>(null);
     const [users, setUsers] = React.useState<User[]>([]);
     const [loading, setLoading] = React.useState(true);
-    const router = useRouter();
+    // Router is now handled by components
 
     // Initialize auth state on component mount
     const initializeAuth = React.useCallback(async () => {
@@ -358,7 +355,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             localStorage.removeItem('authToken');
             setCurrentUser(null);
             setUsers([]);
-            router.push('/');
+            window.location.href = '/';
         }
     };
 

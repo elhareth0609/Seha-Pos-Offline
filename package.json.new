@@ -2,28 +2,20 @@
   "name": "midgram-offline",
   "version": "0.1.0",
   "private": true,
-  "description": "Midgram Offline",
-  "author": "Elhareth <elhareth0609@gmail.com>",
-  "main": "electron/main.cjs",
+  "main": "electron/main.js",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 9002",
+    "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
+    "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "vite build",
-    "lint": "eslint .",
     "preview": "vite preview",
-    "dev:vite": "vite",
-    "dev:electron": "electron .",
-    "build:mainpreload": "echo \"Using existing JS files in electron/ folder\"",
-    "electron:dev": "concurrently \"vite\" \"wait-on tcp:3000 && electron .\"",
-    "watch:electron": "vite build --mode development --watch --config vite.config.ts && electron .",
-    "build:electron": "vite build",
-    "electron:build": "npm run build:electron && electron-builder",
-    "pack": "electron-builder --dir",
-    "dev:trial": "cross-env APP_MODE=trial concurrently \"vite\" \"wait-on tcp:3000 && electron .\"",
-    "dev:full": "cross-env APP_MODE=full concurrently \"vite\" \"wait-on tcp:3000 && electron .\"",
-    "dist:full": "cross-env APP_MODE=full npm run build:electron && electron-builder",
-    "dist:trial": "cross-env APP_MODE=trial npm run build:electron && electron-builder",
-    "rebuild": "electron-rebuild"
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "patch-package",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:9002 && cross-env NODE_ENV=development electron .\"",
+    "electron:build": "vite build && electron-builder --config electron-builder.json5",
+    "electron:start": "electron ."
   },
   "engines": {
     "node": "20"
@@ -111,27 +103,42 @@
     "appId": "com.midgram.midgram-offline",
     "productName": "Midgram Offline",
     "directories": {
-      "output": "release"
+      "output": "dist",
+      "buildResources": "electron/assets"
     },
     "files": [
-      "dist/**/*",
-      "dist/assets/**/*",
-      "dist/icons/**/*",
-      "dist/landing/**/*",
-      "electron/**/*",
-      "public/**/*",
-      ".env"
+      {
+        "from": ".",
+        "filter": [
+          "package.json",
+          "electron/**/*"
+        ]
+      },
+      {
+        "from": "dist",
+        "to": "dist",
+        "filter": ["**/*"]
+      }
     ],
     "win": {
-      "icon": "build/icon.ico",
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
+      "target": "nsis",
+      "icon": "electron/assets/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "electron/assets/icon.icns"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "electron/assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": false
     }
   }
 }

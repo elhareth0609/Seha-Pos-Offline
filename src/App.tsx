@@ -1,14 +1,20 @@
-
-"use client";
-
-import * as React from 'react';
-import { useAuth } from '@/hooks/use-auth';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider } from '@/hooks/use-auth';
+import { ThemeProvider } from "next-themes";
 import { AppShell } from '@/components/layout/app-shell';
 import { Loader2 } from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/use-auth';
 import type { UserPermissions } from '@/lib/types';
-import { ThemeProvider } from "next-themes";
 
+// Import pages
+import LandingPage from './app/(landing)/page';
+import LoginPage from './app/login/page';
+import WelcomePage from './app/welcome/page';
+import SalesPage from './app/sales/page';
+import ReportsPage from './app/reports/page';
+import PatientsPage from './app/patients/page';
 
 const allNavItems = [
     { href: "/sales", permissionKey: 'manage_sales' },
@@ -20,9 +26,7 @@ const PUBLIC_ROUTES = ['/', '/login', '/signup', '/welcome'];
 
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
     const { loading, isAuthenticated, currentUser } = useAuth();
-    const location = useLocation();
-    const pathname = location.pathname;
-    const navigate = useNavigate();
+    const pathname = window.location.pathname;
 
     React.useEffect(() => {
         console.log('loading', loading)
@@ -32,13 +36,12 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
         // If user is not authenticated and trying to access a protected route, redirect to login
         if (!isAuthenticated && !PUBLIC_ROUTES.includes(pathname)) {
-            navigate('/login');
+            window.location.href = '/login';
             return;
         }
 
         // If user is authenticated, handle role-based redirects and permissions
         if (isAuthenticated && currentUser) {
-
             if (currentUser.role === 'Employee') {
                 const currentNavItem = allNavItems.find(item =>
                     item.href === pathname || (item.href !== '/' && pathname.startsWith(`${item.href}/`))
@@ -47,13 +50,11 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
                 const userPermissions = currentUser.permissions as UserPermissions;
 
                 if (requiredPermission && (!userPermissions || !userPermissions[requiredPermission as keyof UserPermissions])) {
-                    navigate('/sales');
+                    window.location.href = '/sales';
                 }
             }
         }
-
     }, [isAuthenticated, currentUser, loading, pathname]);
-
 
     if (loading) {
         return (
@@ -100,7 +101,25 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
     );
 }
 
-
-export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
-    return <LayoutWrapper>{children}</LayoutWrapper>
+function App() {
+    return (
+        <Router>
+            <AuthProvider>
+                <LayoutWrapper>
+                    <Routes>
+                        <Route path="/" element={<LandingPage />} />
+                        <Route path="/login" element={<LoginPage />} />
+                        <Route path="/welcome" element={<WelcomePage />} />
+                        <Route path="/sales" element={<SalesPage />} />
+                        <Route path="/reports" element={<ReportsPage />} />
+                        <Route path="/patients" element={<PatientsPage />} />
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                    <Toaster />
+                </LayoutWrapper>
+            </AuthProvider>
+        </Router>
+    );
 }
+
+export default App;

@@ -3,7 +3,6 @@
 "use client"
 
 import * as React from 'react';
-import * as XLSX from 'xlsx';
 import {
   Card,
   CardContent,
@@ -29,9 +28,9 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import type { Sale, SaleItem, User, PaginatedResponse } from '@/lib/types';
+import type { Sale } from '@/lib/types';
 import { InvoiceTemplate } from '@/components/ui/invoice';
-import { Printer, DollarSign, TrendingUp, ChevronDown, Trash2, Pencil, FileArchive } from 'lucide-react';
+import { Printer, DollarSign, TrendingUp, ChevronDown } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -39,12 +38,8 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
 import { Label } from '@/components/ui/label';
 import AdCarousel from '@/components/ui/ad-carousel';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { buttonVariants } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PinDialog } from '@/components/auth/PinDialog';
-import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -105,7 +100,7 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
 };
 
 export default function ReportsPage() {
-    const { currentUser, users, scopedData, deleteSale, updateActiveInvoice, getPaginatedSales, verifyPin, switchToInvoice, getPaginatedPatients } = useAuth();
+    const { currentUser, users, scopedData, deleteSale, getPaginatedSales, verifyPin, getPaginatedPatients } = useAuth();
     const [settings] = scopedData.settings;
     
     const [sales, setSales] = React.useState<Sale[]>([]);
@@ -128,10 +123,6 @@ export default function ReportsPage() {
     const [itemToDelete, setItemToDelete] = React.useState<Sale | null>(null);
     const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
     const { toast } = useToast();
-
-    const router = useRouter();
-
-    const canManagePreviousSales = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_previous_sales;
 
     const fetchPatients = React.useCallback(async () => {
         try {
@@ -231,20 +222,6 @@ export default function ReportsPage() {
         setInvoiceType("all");
     };
 
-    const handleDeleteSale = async () => {
-        if (!itemToDelete) return;
-
-        if (currentUser?.require_pin_for_delete) {
-            setIsPinDialogOpen(true);
-        } else {
-            const success = await deleteSale(itemToDelete.id);
-            if (success) {
-                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, invoiceType);
-                setItemToDelete(null);
-            }
-        }
-    }
-    
     const handlePinConfirmDelete = async (pin: string) => {
         if (!itemToDelete) return;
         const isValid = await verifyPin(pin);
@@ -257,22 +234,6 @@ export default function ReportsPage() {
             }
         } else {
             toast({ variant: 'destructive', title: "رمز PIN غير صحيح" });
-        }
-    };
-
-    const handleEditSale = (sale: Sale) => {
-        const saleToEdit = sales.find(s => s.id === sale.id);
-        if (saleToEdit) {
-            switchToInvoice(0); // Switch to the first invoice tab
-            updateActiveInvoice(() => ({ // Replace its content
-                cart: saleToEdit.items.map((i: SaleItem) => ({ ...i, id: i.medication_id })),
-                discountValue: (saleToEdit.discount || 0).toString(),
-                discountType: 'fixed',
-                patientId: saleToEdit.patient_id || null,
-                paymentMethod: saleToEdit.payment_method || 'cash',
-                saleIdToUpdate: saleToEdit.id,
-            }));
-            router.push('/sales');
         }
     };
 

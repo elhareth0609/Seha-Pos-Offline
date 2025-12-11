@@ -1,15 +1,13 @@
 
-'use client';
-
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
 import { LogIn } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
@@ -17,17 +15,17 @@ export default function LoginPage() {
     const [pin, setPin] = React.useState('');
     const [showPin, setShowPin] = React.useState(false);
     const { login, isAuthenticated, loading, currentUser } = useAuth();
-    const router = useRouter();
+    const navigate = useNavigate();
 
     React.useEffect(() => {
         if (!loading && isAuthenticated) {
              if (currentUser?.role === 'SuperAdmin') {
-                router.replace('/superadmin');
+                navigate('/superadmin');
             } else {
-                router.replace('/sales');
+                navigate('/sales');
             }
         }
-    }, [isAuthenticated, loading, router, currentUser]);
+    }, [isAuthenticated, loading, navigate, currentUser]);
 
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -61,7 +59,7 @@ export default function LoginPage() {
                  <Card className="w-full shadow-2xl animate-in fade-in zoom-in-95">
                     <CardHeader className="text-center">
                          <div className="mx-auto mb-4">
-                             <Link href="/">
+                             <Link to="/">
                                 <img src="/favicon.png" alt="Site Icon" className="h-12 w-12" />
                             </Link>
                         </div>

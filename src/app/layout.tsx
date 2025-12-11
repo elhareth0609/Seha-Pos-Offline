@@ -1,29 +1,14 @@
 
-import type {Metadata} from 'next';
-import './globals.css';
+import './index.css';
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/hooks/use-auth';
 import AppLayoutClient from './AppLayoutClient';
 
-// Use the Tajawal font from Google Fonts
-import { Tajawal } from 'next/font/google';
+// Font is now loaded via index.css
 
-const tajawal = Tajawal({
-  subsets: ['arabic'],
-  weight: ['400', '500', '700'],
-  variable: '--font-tajawal',
-});
+// Metadata is now set in index.html
 
-export const metadata: Metadata = {
-  title: 'ميدجرام',
-  description: 'نظام إدارة صيدلية للمبيعات والمخزون والمشتريات.',
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
@@ -40,7 +25,7 @@ export default function RootLayout({
           `
         }} />
       </head>
-      <body className={`${tajawal.variable} font-body antialiased`}>
+      <body className="font-body antialiased">
         <AuthProvider>
             <AppLayoutClient>
               {children}

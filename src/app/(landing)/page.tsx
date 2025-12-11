@@ -1,16 +1,14 @@
 
-"use client";
-
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 
-const Index = () => {
-  const router = useRouter();
+const LandingPage = () => {
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Redirect to login page
-    router.replace('/login');
-  }, [router]);
+    navigate('/login');
+  }, [navigate]);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-muted/40">
@@ -19,4 +17,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default LandingPage;

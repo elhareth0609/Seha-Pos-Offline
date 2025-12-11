@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ import { toast } from '@/hooks/use-toast';
 
 function SuperAdminLoginDialog() {
     const { login } = useAuth();
-    const router = useRouter();
+    const navigate = useNavigate();
 
     const handleSuperAdminLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -25,9 +25,9 @@ function SuperAdminLoginDialog() {
         const user = await login(email, pin);
         if (user) {
             if (user.role === 'SuperAdmin') {
-                router.push('/superadmin');
+                navigate('/superadmin');
             } else {
-                router.push('/');
+                navigate('/');
             }
         }
     };
@@ -60,13 +60,13 @@ function SuperAdminLoginDialog() {
 
 export default function LoginPage() {
     const { login, isAuthenticated, loading } = useAuth();
-    const router = useRouter();
+    const navigate = useNavigate();
 
-     React.useEffect(() => {
+    React.useEffect(() => {
         if (!loading && isAuthenticated) {
-            router.replace('/');
+            navigate('/');
         }
-    }, [isAuthenticated, loading, router]);
+    }, [isAuthenticated, loading, navigate]);
 
 
     const handleSubmit = async (e: React.FormEvent) => {

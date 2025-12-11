@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link } from "react-router-dom";
 import {
   ShoppingCart,
   UserCircle,
@@ -21,26 +20,18 @@ import {
   SheetClose,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { PackagePlus } from 'lucide-react';
-import type { UserPermissions, Task, Notification } from "@/lib/types";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import type { UserPermissions } from "@/lib/types";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { ScrollArea } from "../ui/scroll-area";
-import { Checkbox } from "../ui/checkbox";
-import { Label } from "../ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "../ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
-import { formatDistanceToNow } from 'date-fns';
-import { ar } from 'date-fns/locale';
 import { ThemeToggle } from "../ui/theme-toggle";
 import { NetworkStatus } from "@/components/ui/network-status";
 
@@ -59,13 +50,8 @@ const navGroups = [
 ]
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const { toast } = useToast();
   const { currentUser, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-  const [notifications, setNotifications] = React.useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = React.useState(0);
-  const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
 
 
   const navItems = React.useMemo(() => {
@@ -108,7 +94,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="container py-4">
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4 pb-4 border-b">
                 <div className="flex flex-1 items-center justify-start gap-2">
-                  <Link href="/sales" className="flex items-center gap-2 font-semibold">
+                  <Link to="/sales" className="flex items-center gap-2 font-semibold">
                     <img src="/favicon.png" alt="Site Icon" className="h-6 w-6" />
                   </Link>
                   <div className="flex items-center gap-2">
@@ -119,7 +105,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <div className="items-center gap-2 flex">
                     {hasPermission('/sales') && (
                       <Button variant="outline" asChild>
-                        <Link href="/sales">
+                        <Link to="/sales">
                           <ShoppingCart className="me-2 h-4 w-4" />
                           <span className="hidden md:inline-block">المبيعات</span>
                         </Link>
@@ -150,7 +136,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                                     {groupItems.map(item => (
                                       <SheetClose asChild key={item.href}>
-                                        <Link href={item.href}>
+                                        <Link to={item.href}>
                                           <Card className="h-full hover:bg-primary hover:text-primary-foreground transition-colors group">
                                             <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2 aspect-square">
                                               <item.icon className="h-7 w-7 text-primary group-hover:text-primary-foreground" />

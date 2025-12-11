@@ -1,8 +1,5 @@
 
-"use client";
-
 import * as React from 'react';
-import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -50,13 +47,9 @@ export default function AdCarousel({ page }: AdCarouselProps) {
                     <CarouselItem key={ad.id}>
                         <Card className="overflow-hidden">
                             <CardContent className="p-0 flex items-center justify-center aspect-video sm:aspect-[4/1] relative">
-                                <Image
-                                    
+                                <img
                                     src={ad.image_url}
                                     alt={ad.title}
-                                    layout="fill"
-                                    objectFit="cover"
-                                    priority
                                 />
                             </CardContent>
                         </Card>

@@ -1,14 +1,9 @@
 
-"use client"
-
 import * as React from "react"
-import Image from "next/image"
 import {
     Card,
     CardContent,
-    CardDescription,
     CardHeader,
-    CardTitle,
     CardFooter
 } from "@/components/ui/card"
 import {
@@ -51,7 +46,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput, Notification, BranchInventory } from "@/lib/types"
-import { PlusCircle, X, PackageSearch, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText, Calculator, Search, Plus, Minus, Star } from "lucide-react"
+import { PlusCircle, X, PackageSearch, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Trash2, FileText, Calculator, Search, Plus, Minus, Star } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
@@ -66,11 +61,10 @@ import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/comp
 import AdCarousel from "@/components/ui/ad-carousel"
 import { differenceInDays, parseISO, startOfToday } from "date-fns"
 import { Badge } from "@/components/ui/badge"
-import { useRouter } from "next/navigation"
+import { useNavigate } from "react-router-dom"
 import { PinDialog } from "@/components/auth/PinDialog"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { CalculatorComponent } from "@/components/ui/calculator"
-import { Textarea } from "@/components/ui/textarea"
 
 const printElement = (element: HTMLElement, title: string = 'Print') => {
     const printWindow = window.open('', '_blank');
@@ -463,18 +457,16 @@ export default function SalesPage() {
         searchAllSales,
         searchAllPatients,
         verifyPin,
-        toggleFavoriteMedication,
-        searchInOtherBranches,
     } = useAuth();
 
-    const router = useRouter();
+    const navigate = useNavigate();
 
     React.useEffect(() => {
         if (currentUser && currentUser.role === 'Employee' && !currentUser.permissions?.manage_sales) {
-            router.replace('/sales');
+            navigate('/sales');
             console.log(currentUser.permissions?.manage_sales);
         }
-    }, [currentUser, router]);
+    }, [currentUser, navigate]);
 
     const [settings = {} as AppSettings] = scopedData.settings || [];
     const [inventory = []] = scopedData.inventory || [];
@@ -506,8 +498,6 @@ export default function SalesPage() {
     const [isPatientModalOpen, setIsPatientModalOpen] = React.useState(false);
     const [patientSearchTerm, setPatientSearchTerm] = React.useState("");
     const [patientSuggestions, setPatientSuggestions] = React.useState<Patient[]>([]);
-    const [newPatientName, setNewPatientName] = React.useState("");
-    const [newPatientPhone, setNewPatientPhone] = React.useState("");
     const [sortedSales, setSortedSales] = React.useState<Sale[]>([]);
     const [hasLoadedPatients, setHasLoadedPatients] = React.useState(false);
 
@@ -964,7 +954,7 @@ export default function SalesPage() {
             localStorage.setItem('savedInvoices', JSON.stringify(invoicesToSave));
         }
 
-        router.push('/reports');
+        navigate('/reports');
     }
 
     const handlePatientSearch = async (term: string) => {
@@ -1067,7 +1057,7 @@ export default function SalesPage() {
                                                     >
                                                         <div className="flex items-center gap-3">
                                                             {typeof med.image_url === 'string' && med.image_url !== "" ? (
-                                                                <Image
+                                                                <img
                                                                     src={med.image_url}
                                                                     alt={med.name || ''}
                                                                     width={32}

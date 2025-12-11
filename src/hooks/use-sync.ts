@@ -36,7 +36,7 @@ export function useSync(refreshData: () => Promise<void>) {
                         headers['Authorization'] = `Bearer ${token}`;
                     }
 
-                    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+                    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
                     const fullUrl = req.url.startsWith('http') ? req.url : `${API_URL}${req.url}`;
 
                     const response = await fetch(fullUrl, {
