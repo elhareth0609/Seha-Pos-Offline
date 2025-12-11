@@ -7,7 +7,7 @@ import { db } from '@/lib/db';
 import { useSync } from './use-sync';
 
 
-const API_URL = import.meta.env.VITE_API_URL || "http://seha-pos.local/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://backend-uat.midgram.net/api";
 
 type AuthResponse = {
     token: string;
