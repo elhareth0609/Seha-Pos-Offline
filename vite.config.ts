@@ -11,6 +11,15 @@ export default defineConfig({
     host: 'localhost',
   },
   base: './',
+  build: {
+    assetsDir: 'assets',
+    outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+  },
   define: {
     global: 'globalThis',
   },

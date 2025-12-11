@@ -1,10 +1,8 @@
 
 
 import * as React from 'react';
-import type { User, UserPermissions, TimeLog, AppSettings, Medication, Sale, Patient, Advertisement, SaleItem, PaginatedResponse, Expense, MedicalRepresentative, Notification, PharmacyGroup, BranchInventory } from '@/lib/types';
+import type { User, TimeLog, AppSettings, Medication, Sale, Patient, Advertisement, SaleItem, PaginatedResponse, Expense, PharmacyGroup, BranchInventory } from '@/lib/types';
 import { toast } from './use-toast';
-import { PinDialog } from '@/components/auth/PinDialog';
-import { differenceInDays, parseISO, startOfToday, isSameDay, endOfMonth } from 'date-fns';
 import { db } from '@/lib/db';
 import { useSync } from './use-sync';
 
@@ -543,23 +541,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return await apiRequest(`/patients?${params.toString()}`);
         } catch (e) {
             return [];
-        }
-    }, []);
-
-    const getPaginatedUsers = React.useCallback(async (role: 'Admin' | 'Employee', page: number, perPage: number, search: string, filters: { status?: string, province?: string } = {}) => {
-        try {
-            const params = new URLSearchParams({
-                role,
-                paginate: "true",
-                page: String(page),
-                per_page: String(perPage),
-                search,
-                ...filters
-            });
-            const data = await apiRequest(`/users?${params.toString()}`);
-            return data;
-        } catch (e) {
-            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<User>;
         }
     }, []);
 

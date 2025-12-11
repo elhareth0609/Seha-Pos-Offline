@@ -17,7 +17,7 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.cjs'), // Use the new preload script
             nodeIntegration: false,
             contextIsolation: true,
-            webSecurity: false,
+            webSecurity: true,
         },
         icon: path.join(__dirname, '../public/icons/icon-512x512.png'),
         show: false,
@@ -39,11 +39,22 @@ function createWindow() {
     // Load the app
     if (isDev) {
         // In development mode, we use the dev server URL
-        mainWindow.loadURL(`http://localhost:9002`);
+        mainWindow.loadURL(`http://localhost:3000`);
         mainWindow.webContents.openDevTools();
     } else {
+        // In production mode, we need to handle the file protocol properly
         const indexPath = path.join(__dirname, '../dist/index.html');
         mainWindow.loadFile(indexPath);
+        
+        // Handle navigation to prevent file:// protocol errors
+        mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
+            const parsedUrl = new URL(navigationUrl);
+            
+            // Allow only http, https, and file protocols
+            if (parsedUrl.origin !== 'file://' && !parsedUrl.origin.startsWith('http')) {
+                event.preventDefault();
+            }
+        });
     }
 
     // Handle window closed
