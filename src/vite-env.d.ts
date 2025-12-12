@@ -8,3 +8,17 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+// Electron types
+interface Window {
+  process?: {
+    type: string;
+  };
+}
+
+declare global {
+  interface Window {
+    electron: any;
+    appVersion: any;
+  }
+}

@@ -3,8 +3,8 @@
 import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
-import { useOnlineStatus } from '@/hooks/use-online-status';
-import { WifiOff, RefreshCw, CloudOff } from 'lucide-react';
+import { useOnlineStatus } from '@/hooks/use-online-status-electron';
+import { WifiOff, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 

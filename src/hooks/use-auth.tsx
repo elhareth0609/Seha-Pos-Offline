@@ -5,6 +5,7 @@ import type { User, TimeLog, AppSettings, Medication, Sale, Patient, Advertiseme
 import { toast } from './use-toast';
 import { db } from '@/lib/db';
 import { useSync } from './use-sync';
+import { electronStorage } from '@/lib/electron-storage';
 
 
 const API_URL = import.meta.env.VITE_API_URL || "http://backend-uat.midgram.net/api";
@@ -132,7 +133,7 @@ const initialActiveInvoice: ActiveInvoice = {
 
 
 async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?: object) {
-    const token = localStorage.getItem('authToken');
+    const token = electronStorage.getItem('authToken');
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -170,7 +171,7 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
 
             // If the error message is "Unauthenticated", redirect to login page
             if (errorMessage === "Unauthenticated") {
-                localStorage.removeItem('authToken');
+                electronStorage.removeItem('authToken');
                 window.location.href = '/';
                 throw new Error('Session expired. Please login again.');
             }
@@ -197,7 +198,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Initialize auth state on component mount
     const initializeAuth = React.useCallback(async () => {
-        const token = localStorage.getItem('authToken');
+        const token = electronStorage.getItem('authToken');
         console.log('token', token);
 
         if (token) {
@@ -237,10 +238,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         // But we need currentUser to be set.
                         // Ideally we should store currentUser in DB too.
                     } else {
-                        localStorage.removeItem('authToken');
+                        electronStorage.removeItem('authToken');
                     }
                 } catch (e) {
-                    localStorage.removeItem('authToken');
+                    electronStorage.removeItem('authToken');
                 }
             }
         }
@@ -320,7 +321,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setExpenses(pd.expenses || []);
             setSettings(pd.settings || fallbackAppSettings);
         }
-        localStorage.setItem('authToken', data.token);
+        electronStorage.setItem('authToken', data.token);
     };
 
     const login = async (email: string, pin: string) => {
@@ -350,7 +351,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
             console.error("Logout failed:", error);
         } finally {
-            localStorage.removeItem('authToken');
+            electronStorage.removeItem('authToken');
             setCurrentUser(null);
             setUsers([]);
             window.location.href = '/';
@@ -644,7 +645,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const bulkUploadInventory = async (file: File) => {
-        const token = localStorage.getItem('authToken');
+        const token = electronStorage.getItem('authToken');
 
         try {
             const formData = new FormData();
@@ -685,7 +686,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const bulkUploadCentralDrugs = async (file: File) => {
-        const token = localStorage.getItem('authToken');
+        const token = electronStorage.getItem('authToken');
 
         try {
             const formData = new FormData();

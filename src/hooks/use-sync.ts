@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useOnlineStatus } from './use-online-status';
+import { useOnlineStatus } from './use-online-status-electron';
 import { db } from '@/lib/db';
 import { toast } from './use-toast';
+import { electronStorage } from '@/lib/electron-storage';
 
 export function useSync(refreshData: () => Promise<void>) {
     const isOnline = useOnlineStatus();
@@ -30,7 +31,7 @@ export function useSync(refreshData: () => Promise<void>) {
                     // We need to handle auth tokens here or ensure apiRequest handles it if we reuse it.
                     // Ideally, we should reuse the apiRequest logic but avoid circular dependencies.
                     // For now, let's grab the token from localStorage directly.
-                    const token = localStorage.getItem('authToken');
+                    const token = electronStorage.getItem('authToken');
 
                     if (token) {
                         headers['Authorization'] = `Bearer ${token}`;
