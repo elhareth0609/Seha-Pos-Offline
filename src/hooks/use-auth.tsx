@@ -138,6 +138,14 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
         'Content-Type': 'application/json',
         'Accept': 'application/json',
     };
+
+    // DEBUG: Check if token exists
+    if (!token) {
+        console.warn(`[API] No token found for request to ${endpoint}`);
+    } else {
+        console.log(`[API] Token found for ${endpoint}:`, token.substring(0, 10) + '...');
+    }
+
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
@@ -169,10 +177,15 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
         if (!response.ok) {
             const errorMessage = responseData.message || 'An API error occurred';
 
+            console.log(`[API Error] Status: ${response.status}, Message: ${errorMessage}`);
+            console.log(`[API Error] Request: ${endpoint}, Token used: ${token ? 'Yes' : 'No'}`);
+
             // If the error message is "Unauthenticated", redirect to login page
-            if (errorMessage === "Unauthenticated") {
-                electronStorage.removeItem('authToken');
-                window.location.href = '/';
+            // DEBUG: CT commented out auto-logout to debug 401 issue
+            if (response.status === 401 || errorMessage === "Unauthenticated") {
+                console.error("Authentication failed. Token might be invalid or expired.");
+                // electronStorage.removeItem('authToken');
+                // window.location.href = '/';
                 throw new Error('Session expired. Please login again.');
             }
 
