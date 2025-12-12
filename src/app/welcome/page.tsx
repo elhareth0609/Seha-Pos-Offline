@@ -1,9 +1,7 @@
-import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 export default function WelcomePage() {
     const navigate = useNavigate();
@@ -20,7 +18,7 @@ export default function WelcomePage() {
                         <div className="mx-auto mb-4 relative">
                             <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full blur-xl opacity-50 animate-pulse"></div>
                             <img 
-                                src="/favicon.png" 
+                                src="./favicon.png" 
                                 alt="ميدجرام" 
                                 className="h-24 w-24 relative z-10 drop-shadow-2xl" 
                             />

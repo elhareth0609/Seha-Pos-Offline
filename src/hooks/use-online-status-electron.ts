@@ -27,13 +27,21 @@ export function useOnlineStatus() {
       console.log('Network status: Offline');
       setIsOnline(false);
     };
+    
+    // Handle custom Electron network events
+    const handleElectronNetworkStatus = (event: CustomEvent) => {
+      const { isOnline: onlineStatus } = event.detail;
+      console.log(`Electron network status: ${onlineStatus ? 'Online' : 'Offline'}`);
+      setIsOnline(onlineStatus);
+    };
 
     // Add event listeners
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
-    // In Electron, we might need additional checks
+    
     if (isElectron) {
+      window.addEventListener('electron-network-status', handleElectronNetworkStatus as EventListener);
+      
       // Periodically check connection status in Electron
       const checkInterval = setInterval(() => {
         const online = navigator.onLine;
@@ -46,6 +54,7 @@ export function useOnlineStatus() {
         clearInterval(checkInterval);
         window.removeEventListener('online', handleOnline);
         window.removeEventListener('offline', handleOffline);
+        window.removeEventListener('electron-network-status', handleElectronNetworkStatus as EventListener);
       };
     }
 
