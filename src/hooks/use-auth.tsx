@@ -8,7 +8,7 @@ import { useSync } from './use-sync';
 import { electronStorage } from '@/lib/electron-storage';
 
 
-const API_URL = import.meta.env.VITE_API_URL || "http://backend-uat.midgram.net/api";
+const API_URL = import.meta.env.VITE_API_URL || "https://backend-uat.midgram.net/api";
 
 type AuthResponse = {
     token: string;
@@ -133,27 +133,33 @@ const initialActiveInvoice: ActiveInvoice = {
 
 
 async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?: object) {
+    if (endpoint === '/user') {
+        console.log('[API] Check URL Base:', API_URL);
+    }
     const token = electronStorage.getItem('authToken');
-    const headers: HeadersInit = {
-        'Content-Type': 'application/json',
+    const headers: Record<string, string> = {
         'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
     };
+
+    if (method !== 'GET') {
+        headers['Content-Type'] = 'application/json';
+    }
 
     // DEBUG: Check if token exists
     if (!token) {
         console.warn(`[API] No token found for request to ${endpoint}`);
     } else {
-        console.log(`[API] Token found for ${endpoint}:`, token.substring(0, 10) + '...');
+        headers['Authorization'] = `Bearer ${token.trim()}`;
     }
 
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const options = {
+    const options: RequestInit = {
         method,
         headers,
         body: body ? JSON.stringify(body) : undefined,
+        mode: 'cors',
+        credentials: 'include',
+        referrerPolicy: 'no-referrer',
     };
 
     if (!navigator.onLine && method !== 'GET') {
@@ -251,10 +257,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         // But we need currentUser to be set.
                         // Ideally we should store currentUser in DB too.
                     } else {
-                        electronStorage.removeItem('authToken');
+                        // DEBUG: persist token for debugging
+                        // electronStorage.removeItem('authToken');
                     }
                 } catch (e) {
-                    electronStorage.removeItem('authToken');
+                    // DEBUG: persist token for debugging
+                    // electronStorage.removeItem('authToken');
                 }
             }
         }
