@@ -741,38 +741,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const addSale = async (saleData: any) => {
-        if (!navigator.onLine) {
-            const newSale = {
-                ...saleData,
-                id: `local-${Date.now()}`,
-                date: new Date().toISOString(),
-                items: saleData.items.map((item: any) => ({ ...item, name: item.name || 'Unknown' })) // Ensure name exists
-            };
+        // DEBUG: Check online status explicitly
+        const isAppOnline = navigator.onLine;
+        console.log(`[Sales] Adding sale. Online status: ${isAppOnline ? 'Online' : 'Offline'}`);
 
-            await db.sales.add(newSale);
-            await db.offlineRequests.add({
-                url: '/sales',
-                method: 'POST',
-                body: saleData,
-                timestamp: Date.now()
-            });
+        if (!isAppOnline) {
+            try {
+                const newSale = {
+                    ...saleData,
+                    id: `local-${Date.now()}`,
+                    date: new Date().toISOString(),
+                    items: saleData.items.map((item: any) => ({ ...item, name: item.name || 'Unknown' })) // Ensure name exists
+                };
 
-            setSales(prev => [newSale, ...prev]);
-            // Optimistically update inventory
-            setInventory(prev => {
-                const newInventory = [...prev];
-                newSale.items.forEach((item: any) => {
-                    const medIndex = newInventory.findIndex(m => m.id === item.medication_id);
-                    if (medIndex !== -1) {
-                        newInventory[medIndex] = {
-                            ...newInventory[medIndex],
-                            stock: newInventory[medIndex].stock - item.quantity
-                        };
-                    }
+                console.log('[Sales] Saving sale offline:', newSale);
+                await db.sales.add(newSale);
+                await db.offlineRequests.add({
+                    url: '/sales',
+                    method: 'POST',
+                    body: saleData,
+                    timestamp: Date.now()
                 });
-                return newInventory;
-            });
-            return newSale;
+
+                toast({ title: 'تم الحفظ محلياً', description: 'تم حفظ الفاتورة وسيتم مزامنتها عند عودة الاتصال Internet.' });
+
+                setSales(prev => [newSale, ...prev]);
+                // Optimistically update inventory
+                setInventory(prev => {
+                    const newInventory = [...prev];
+                    newSale.items.forEach((item: any) => {
+                        const medIndex = newInventory.findIndex(m => m.id === item.medication_id);
+                        if (medIndex !== -1) {
+                            newInventory[medIndex] = {
+                                ...newInventory[medIndex],
+                                stock: newInventory[medIndex].stock - item.quantity
+                            };
+                        }
+                    });
+                    return newInventory;
+                });
+                return newSale;
+            } catch (error) {
+                console.error('[Sales] Failed to save offline sale:', error);
+                toast({ variant: 'destructive', title: 'خطأ في الحفظ', description: 'فشل حفظ الفاتورة محلياً.' });
+                return null;
+            }
         }
 
         try {
