@@ -6,6 +6,7 @@ import { toast } from './use-toast';
 import { db } from '@/lib/db';
 import { useSync } from './use-sync';
 import { electronStorage } from '@/lib/electron-storage';
+import { useOnlineStatus } from './use-online-status-electron';
 
 
 const API_URL = import.meta.env.VITE_API_URL || "https://backend-uat.midgram.net/api";
@@ -162,6 +163,10 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
         referrerPolicy: 'no-referrer',
     };
 
+    // Use navigator.onLine as a fallback for the static function context, 
+    // but ideally we should pass isOnline from the hook. 
+    // Since this is a standalone function, we check navigator directly but we should trust it more in Electron if we could.
+    // However, the issue described "offline not work" suggests we might need to be more aggressive in assuming offline if API fails.
     if (!navigator.onLine && method !== 'GET') {
         await db.offlineRequests.add({
             url: `${API_URL}${endpoint}`,
@@ -174,7 +179,14 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
     }
 
     try {
-        const response = await fetch(`${API_URL}${endpoint}`, options);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+        const response = await fetch(`${API_URL}${endpoint}`, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
 
         if (response.status === 204) return null;
 
@@ -187,11 +199,8 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
             console.log(`[API Error] Request: ${endpoint}, Token used: ${token ? 'Yes' : 'No'}`);
 
             // If the error message is "Unauthenticated", redirect to login page
-            // DEBUG: CT commented out auto-logout to debug 401 issue
             if (response.status === 401 || errorMessage === "Unauthenticated") {
                 console.error("Authentication failed. Token might be invalid or expired.");
-                // electronStorage.removeItem('authToken');
-                // window.location.href = '/';
                 throw new Error('Session expired. Please login again.');
             }
 
@@ -200,6 +209,21 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
 
         return responseData.data ?? responseData;
     } catch (error: any) {
+        // SMART OFFLINE FALLBACK
+        // If fetch fails with a TypeError (usually network error) and it's a mutation, queue it.
+        // This handles cases where navigator.onLine is true but internet is actually down.
+        if (method !== 'GET' && (error.name === 'TypeError' || error.name === 'AbortError' || error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
+            console.warn(`[API] Network request failed (${error.message}). Queuing offline request...`);
+            await db.offlineRequests.add({
+                url: `${API_URL}${endpoint}`,
+                method,
+                body,
+                timestamp: Date.now()
+            });
+            toast({ title: 'أنت غير متصل', description: 'تم حفظ طلبك وسيتم إرساله عند عودة الاتصال (fallback).' });
+            return null;
+        }
+
         // Don't show toast for unauthenticated errors since we're redirecting
         if (error.message !== 'Session expired. Please login again.') {
             toast({ variant: 'destructive', title: 'خطأ في الشبكة', description: error.message });
@@ -210,18 +234,51 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
 
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [currentUser, setCurrentUser] = React.useState<User | null>(null);
-    const [users, setUsers] = React.useState<User[]>([]);
+    // USE REACTIVE ONLINE STATUS
+    const isOnline = useOnlineStatus();
+
+    // Attempt synchronous recovery for faster first render (if stored in localStorage/electronStorage which is sync)
+    const [currentUser, setCurrentUser] = React.useState<User | null>(() => {
+        try {
+            const stored = electronStorage.getItem('currentUser');
+            console.log('[Auth] Synchronous currentUser load:', stored ? 'Found' : 'Null');
+            return stored ? JSON.parse(stored) : null;
+        } catch (e) {
+            console.error('[Auth] Error parsing stored currentUser:', e);
+            return null;
+        }
+    });
+
+    const [users, setUsers] = React.useState<User[]>(() => {
+        try {
+            const stored = electronStorage.getItem('usersList');
+            return stored ? JSON.parse(stored) : [];
+        } catch { return []; }
+    });
+
     const [loading, setLoading] = React.useState(true);
     // Router is now handled by components
 
     // Initialize auth state on component mount
     const initializeAuth = React.useCallback(async () => {
         const token = electronStorage.getItem('authToken');
+        console.log('[Auth] initializeAuth started. Token in storage:', token ? 'Yes' : 'No');
+
+        if (!token) {
+            console.log('[Auth] No token found, finishing load.');
+            setLoading(false);
+            return;
+        }
+
         console.log('token', token);
 
         if (token) {
             try {
+                // If we detect we are offline via navigator (even if reactive is delayed), throw immediately to hit recovery
+                if (!navigator.onLine) {
+                    throw new TypeError('Offline (Detected by navigator)');
+                }
+
                 const data: AuthResponse = await apiRequest('/user');
                 setAllData(data);
 
@@ -238,9 +295,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             await db.settings.put({ ...data.pharmacy_data.settings, id: 1 }); // Use fixed ID for settings
                         }
                     });
+                    console.log('[Auth] Local DB updated successfully.');
                 }
             } catch (error) {
-                // Try loading from local DB
+                console.warn('[Auth] API request failed or DB error:', error);
+                console.log('[Auth] Attempting offline recovery...');
                 try {
                     const sales = await db.sales.toArray();
                     const inventory = await db.inventory.toArray();
@@ -252,20 +311,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         setSales(sales);
                         setPatients(patients);
                         if (settings) setSettings(settings);
+
+                        console.log('[Auth] Offline recovery successful. Data loaded from DB.');
+
                         // We might need to mock a user object or store it in DB too
                         // For now, let's assume if we have data we are "logged in" enough to view it
                         // But we need currentUser to be set.
                         // Ideally we should store currentUser in DB too.
                     } else {
+                        console.warn('[Auth] No data found in local DB.');
                         // DEBUG: persist token for debugging
                         // electronStorage.removeItem('authToken');
                     }
                 } catch (e) {
+                    console.error('[Auth] Critical error reading from local DB:', e);
                     // DEBUG: persist token for debugging
                     // electronStorage.removeItem('authToken');
                 }
             }
         }
+        console.log('[Auth] initializeAuth completed. Setting loading to false.');
         setLoading(false);
     }, []);
 
@@ -438,7 +503,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const getPaginatedInventory = React.useCallback(async (page: number, perPage: number, search: string, filters: Record<string, any> = {}) => {
-        if (!navigator.onLine) {
+        if (!isOnline) {
             let allItems = await db.inventory.toArray();
             if (search) {
                 const lowerSearch = search.toLowerCase();
@@ -480,7 +545,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const searchAllInventory = React.useCallback(async (search: string) => {
-        if (!navigator.onLine) {
+        if (!isOnline) {
             let allItems = await db.inventory.toArray();
             if (search && typeof search === 'string') {
                 const lowerSearch = search.toLowerCase();
@@ -502,7 +567,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const searchInOtherBranches = React.useCallback(async (medicationName: string): Promise<BranchInventory[]> => {
-        if (!navigator.onLine) {
+        if (!isOnline) {
             return [];
         }
         try {
@@ -513,7 +578,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const getPaginatedPatients = React.useCallback(async (page: number, perPage: number, search: string) => {
-        if (!navigator.onLine) {
+        if (!isOnline) {
             let allItems = await db.patients.toArray();
             if (search) {
                 const lowerSearch = search.toLowerCase();
@@ -549,7 +614,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const searchAllPatients = React.useCallback(async (search: string) => {
-        if (!navigator.onLine) {
+        if (!isOnline) {
             let allItems = await db.patients.toArray();
             if (search && typeof search === 'string') {
                 const lowerSearch = search.toLowerCase();
@@ -567,7 +632,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const getPaginatedSales = React.useCallback(async (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string) => {
-        if (!navigator.onLine) {
+        if (!isOnline) {
             let allSales = await db.sales.toArray();
 
             // Filter
@@ -624,7 +689,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const searchAllSales = React.useCallback(async (search: string = "") => {
-        if (!navigator.onLine) {
+        if (!isOnline) {
             let allSales = await db.sales.toArray();
             if (search && typeof search === 'string') {
                 const lowerSearch = search.toLowerCase();
@@ -742,10 +807,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const addSale = async (saleData: any) => {
         // DEBUG: Check online status explicitly
-        const isAppOnline = navigator.onLine;
-        console.log(`[Sales] Adding sale. Online status: ${isAppOnline ? 'Online' : 'Offline'}`);
+        console.log(`[Sales] Adding sale. Online status: ${isOnline ? 'Online' : 'Offline'}`);
 
-        if (!isAppOnline) {
+        if (!isOnline) {
             try {
                 const newSale = {
                     ...saleData,
@@ -802,7 +866,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const updateSale = async (saleData: any) => {
-        if (!navigator.onLine) {
+        if (!isOnline) {
             await db.sales.put(saleData);
             await db.offlineRequests.add({
                 url: `/sales/${saleData.id}`,
@@ -830,7 +894,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const deleteSale = async (saleId: string) => {
-        if (!navigator.onLine) {
+        if (!isOnline) {
             await db.sales.delete(saleId);
             await db.offlineRequests.add({
                 url: `/sales/${saleId}`,

@@ -39,7 +39,10 @@ function createWindow() {
     // Load the app
     if (isDev) {
         // In development mode, we use the dev server URL
-        mainWindow.loadURL(`http://localhost:3000`);
+        const indexPath = path.join(__dirname, '../dist/index.html');
+        mainWindow.loadFile(indexPath);
+
+        // mainWindow.loadURL(`http://localhost:3000`);
         mainWindow.webContents.openDevTools();
     } else {
         // In production mode, we need to handle the file protocol properly

@@ -25,14 +25,32 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
     const navigate = useNavigate();
 
     React.useEffect(() => {
-        console.log('loading', loading)
-        console.log('currentUser', currentUser)
-        console.log('isAuthenticated', isAuthenticated)
-        if (loading) return;
+        console.log('[Layout] Effect Triggered. State:', {
+            loading,
+            hasCurrentUser: !!currentUser,
+            isAuthenticated,
+            pathname
+        });
+
+        // STRICT CHECK: Do nothing while loading
+        if (loading) {
+            console.log('[Layout] Still loading, waiting...');
+            return;
+        }
 
         // If user is not authenticated and trying to access a protected route, redirect to login
         if (!isAuthenticated && !PUBLIC_ROUTES.includes(pathname)) {
+            console.log('[Layout] Not authenticated & Protected Route -> Redirecting to /login');
+            // Double check that we are REALLY not authenticated
             navigate('/login');
+            return;
+        }
+
+        // REDIRECT from root / to /sales if authenticated
+        // This fixes the "Navbar not seen" issue because / is public (no navbar) but logged in users shouldn't stay there.
+        if (isAuthenticated && pathname === '/') {
+            console.log('[Layout] Authenticated at root -> Redirecting to /sales');
+            navigate('/sales');
             return;
         }
 
@@ -52,7 +70,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
             }
         }
 
-    }, [isAuthenticated, currentUser, loading, pathname]);
+    }, [isAuthenticated, currentUser, loading, pathname, navigate]);
 
 
     if (loading) {
@@ -87,6 +105,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
     }
 
     // Handle regular user routes with AppShell and ThemeProvider
+    console.log('✅ Rendering Protected AppShell (Navbar should be visible)');
     return (
         <ThemeProvider
             attribute="class"

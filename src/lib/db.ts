@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { Sale, Medication, Patient, AppSettings, Expense, Task, TimeLog, Advertisement, PharmacyGroup, BranchInventory } from './types';
+import type { Sale, Medication, Patient, AppSettings, Expense, Task, TimeLog, Advertisement, PharmacyGroup } from './types';
 
 interface OfflineRequest {
     id?: number;
