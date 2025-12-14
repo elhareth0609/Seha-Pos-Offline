@@ -515,7 +515,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const getPaginatedInventory = React.useCallback(async (page: number, perPage: number, search: string, filters: Record<string, any> = {}) => {
-        if (!isOnline) {
+        // Use a more robust check for online status
+        const isActuallyOnline = navigator.onLine && isOnline;
+
+        if (!isActuallyOnline) {
+            console.log('[Search] Using local database for paginated inventory (offline mode)');
             let allItems = await db.inventory.toArray();
             if (search) {
                 const lowerSearch = search.toLowerCase();
@@ -542,6 +546,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
+            console.log('[Search] Using API for paginated inventory (online mode)');
             const params = new URLSearchParams({
                 paginate: "true",
                 page: String(page),
@@ -552,12 +557,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const data = await apiRequest(`/medications?${params.toString()}`);
             return data;
         } catch (e) {
-            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Medication>;
+            // If API request fails, fallback to local search
+            console.log('[Search] API request failed, falling back to local database');
+            let allItems = await db.inventory.toArray();
+            if (search) {
+                const lowerSearch = search.toLowerCase();
+                allItems = allItems.filter(i =>
+                    i.name.toLowerCase().includes(lowerSearch) ||
+                    i.barcodes?.some(b => b.toLowerCase().includes(lowerSearch)) ||
+                    i.scientific_names?.some(s => s.toLowerCase().includes(lowerSearch))
+                );
+            }
+            // Apply other filters if needed
+
+            const total = allItems.length;
+            const start = (page - 1) * perPage;
+            const data = allItems.slice(start, start + perPage);
+
+            return {
+                data,
+                current_page: page,
+                last_page: Math.ceil(total / perPage),
+                total,
+                per_page: perPage,
+                first_page_url: '', from: start + 1, last_page_url: '', links: [], next_page_url: null, path: '', prev_page_url: null, to: start + data.length
+            } as PaginatedResponse<Medication>;
         }
-    }, []);
+    }, [isOnline]);
 
     const searchAllInventory = React.useCallback(async (search: string) => {
-        if (!isOnline) {
+        // Use a more robust check for online status
+        const isActuallyOnline = navigator.onLine && isOnline;
+
+        if (!isActuallyOnline) {
+            console.log('[Search] Using local database for inventory search (offline mode)');
             let allItems = await db.inventory.toArray();
             if (search && typeof search === 'string') {
                 const lowerSearch = search.toLowerCase();
@@ -571,12 +604,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
+            console.log('[Search] Using API for inventory search (online mode)');
             const params = new URLSearchParams({ search });
             return await apiRequest(`/medications?${params.toString()}`);
         } catch (e) {
-            return [];
+            // If API request fails, fallback to local search
+            console.log('[Search] API request failed, falling back to local database');
+            let allItems = await db.inventory.toArray();
+            if (search && typeof search === 'string') {
+                const lowerSearch = search.toLowerCase();
+                allItems = allItems.filter(i =>
+                    i.name.toLowerCase().includes(lowerSearch) ||
+                    i.barcodes?.some(b => b.toLowerCase().includes(lowerSearch)) ||
+                    i.scientific_names?.some(s => s.toLowerCase().includes(lowerSearch))
+                );
+            }
+            return allItems.slice(0, 50);
         }
-    }, []);
+    }, [isOnline]);
 
     const searchInOtherBranches = React.useCallback(async (medicationName: string): Promise<BranchInventory[]> => {
         if (!isOnline) {
@@ -590,7 +635,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const getPaginatedPatients = React.useCallback(async (page: number, perPage: number, search: string) => {
-        if (!isOnline) {
+        // Use a more robust check for online status
+        const isActuallyOnline = navigator.onLine && isOnline;
+
+        if (!isActuallyOnline) {
+            console.log('[Search] Using local database for paginated patients (offline mode)');
             let allItems = await db.patients.toArray();
             if (search) {
                 const lowerSearch = search.toLowerCase();
@@ -612,6 +661,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
+            console.log('[Search] Using API for paginated patients (online mode)');
             const params = new URLSearchParams({
                 paginate: "true",
                 page: String(page),
@@ -621,12 +671,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const data = await apiRequest(`/patients?${params.toString()}`);
             return data;
         } catch (e) {
-            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Patient>;
+            // If API request fails, fallback to local search
+            console.log('[Search] API request failed, falling back to local database');
+            let allItems = await db.patients.toArray();
+            if (search) {
+                const lowerSearch = search.toLowerCase();
+                allItems = allItems.filter(p => p.name.toLowerCase().includes(lowerSearch) || p.phone?.includes(search));
+            }
+
+            const total = allItems.length;
+            const start = (page - 1) * perPage;
+            const data = allItems.slice(start, start + perPage);
+
+            return {
+                data,
+                current_page: page,
+                last_page: Math.ceil(total / perPage),
+                total,
+                per_page: perPage,
+                first_page_url: '', from: start + 1, last_page_url: '', links: [], next_page_url: null, path: '', prev_page_url: null, to: start + data.length
+            } as PaginatedResponse<Patient>;
         }
-    }, []);
+    }, [isOnline]);
 
     const searchAllPatients = React.useCallback(async (search: string) => {
-        if (!isOnline) {
+        // Use a more robust check for online status
+        const isActuallyOnline = navigator.onLine && isOnline;
+
+        if (!isActuallyOnline) {
+            console.log('[Search] Using local database for patients search (offline mode)');
             let allItems = await db.patients.toArray();
             if (search && typeof search === 'string') {
                 const lowerSearch = search.toLowerCase();
@@ -636,15 +709,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
+            console.log('[Search] Using API for patients search (online mode)');
             const params = new URLSearchParams({ search });
             return await apiRequest(`/patients?${params.toString()}`);
         } catch (e) {
-            return [];
+            // If API request fails, fallback to local search
+            console.log('[Search] API request failed, falling back to local database');
+            let allItems = await db.patients.toArray();
+            if (search && typeof search === 'string') {
+                const lowerSearch = search.toLowerCase();
+                allItems = allItems.filter(p => p.name.toLowerCase().includes(lowerSearch) || p.phone?.includes(search));
+            }
+            return allItems.slice(0, 50);
         }
-    }, []);
+    }, [isOnline]);
 
     const getPaginatedSales = React.useCallback(async (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string) => {
-        if (!isOnline) {
+        // Use a more robust check for online status
+        const isActuallyOnline = navigator.onLine && isOnline;
+
+        if (!isActuallyOnline) {
+            console.log('[Search] Using local database for paginated sales (offline mode)');
             let allSales = await db.sales.toArray();
 
             // Filter
@@ -683,6 +768,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
+            console.log('[Search] Using API for paginated sales (online mode)');
             const params = new URLSearchParams({
                 paginate: "true",
                 page: String(page),
@@ -696,12 +782,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const data = await apiRequest(`/sales?${params.toString()}`);
             return data;
         } catch (e) {
-            return { data: [], current_page: 1, last_page: 1 } as unknown as PaginatedResponse<Sale>;
+            // If API request fails, fallback to local search
+            console.log('[Search] API request failed, falling back to local database');
+            let allSales = await db.sales.toArray();
+
+            // Filter
+            if (search) {
+                const lowerSearch = search.toLowerCase();
+                allSales = allSales.filter(s => s.id.toLowerCase().includes(lowerSearch) || s.patientName?.toLowerCase().includes(lowerSearch));
+            }
+            if (dateFrom) {
+                allSales = allSales.filter(s => new Date(s.date) >= new Date(dateFrom));
+            }
+            if (dateTo) {
+                allSales = allSales.filter(s => new Date(s.date) <= new Date(dateTo));
+            }
+            if (employeeId && employeeId !== 'all') {
+                allSales = allSales.filter(s => s.employee_id === employeeId);
+            }
+            if (paymentMethod && paymentMethod !== 'all') {
+                allSales = allSales.filter(s => s.payment_method === paymentMethod);
+            }
+
+            // Sort by date desc
+            allSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+            const total = allSales.length;
+            const start = (page - 1) * perPage;
+            const data = allSales.slice(start, start + perPage);
+
+            return {
+                data,
+                current_page: page,
+                last_page: Math.ceil(total / perPage),
+                total,
+                per_page: perPage,
+                first_page_url: '', from: start + 1, last_page_url: '', links: [], next_page_url: null, path: '', prev_page_url: null, to: start + data.length
+            } as PaginatedResponse<Sale>;
         }
-    }, []);
+    }, [isOnline]);
 
     const searchAllSales = React.useCallback(async (search: string = "") => {
-        if (!isOnline) {
+        // Use a more robust check for online status
+        const isActuallyOnline = navigator.onLine && isOnline;
+
+        if (!isActuallyOnline) {
+            console.log('[Search] Using local database for sales search (offline mode)');
             let allSales = await db.sales.toArray();
             if (search && typeof search === 'string') {
                 const lowerSearch = search.toLowerCase();
@@ -713,12 +839,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
+            console.log('[Search] Using API for sales search (online mode)');
             const params = new URLSearchParams({ search });
             return await apiRequest(`/sales?${params.toString()}`);
         } catch (e) {
-            return [];
+            // If API request fails, fallback to local search
+            console.log('[Search] API request failed, falling back to local database');
+            let allSales = await db.sales.toArray();
+            if (search && typeof search === 'string') {
+                const lowerSearch = search.toLowerCase();
+                allSales = allSales.filter(s => s.id.toLowerCase().includes(lowerSearch) || s.patientName?.toLowerCase().includes(lowerSearch));
+            }
+            // Sort by date desc
+            allSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            return allSales.slice(0, 50);
         }
-    }, []);
+    }, [isOnline]);
 
     const markAsDamaged = async (medId: string) => {
         try {
