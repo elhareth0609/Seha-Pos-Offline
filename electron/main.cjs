@@ -1,9 +1,14 @@
-const { app, BrowserWindow, protocol } = require('electron');
+const { app, BrowserWindow, protocol, ipcMain } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
+const { autoUpdater } = require('electron-updater');
 
 const store = new Store();
 const isDev = !app.isPackaged;
+
+// Configure auto-updater
+autoUpdater.autoDownload = false; // Don't auto-download, let user choose
+autoUpdater.autoInstallOnAppQuit = true; // Install when app closes
 
 let mainWindow;
 
@@ -48,11 +53,11 @@ function createWindow() {
         // In production mode, we need to handle the file protocol properly
         const indexPath = path.join(__dirname, '../dist/index.html');
         mainWindow.loadFile(indexPath);
-        
+
         // Handle navigation to prevent file:// protocol errors
         mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
             const parsedUrl = new URL(navigationUrl);
-            
+
             // Allow only http, https, and file protocols
             if (parsedUrl.origin !== 'file://' && !parsedUrl.origin.startsWith('http')) {
                 event.preventDefault();
@@ -75,19 +80,83 @@ function createWindow() {
 app.whenReady().then(() => {
     createWindow();
 
+    // Check for updates after app starts (only in production)
+    if (!isDev) {
+        console.log('Checking for updates...');
+        setTimeout(() => {
+            autoUpdater.checkForUpdates();
+        }, 3000); // Wait 3 seconds after launch
+    }
+
     app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) {
-            createWindow();
-        }
+        if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
 });
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit();
+    if (process.platform !== 'darwin') app.quit();
+});
+
+// ============= AUTO-UPDATER EVENTS =============
+
+autoUpdater.on('checking-for-update', () => {
+    console.log('Checking for update...');
+});
+
+autoUpdater.on('update-available', (info) => {
+    console.log('Update available:', info.version);
+    if (mainWindow) {
+        mainWindow.webContents.send('update-available', {
+            version: info.version,
+            releaseDate: info.releaseDate
+        });
     }
+});
+
+autoUpdater.on('update-not-available', (info) => {
+    console.log('Update not available.');
+});
+
+autoUpdater.on('error', (error) => {
+    console.error('Update error:', error);
+    if (mainWindow) {
+        mainWindow.webContents.send('update-error', error.message);
+    }
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+    console.log(`Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}%`);
+    if (mainWindow) {
+        mainWindow.webContents.send('download-progress', {
+            percent: progressObj.percent,
+            transferred: progressObj.transferred,
+            total: progressObj.total
+        });
+    }
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+    console.log('Update downloaded:', info.version);
+    if (mainWindow) {
+        mainWindow.webContents.send('update-downloaded', {
+            version: info.version
+        });
+    }
+});
+
+// ============= IPC HANDLERS =============
+
+ipcMain.on('download-update', () => {
+    console.log('User requested update download');
+    autoUpdater.downloadUpdate();
+});
+
+ipcMain.on('install-update', () => {
+    console.log('User requested update installation');
+    autoUpdater.quitAndInstall();
 });
 
 process.on('uncaughtException', (error) => {
     console.error('Uncaught Exception:', error);
 });
+

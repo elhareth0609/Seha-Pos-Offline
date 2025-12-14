@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "../ui/theme-toggle";
 import { NetworkStatus } from "@/components/ui/network-status";
+import { UpdateNotification } from "@/components/ui/update-notification";
 
 const allNavItems = [
   { href: "/sales", icon: ShoppingCart, label: "المبيعات", group: 'main' },
@@ -177,6 +178,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </main>
           <NetworkStatus />
+          <UpdateNotification />
         </div>
       </Sheet>
     </TooltipProvider>
