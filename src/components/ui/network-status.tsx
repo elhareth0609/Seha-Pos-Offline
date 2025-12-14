@@ -14,11 +14,16 @@ export function NetworkStatus() {
         return await db.offlineRequests.count();
     });
 
-    // Don't show anything if online and no pending requests
-    if (isOnline && (offlineRequestCount === 0 || offlineRequestCount === undefined)) {
+    // Log network status for debugging
+    console.log(`🌐 NetworkStatus render: ${isOnline ? 'Online' : 'Offline'}, Pending requests: ${offlineRequestCount || 0}`);
+
+    // Show badge when offline OR when syncing pending requests
+    if (isOnline && (!offlineRequestCount || offlineRequestCount === 0)) {
+        console.log('🌐 NetworkStatus: Hiding badge (online with no pending requests)');
         return null;
     }
 
+    console.log('🌐 NetworkStatus: SHOWING BADGE');
     return (
         <div className="fixed bottom-6 left-6 z-50 animate-in slide-in-from-bottom-2 fade-in duration-300 pointer-events-none">
             <Card className={cn(

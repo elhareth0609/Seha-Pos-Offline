@@ -21,7 +21,14 @@ const PUBLIC_ROUTES = ['/', '/login', '/signup', '/welcome'];
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
     const { loading, isAuthenticated, currentUser } = useAuth();
     const location = useLocation();
-    const pathname = location.pathname;
+    
+    // For hash routing, get the path from the hash
+    const getHashPath = () => {
+        const hash = window.location.hash;
+        return hash ? hash.slice(1) : '/'; // Remove # and return path or default to '/'
+    };
+    
+    const pathname = location.pathname || getHashPath();
     const navigate = useNavigate();
 
     React.useEffect(() => {
@@ -31,6 +38,17 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
             isAuthenticated,
             pathname
         });
+        
+        // Check network status on initial load
+        console.log(`Network status: ${navigator.onLine ? 'Online' : 'Offline'}`);
+
+        // IMMEDIATE FORCE REDIRECT - before any other checks
+        // This ensures authenticated users NEVER see the / route
+        if (!loading && isAuthenticated && pathname === '/') {
+            console.log('[Layout] 🚀 IMMEDIATE REDIRECT to /sales');
+            window.location.hash = '#/sales';
+            return;
+        }
 
         // STRICT CHECK: Do nothing while loading
         if (loading) {
@@ -42,7 +60,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
         if (!isAuthenticated && !PUBLIC_ROUTES.includes(pathname)) {
             console.log('[Layout] Not authenticated & Protected Route -> Redirecting to /login');
             // Double check that we are REALLY not authenticated
-            navigate('/login');
+            window.location.hash = '#/login';
             return;
         }
 
@@ -50,7 +68,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
         // This fixes the "Navbar not seen" issue because / is public (no navbar) but logged in users shouldn't stay there.
         if (isAuthenticated && pathname === '/') {
             console.log('[Layout] Authenticated at root -> Redirecting to /sales');
-            navigate('/sales');
+            window.location.hash = '#/sales';
             return;
         }
 
@@ -65,7 +83,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
                 const userPermissions = currentUser.permissions as UserPermissions;
 
                 if (requiredPermission && (!userPermissions || !userPermissions[requiredPermission as keyof UserPermissions])) {
-                    navigate('/sales');
+                    window.location.hash = '#/sales';
                 }
             }
         }
@@ -88,8 +106,30 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
     console.log('🔍 Checking route:', { pathname, normalizedPathname, isPublic: PUBLIC_ROUTES.includes(normalizedPathname) });
 
+    // DEBUG: Log state before blocking check
+    console.log('🔍 BLOCKING CHECK:', {
+        normalizedPathname,
+        isRoot: normalizedPathname === '/',
+        isAuthenticated,
+        currentUser: !!currentUser,
+        willBlock: normalizedPathname === '/' && isAuthenticated
+    });
+
+    // FORCE REBUILD: 2025-12-13-22:45
+    // CRITICAL: Block rendering of `/` for authenticated users to force redirect
+    // This prevents the "public route flash" and ensures navbar appears
+    if (normalizedPathname === '/' && isAuthenticated) {
+        console.log('🚫 Blocking render of / for authenticated user, redirect pending...');
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-muted/40">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
+        );
+    }
+
     // Public routes are rendered without the AppShell and ThemeProvider
-    if (PUBLIC_ROUTES.includes(normalizedPathname)) {
+    // But authenticated users should never see the root route
+    if (PUBLIC_ROUTES.includes(normalizedPathname) && !(normalizedPathname === '/' && isAuthenticated)) {
         console.log('✅ Rendering public route:', normalizedPathname);
         return <>{children}</>;
     }

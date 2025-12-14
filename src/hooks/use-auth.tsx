@@ -167,7 +167,15 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
     // but ideally we should pass isOnline from the hook. 
     // Since this is a standalone function, we check navigator directly but we should trust it more in Electron if we could.
     // However, the issue described "offline not work" suggests we might need to be more aggressive in assuming offline if API fails.
-    if (!navigator.onLine && method !== 'GET') {
+    // Enhanced offline detection
+    const isElectron = typeof window !== 'undefined' && window.process && window.process.type;
+    const isOffline = !navigator.onLine;
+    
+    // Log network status for debugging
+    console.log(`Network status: ${isOffline ? 'Offline' : 'Online'}`);
+    
+    // For non-GET requests, if we detect offline status, queue the request
+    if (isOffline && method !== 'GET') {
         await db.offlineRequests.add({
             url: `${API_URL}${endpoint}`,
             method,
@@ -274,8 +282,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (token) {
             try {
+                // Enhanced offline detection with logging
+                const isOffline = !navigator.onLine;
+                console.log(`[Auth] Network status before API request: ${isOffline ? 'Offline' : 'Online'}`);
+                
                 // If we detect we are offline via navigator (even if reactive is delayed), throw immediately to hit recovery
-                if (!navigator.onLine) {
+                if (isOffline) {
                     throw new TypeError('Offline (Detected by navigator)');
                 }
 

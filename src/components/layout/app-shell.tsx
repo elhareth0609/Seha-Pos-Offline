@@ -88,6 +88,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <TooltipProvider>
+      {console.log('📱 AppShell is rendering (Navbar should be visible)')}
       <Sheet>
         <div className="flex min-h-screen flex-col bg-muted/40">
           <main className="flex-1">

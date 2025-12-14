@@ -5,6 +5,16 @@ export function useOnlineStatus() {
   const [isOnline, setIsOnline] = useState(() => {
     // Initial check
     if (typeof navigator !== 'undefined') {
+      // Do a more aggressive initial check in Electron
+      const isElectron = window.process && window.process.type;
+      if (isElectron) {
+        // In Electron, do an immediate check with a small delay to ensure accurate status
+        setTimeout(() => {
+          const status = navigator.onLine;
+          console.log(`[Initial Check] Network status: ${status ? 'Online' : 'Offline'}`);
+          setIsOnline(status);
+        }, 100);
+      }
       return navigator.onLine;
     }
     return true;
@@ -16,6 +26,11 @@ export function useOnlineStatus() {
 
     // Check if we're in Electron
     const isElectron = window.process && window.process.type;
+    
+    // Perform an immediate check on mount
+    const immediateStatus = navigator.onLine;
+    console.log(`[Immediate Check] Network status on mount: ${immediateStatus ? 'Online' : 'Offline'}`);
+    setIsOnline(immediateStatus);
 
     // Set up event listeners
     const handleOnline = () => {
@@ -42,14 +57,19 @@ export function useOnlineStatus() {
     if (isElectron) {
       window.addEventListener('electron-network-status', handleElectronNetworkStatus as EventListener);
 
-      // Periodically check connection status in Electron
+      // Periodically check connection status in Electron with more frequent checks
       const checkInterval = setInterval(() => {
         const navigatorOnline = window.navigator.onLine; // Check directly from navigator
         if (navigatorOnline !== isOnline) {
           console.log(`[Network Check] Status changed to: ${navigatorOnline ? 'Online' : 'Offline'}`);
           setIsOnline(navigatorOnline);
+          
+          // Dispatch a custom event to notify other components
+          window.dispatchEvent(new CustomEvent('electron-network-status', {
+            detail: { isOnline: navigatorOnline }
+          }));
         }
-      }, 3000); // Check every 3 seconds
+      }, 1000); // Check every 1 second for more responsiveness
 
       return () => {
         clearInterval(checkInterval);

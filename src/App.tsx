@@ -59,7 +59,16 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
         console.log('loading', loading)
         console.log('currentUser', currentUser)
         console.log('isAuthenticated', isAuthenticated)
+        console.log('pathname', pathname)
+        
         if (loading) return;
+
+        // If user is authenticated and on the root route, redirect to sales
+        if (isAuthenticated && pathname === '/') {
+            console.log('[App] Authenticated at root, redirecting to /sales');
+            window.location.hash = '#/sales';
+            return;
+        }
 
         // If user is not authenticated and trying to access a protected route, redirect to login
         if (!isAuthenticated && !PUBLIC_ROUTES.includes(pathname)) {
