@@ -7,6 +7,7 @@ import { AppShell } from '@/components/layout/app-shell';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import type { UserPermissions } from '@/lib/types';
+import { electronStorage } from '@/lib/electron-storage';
 
 // Import pages
 import LandingPage from './app/(landing)/page';
@@ -140,7 +141,14 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
 function App() {
     // Ensure hash routing works properly in Electron
     React.useEffect(() => {
-        if (!window.location.hash) {
+        // Check if user is already authenticated
+        const token = electronStorage.getItem('authToken');
+        
+        // If user is authenticated, redirect to sales page
+        if (token) {
+            window.location.hash = '#/sales';
+        } else if (!window.location.hash) {
+            // If not authenticated and no hash, set default hash
             window.location.hash = '#/' ;
         }
     }, []);
