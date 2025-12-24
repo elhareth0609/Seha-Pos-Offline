@@ -212,6 +212,12 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
                 throw new Error('Session expired. Please login again.');
             }
 
+            // For client errors (4xx), throw immediately - don't queue for retry
+            // These are validation errors that won't be fixed by retrying
+            if (response.status >= 400 && response.status < 500) {
+                throw new Error(errorMessage);
+            }
+
             throw new Error(errorMessage);
         }
 

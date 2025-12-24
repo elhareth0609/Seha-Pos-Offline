@@ -50,9 +50,35 @@ export function useSync(refreshData: () => Promise<void>) {
                         await db.offlineRequests.delete(req.id!);
                         successCount++;
                     } else {
-                        console.error(`Failed to sync request ${req.id}:`, await response.text());
-                        failCount++;
-                        // Optional: Implement retry logic or move to a 'failed' table
+                        const errorText = await response.text();
+                        console.error(`Failed to sync request ${req.id}:`, errorText);
+
+                        // Check if it's a validation error (422) or other client error (4xx)
+                        // These errors won't be fixed by retrying, so we should remove the request
+                        if (response.status >= 400 && response.status < 500) {
+                            console.warn(`Request ${req.id} has a permanent error (status ${response.status}), removing from queue`);
+                            await db.offlineRequests.delete(req.id!);
+
+                            // Parse error message to show to user
+                            let errorMessage = 'فشلت العملية بسبب خطأ في البيانات';
+                            try {
+                                const errorData = JSON.parse(errorText);
+                                if (errorData.message) {
+                                    errorMessage = errorData.message;
+                                }
+                            } catch (e) {
+                                // Use default message if parsing fails
+                            }
+
+                            toast({ 
+                                variant: 'destructive', 
+                                title: 'فشلت العملية', 
+                                description: errorMessage 
+                            });
+                        } else {
+                            // Server errors (5xx) or network errors - increment fail count
+                            failCount++;
+                        }
                     }
                 } catch (error) {
                     console.error(`Error syncing request ${req.id}:`, error);
