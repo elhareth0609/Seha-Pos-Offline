@@ -34,6 +34,7 @@ declare global {
             chrome: string;
             electron: string;
         };
+        isElectron?: boolean;
     }
 }
 

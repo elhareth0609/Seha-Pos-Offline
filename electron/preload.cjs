@@ -17,7 +17,8 @@ const validChannels = [
     'dialog:openFile', // Keep existing dialog channels
     'dialog:saveFile', // Keep existing dialog channels
     'toMain', // Keep existing toMain channel
-    'fromMain' // Keep existing fromMain channel
+    'fromMain', // Keep existing fromMain channel
+    'network-status-changed' // Network status from main process
 ];
 
 contextBridge.exposeInMainWorld('electron', {
@@ -69,3 +70,7 @@ contextBridge.exposeInMainWorld('appVersion', {
     electron: process.versions.electron,
 });
 
+// Expose process info for Electron detection
+contextBridge.exposeInMainWorld('process', {
+    type: 'renderer'
+});

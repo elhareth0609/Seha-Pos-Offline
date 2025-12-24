@@ -170,10 +170,10 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
     // Enhanced offline detection
     const isElectron = typeof window !== 'undefined' && window.process && window.process.type;
     const isOffline = !navigator.onLine;
-    
+
     // Log network status for debugging
     console.log(`Network status: ${isOffline ? 'Offline' : 'Online'}`);
-    
+
     // For non-GET requests, if we detect offline status, queue the request
     if (isOffline && method !== 'GET') {
         await db.offlineRequests.add({
@@ -215,26 +215,68 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
             throw new Error(errorMessage);
         }
 
+        // API request succeeded - dispatch online event to update network status
+        if (typeof window !== 'undefined') {
+            console.log('[API] Request succeeded - dispatching online event');
+            window.dispatchEvent(new CustomEvent('electron-network-status', {
+                detail: { isOnline: true }
+            }));
+            window.dispatchEvent(new Event('online'));
+        }
+
         return responseData.data ?? responseData;
     } catch (error: any) {
         // SMART OFFLINE FALLBACK
         // If fetch fails with a TypeError (usually network error) and it's a mutation, queue it.
         // This handles cases where navigator.onLine is true but internet is actually down.
-        if (method !== 'GET' && (error.name === 'TypeError' || error.name === 'AbortError' || error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
-            console.warn(`[API] Network request failed (${error.message}). Queuing offline request...`);
-            await db.offlineRequests.add({
-                url: `${API_URL}${endpoint}`,
-                method,
-                body,
-                timestamp: Date.now()
-            });
-            toast({ title: 'أنت غير متصل', description: 'تم حفظ طلبك وسيتم إرساله عند عودة الاتصال (fallback).' });
-            return null;
+        const isNetworkError =
+            error.name === 'TypeError' ||
+            error.name === 'AbortError' ||
+            error.message?.includes('Failed to fetch') ||
+            error.message?.includes('NetworkError') ||
+            error.message?.includes('ERR_NAME_NOT_RESOLVED') ||
+            error.message?.includes('ERR_INTERNET_DISCONNECTED') ||
+            error.message?.includes('ERR_CONNECTION') ||
+            error.message?.includes('net::');
+
+        if (isNetworkError) {
+            console.warn(`[API] Network request failed (${error.name}: ${error.message}). Signaling offline state.`);
+
+            // Immediately dispatch offline events to update the entire app
+            if (typeof window !== 'undefined') {
+                console.log('[API] Dispatching offline events...');
+
+                // Dispatch custom Electron event
+                window.dispatchEvent(new CustomEvent('electron-network-status', {
+                    detail: { isOnline: false }
+                }));
+
+                // Also dispatch standard offline event
+                window.dispatchEvent(new Event('offline'));
+            }
+
+            // Queue non-GET requests for later
+            if (method !== 'GET') {
+                console.warn(`[API] Queuing offline request for ${endpoint}...`);
+                await db.offlineRequests.add({
+                    url: `${API_URL}${endpoint}`,
+                    method,
+                    body,
+                    timestamp: Date.now()
+                });
+                toast({ title: 'أنت غير متصل', description: 'تم حفظ طلبك وسيتم إرساله عند عودة الاتصال.' });
+                return null;
+            }
         }
 
         // Don't show toast for unauthenticated errors since we're redirecting
         if (error.message !== 'Session expired. Please login again.') {
-            toast({ variant: 'destructive', title: 'خطأ في الشبكة', description: error.message });
+            // For network errors on GET requests, just log (caller handles fallback)
+            if (isNetworkError && method === 'GET') {
+                console.log(`[API] GET request ${endpoint} failed due to network. Caller should handle fallback.`);
+            } else {
+                toast({ variant: 'destructive', title: 'خطأ في الشبكة', description: error.message });
+            }
         }
         throw error;
     }
@@ -285,7 +327,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 // Enhanced offline detection with logging
                 const isOffline = !navigator.onLine;
                 console.log(`[Auth] Network status before API request: ${isOffline ? 'Offline' : 'Online'}`);
-                
+
                 // If we detect we are offline via navigator (even if reactive is delayed), throw immediately to hit recovery
                 if (isOffline) {
                     throw new TypeError('Offline (Detected by navigator)');
@@ -586,10 +628,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [isOnline]);
 
     const searchAllInventory = React.useCallback(async (search: string) => {
-        // Use a more robust check for online status
-        const isActuallyOnline = navigator.onLine && isOnline;
-
-        if (!isActuallyOnline) {
+        // Only check isOnline from the hook (DNS-based check)
+        // Don't use navigator.onLine as it's unreliable when WiFi is connected but no internet
+        if (!isOnline) {
             console.log('[Search] Using local database for inventory search (offline mode)');
             let allItems = await db.inventory.toArray();
             if (search && typeof search === 'string') {

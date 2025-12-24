@@ -2,18 +2,16 @@ import { useState, useEffect } from 'react';
 
 // Enhanced online status hook for Electron environment
 export function useOnlineStatus() {
-  const [isOnline, setIsOnline] = useState(() => {
+  const [isOnline, setIsOnline] = useState<boolean | null>(() => {
     // Initial check
     if (typeof navigator !== 'undefined') {
       // Do a more aggressive initial check in Electron
       const isElectron = window.process && window.process.type;
       if (isElectron) {
-        // In Electron, do an immediate check with a small delay to ensure accurate status
-        setTimeout(() => {
-          const status = navigator.onLine;
-          console.log(`[Initial Check] Network status: ${status ? 'Online' : 'Offline'}`);
-          setIsOnline(status);
-        }, 100);
+        // In Electron, start with null (unknown) status
+        // The network checker will determine the actual status
+        console.log('[Initial Check] Electron: Starting with unknown status (will be updated by network checker)');
+        return null;
       }
       return navigator.onLine;
     }
@@ -26,65 +24,57 @@ export function useOnlineStatus() {
 
     // Check if we're in Electron
     const isElectron = window.process && window.process.type;
-    
-    // Perform an immediate check on mount
-    const immediateStatus = navigator.onLine;
-    console.log(`[Immediate Check] Network status on mount: ${immediateStatus ? 'Online' : 'Offline'}`);
-    setIsOnline(immediateStatus);
 
-    // Set up event listeners
-    const handleOnline = () => {
-      console.log('Network status: Online');
-      setIsOnline(true);
-    };
-
-    const handleOffline = () => {
-      console.log('Network status: Offline');
-      setIsOnline(false);
-    };
+    // For Electron, skip the immediate check since navigator.onLine is unreliable
+    // The status will be updated by API failures/successes
+    if (!isElectron) {
+      // Perform an immediate check on mount for non-Electron browsers
+      const immediateStatus = navigator.onLine;
+      console.log(`[Immediate Check] Network status on mount: ${immediateStatus ? 'Online' : 'Offline'}`);
+      setIsOnline(immediateStatus);
+    }
 
     // Handle custom Electron network events
     const handleElectronNetworkStatus = (event: CustomEvent) => {
       const { isOnline: onlineStatus } = event.detail;
-      console.log(`Electron network status: ${onlineStatus ? 'Online' : 'Offline'}`);
+      console.log(`[Electron Event] Network status: ${onlineStatus ? 'Online' : 'Offline'}`);
       setIsOnline(onlineStatus);
     };
 
-    // Add event listeners
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
     if (isElectron) {
+      console.log('[useOnlineStatus] Setting up Electron listeners (API failure-based only)...');
+      // Only use custom electron-network-status events (from API failures)
+      // Don't use browser's online/offline events - they're unreliable in Electron
       window.addEventListener('electron-network-status', handleElectronNetworkStatus as EventListener);
 
-      // Periodically check connection status in Electron with more frequent checks
-      const checkInterval = setInterval(() => {
-        const navigatorOnline = window.navigator.onLine; // Check directly from navigator
-        if (navigatorOnline !== isOnline) {
-          console.log(`[Network Check] Status changed to: ${navigatorOnline ? 'Online' : 'Offline'}`);
-          setIsOnline(navigatorOnline);
-          
-          // Dispatch a custom event to notify other components
-          window.dispatchEvent(new CustomEvent('electron-network-status', {
-            detail: { isOnline: navigatorOnline }
-          }));
-        }
-      }, 1000); // Check every 1 second for more responsiveness
-
       return () => {
-        clearInterval(checkInterval);
-        window.removeEventListener('online', handleOnline);
-        window.removeEventListener('offline', handleOffline);
+        console.log('[useOnlineStatus] Cleaning up Electron listeners...');
         window.removeEventListener('electron-network-status', handleElectronNetworkStatus as EventListener);
       };
     }
 
-    // Clean up event listeners
+    // For non-Electron (browser), use standard online/offline events
+    const handleOnline = () => {
+      console.log('[Event] Network status: Online');
+      setIsOnline(true);
+    };
+
+    const handleOffline = () => {
+      console.log('[Event] Network status: Offline');
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Clean up event listeners for non-Electron
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [isOnline]);
+  }, []); // Empty dependency array - only run once on mount
 
-  return isOnline;
+  // Return true if isOnline is null (loading state)
+  // This ensures the app works while waiting for the first network check
+  return isOnline === null ? true : isOnline;
 }

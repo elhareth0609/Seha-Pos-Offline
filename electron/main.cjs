@@ -75,6 +75,10 @@ function createWindow() {
         require('electron').shell.openExternal(url);
         return { action: 'deny' };
     });
+
+    // NOTE: Removed DNS-based connectivity checks as they were unreliable
+    // DNS lookups can succeed due to caching even when HTTP requests fail
+    // The app now relies on API request failures to detect offline mode
 }
 
 app.whenReady().then(() => {

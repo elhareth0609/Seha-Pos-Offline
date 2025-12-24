@@ -6,10 +6,10 @@ import { startNetworkChecks } from './network-checker';
 export const initElectronStorage = () => {
   // Check if we are in an Electron environment
   const isElectron = typeof window !== 'undefined' && window.process && window.process.type;
-  
+
   if (isElectron) {
     console.log('Initializing Electron storage...');
-    
+
     // Ensure localStorage is available
     try {
       // Test localStorage
@@ -18,7 +18,7 @@ export const initElectronStorage = () => {
       console.log('localStorage is available in Electron');
     } catch (error) {
       console.error('localStorage is not available in Electron:', error);
-      
+
       // Create a fallback storage mechanism
       const electronStorageFallback = {
         _data: {},
@@ -35,13 +35,13 @@ export const initElectronStorage = () => {
           this._data = {};
         }
       };
-      
+
       // Override localStorage with our fallback
       Object.defineProperty(window, 'localStorage', {
         value: electronStorageFallback,
         writable: true
       });
-      
+
       console.log('Using fallback storage in Electron');
     }
   }
@@ -51,27 +51,10 @@ export const initElectronStorage = () => {
 export const initElectronNetwork = () => {
   // Check if we are in an Electron environment
   const isElectron = typeof window !== 'undefined' && window.process && window.process.type;
-  
+
   if (isElectron) {
     console.log('Initializing Electron network status...');
-    
-    // Set up periodic network checks
-    const checkNetworkStatus = () => {
-      const isOnline = navigator.onLine;
-      console.log(`Network status: ${isOnline ? 'Online' : 'Offline'}`);
-      
-      // Dispatch a custom event to notify about network status changes
-      window.dispatchEvent(new CustomEvent('electron-network-status', { 
-        detail: { isOnline } 
-      }));
-    };
-    
-    // Check network status every 5 seconds
-    // DISABLED: navigator.onLine is unreliable in Electron
-    // setInterval(checkNetworkStatus, 5000);
-    
-    // Initial check
-    // DISABLED: navigator.onLine is unreliable in Electron
-    // checkNetworkStatus();
+    // Start periodic network checks using the new network checker
+    startNetworkChecks();
   }
 };
