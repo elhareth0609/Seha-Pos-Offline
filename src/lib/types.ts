@@ -44,12 +44,16 @@ export type Medication = {
   image_url?: string;
   stock: number;
   reorder_point: number;
-  price: number; 
-  purchase_price: number; 
   expiration_date: string;
-  dosage?: string;
   dosage_form?: string;
   status?: 'active' | 'damaged';
+  // Box/Strip unit fields
+  box_count: number;             // عدد العلب
+  strips_per_box: number;        // التعبئة: number of strips in one box
+  box_purchase_price: number;    // سعر شراء العلبة
+  strip_purchase_price: number;  // سعر شراء الشريط (calculated)
+  box_sell_price: number;        // سعر بيع العلبة
+  strip_sell_price: number;      // سعر بيع الشريط
 };
 
 export type SaleItem = {
@@ -62,12 +66,12 @@ export type SaleItem = {
   purchase_price: number;
   expiration_date?: string;
   is_return?: boolean;
-  dosage?: string;
   dosage_form?: string;
+  unit_type?: 'box' | 'strip';    // Unit being sold (علبة or شريط)
 };
 
 export type Sale = {
-  id:string;
+  id: string;
   date: string;
   items: SaleItem[];
   total: number;
@@ -75,6 +79,8 @@ export type Sale = {
   discount?: number;
   patient_id: string | null;
   patientName?: string;
+  doctor_id: string | null;
+  doctor_name?: string;
   employee_id: string;
   employeeName: string;
   payment_method: 'cash' | 'card' | 'credit';
@@ -85,6 +91,7 @@ export type ActiveInvoice = {
     discountValue: string;
     discountType: 'fixed' | 'percentage';
     patientId: string | null;
+  doctorId: string | null;
     paymentMethod: 'cash' | 'card' | 'credit';
     saleIdToUpdate?: string | null;
     reviewIndex?: number | null;
@@ -135,6 +142,7 @@ export type AppSettings = {
     suggestion_preference_score?: Record<string, number>;
     controlled_substances?: string[];
     favorite_med_ids?: string[];
+  expense_categories?: { id: string; name: string }[];
 }
 
 export type Advertisement = {
@@ -153,12 +161,13 @@ export type Advertisement = {
 
 export type Expense = {
     id: string;
-    created_at: string;
+  date: string;
     amount: number;
     description: string;
     user_id: string;
     user_name: string;
     recurring: boolean;
+  notes?: string;
 };
 
 export type Task = {
@@ -177,7 +186,6 @@ export type Task = {
 const MedicationInfoSchema = z.object({
   tradeName: z.string().describe('The commercial trade name of the medication.'),
   scientific_names: z.array(z.string()).optional().describe('The active scientific names of the medication.'),
-  dosage: z.string().describe('The dosage strength of the medication (e.g., "500mg", "100mg/5ml").'),
   dosage_form: z.string().describe('The form of the medication (e.g., "Tablet", "Syrup", "Capsule").'),
 });
 

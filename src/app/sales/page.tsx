@@ -3,7 +3,9 @@ import * as React from "react"
 import {
     Card,
     CardContent,
+    CardDescription,
     CardHeader,
+    CardTitle,
     CardFooter
 } from "@/components/ui/card"
 import {
@@ -45,8 +47,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput, Notification, BranchInventory } from "@/lib/types"
-import { PlusCircle, X, PackageSearch, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Trash2, FileText, Calculator, Search, Plus, Minus, Star } from "lucide-react"
+import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput, Notification, BranchInventory, Doctor } from "@/lib/types"
+import { PlusCircle, X, PackageSearch, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText, Calculator, Search, Plus, Minus, Star, History, Stethoscope } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
@@ -59,12 +61,14 @@ import { useOnlineStatus } from "@/hooks/use-online-status"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import AdCarousel from "@/components/ui/ad-carousel"
-import { differenceInDays, parseISO, startOfToday } from "date-fns"
+import { differenceInDays, parseISO, startOfToday, formatDistanceToNowStrict, format } from "date-fns"
 import { Badge } from "@/components/ui/badge"
 import { useNavigate } from "react-router-dom"
 import { PinDialog } from "@/components/auth/PinDialog"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { CalculatorComponent } from "@/components/ui/calculator"
+import { Textarea } from "@/components/ui/textarea"
+import { ar } from "date-fns/locale"
 
 const printElement = (element: HTMLElement, title: string = 'Print') => {
     const printWindow = window.open('', '_blank');
@@ -142,7 +146,6 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
             .map(item => ({
                 tradeName: item.name,
                 scientific_names: item.scientific_names || [],
-                dosage: item.dosage || '',
                 dosage_form: item.dosage_form || '',
             }));
 
@@ -410,7 +413,6 @@ function BranchSearchDialog({ open, onOpenChange }: { open: boolean, onOpenChang
                         placeholder="ابحث بالاسم التجاري أو العلمي..."
                         value={branchSearchTerm}
                         onChange={(e) => handleBranchSearch(e.target.value)}
-                        autoFocus
                     />
                     <div className="max-h-80 overflow-y-auto">
                         {branchSearchLoading ? (
@@ -440,6 +442,78 @@ function BranchSearchDialog({ open, onOpenChange }: { open: boolean, onOpenChang
     )
 }
 
+function SearchHistoryPopover({ onSelect }: { onSelect: (term: string) => void }) {
+    const [recentSearches, setRecentSearches] = React.useState<{ term: string, date: string }[]>([]);
+
+    const loadSearches = React.useCallback(() => {
+        const searches = localStorage.getItem('recentSearches');
+        if (searches) {
+            try {
+                const parsedSearches = JSON.parse(searches);
+                const oneWeekAgo = new Date();
+                oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+                const filtered = parsedSearches.filter((s: { date: string }) => new Date(s.date) > oneWeekAgo);
+                setRecentSearches(filtered);
+            } catch {
+                setRecentSearches([]);
+            }
+        }
+    }, []);
+
+    React.useEffect(() => {
+        loadSearches();
+
+        const handleUpdate = () => loadSearches();
+        window.addEventListener('recentSearchesUpdated', handleUpdate);
+        return () => window.removeEventListener('recentSearchesUpdated', handleUpdate);
+    }, [loadSearches]);
+
+    const handleSelect = (term: string) => {
+        onSelect(term);
+    };
+
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button variant="outline" size="icon" className="shrink-0">
+                    <History />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-80">
+                <div className="space-y-2">
+                    <h4 className="font-medium leading-none">سجل المواد المحذوفة (آخر 7 أيام)</h4>
+                    <p className="text-sm text-muted-foreground">قائمة بالأصناف التي تم حذفها من الفواتير مؤخراً.</p>
+                </div>
+                <Separator className="my-4" />
+                <ScrollArea className="h-64">
+                    <div className="space-y-2">
+                        {recentSearches.length > 0 ? (
+                            recentSearches.map((item, index) => (
+                                <div key={index} onClick={() => handleSelect(item.term)} className="text-sm p-2 hover:bg-accent rounded-md cursor-pointer flex justify-between items-center">
+                                    <span>{item.term}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                        {format(new Date(item.date), 'Pp', { locale: ar })}
+                                    </span>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-sm text-muted-foreground text-center py-8">لا يوجد سجل بحث.</p>
+                        )}
+                    </div>
+                </ScrollArea>
+            </PopoverContent>
+        </Popover>
+    );
+}
+
+const updateRecentSearches = (term: string) => {
+    if (!term) return;
+    const searches: { term: string, date: string }[] = JSON.parse(localStorage.getItem('recentSearches') || '[]');
+    const updatedSearches = [{ term, date: new Date().toISOString() }, ...searches].slice(0, 50);
+    localStorage.setItem('recentSearches', JSON.stringify(updatedSearches));
+    window.dispatchEvent(new Event('recentSearchesUpdated'));
+};
+
 export default function SalesPage() {
     const {
         currentUser,
@@ -456,7 +530,10 @@ export default function SalesPage() {
         searchAllInventory,
         searchAllSales,
         searchAllPatients,
+        getDoctors,
         verifyPin,
+        toggleFavoriteMedication,
+        searchInOtherBranches,
     } = useAuth();
 
     const navigate = useNavigate();
@@ -476,7 +553,7 @@ export default function SalesPage() {
     if (!activeInvoice) {
         return <div>Loading...</div>;
     }
-    const { cart, discountType, discountValue, patientId, paymentMethod, saleIdToUpdate } = activeInvoice;
+    const { cart, discountType, discountValue, patientId, doctorId, paymentMethod, saleIdToUpdate } = activeInvoice;
 
     const [searchTerm, setSearchTerm] = React.useState("")
     const [isSearchLoading, setIsSearchLoading] = React.useState(false);
