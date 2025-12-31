@@ -1232,7 +1232,7 @@ export default function SalesPage() {
                 <div className="hidden">
                     <InvoiceTemplate ref={printComponentRef} sale={saleToPrint} settings={settings || null} user={currentUser || null} />
                 </div>
-                <BranchSearchDialog open={isBranchSearchOpen} onOpenChange={setIsBranchSearchOpen} />
+                {/* <BranchSearchDialog open={isBranchSearchOpen} onOpenChange={setIsBranchSearchOpen} /> */}
                 <BarcodeConflictDialog
                     open={isBarcodeConflictDialogOpen}
                     onOpenChange={setIsBarcodeConflictDialogOpen}

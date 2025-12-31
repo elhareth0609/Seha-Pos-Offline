@@ -380,18 +380,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                         console.log('[Auth] Offline recovery successful. Data loaded from DB.');
 
-                        // We might need to mock a user object or store it in DB too
-                        // For now, let's assume if we have data we are "logged in" enough to view it
-                        // But we need currentUser to be set.
-                        // Ideally we should store currentUser in DB too.
+                        // Restore currentUser from storage if it exists, to ensure we stay logged in
+                        if (!currentUser) {
+                            const storedUser = electronStorage.getItem('currentUser');
+                            if (storedUser) {
+                                setCurrentUser(JSON.parse(storedUser));
+                            }
+                        }
                     } else {
                         console.warn('[Auth] No data found in local DB.');
-                        // DEBUG: persist token for debugging
+                        // Only remove token if we actually have no data and no user
                         // electronStorage.removeItem('authToken');
                     }
                 } catch (e) {
                     console.error('[Auth] Critical error reading from local DB:', e);
-                    // DEBUG: persist token for debugging
                     // electronStorage.removeItem('authToken');
                 }
             }
@@ -460,7 +462,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const setAllData = (data: AuthResponse) => {
         console.log('setAllData', data);
         setCurrentUser(data.user);
+        electronStorage.setItem('currentUser', JSON.stringify(data.user));
         setUsers(data.all_users_in_pharmacy || []);
+        electronStorage.setItem('usersList', JSON.stringify(data.all_users_in_pharmacy || []));
         setAdvertisements(data.advertisements || []);
 
         const pd = data.pharmacy_data;
@@ -505,6 +509,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error("Logout failed:", error);
         } finally {
             electronStorage.removeItem('authToken');
+            electronStorage.removeItem('currentUser');
             setCurrentUser(null);
             setUsers([]);
             window.location.href = '/';
