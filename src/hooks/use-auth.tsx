@@ -1,7 +1,7 @@
 
 
 import * as React from 'react';
-import type { User, TimeLog, AppSettings, Medication, Sale, Patient, Advertisement, SaleItem, PaginatedResponse, Expense, PharmacyGroup, BranchInventory } from '@/lib/types';
+import type { User, TimeLog, AppSettings, Medication, Sale, Patient, Advertisement, SaleItem, PaginatedResponse, Expense, PharmacyGroup, BranchInventory, Doctor } from '@/lib/types';
 import { toast } from './use-toast';
 import { db } from '@/lib/db';
 import { useSync } from './use-sync';
@@ -19,6 +19,7 @@ type AuthResponse = {
         inventory: Medication[];
         sales: Sale[];
         patients: Patient[];
+        doctors: Doctor[];
         timeLogs: TimeLog[];
         expenses: Expense[];
     };
@@ -31,6 +32,7 @@ export type ActiveInvoice = {
     discountValue: string;
     discountType: 'fixed' | 'percentage';
     patientId: string | null;
+    doctorId: string | null;
     paymentMethod: 'cash' | 'card' | 'credit';
     saleIdToUpdate?: string | null;
     reviewIndex?: number | null;
@@ -74,7 +76,7 @@ interface AuthContextType {
     addSale: (saleData: any) => Promise<Sale | null>;
     updateSale: (saleData: any) => Promise<Sale | null>;
     deleteSale: (saleId: string) => Promise<boolean>;
-    getPaginatedSales: (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string) => Promise<PaginatedResponse<Sale>>;
+    getPaginatedSales: (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string) => Promise<PaginatedResponse<Sale>>;
     searchAllSales: (search?: string) => Promise<Sale[]>;
 
     // Patients
@@ -97,7 +99,10 @@ interface AuthContextType {
     getPharmacyGroups: () => Promise<PharmacyGroup[]>;
     createPharmacyGroup: (name: string, pharmacy_ids: string[]) => Promise<PharmacyGroup | null>;
     updatePharmacyGroup: (groupId: string, data: { name?: string; pharmacy_ids?: string[] }) => Promise<PharmacyGroup | null>;
-    deletePharmacyGroup: (groupId: string) => Promise<boolean>;
+    deletePharmacyGroup: (groupId: string) => Promise<boolean>
+
+    // Doctors
+    getDoctors: () => Promise<Doctor[]>;
 }
 export interface ScopedDataContextType {
     inventory: [Medication[], React.Dispatch<React.SetStateAction<Medication[]>>];
@@ -125,6 +130,7 @@ const initialActiveInvoice: ActiveInvoice = {
     discountValue: '0',
     discountType: 'fixed',
     patientId: null,
+    doctorId: null,
     paymentMethod: 'cash',
     saleIdToUpdate: null,
     reviewIndex: null,
@@ -411,6 +417,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [activeTimeLogId, setActiveTimeLogId] = React.useState<string | null>(null);
     const [advertisements, setAdvertisements] = React.useState<Advertisement[]>([]);
     const [pharmacyGroups, setPharmacyGroups] = React.useState<PharmacyGroup[]>([]);
+    const [doctors, setDoctors] = React.useState<Doctor[]>([]);
 
     // Multi-invoice state
     const [activeInvoices, setActiveInvoices] = React.useState<ActiveInvoice[]>([initialActiveInvoice]);
@@ -573,8 +580,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const lowerSearch = search.toLowerCase();
                 allItems = allItems.filter(i =>
                     i.name.toLowerCase().includes(lowerSearch) ||
-                    i.barcodes?.some(b => b.toLowerCase().includes(lowerSearch)) ||
-                    i.scientific_names?.some(s => s.toLowerCase().includes(lowerSearch))
+                    (Array.isArray(i.barcodes) && i.barcodes.some(b => b.toLowerCase().includes(lowerSearch))) ||
+                    (Array.isArray(i.scientific_names) && i.scientific_names.some(s => s.toLowerCase().includes(lowerSearch)))
                 );
             }
             // Apply other filters if needed
@@ -612,8 +619,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const lowerSearch = search.toLowerCase();
                 allItems = allItems.filter(i =>
                     i.name.toLowerCase().includes(lowerSearch) ||
-                    i.barcodes?.some(b => b.toLowerCase().includes(lowerSearch)) ||
-                    i.scientific_names?.some(s => s.toLowerCase().includes(lowerSearch))
+                    (Array.isArray(i.barcodes) && i.barcodes.some(b => b.toLowerCase().includes(lowerSearch))) ||
+                    (Array.isArray(i.scientific_names) && i.scientific_names.some(s => s.toLowerCase().includes(lowerSearch)))
                 );
             }
             // Apply other filters if needed
@@ -643,8 +650,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const lowerSearch = search.toLowerCase();
                 allItems = allItems.filter(i =>
                     i.name.toLowerCase().includes(lowerSearch) ||
-                    i.barcodes?.some(b => b.toLowerCase().includes(lowerSearch)) ||
-                    i.scientific_names?.some(s => s.toLowerCase().includes(lowerSearch))
+                    (Array.isArray(i.barcodes) && i.barcodes.some(b => b.toLowerCase().includes(lowerSearch))) ||
+                    (Array.isArray(i.scientific_names) && i.scientific_names.some(s => s.toLowerCase().includes(lowerSearch)))
                 );
             }
             return allItems.slice(0, 50); // Limit results
@@ -662,8 +669,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const lowerSearch = search.toLowerCase();
                 allItems = allItems.filter(i =>
                     i.name.toLowerCase().includes(lowerSearch) ||
-                    i.barcodes?.some(b => b.toLowerCase().includes(lowerSearch)) ||
-                    i.scientific_names?.some(s => s.toLowerCase().includes(lowerSearch))
+                    (Array.isArray(i.barcodes) && i.barcodes.some(b => b.toLowerCase().includes(lowerSearch))) ||
+                    (Array.isArray(i.scientific_names) && i.scientific_names.some(s => s.toLowerCase().includes(lowerSearch)))
                 );
             }
             return allItems.slice(0, 50);
@@ -771,7 +778,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [isOnline]);
 
-    const getPaginatedSales = React.useCallback(async (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string) => {
+    const getPaginatedSales = React.useCallback(async (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string) => {
         // Use a more robust check for online status
         const isActuallyOnline = navigator.onLine && isOnline;
 
@@ -793,6 +800,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (employeeId && employeeId !== 'all') {
                 allSales = allSales.filter(s => s.employee_id === employeeId);
             }
+
+            if (patientId && patientId !== 'all') {
+                allSales = allSales.filter(s => s.patient_id === patientId);
+            }
+
+            if (doctorId && doctorId !== 'all') {
+                allSales = allSales.filter(s => s.doctor_id === doctorId);
+            }
+
             if (paymentMethod && paymentMethod !== 'all') {
                 allSales = allSales.filter(s => s.payment_method === paymentMethod);
             }
@@ -846,6 +862,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             if (employeeId && employeeId !== 'all') {
                 allSales = allSales.filter(s => s.employee_id === employeeId);
+            }
+            if (patientId && patientId !== 'all') {
+                allSales = allSales.filter(s => s.patient_id === patientId);
+            }
+            if (doctorId && doctorId !== 'all') {
+                allSales = allSales.filter(s => s.doctor_id === doctorId);
             }
             if (paymentMethod && paymentMethod !== 'all') {
                 allSales = allSales.filter(s => s.payment_method === paymentMethod);
@@ -1217,6 +1239,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    // Doctor Management
+    const getDoctors = React.useCallback(async (): Promise<Doctor[]> => {
+        try {
+            const fetchedDoctors = await apiRequest('/doctors');
+            setDoctors(fetchedDoctors);
+            return fetchedDoctors;
+        } catch (e) {
+            return [];
+        }
+    }, []);
+
     const scopedData: ScopedDataContextType = {
         inventory: [inventory, setInventory],
         sales: [sales, setSales],
@@ -1243,6 +1276,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             getCentralDrugs, uploadCentralDrugList, bulkUploadCentralDrugs,
             searchInOtherBranches,
             pharmacyGroups, getPharmacyGroups, createPharmacyGroup, updatePharmacyGroup, deletePharmacyGroup,
+            getDoctors,
         }}>
             {children}
         </AuthContext.Provider>

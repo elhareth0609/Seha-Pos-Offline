@@ -9,7 +9,6 @@ export const patients: Patient[] = [];
 
 export const sales: Sale[] = [];
 
-
 export const timeLogs: TimeLog[] = [];
 
 export const appSettings: AppSettings = {
@@ -19,4 +18,6 @@ export const appSettings: AppSettings = {
     pharmacyEmail: "contact@midgram.com",
     expirationThresholdDays: 90,
     invoiceFooterMessage: "شكرًا لزيارتكم!",
+    favorite_med_ids: [],
+    expense_categories: [],
 }

@@ -5,33 +5,33 @@
 import * as React from 'react';
 import * as XLSX from 'xlsx';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+    DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import type { Sale } from '@/lib/types';
+import type { Sale, SaleItem, User, PaginatedResponse, Patient } from '@/lib/types';
 import { InvoiceTemplate } from '@/components/ui/invoice';
-import { Printer, DollarSign, TrendingUp, ChevronDown } from 'lucide-react';
+import { Printer, DollarSign, TrendingUp, ChevronDown, Trash2, Pencil, FileArchive } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -39,36 +39,39 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
 import { Label } from '@/components/ui/label';
 import AdCarousel from '@/components/ui/ad-carousel';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { buttonVariants } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PinDialog } from '@/components/auth/PinDialog';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 
 // Modern print function that works with React 18+
 const printElement = (element: HTMLElement, title: string = 'Print') => {
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) return;
-  
-  const stylesheets = Array.from(document.styleSheets)
-    .map(stylesheet => {
-      try {
-        return Array.from(stylesheet.cssRules)
-          .map(rule => rule.cssText)
-          .join('\n');
-      } catch (e) {
-        if (stylesheet.href) {
-          return `@import url("${stylesheet.href}");`;
-        }
-        return '';
-      }
-    })
-    .join('\n');
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
 
-  const inlineStyles = Array.from(document.querySelectorAll('style'))
-    .map(style => style.innerHTML)
-    .join('\n');
+    const stylesheets = Array.from(document.styleSheets)
+        .map(stylesheet => {
+            try {
+                return Array.from(stylesheet.cssRules)
+                    .map(rule => rule.cssText)
+                    .join('\n');
+            } catch (e) {
+                if (stylesheet.href) {
+                    return `@import url("${stylesheet.href}");`;
+                }
+                return '';
+            }
+        })
+        .join('\n');
 
-  printWindow.document.write(`
+    const inlineStyles = Array.from(document.querySelectorAll('style'))
+        .map(style => style.innerHTML)
+        .join('\n');
+
+    printWindow.document.write(`
     <!DOCTYPE html>
     <html>
       <head>
@@ -89,65 +92,68 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
       </body>
     </html>
   `);
-  
-  printWindow.document.close();
-  
-  printWindow.onload = () => {
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 250);
-  };
+
+    printWindow.document.close();
+
+    printWindow.onload = () => {
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 250);
+    };
 };
 
 export default function ReportsPage() {
-    const { currentUser, users, scopedData, deleteSale, getPaginatedSales, verifyPin, getPaginatedPatients } = useAuth();
+    const { currentUser, users, scopedData, deleteSale, updateActiveInvoice, getPaginatedSales, verifyPin, switchToInvoice, getPaginatedPatients, getDoctors, searchAllPatients } = useAuth();
     const [settings] = scopedData.settings;
-    
     const [sales, setSales] = React.useState<Sale[]>([]);
     const [totalPages, setTotalPages] = React.useState(1);
     const [currentPage, setCurrentPage] = React.useState(1);
     const [perPage, setPerPage] = React.useState(10);
     const [loading, setLoading] = React.useState(true);
     const [patients, setPatients] = React.useState<any[]>([]);
-    const [patientsMap, setPatientsMap] = React.useState<Map<string, string>>(new Map());
-    
+    const [allPatients, setAllPatients] = React.useState<Patient[]>([]);
+    const [doctors, setDoctors] = React.useState<any[]>([]);
+
     const [searchTerm, setSearchTerm] = React.useState("");
     const [isClient, setIsClient] = React.useState(false);
     const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
     const [dateFrom, setDateFrom] = React.useState<string>("");
     const [dateTo, setDateTo] = React.useState<string>("");
     const [employeeId, setEmployeeId] = React.useState<string>("all");
+    const [patientId, setPatientId] = React.useState<string>("all");
     const [paymentMethod, setPaymentMethod] = React.useState<string>("all");
     const [invoiceType, setInvoiceType] = React.useState<string>("all");
-    
+    const [doctorId, setDoctorId] = React.useState<string>("all");
+
     const [itemToDelete, setItemToDelete] = React.useState<Sale | null>(null);
     const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
     const { toast } = useToast();
 
-    const fetchPatients = React.useCallback(async () => {
-        try {
-            // Fetch all patients (using a high per_page value to get all patients)
-            const patientsData = await getPaginatedPatients(1, 1000, "");
-            
-            // Create a map of patient_id to patient_name for quick lookup
-            const map = new Map<string, string>();
-            patientsData.data.forEach((patient: any) => {
-                map.set(patient.id, patient.name);
-            });
-            
-            setPatients(patientsData.data);
-            setPatientsMap(map);
-        } catch (error) {
-            console.error("Failed to fetch patients", error);
-        }
-    }, [getPaginatedPatients]);
+    const navigate = useNavigate();
 
-    const fetchData = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string, empId: string, pMethod: string, invType: string) => {
+    const canManagePreviousSales = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_previous_sales;
+
+    const fetchDropdownData = React.useCallback(async () => {
+        try {
+            const [patientsData, doctorsData] = await Promise.all([
+                searchAllPatients(""),
+                getDoctors(),
+            ]);
+
+            setAllPatients(patientsData);
+            setDoctors(doctorsData);
+
+        } catch (error) {
+            console.error("Failed to fetch dropdown data", error);
+        }
+    }, [searchAllPatients, getDoctors]);
+
+    const fetchData = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string, empId: string, pMethod: string, docId: string, invType: string, patId: string) => {
         setLoading(true);
         try {
-            const data = await getPaginatedSales(page, limit, search, from, to, empId, pMethod);
-            
+            const data = await getPaginatedSales(page, limit, search, from, to, empId, pMethod, docId, patId);
+
             let filteredData = data.data;
 
             if (invType !== 'all') {
@@ -158,14 +164,7 @@ export default function ReportsPage() {
             }
 
             // Add patientName to each sale based on patient_id
-            const salesWithPatientNames = filteredData.map(sale => {
-                if (sale.patient_id && patientsMap.has(sale.patient_id)) {
-                    return { ...sale, patientName: patientsMap.get(sale.patient_id) };
-                }
-                return sale;
-            });
-
-            setSales(salesWithPatientNames);
+            setSales(filteredData);
             setTotalPages(data.last_page);
             setCurrentPage(data.current_page);
         } catch (error) {
@@ -173,21 +172,22 @@ export default function ReportsPage() {
         } finally {
             setLoading(false);
         }
-    }, [getPaginatedSales, patientsMap]);
+    }, [getPaginatedSales]);
 
     React.useEffect(() => {
         setIsClient(true);
-        // Fetch patients once when the component mounts
-        fetchPatients();
-    }, [fetchPatients]);
+        fetchDropdownData();
+    }, [fetchDropdownData]);
 
     React.useEffect(() => {
-        const handler = setTimeout(() => {
-            fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, invoiceType);
-        }, 300);
-        return () => clearTimeout(handler);
-    }, [currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, invoiceType, fetchData]);
-    
+        if (isClient) {
+            const handler = setTimeout(() => {
+                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, invoiceType, patientId);
+            }, 300);
+            return () => clearTimeout(handler);
+        }
+    }, [isClient, currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, invoiceType, doctorId, patientId, fetchData]);
+
 
     const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
     const [selectedSale, setSelectedSale] = React.useState<Sale | null>(null);
@@ -213,15 +213,31 @@ export default function ReportsPage() {
         }
         setExpandedRows(newExpandedRows);
     };
-    
+
     const clearFilters = () => {
         setSearchTerm("");
         setDateFrom("");
         setDateTo("");
         setEmployeeId("all");
+        setPatientId("all");
         setPaymentMethod("all");
         setInvoiceType("all");
+        setDoctorId("all");
     };
+
+    const handleDeleteSale = async () => {
+        if (!itemToDelete) return;
+
+        if (currentUser?.require_pin_for_delete) {
+            setIsPinDialogOpen(true);
+        } else {
+            const success = await deleteSale(itemToDelete.id);
+            if (success) {
+                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, invoiceType, patientId);
+                setItemToDelete(null);
+            }
+        }
+    }
 
     const handlePinConfirmDelete = async (pin: string) => {
         if (!itemToDelete) return;
@@ -230,11 +246,28 @@ export default function ReportsPage() {
             setIsPinDialogOpen(false);
             const success = await deleteSale(itemToDelete.id);
             if (success) {
-                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, invoiceType);
+                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, invoiceType, patientId);
                 setItemToDelete(null);
             }
         } else {
             toast({ variant: 'destructive', title: "رمز PIN غير صحيح" });
+        }
+    };
+
+    const handleEditSale = (sale: Sale) => {
+        const saleToEdit = sales.find(s => s.id === sale.id);
+        if (saleToEdit) {
+            switchToInvoice(0); // Switch to the first invoice tab
+            updateActiveInvoice(() => ({ // Replace its content
+                cart: saleToEdit.items.map((i: SaleItem) => ({ ...i, id: i.medication_id })),
+                discountValue: (saleToEdit.discount || 0).toString(),
+                discountType: 'fixed',
+                patientId: saleToEdit.patient_id || null,
+                doctorId: saleToEdit.doctor_id || null,
+                paymentMethod: saleToEdit.payment_method || 'cash',
+                saleIdToUpdate: saleToEdit.id,
+            }));
+            navigate('/sales');
         }
     };
 
@@ -243,11 +276,11 @@ export default function ReportsPage() {
         return acc + (isNaN(total) ? 0 : total);
     }, 0);
     const totalProfit = sales.reduce((acc, sale) => {
-        const  total = (typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0))) -
-        (typeof sale.discount === 'number' ? sale.discount : parseFloat(String(sale.discount || 0)));
+        const total = (typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0))) -
+            (typeof sale.discount === 'number' ? sale.discount : parseFloat(String(sale.discount || 0)));
         return acc + (isNaN(total) ? 0 : total);
     }, 0);
-    
+
     const pharmacyUsers = React.useMemo(() => {
         return users.filter(u => u.pharmacy_id === currentUser?.pharmacy_id);
     }, [users, currentUser]);
@@ -256,8 +289,8 @@ export default function ReportsPage() {
     if (!isClient) {
         return (
             <div className="space-y-6">
-                 <div className="grid gap-4 md:grid-cols-3">
-                    <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader> <CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
+                <div className="grid gap-4 md:grid-cols-3">
+                    <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
                     <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
                     <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
                 </div>
@@ -277,9 +310,12 @@ export default function ReportsPage() {
                                     <TableHead>رقم الفاتورة</TableHead>
                                     <TableHead>التاريخ والوقت</TableHead>
                                     <TableHead>المريض</TableHead>
+                                    <TableHead>الطبيب</TableHead>
                                     <TableHead className="text-center">عدد الأصناف</TableHead>
                                     <TableHead className="text-left">الإجمالي</TableHead>
-                                    <TableHead className="text-left">الربح</TableHead>
+                                    {currentUser && (currentUser.role === 'Admin' || currentUser?.permissions?.manage_sales_performance_period) && (
+                                        <TableHead className="text-left">الربح</TableHead>
+                                    )}
                                     <TableHead>الإجراءات</TableHead>
                                     <TableHead className="w-12"></TableHead>
                                 </TableRow>
@@ -289,10 +325,11 @@ export default function ReportsPage() {
                                     <TableRow key={i}>
                                         <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                                         <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                                         <TableCell className="text-center"><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
                                         <TableCell className="text-left"><Skeleton className="h-5 w-16" /></TableCell>
-                                        <TableCell className="text-left"><Skeleton className="h-5 w-16" /></TableCell>
+                                        {currentUser && (currentUser.role === 'Admin' || currentUser?.permissions?.manage_sales_performance_period) && (
+                                            <TableCell className="text-left"><Skeleton className="h-5 w-16" /></TableCell>
+                                        )}
                                         <TableCell><Skeleton className="h-9 w-24" /></TableCell>
                                         <TableCell><Skeleton className="h-5 w-5" /></TableCell>
                                     </TableRow>
@@ -308,29 +345,34 @@ export default function ReportsPage() {
     return (
         <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-3">
-                <Card className="flex flex-col justify-center">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">إجمالي قيمة المبيعات (المعروضة)</CardTitle>
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold font-mono">{totalSalesValue.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
-                <Card className="flex flex-col justify-center">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">صافي الربح (المعروض)</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-green-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-green-600 font-mono">{totalProfit.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
+                {currentUser && (currentUser.role === 'Admin' || currentUser?.permissions?.manage_sales_performance_period) && (
+                    <>
+                        <Card className="flex flex-col justify-center">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">إجمالي قيمة المبيعات (المعروضة)</CardTitle>
+                                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold font-mono">{totalSalesValue.toLocaleString()}</div>
+                            </CardContent>
+                        </Card>
+                        <Card className="flex flex-col justify-center">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">صافي الربح (المعروض)</CardTitle>
+                                <TrendingUp className="h-4 w-4 text-green-600" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-green-600 font-mono">{totalProfit.toLocaleString()}</div>
+                            </CardContent>
+                        </Card>
+                    </>
+                )}
+
                 <div className="flex items-stretch">
                     <AdCarousel page="reports" />
                 </div>
             </div>
-            
+
             {/* {currentUser?.role === 'Admin' && (
             <Card>
                 <CardHeader>
@@ -355,17 +397,17 @@ export default function ReportsPage() {
                 <CardHeader>
                     <CardTitle>سجل المبيعات</CardTitle>
                     <CardDescription>عرض وطباعة جميع فواتير المبيعات السابقة. اضغط على الصف لعرض التفاصيل.</CardDescription>
-                     <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
-                        <div className="space-y-2 md:col-span-2">
+                    <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
+                        <div className="space-y-2 lg:col-span-2">
                             <Label htmlFor="search-term">بحث</Label>
-                            <Input 
+                            <Input
                                 id="search-term"
                                 placeholder="ابحث برقم الفاتورة، المريض، أو المادة..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                         <div className="space-y-2">
+                        <div className="space-y-2">
                             <Label htmlFor="date-from">من تاريخ</Label>
                             <Input id="date-from" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
                         </div>
@@ -377,7 +419,7 @@ export default function ReportsPage() {
                             <Label htmlFor="employee-filter">الموظف</Label>
                             <Select value={employeeId} onValueChange={setEmployeeId}>
                                 <SelectTrigger id="employee-filter">
-                                    <SelectValue placeholder="اختر موظفًا"/>
+                                    <SelectValue placeholder="اختر موظفًا" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">كل الموظفين</SelectItem>
@@ -388,10 +430,38 @@ export default function ReportsPage() {
                             </Select>
                         </div>
                         <div className="space-y-2">
+                            <Label htmlFor="patient-filter">المريض</Label>
+                            <Select value={patientId} onValueChange={setPatientId}>
+                                <SelectTrigger id="patient-filter">
+                                    <SelectValue placeholder="اختر مريضًا" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">كل المرضى</SelectItem>
+                                    {allPatients.map(p => (
+                                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="doctor-filter">الطبيب</Label>
+                            <Select value={doctorId} onValueChange={setDoctorId}>
+                                <SelectTrigger id="doctor-filter">
+                                    <SelectValue placeholder="اختر طبيبًا" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">كل الأطباء</SelectItem>
+                                    {doctors.map(doc => (
+                                        <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
                             <Label htmlFor="payment-method-filter">طريقة الدفع</Label>
                             <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                                 <SelectTrigger id="payment-method-filter">
-                                    <SelectValue placeholder="الكل"/>
+                                    <SelectValue placeholder="الكل" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">الكل</SelectItem>
@@ -405,7 +475,7 @@ export default function ReportsPage() {
                             <Label htmlFor="invoice-type-filter">نوع الفاتورة</Label>
                             <Select value={invoiceType} onValueChange={setInvoiceType}>
                                 <SelectTrigger id="invoice-type-filter">
-                                    <SelectValue placeholder="الكل"/>
+                                    <SelectValue placeholder="الكل" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">الكل</SelectItem>
@@ -415,21 +485,23 @@ export default function ReportsPage() {
                             </Select>
                         </div>
                     </div>
-                     <div className="pt-2">
+                    <div className="pt-2">
                         <Button onClick={clearFilters} variant="link" className="p-0 h-auto">إزالة كل الفلاتر</Button>
-                     </div>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>رقم الفاتورة</TableHead>
-                                <TableHead>التاريخ والوقت</TableHead>
-                                <TableHead>المريض</TableHead>
-                                <TableHead className="text-center">الأصناف</TableHead>
-                                <TableHead className="text-left">الإجمالي</TableHead>
-                                <TableHead className="text-left">الربح</TableHead>
-                                <TableHead>الإجراءات</TableHead>
+                                <TableHead className="text-right">رقم الفاتورة</TableHead>
+                                <TableHead className="text-right">التاريخ والوقت</TableHead>
+                                <TableHead className="text-right">الأصناف</TableHead>
+                                <TableHead className="text-right">الإجمالي</TableHead>
+                                {currentUser && (currentUser.role === 'Admin' || currentUser?.permissions?.manage_sales_performance_period) && (
+                                    <TableHead className="text-right">الربح</TableHead>
+                                )}
+                                <TableHead className="text-right">الحالة</TableHead>
+                                <TableHead className="text-right">الإجراءات</TableHead>
                                 <TableHead className="w-12"></TableHead>
                             </TableRow>
                         </TableHeader>
@@ -438,22 +510,32 @@ export default function ReportsPage() {
                                 <TableRow key={`skel-${i}`}>
                                     <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
+                                    {currentUser && (currentUser.role === 'Admin' || currentUser?.permissions?.manage_sales_performance_period) && (
+                                        <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
+                                    )}
+                                    <TableCell><Skeleton className="h-9 w-24" /></TableCell>
                                     <TableCell><Skeleton className="h-9 w-24" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-5" /></TableCell>
                                 </TableRow>
                             )) : sales.length > 0 ? sales.map((sale) => (
                                 <React.Fragment key={sale.id}>
                                     <TableRow onClick={() => toggleRow(sale.id)} className="cursor-pointer">
-                                        <TableCell className="font-medium font-mono">{sale.id}</TableCell>
-                                        <TableCell className="font-mono">{new Date(sale.date).toLocaleString('en-US', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric' })}</TableCell>
-                                        <TableCell>{sale.patientName || 'غير محدد'}</TableCell>
-                                        <TableCell className="text-center font-mono">{(sale.items || []).length}</TableCell>
-                                        <TableCell className="text-left font-mono">{sale.total.toLocaleString()}</TableCell>
-                                        <TableCell className="text-left font-mono text-green-600">{((sale.profit || 0) - (sale.discount || 0)).toLocaleString()}</TableCell>
+                                        <TableCell className="text-right font-medium font-mono">{sale.id}</TableCell>
+                                        <TableCell className="text-right font-mono">{new Date(sale.date).toLocaleString('en-US', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric' })}</TableCell>
+                                        <TableCell className="text-right font-mono">{(sale.items || []).length}</TableCell>
+                                        <TableCell className="text-right font-mono">{sale.total.toLocaleString()}</TableCell>
+                                        {currentUser && (currentUser.role === 'Admin' || currentUser?.permissions?.manage_sales_performance_period) && (
+                                            <TableCell className="text-right font-mono text-green-600">{((sale.profit || 0) - (sale.discount || 0)).toLocaleString()}</TableCell>
+                                        )}
+                                        <TableCell className="text-right font-mono">
+                                            {sale.items.some(item => item.is_return) ? (
+                                                <Badge variant="destructive">مرتجع</Badge>
+                                            ) : (
+                                                <Badge variant="default">بيع</Badge>
+                                            )}
+                                        </TableCell>
                                         <TableCell>
                                             <div className="flex gap-2">
                                                 <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openPrintDialog(sale); }}>
@@ -492,13 +574,13 @@ export default function ReportsPage() {
                                                 )} */}
                                             </div>
                                         </TableCell>
-                                         <TableCell>
+                                        <TableCell>
                                             <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", expandedRows.has(sale.id) && "rotate-180")} />
                                         </TableCell>
                                     </TableRow>
                                     {expandedRows.has(sale.id) && (
                                         <TableRow>
-                                            <TableCell colSpan={8} className="p-0">
+                                            <TableCell colSpan={currentUser?.role === 'Admin' || currentUser?.permissions?.manage_sales_performance_period ? 8 : 7} className="p-0">
                                                 <div className="p-4 bg-muted/50">
                                                     <h4 className="mb-2 font-semibold">أصناف الفاتورة:</h4>
                                                     <Table>
@@ -508,7 +590,7 @@ export default function ReportsPage() {
                                                                 <TableHead>الكمية</TableHead>
                                                                 <TableHead>السعر</TableHead>
                                                                 <TableHead>الإجمالي</TableHead>
-                                                                <TableHead>الحالة</TableHead>
+                                                                <TableHead>النوع</TableHead>
                                                             </TableRow>
                                                         </TableHeader>
                                                         <TableBody>
@@ -519,7 +601,7 @@ export default function ReportsPage() {
                                                                     <TableCell className="font-mono">{item.price.toLocaleString()}</TableCell>
                                                                     <TableCell className="font-mono">{(item.quantity * item.price).toLocaleString()}</TableCell>
                                                                     <TableCell>
-                                                                        {item.is_return && <Badge variant="destructive">مرتجع</Badge>}
+                                                                        {item.unit_type === 'box' ? <Badge variant="destructive">علبة</Badge> : <Badge variant="default">شريط</Badge>}
                                                                     </TableCell>
                                                                 </TableRow>
                                                             ))}
@@ -532,7 +614,7 @@ export default function ReportsPage() {
                                 </React.Fragment>
                             )) : (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                                         لم يتم العثور على فواتير مطابقة.
                                     </TableCell>
                                 </TableRow>
@@ -565,7 +647,7 @@ export default function ReportsPage() {
                 </CardContent>
             </Card>
 
-             <Dialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen}>
+            <Dialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen}>
                 <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>طباعة الفاتورة #{selectedSale?.id}</DialogTitle>
@@ -575,9 +657,9 @@ export default function ReportsPage() {
                     </DialogHeader>
                     <div className="max-h-[60vh] overflow-y-auto border rounded-md bg-gray-50">
                         <div className="hidden">
-                            <InvoiceTemplate ref={printComponentRef} sale={selectedSale} settings={settings} />
+                            <InvoiceTemplate ref={printComponentRef} sale={selectedSale} settings={settings} user={currentUser || null} />
                         </div>
-                        <InvoiceTemplate sale={selectedSale} settings={settings} ref={null} />
+                        <InvoiceTemplate sale={selectedSale} settings={settings} ref={null} user={currentUser || null} />
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
@@ -590,7 +672,7 @@ export default function ReportsPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-            <PinDialog 
+            <PinDialog
                 open={isPinDialogOpen}
                 onOpenChange={setIsPinDialogOpen}
                 onConfirm={handlePinConfirmDelete}

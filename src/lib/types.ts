@@ -2,19 +2,66 @@
 
 import { z } from 'zod';
 
+export type Doctor = {
+  id: string;
+  name: string;
+  login_key: string;
+  pharmacy_id: string;
+  created_at: string;
+};
+
+export type DoctorSuggestion = {
+  id: string;
+  doctor_id: string;
+  doctor_name: string;
+  suggestion: string;
+  created_at: string;
+};
+
 export type PharmacyGroup = {
-    id: string;
-    name: string;
-    pharmacy_ids: string[];
+  id: string;
+  name: string;
+  pharmacy_ids: string[];
+};
+
+export type SupportRequest = {
+  id: string;
+  pharmacy_id: string;
+  pharmacy_name: string;
+  phone_number: string;
+  problem_section: string;
+  contact_time: string;
+  status: 'new' | 'contacted';
+  created_at: string;
 };
 
 export type UserPermissions = {
-    manage_sales: boolean;
-    manage_inventory: boolean;
-    manage_reports: boolean;
-    manage_patients: boolean;
-    manage_salesPriceModification: boolean;
-    manage_previous_sales: boolean;
+  manage_sales: boolean;
+  manage_inventory: boolean;
+  // manage_purchases: boolean;
+  // manage_suppliers: boolean;
+  manage_reports: boolean;
+  // manage_itemMovement: boolean;
+  // manage_patients: boolean;
+  // manage_expiringSoon: boolean;
+  // manage_users: boolean;
+  // // manage_guide: boolean;
+  // manage_settings: boolean;
+  // manage_trash: boolean;
+  manage_salesPriceModification: boolean;
+  manage_previous_sales: boolean;
+  // manage_expenses: boolean;
+  // manage_tasks: boolean;
+  // // manage_close_month: boolean;
+  // manage_archives: boolean;
+  // manage_order_requests: boolean;
+  // manage_offers: boolean;
+  // manage_hr: boolean;
+  // manage_support: boolean;
+  // // manage_representatives: boolean;
+  // manage_exchange: boolean;
+  // manage_doctors: boolean;
+  manage_sales_performance_period: boolean;
 };
 
 export type Notification = {
@@ -27,19 +74,54 @@ export type Notification = {
 };
 
 export type MedicalRepresentative = {
-    id: string;
-    comm_name: string;
-    office_name: string;
-    image_url: string | null;
-    city: string;
-    phone_number: string;
-    status: 'active' | 'deleted';
+  id: string;
+  comm_name: string;
+  office_name: string;
+  image_url: string | null;
+  city: string;
+  phone_number: string;
+  status: 'active' | 'deleted';
 };
+
+export type ExchangeItem = {
+  id: string;
+  pharmacy_id: string;
+  pharmacyName: string;
+  medicationName: string;
+  scientificName?: string;
+  quantity: number;
+  expirationDate: string;
+  price: number;
+  contactPhone: string;
+  province: string;
+};
+
+export type RequestResponse = {
+  id: string;
+  responderPharmacyId: string;
+  responderPharmacyName: string;
+  price: number;
+  contactPhone: string;
+};
+
+export type DrugRequest = {
+  id: string;
+  pharmacy_id: string;
+  pharmacyName: string;
+  province: string;
+  medicationName: string;
+  quantity: number;
+  notes?: string;
+  status: 'open' | 'closed';
+  responses: RequestResponse[];
+  ignoredBy: string[]; // Array of pharmacy IDs that ignored this
+};
+
 
 export type Medication = {
   id: string;
   barcodes: string[];
-  name: string; 
+  name: string;
   scientific_names?: string[];
   image_url?: string;
   stock: number;
@@ -56,10 +138,35 @@ export type Medication = {
   strip_sell_price: number;      // سعر بيع الشريط
 };
 
+export type OrderRequestItem = {
+  id: string; // This is the ID of the order request item itself
+  medication_id: string; // This links to the Medication table
+  pharmacy_id: string;
+  name: string;
+  scientific_names?: string[];
+  image_url?: string;
+  stock: number;
+  reorder_point: number;
+  expiration_date: string;
+  dosage_form?: string;
+  quantity: number;
+  supplier_id?: string;
+  invoice_id?: string;
+  date?: string;
+  barcodes?: string[];
+  // Box/Strip pricing fields
+  box_count: number;             // عدد العلب
+  strips_per_box: number;        // التعبئة: number of strips in one box
+  box_purchase_price: number;    // سعر شراء العلبة
+  strip_purchase_price: number;  // سعر شراء الشريط (calculated)
+  box_sell_price: number;        // سعر بيع العلبة
+  strip_sell_price: number;      // سعر بيع الشريط
+};
+
 export type SaleItem = {
   id: string;
   medication_id: string;
-  name: string; 
+  name: string;
   scientific_names?: string[];
   quantity: number;
   price: number;
@@ -87,14 +194,108 @@ export type Sale = {
 };
 
 export type ActiveInvoice = {
-    cart: SaleItem[];
-    discountValue: string;
-    discountType: 'fixed' | 'percentage';
-    patientId: string | null;
+  cart: SaleItem[];
+  discountValue: string;
+  discountType: 'fixed' | 'percentage';
+  patientId: string | null;
   doctorId: string | null;
-    paymentMethod: 'cash' | 'card' | 'credit';
-    saleIdToUpdate?: string | null;
-    reviewIndex?: number | null;
+  paymentMethod: 'cash' | 'card' | 'credit';
+  saleIdToUpdate?: string | null;
+  reviewIndex?: number | null;
+};
+
+export type PurchaseOrderItem = {
+  id: string;
+  medication_id?: string;
+  name: string; // tradeName
+  quantity: number;
+  expiration_date?: string;
+  scientific_names?: string[];
+  dosage_form?: string;
+  barcodes?: string[];
+  image_url?: string;
+  reorder_point?: number;
+  stock?: number;
+  is_new?: boolean;
+  medication?: Medication;
+  // Box/Strip unit fields
+  box_count?: number;             // عدد العلب
+  strips_per_box: number;        // التعبئة
+  box_purchase_price: number;    // سعر شراء العلبة
+  strip_purchase_price: number;  // سعر شراء الشريط (calculated)
+  box_sell_price: number;        // سعر بيع العلبة
+  strip_sell_price: number;      // سعر بيع الشريط
+};
+
+export type PurchaseOrder = {
+  id: string;
+  number: string;
+  supplier_id: string;
+  supplier_name: string;
+  date: string;
+  items: PurchaseOrderItem[];
+  status: "Pending" | "Received" | "Cancelled";
+  total_amount: number;
+};
+
+export type ReturnOrderItem = {
+  id: string;
+  medication_id: string;
+  name: string;
+  quantity: number; // in sale units
+  purchase_price: number; // per sale unit
+  reason: string;
+};
+
+export type ReturnOrder = {
+  id: string;
+  number: string;
+  supplier_id: string;
+  supplier_name: string;
+  date: string;
+  items: ReturnOrderItem[];
+  total_amount: number;
+  purchase_id?: string; // Optional: Link to the original purchase order
+};
+
+export type SupplierPayment = {
+  id: string;
+  date: string;
+  supplier_id: string;
+  amount: number;
+  discount?: number;
+  notes?: string;
+}
+
+export type PatientPayment = {
+  id: string;
+  date: string;
+  patient_id: string;
+  amount: number;
+  notes?: string;
+}
+
+export type SupplierDebt = {
+  id: string;
+  date: string;
+  supplier_id: string;
+  amount: number;
+  notes?: string;
+}
+
+export type PatientDebt = {
+  id: string;
+  date: string;
+  patient_id: string;
+  amount: number;
+  notes?: string;
+}
+
+export type Supplier = {
+  id: string;
+  name: string;
+  contact_person?: string;
+  debt_limit?: number;
 };
 
 export type User = {
@@ -132,54 +333,99 @@ export type TimeLog = {
 };
 
 export type AppSettings = {
-    initialized?: boolean;
-    pharmacyName: string;
-    pharmacyAddress: string;
-    pharmacyPhone: string;
-    pharmacyEmail: string;
-    expirationThresholdDays: number;
-    invoiceFooterMessage?: string;
-    suggestion_preference_score?: Record<string, number>;
-    controlled_substances?: string[];
-    favorite_med_ids?: string[];
+  initialized?: boolean;
+  pharmacyName: string;
+  pharmacyAddress: string;
+  pharmacyPhone: string;
+  pharmacyEmail: string;
+  expirationThresholdDays: number;
+  invoiceFooterMessage?: string;
+  suggestion_preference_score?: Record<string, number>;
+  controlled_substances?: string[];
+  favorite_med_ids?: string[];
   expense_categories?: { id: string; name: string }[];
 }
 
-export type Advertisement = {
-    id: string;
-    title: string;
-    image_url: string;
-    created_at: string;
-    views: number;
-    show_on: {
-        dashboard: boolean;
-        sales: boolean;
-        reports: boolean;
-        inventory: boolean;
-    }
+export type TrashItem = {
+  id: string; // Unique ID for the trash entry
+  deleted_at: string; // ISO date string
+  item_type: 'medication' | 'patient' | 'supplier' | 'user' | 'sale' | 'task' | 'expense';
+  data: Partial<Medication & Patient & Supplier & User & Sale & Task & Expense>;
 };
 
+export type Advertisement = {
+  id: string;
+  title: string;
+  image_url: string;
+  created_at: string;
+  views: number;
+  show_on: {
+    dashboard: boolean;
+    sales: boolean;
+    reports: boolean;
+    inventory: boolean;
+  }
+};
+
+export type Offer = {
+  id: string;
+  title: string;
+  image_url: string;
+  contact_number?: string;
+  expiration_date: string;
+  created_at: string;
+  views: number;
+};
+
+
 export type Expense = {
-    id: string;
+  id: string;
   date: string;
-    amount: number;
-    description: string;
-    user_id: string;
-    user_name: string;
-    recurring: boolean;
+  amount: number;
+  description: string;
+  user_id: string;
+  user_name: string;
+  recurring: boolean;
   notes?: string;
 };
 
 export type Task = {
-    id: string;
-    description: string;
-    user_id: string;
-    user_name: string;
-    completed: boolean;
-    created_at: string;
-    completed_at: string | null;
+  id: string;
+  description: string;
+  user_id: string;
+  user_name: string;
+  completed: boolean;
+  created_at: string;
+  completed_at: string | null;
 };
 
+export type MonthlyArchive = {
+  id: string;
+  pharmacy_id: string;
+  date_to: string;
+  date_from: string;
+  month_name: string; // e.g., "August 2024"
+  created_at: string;
+};
+
+export type ArchivedMonthData = {
+  id: string;
+  month_name: string;
+  date_to: string;
+  date_from: string;
+  summary: {
+    total_sales: number;
+    total_expenses: number;
+    net_profit: number;
+  };
+  sales: Sale[];
+  expenses: Expense[];
+  top_selling_medications: {
+    medication_id: string;
+    name: string;
+    total_quantity: number;
+  }[];
+};
 
 
 // AI Flow Schemas
@@ -197,12 +443,12 @@ export const DoseCalculationInputSchema = z.object({
 export type DoseCalculationInput = z.infer<typeof DoseCalculationInputSchema>;
 
 export const MedicationAnalysisSchema = z.object({
-    tradeName: z.string().describe('The trade name of the medication being analyzed.'),
-    suggestedDose: z.string().describe('VERY brief and direct dose, frequency, and simple instructions. Example: "one tablet daily after food".'),
+  tradeName: z.string().describe('The trade name of the medication being analyzed.'),
+  suggestedDose: z.string().describe('VERY brief and direct dose, frequency, and simple instructions. Example: "one tablet daily after food".'),
 });
 
 export const DoseCalculationOutputSchema = z.object({
-    medicationAnalysis: z.array(MedicationAnalysisSchema).describe('An array containing the analysis for each individual medication.'),
+  medicationAnalysis: z.array(MedicationAnalysisSchema).describe('An array containing the analysis for each individual medication.'),
 });
 export type DoseCalculationOutput = z.infer<typeof DoseCalculationOutputSchema>;
 
@@ -210,8 +456,13 @@ export type DoseCalculationOutput = z.infer<typeof DoseCalculationOutputSchema>;
 // Types for multi-pharmacy data stores
 export type InventoryData = { [pharmacyId: string]: Medication[] };
 export type SalesData = { [pharmacyId: string]: Sale[] };
+export type SuppliersData = { [pharmacyId: string]: Supplier[] };
 export type PatientsData = { [pharmacyId: string]: Patient[] };
+export type TrashData = { [pharmacyId: string]: TrashItem[] };
+export type PaymentsData = { [pharmacyId: string]: SupplierPayment[] };
 export type TimeLogsData = { [pharmacyId: string]: TimeLog[] };
+export type PurchaseOrdersData = { [pharmacyId: string]: PurchaseOrder[] };
+export type ReturnsData = { [pharmacyId: string]: ReturnOrder[] };
 
 // Pagination response type from Laravel
 export type PaginatedResponse<T> = {
@@ -230,9 +481,90 @@ export type PaginatedResponse<T> = {
   total: number;
 };
 
+export type TransactionHistoryItem = {
+  id: string; // Changed from number to string to match backend
+  date: string;
+  type: 'شراء' | 'بيع' | 'مرتجع زبون' | 'مرتجع للمورد';
+  quantity: number; // positive for in, negative for out
+  price: number;
+  balance: number;
+  documentId: string;
+  actor: string;
+  unitType: string;
+  current_stock: number;
+};
+
+
+export type TopSellingMedication = {
+  medication_id: string;
+  name: string;
+  quantity: number;
+  profit?: number;
+};
+
+export type PharmacyPerformance = {
+  pharmacy_id: string;
+  pharmacy_name: string;
+  province: string;
+  total_sales: number;
+  total_profit: number;
+  employee_count: number;
+};
+
+export type TopPurchasingPharmacy = {
+  pharmacy_id: string;
+  name: string;
+  count: number;
+};
+
+export type TopPurchasedItem = {
+  name: string;
+  quantity: number;
+};
+
+export type SupportRequestPayload = {
+  phone_number: string;
+  problem_section: string;
+  contact_time: string;
+};
+
+export type PatientPaymentPayload = {
+  amount: number;
+  notes?: string;
+};
+
+// Types for Clinical Training Module
+export type DrugClassInfo = {
+  name: string;
+  mechanism?: string;
+  scientific_names: string[];
+};
+
+export type DiseaseInfo = {
+  name: string;
+  overview: string;
+  drugClasses: DrugClassInfo[];
+  counselingPoints: string[];
+};
+
+export type ClinicalSystem = {
+  system: string;
+  icon: React.ComponentType<any>;
+  diseases: DiseaseInfo[];
+};
+
+export type SupplierAnalyticsData = {
+  supplier_id: string;
+  supplier_name: string;
+  total_purchases: number;
+  total_sales: number;
+  total_profit: number;
+  net_debt: number;
+};
+
 export type BranchInventory = {
-    pharmacy_id: string;
-    pharmacy_name: string;
-    medication_name: string;
-    stock: number;
+  pharmacy_id: string;
+  pharmacy_name: string;
+  medication_name: string;
+  stock: number;
 };

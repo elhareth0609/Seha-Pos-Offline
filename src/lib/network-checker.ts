@@ -12,14 +12,9 @@ const checkNetworkStatus = async () => {
     const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
 
     // Use reliable endpoints for connectivity check
-    const endpoints = [
-      'https://backend-uat.midgram.net/api/health',
-      'https://www.google.com/favicon.ico',
-      'https://www.cloudflare.com/favicon.ico'
-    ];
+    const endpoint = 'https://backend-uat.midgram.net/api/health';
 
     let isOnline = false;
-    for (const endpoint of endpoints) {
       try {
         const response = await fetch(endpoint, {
           method: 'HEAD',
@@ -29,12 +24,10 @@ const checkNetworkStatus = async () => {
         });
         // If we get here, the request didn't throw, so we have some connectivity
         isOnline = true;
-        break;
       } catch (e) {
         // Try next endpoint
-        continue;
+        console.log("e" + e)
       }
-    }
 
     clearTimeout(timeoutId);
 

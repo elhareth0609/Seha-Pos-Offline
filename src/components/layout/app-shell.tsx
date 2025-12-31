@@ -38,8 +38,8 @@ import { UpdateNotification } from "@/components/ui/update-notification";
 
 const allNavItems = [
   { href: "/sales", icon: ShoppingCart, label: "المبيعات", group: 'main' },
-  { href: "/reports", icon: FileText, label: "الفواتير", group: 'analysis' },
-  { href: "/patients", icon: Users, label: "أصدقاء الصيدلية", group: 'tools' },
+  { href: "/reports", icon: FileText, label: "الفواتير", group: 'main' },
+  // { href: "/patients", icon: Users, label: "أصدقاء الصيدلية", group: 'tools' },
 ];
 
 const navGroups = [
@@ -63,15 +63,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       manage_sales: true,
       manage_inventory: true,
       manage_reports: false,
-      manage_patients: true,
+      // manage_patients: true,
       manage_salesPriceModification: false,
       manage_previous_sales: false,
+      manage_sales_performance_period: false,
     };
 
     const permissionMap: { [key: string]: keyof UserPermissions } = {
       '/sales': 'manage_sales',
       '/reports': 'manage_reports',
-      '/patients': 'manage_patients',
+      // '/patients': 'manage_patients',
     };
 
     return allNavItems.filter(item => {
@@ -89,7 +90,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <TooltipProvider>
-      {console.log('📱 AppShell is rendering (Navbar should be visible)')}
       <Sheet>
         <div className="flex min-h-screen flex-col bg-muted/40">
           <main className="flex-1">

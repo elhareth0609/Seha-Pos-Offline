@@ -15,12 +15,12 @@ import LoginPage from './app/login/page';
 import WelcomePage from './app/welcome/page';
 import SalesPage from './app/sales/page';
 import ReportsPage from './app/reports/page';
-import PatientsPage from './app/patients/page';
+// import PatientsPage from './app/patients/page';
 
 const allNavItems = [
     { href: "/sales", permissionKey: 'manage_sales' },
     { href: "/reports", permissionKey: 'manage_reports' },
-    { href: "/patients", permissionKey: 'manage_patients' },
+    // { href: "/patients", permissionKey: 'manage_patients' },
 ];
 
 const PUBLIC_ROUTES = ['/', '/login', '/signup', '/welcome'];
@@ -163,7 +163,7 @@ function App() {
                         <Route path="/welcome" element={<WelcomePage />} />
                         <Route path="/sales" element={<SalesPage />} />
                         <Route path="/reports" element={<ReportsPage />} />
-                        <Route path="/patients" element={<PatientsPage />} />
+                        {/* <Route path="/patients" element={<PatientsPage />} /> */}
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                     <Toaster />

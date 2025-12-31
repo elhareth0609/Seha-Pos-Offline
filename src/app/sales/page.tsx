@@ -184,7 +184,7 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
                         </Button>
                     </div>
                 </div>
-                
+
                 {isLoading && (
                     <div className="space-y-2 pt-4">
                         <Skeleton className="h-8 w-full" />
@@ -199,7 +199,7 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
                                 هذه النتائج هي مجرد اقتراحات من الذكاء الاصطناعي ولا تغني عن خبرة الصيدلي وقراره النهائي. يجب التحقق من الجرعات والتفاعلات دائمًا.
                             </AlertDescription>
                         </Alert>
-                        
+
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -212,7 +212,7 @@ function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
                                     <TableRow key={index}>
                                         <TableCell className="font-medium">{res.tradeName}</TableCell>
                                         <TableCell dir="ltr">{res.suggestedDose}</TableCell>
-                                    </TableRow>    
+                                    </TableRow>
                                 ))}
                             </TableBody>
                         </Table>
@@ -575,10 +575,17 @@ export default function SalesPage() {
     const [isPatientModalOpen, setIsPatientModalOpen] = React.useState(false);
     const [patientSearchTerm, setPatientSearchTerm] = React.useState("");
     const [patientSuggestions, setPatientSuggestions] = React.useState<Patient[]>([]);
+    const [newPatientName, setNewPatientName] = React.useState("");
+    const [newPatientPhone, setNewPatientPhone] = React.useState("");
     const [sortedSales, setSortedSales] = React.useState<Sale[]>([]);
     const [hasLoadedPatients, setHasLoadedPatients] = React.useState(false);
 
     const [mode, setMode] = React.useState<'sale' | 'return'>('sale');
+
+    const [isDoctorModalOpen, setIsDoctorModalOpen] = React.useState(false);
+    const [doctorSearchTerm, setDoctorSearchTerm] = React.useState("");
+    const [doctorList, setDoctorList] = React.useState<Doctor[]>([]);
+    const [filteredDoctors, setFilteredDoctors] = React.useState<Doctor[]>([]);
 
     const isOnline = useOnlineStatus();
     const priceModificationAllowed = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_salesPriceModification;
@@ -608,15 +615,19 @@ export default function SalesPage() {
         fetchInitialSales();
     }, [searchAllSales]);
 
-    // Load all patients when component mounts
+    // Load all patients and doctors when component mounts
     React.useEffect(() => {
-        async function fetchAllPatients() {
+        async function fetchInitialData() {
             const allPatients = await searchAllPatients("");
             setPatientSuggestions(allPatients);
             setHasLoadedPatients(true);
+
+            const allDoctors = await getDoctors();
+            setDoctorList(allDoctors);
+            setFilteredDoctors(allDoctors);
         }
-        fetchAllPatients();
-    }, [searchAllPatients]);
+        fetchInitialData();
+    }, [searchAllPatients, getDoctors]);
 
     const checkAlternativeExpiry = React.useCallback((medication: Medication) => {
         if (!medication.scientific_names || medication.scientific_names.length === 0 || mode === 'return') {
@@ -652,7 +663,7 @@ export default function SalesPage() {
         }
     }, [fullInventory, mode]);
 
-    const addToCart = React.useCallback((medication: Medication) => {
+    const addToCart = React.useCallback((medication: Medication, unitType: 'box' | 'strip' = 'strip') => {
         // Expiry check
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -667,23 +678,45 @@ export default function SalesPage() {
             return;
         }
 
+        // Ensure the medication is in fullInventory so the cart can render it correctly
+        setFullInventory(prev => {
+            if (prev.some(m => m.id === medication.id)) return prev;
+            return [...prev, medication];
+        });
+
         updateActiveInvoice(invoice => {
-            const existingItem = invoice.cart.find(item => item.id === medication.id && item.is_return === (mode === 'return'))
+            // Find existing item with same id, return status, AND unit type
+            const existingItem = invoice.cart.find(item =>
+                item.id === medication.id &&
+                item.is_return === (mode === 'return') &&
+                item.unit_type === unitType
+            )
 
             if (existingItem) {
-                if (Number(existingItem.quantity) >= Number(medication.stock) && mode !== 'return') {
-                    toast({ variant: 'destructive', title: 'كمية غير كافية', description: `لا يمكن إضافة المزيد من ${medication.name}. الرصيد المتوفر: ${medication.stock}` });
+                // Calculate available stock based on unit type
+                const availableStock = unitType === 'box'
+                    ? Math.floor(medication.stock / (medication.strips_per_box || 1))
+                    : medication.stock;
+
+                if (Number(existingItem.quantity) >= Number(availableStock) && mode !== 'return') {
+                    toast({ variant: 'destructive', title: 'كمية غير كافية', description: `لا يمكن إضافة المزيد من ${medication.name}. الرصيد المتوفر: ${availableStock} ${unitType === 'box' ? 'علبة' : 'شريط'}` });
                     return invoice;
                 }
                 return {
                     ...invoice,
                     cart: invoice.cart.map(item =>
-                        item.id === medication.id && item.is_return === (mode === 'return')
+                        item.id === medication.id && item.is_return === (mode === 'return') && item.unit_type === unitType
                             ? { ...item, quantity: item.quantity + 1 }
                             : item
                     )
                 }
             }
+
+            // Determine price based on unit type
+            const itemPrice = unitType === 'box'
+                ? (medication.box_sell_price || 0)
+                : (medication.strip_sell_price || 0);
+
             return {
                 ...invoice,
                 cart: [...invoice.cart, {
@@ -692,12 +725,12 @@ export default function SalesPage() {
                     name: medication.name,
                     scientific_names: medication.scientific_names,
                     quantity: 1,
-                    price: medication.price || 0,
-                    purchase_price: medication.purchase_price || 0,
+                    price: itemPrice,
+                    purchase_price: unitType === 'box' ? (medication.box_purchase_price || 0) : (medication.strip_purchase_price || 0),
                     expiration_date: medication.expiration_date,
                     is_return: mode === 'return',
-                    dosage: medication.dosage,
                     dosage_form: medication.dosage_form,
+                    unit_type: unitType,
                 }]
             }
         });
@@ -706,15 +739,29 @@ export default function SalesPage() {
         setSearchTerm("")
     }, [mode, updateActiveInvoice, toast, checkAlternativeExpiry])
 
-    const removeFromCart = React.useCallback((id: string, isReturn: boolean | undefined) => {
-        if (alternativeExpiryAlert?.data?.originalMedication?.id === id) {
-            setAlternativeExpiryAlert(null);
+    const removeFromCart = React.useCallback((id: string, isReturn: boolean | undefined, unitType?: 'box' | 'strip') => {
+        const itemToRemove = activeInvoices[currentInvoiceIndex].cart.find(item =>
+            item.id === id &&
+            item.is_return === isReturn &&
+            item.unit_type === (unitType || 'strip')
+        );
+        if (itemToRemove) {
+            updateRecentSearches(itemToRemove.name);
         }
-        updateActiveInvoice(invoice => ({
-            ...invoice,
-            cart: invoice.cart.filter(item => !(item.id === id && item.is_return === isReturn))
-        }));
-    }, [updateActiveInvoice, alternativeExpiryAlert]);
+
+        updateActiveInvoice(invoice => {
+            const newCart = invoice.cart.filter(item => !(
+                item.id === id &&
+                item.is_return === isReturn &&
+                item.unit_type === (unitType || 'strip')
+            ));
+
+            return {
+                ...invoice,
+                cart: newCart
+            };
+        });
+    }, [updateActiveInvoice, activeInvoices, currentInvoiceIndex, updateRecentSearches]);
 
     const handleSwapAndAddToCart = () => {
         if (!alternativeExpiryAlert || !alternativeExpiryAlert.data) return;
@@ -730,13 +777,11 @@ export default function SalesPage() {
     const processBarcode = async (barcode: string) => {
         setIsSearchLoading(true);
         try {
-            // Ensure full inventory is loaded if not already
-            if (fullInventory.length === 0) {
-                const results = await searchAllInventory('');
-                setFullInventory(results);
-            }
+            // Search via DB/API to ensure we find items even if not in current fullInventoryView
+            const results = await searchAllInventory(barcode);
 
-            const matchingMeds = fullInventory.filter(med =>
+            // Filter strictly for barcode match from the search results
+            const matchingMeds = results.filter(med =>
                 med.barcodes && Array.isArray(med.barcodes) && med.barcodes.some(bc => bc && bc.toLowerCase() === barcode.toLowerCase())
             );
 
@@ -766,6 +811,18 @@ export default function SalesPage() {
             clearTimeout(handler);
         };
     }, [searchTerm]);
+
+    // Clear alternative expiry alert when medication is removed from cart
+    React.useEffect(() => {
+        if (alternativeExpiryAlert?.data?.originalMedication?.id) {
+            const medicationId = alternativeExpiryAlert.data.originalMedication.id;
+            const hasItemInCart = cart.some(item => item.id === medicationId);
+
+            if (!hasItemInCart) {
+                setAlternativeExpiryAlert(null);
+            }
+        }
+    }, [cart, alternativeExpiryAlert]);
 
 
     React.useEffect(() => {
@@ -813,17 +870,23 @@ export default function SalesPage() {
         }
     }, [searchTerm, processBarcode]);
 
-    const updateQuantity = (id: string, isReturn: boolean | undefined, newQuantityStr: string) => {
+    const updateQuantity = (id: string, isReturn: boolean | undefined, newQuantityStr: string, unitType?: 'box' | 'strip') => {
         const newQuantity = parseFloat(newQuantityStr);
         if (isNaN(newQuantity) || newQuantity < 0) return;
 
         updateActiveInvoice(invoice => ({
             ...invoice,
-            cart: invoice.cart.map(item => (item.id === id && item.is_return === isReturn ? { ...item, quantity: newQuantity } : item))
+            cart: invoice.cart.map(item => (
+                item.id === id &&
+                    item.is_return === isReturn &&
+                    item.unit_type === (unitType || 'strip')
+                    ? { ...item, quantity: newQuantity }
+                    : item
+            ))
         }));
     };
 
-    const updateTotalPrice = (id: string, isReturn: boolean | undefined, newTotalPriceStr: string) => {
+    const updateTotalPrice = (id: string, isReturn: boolean | undefined, newTotalPriceStr: string, unitType?: 'box' | 'strip') => {
         if (!/^\d*\.?\d*$/.test(newTotalPriceStr)) return;
 
         const newTotalPrice = parseFloat(newTotalPriceStr);
@@ -832,9 +895,29 @@ export default function SalesPage() {
         updateActiveInvoice(invoice => ({
             ...invoice,
             cart: invoice.cart.map(item => {
-                if (item.id === id && item.is_return === isReturn) {
+                if (item.id === id && item.is_return === isReturn && item.unit_type === (unitType || 'strip')) {
                     const newUnitPrice = item.quantity > 0 ? newTotalPrice / item.quantity : 0;
                     return { ...item, price: newUnitPrice };
+                }
+                return item;
+            })
+        }));
+    };
+
+    const updateUnitType = (id: string, isReturn: boolean | undefined, newUnitType: 'box' | 'strip') => {
+        updateActiveInvoice(invoice => ({
+            ...invoice,
+            cart: invoice.cart.map(item => {
+                if (item.id === id && item.is_return === isReturn) {
+                    const medication = fullInventory.find(med => med.id === item.id);
+                    if (!medication) return item;
+
+                    // Update price based on new unit type
+                    const newPrice = newUnitType === 'box'
+                        ? (medication.box_sell_price || 0)
+                        : (medication.strip_sell_price || 0);
+
+                    return { ...item, unit_type: newUnitType, price: newPrice };
                 }
                 return item;
             })
@@ -877,6 +960,15 @@ export default function SalesPage() {
         getPatient();
     }, [patientId, searchAllPatients]);
 
+    const [selectedDoctor, setSelectedDoctor] = React.useState<Doctor | null>(null);
+    React.useEffect(() => {
+        if (doctorId) {
+            const doctor = doctorList.find(d => d.id === doctorId);
+            setSelectedDoctor(doctor || null);
+        } else {
+            setSelectedDoctor(null);
+        }
+    }, [doctorId, doctorList]);
 
     const handleCheckout = async () => {
         if (cart.length === 0) {
@@ -892,8 +984,25 @@ export default function SalesPage() {
         for (const itemInCart of cart) {
             if (!itemInCart.is_return) {
                 const med = fullInventory?.find(m => m.id === itemInCart.id);
-                if (!med || Number(med.stock) < Number(itemInCart.quantity)) {
-                    toast({ variant: 'destructive', title: `كمية غير كافية من ${itemInCart.name}`, description: `الكمية المطلوبة ${itemInCart.quantity}, المتوفر ${med?.stock ?? 0}` });
+                if (!med) {
+                    toast({ variant: 'destructive', title: `لم يتم العثور على ${itemInCart.name}` });
+                    return;
+                }
+
+                // Calculate required stock based on unit type
+                const requiredStock = itemInCart.unit_type === 'box'
+                    ? (itemInCart.quantity || 0) * (med.strips_per_box || 1)
+                    : (itemInCart.quantity || 0);
+
+                if (Number(med.stock) < requiredStock) {
+                    const availableInUnits = itemInCart.unit_type === 'box'
+                        ? Math.floor(med.stock / (med.strips_per_box || 1))
+                        : med.stock;
+                    toast({
+                        variant: 'destructive',
+                        title: `كمية غير كافية من ${itemInCart.name}`,
+                        description: `الكمية المطلوبة ${itemInCart.quantity} ${itemInCart.unit_type === 'box' ? 'علبة' : 'شريط'}, المتوفر ${availableInUnits} ${itemInCart.unit_type === 'box' ? 'علبة' : 'شريط'}`
+                    });
                     return;
                 }
             }
@@ -936,6 +1045,8 @@ export default function SalesPage() {
                 discount: discountAmount,
                 patient_id: selectedPatient?.id || null,
                 patient_name: selectedPatient?.name,
+                doctor_id: selectedDoctor?.id || null,
+                doctor_name: selectedDoctor?.name,
                 employee_id: currentUser.id,
                 employee_name: currentUser.name,
                 payment_method: paymentMethod,
@@ -1013,6 +1124,11 @@ export default function SalesPage() {
     };
 
     const handleCloseInvoice = (index: number) => {
+        const invoiceToClose = activeInvoices[index];
+        if (invoiceToClose.cart.length > 0) {
+            invoiceToClose.cart.forEach(item => updateRecentSearches(item.name));
+        }
+
         closeInvoice(index);
         setSearchTerm('');
         setSaleToPrint(null);
@@ -1034,6 +1150,18 @@ export default function SalesPage() {
         navigate('/reports');
     }
 
+    // const handleAddNewPatient = async () => {
+    //     const newPatient = await addPatient(newPatientName, newPatientPhone);
+    //     if (newPatient) {
+    //         updateActiveInvoice(prev => ({ ...prev, patientId: newPatient.id }));
+    //         toast({ title: "تم إضافة المريض", description: `تم تحديد ${newPatient.name} لهذه الفاتورة.` });
+    //         setNewPatientName("");
+    //         setNewPatientPhone("");
+    //         setPatientSearchTerm("");
+    //         setIsPatientModalOpen(false);
+    //     }
+    // }
+
     const handlePatientSearch = async (term: string) => {
         setPatientSearchTerm(term);
         if (term) {
@@ -1048,6 +1176,15 @@ export default function SalesPage() {
             } else {
                 setPatientSuggestions([]);
             }
+        }
+    }
+
+    const handleDoctorSearch = (term: string) => {
+        setDoctorSearchTerm(term);
+        if (term) {
+            setFilteredDoctors(doctorList.filter(d => d.name.toLowerCase().includes(term.toLowerCase())));
+        } else {
+            setFilteredDoctors(doctorList);
         }
     }
 
@@ -1093,7 +1230,7 @@ export default function SalesPage() {
         <>
             <TooltipProvider>
                 <div className="hidden">
-                    <InvoiceTemplate ref={printComponentRef} sale={saleToPrint} settings={settings || null} />
+                    <InvoiceTemplate ref={printComponentRef} sale={saleToPrint} settings={settings || null} user={currentUser || null} />
                 </div>
                 <BranchSearchDialog open={isBranchSearchOpen} onOpenChange={setIsBranchSearchOpen} />
                 <BarcodeConflictDialog
@@ -1115,7 +1252,6 @@ export default function SalesPage() {
                                     onChange={handleNameSearchChange}
                                     onKeyDown={handleSearchKeyDown}
                                     disabled={isSearchLoading}
-                                    autoFocus
                                 />
                                 {nameSearchTerm.length > 0 && nameSuggestions.length > 0 && (
                                     <Card className="absolute z-50 w-full mt-1 bg-background shadow-lg border">
@@ -1156,7 +1292,7 @@ export default function SalesPage() {
                                                         <div className="flex items-center gap-2 text-sm text-muted-foreground group-hover:text-white">
                                                             <span>{med.stock}</span>
                                                             {getExpirationBadge(med.expiration_date, settings.expirationThresholdDays)}
-                                                            <span className="font-mono">{(med.price || 0).toLocaleString()}</span>
+                                                            <span className="font-mono">{(med.strip_sell_price || 0).toLocaleString()}</span>
                                                         </div>
                                                     </li>
                                                 ))}
@@ -1177,8 +1313,13 @@ export default function SalesPage() {
                                             input.focus();
                                         }
                                     }}
+                                    autoFocus
                                 />
                             </div>
+                            <SearchHistoryPopover onSelect={(term) => {
+                                setNameSearchTerm(term);
+                                handleNameSearchChange({ target: { value: term } } as React.ChangeEvent<HTMLInputElement>);
+                            }} />
                             <Button variant="outline" size="icon" className="shrink-0" onClick={() => setIsBranchSearchOpen(true)}>
                                 <ArrowLeftRight />
                             </Button>
@@ -1265,18 +1406,37 @@ export default function SalesPage() {
                                                 {cart.map((item) => {
                                                     const medInInventory = fullInventory?.find(med => med.id === item.id);
                                                     const stock = medInInventory?.stock ?? 0;
-                                                    const remainingStock = stock - (item.quantity || 0);
+
+                                                    // Calculate stock based on unit type
+                                                    const quantityInStrips = item.unit_type === 'box'
+                                                        ? (item.quantity || 0) * (medInInventory?.strips_per_box || 1)
+                                                        : (item.quantity || 0);
+                                                    const remainingStock = stock - quantityInStrips;
+
                                                     const isBelowCost = (Number(item.price) || 0) < (Number(item.purchase_price) || 0);
                                                     const alternatives = findAlternatives(item);
+
+                                                    // Check if there are duplicates with different unit types
+                                                    const hasDuplicateWithDifferentUnit = cart.some(cartItem =>
+                                                        cartItem.id === item.id &&
+                                                        cartItem.is_return === item.is_return &&
+                                                        cartItem.unit_type !== item.unit_type
+                                                    );
+
+                                                    // Get purchase price based on unit type
+                                                    const displayPurchasePrice = item.unit_type === 'box'
+                                                        ? (medInInventory?.box_purchase_price || item.purchase_price || 0)
+                                                        : (medInInventory?.strip_purchase_price || item.purchase_price || 0);
+
                                                     return (
-                                                        <div key={`${item.id}-${item.is_return}`} className={cn("flex flex-col gap-3 p-3", item.is_return && "bg-red-50 dark:bg-red-900/20")} onClick={() => {
+                                                        <div key={`${item.id}-${item.is_return}-${item.unit_type || 'strip'}`} className={cn("flex flex-col gap-3 p-3", item.is_return && "bg-red-50 dark:bg-red-900/20")} onClick={() => {
                                                             const medication = fullInventory.find(med => med.id === item.id);
                                                             if (medication) checkAlternativeExpiry(medication);
                                                         }}>
                                                             <div className="flex justify-between items-start gap-2">
                                                                 <div className="flex-grow">
                                                                     <div className="flex items-center gap-1 font-medium">
-                                                                        {item.name} {item.dosage} {item.dosage_form}
+                                                                        {item.name} {item.dosage_form}
                                                                         {alternatives.length > 0 && (
                                                                             <Popover>
                                                                                 <PopoverTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6 text-primary/70 hover:text-primary">
@@ -1296,7 +1456,7 @@ export default function SalesPage() {
                                                                                                         <div className="text-xs text-muted-foreground">المتوفر: {alt.stock}</div>
                                                                                                     </div>
                                                                                                     <div className="flex items-center gap-2">
-                                                                                                        <span className="font-mono">{alt.price}</span>
+                                                                                                        <span className="font-mono">{alt.strip_sell_price}</span>
                                                                                                         <PlusCircle className="h-4 w-4 text-green-600 group-hover:text-white" />
                                                                                                     </div>
                                                                                                 </div>
@@ -1311,28 +1471,41 @@ export default function SalesPage() {
                                                                 </div>
                                                                 <Button variant="ghost" size="icon"
                                                                     className="h-8 w-8 shrink-0 hover:text-white"
-                                                                    onClick={() => removeFromCart(item.id, item.is_return)}>
+                                                                    onClick={() => removeFromCart(item.id, item.is_return, item.unit_type)}>
                                                                     <X className="h-4 w-4 text-destructive" />
                                                                 </Button>
                                                             </div>
-
-                                                            <div className="grid grid-cols-2 gap-3 items-end">
+                                                            <div className="grid grid-cols-3 gap-3 items-end">
                                                                 <div className="space-y-1">
                                                                     <Label htmlFor={`quantity-sm-${item.id}`} className="text-xs">الكمية</Label>
                                                                     <div className="flex items-center">
-                                                                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-e-none" onClick={() => updateQuantity(item.id, item.is_return, String((item.quantity || 0) + 1))}>
+                                                                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-e-none" onClick={() => updateQuantity(item.id, item.is_return, String((item.quantity || 0) + 1), item.unit_type)}>
                                                                             <Plus className="h-4 w-4" />
                                                                         </Button>
-                                                                        <Input id={`quantity-sm-${item.id}`} type="number" value={item.quantity || 1} min={0} onChange={(e) => updateQuantity(item.id, item.is_return, e.target.value)} className="h-9 w-14 text-center font-mono rounded-none border-x-0" />
-                                                                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-s-none" onClick={() => updateQuantity(item.id, item.is_return, String(Math.max(0, (item.quantity || 0) - 1)))}>
+                                                                        <Input id={`quantity-sm-${item.id}`} type="number" value={item.quantity || 1} min={0} onChange={(e) => updateQuantity(item.id, item.is_return, e.target.value, item.unit_type)} className="h-9 w-14 text-center font-mono rounded-none border-x-0" />
+                                                                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-s-none" onClick={() => updateQuantity(item.id, item.is_return, String(Math.max(0, (item.quantity || 0) - 1)), item.unit_type)}>
                                                                             <Minus className="h-4 w-4" />
                                                                         </Button>
                                                                     </div>
                                                                 </div>
                                                                 <div className="space-y-1">
+                                                                    <Label className="text-xs">الوحدة</Label>
+                                                                    <ToggleGroup
+                                                                        type="single"
+                                                                        value={item.unit_type || 'strip'}
+                                                                        onValueChange={(value) => value && updateUnitType(item.id, item.is_return, value as 'box' | 'strip')}
+                                                                        className="justify-start"
+                                                                        disabled={hasDuplicateWithDifferentUnit}
+                                                                    >
+                                                                        <ToggleGroupItem value="strip" aria-label="Strip" className="h-9 px-3 text-xs" disabled={hasDuplicateWithDifferentUnit}>شريط</ToggleGroupItem>
+                                                                        <ToggleGroupItem value="box" aria-label="Box" className="h-9 px-3 text-xs" disabled={hasDuplicateWithDifferentUnit}>علبة</ToggleGroupItem>
+                                                                    </ToggleGroup>
+                                                                </div>
+                                                                {/* </div> */}
+                                                                <div className="space-y-1">
                                                                     <Label htmlFor={`price-sm-${item.id}`} className="text-xs">السعر الإجمالي</Label>
                                                                     <div className="relative">
-                                                                        <Input id={`price-sm-${item.id}`} type="text" pattern="[0-9]*" value={((item.price || 0) * (item.quantity || 0))} onChange={(e) => updateTotalPrice(item.id, item.is_return, e.target.value)} className={cn("h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive")} disabled={!priceModificationAllowed} />
+                                                                        <Input id={`price-sm-${item.id}`} type="text" pattern="[0-9]*" value={((item.price || 0) * (item.quantity || 0))} onChange={(e) => updateTotalPrice(item.id, item.is_return, e.target.value, item.unit_type)} className={cn("h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive")} disabled={!priceModificationAllowed} />
                                                                         {isBelowCost && !item.is_return && (
                                                                             <Tooltip>
                                                                                 <TooltipTrigger asChild>
@@ -1351,7 +1524,7 @@ export default function SalesPage() {
                                                             <div className="text-xs text-muted-foreground mt-1 flex gap-2">
                                                                 <span>الرصيد: {stock}</span>
                                                                 {!item.is_return && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
-                                                                <span>| الشراء: <span className="font-mono">{item.purchase_price || 0}</span></span>
+                                                                <span>| الشراء: <span className="font-mono">{Number(displayPurchasePrice || 0).toFixed(2)}</span></span>
                                                             </div>
                                                         </div>
                                                     )
@@ -1362,6 +1535,7 @@ export default function SalesPage() {
                                                 <TableHeader className="sticky top-0 bg-background z-10">
                                                     <TableRow>
                                                         <TableHead>المنتج</TableHead>
+                                                        <TableHead className="w-[100px] text-center">الوحدة</TableHead>
                                                         <TableHead className="w-[150px] text-center">الكمية</TableHead>
                                                         <TableHead className="w-[120px] text-center">السعر</TableHead>
                                                         <TableHead className="w-12"></TableHead>
@@ -1371,19 +1545,37 @@ export default function SalesPage() {
                                                     {cart.map((item) => {
                                                         const medInInventory = fullInventory.find(med => med.id === item.id);
                                                         const stock = medInInventory?.stock ?? 0;
-                                                        const remainingStock = stock - (item.quantity || 0);
+
+                                                        // Calculate stock based on unit type
+                                                        const quantityInStrips = item.unit_type === 'box'
+                                                            ? (item.quantity || 0) * (medInInventory?.strips_per_box || 1)
+                                                            : (item.quantity || 0);
+                                                        const remainingStock = stock - quantityInStrips;
+
                                                         const isBelowCost = (Number(item.price) || 0) < (Number(item.purchase_price) || 0);
                                                         const alternatives = findAlternatives(item);
 
+                                                        // Check if there are duplicates with different unit types
+                                                        const hasDuplicateWithDifferentUnit = cart.some(cartItem =>
+                                                            cartItem.id === item.id &&
+                                                            cartItem.is_return === item.is_return &&
+                                                            cartItem.unit_type !== item.unit_type
+                                                        );
+
+                                                        // Get purchase price based on unit type
+                                                        const displayPurchasePrice = item.unit_type === 'box'
+                                                            ? (medInInventory?.box_purchase_price || item.purchase_price || 0)
+                                                            : (medInInventory?.strip_purchase_price || item.purchase_price || 0);
+
                                                         return (
-                                                            <TableRow key={`${item.id}-${item.is_return}`} className={cn(item.is_return && "bg-red-50 dark:bg-red-900/20", "cursor-pointer")} onClick={() => {
+                                                            <TableRow key={`${item.id}-${item.is_return}-${item.unit_type || 'strip'}`} className={cn(item.is_return && "bg-red-50 dark:bg-red-900/20", "cursor-pointer")} onClick={() => {
                                                                 const medication = fullInventory.find(med => med.id === item.id);
                                                                 if (medication) checkAlternativeExpiry(medication);
                                                             }}>
 
                                                                 <TableCell>
                                                                     <div className="flex items-center gap-1">
-                                                                        <span className="font-medium">{item.name} {item.dosage} {item.dosage_form}</span>
+                                                                        <span className="font-medium">{item.name} {item.dosage_form}</span>
                                                                         {alternatives.length > 0 && (
                                                                             <Popover>
                                                                                 <PopoverTrigger asChild>
@@ -1404,7 +1596,7 @@ export default function SalesPage() {
                                                                                                         <div className="text-xs text-muted-foreground">المتوفر: {alt.stock}</div>
                                                                                                     </div>
                                                                                                     <div className="flex items-center gap-2">
-                                                                                                        <span className="font-mono">{alt.price}</span>
+                                                                                                        <span className="font-mono">{alt.strip_sell_price}</span>
                                                                                                         <PlusCircle className="h-4 w-4 text-green-600 group-hover:text-white" />
                                                                                                     </div>
                                                                                                 </div>
@@ -1419,16 +1611,28 @@ export default function SalesPage() {
                                                                     <div className="text-xs text-muted-foreground flex gap-2">
                                                                         <span>الرصيد: {stock}</span>
                                                                         {!item.is_return && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
-                                                                        <span>| الشراء: <span className="font-mono">{item.purchase_price || 0}</span></span>
+                                                                        <span>| الشراء: <span className="font-mono">{Number(displayPurchasePrice || 0).toFixed(2)}</span></span>
                                                                     </div>
                                                                 </TableCell>
                                                                 <TableCell>
+                                                                    <ToggleGroup
+                                                                        type="single"
+                                                                        value={item.unit_type || 'strip'}
+                                                                        onValueChange={(value) => value && updateUnitType(item.id, item.is_return, value as 'box' | 'strip')}
+                                                                        className="justify-center"
+                                                                        disabled={hasDuplicateWithDifferentUnit}
+                                                                    >
+                                                                        <ToggleGroupItem value="strip" aria-label="Strip" className="h-8 px-2 text-xs" disabled={hasDuplicateWithDifferentUnit}>شريط</ToggleGroupItem>
+                                                                        <ToggleGroupItem value="box" aria-label="Box" className="h-8 px-2 text-xs" disabled={hasDuplicateWithDifferentUnit}>علبة</ToggleGroupItem>
+                                                                    </ToggleGroup>
+                                                                </TableCell>
+                                                                <TableCell>
                                                                     <div className="flex items-center justify-center">
-                                                                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-e-none" onClick={() => updateQuantity(item.id, item.is_return, String((item.quantity || 0) + 1))}>
+                                                                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-e-none" onClick={() => updateQuantity(item.id, item.is_return, String((item.quantity || 0) + 1), item.unit_type)}>
                                                                             <Plus className="h-4 w-4" />
                                                                         </Button>
-                                                                        <Input id={`quantity-${item.id}`} type="number" value={item.quantity || 1} onChange={(e) => updateQuantity(item.id, item.is_return, e.target.value)} min={0} className="w-16 h-9 text-center font-mono rounded-none border-x-0" />
-                                                                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-s-none" onClick={() => updateQuantity(item.id, item.is_return, String(Math.max(0, (item.quantity || 0) - 1)))}>
+                                                                        <Input id={`quantity-${item.id}`} type="number" value={item.quantity || 1} onChange={(e) => updateQuantity(item.id, item.is_return, e.target.value, item.unit_type)} min={0} className="w-16 h-9 text-center font-mono rounded-none border-x-0" />
+                                                                        <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-s-none" onClick={() => updateQuantity(item.id, item.is_return, String(Math.max(0, (item.quantity || 0) - 1)), item.unit_type)}>
                                                                             <Minus className="h-4 w-4" />
                                                                         </Button>
                                                                     </div>
@@ -1439,7 +1643,7 @@ export default function SalesPage() {
                                                                             type="text"
                                                                             pattern="[0-9]*"
                                                                             value={((item.price || 0) * (item.quantity || 0))}
-                                                                            onChange={(e) => updateTotalPrice(item.id, item.is_return, e.target.value)}
+                                                                            onChange={(e) => updateTotalPrice(item.id, item.is_return, e.target.value, item.unit_type)}
                                                                             className={cn("w-24 h-9 text-center font-mono", isBelowCost && !item.is_return && "border-destructive ring-2 ring-destructive/50 focus-visible:ring-destructive")}
                                                                             step="1"
                                                                             min="0"
@@ -1459,7 +1663,7 @@ export default function SalesPage() {
                                                                     </div>
                                                                 </TableCell>
                                                                 <TableCell className="text-left">
-                                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.id, item.is_return)}><X className="h-4 w-4" /></Button>
+                                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.id, item.is_return, item.unit_type)}><X className="h-4 w-4" /></Button>
                                                                 </TableCell>
                                                             </TableRow>
                                                         );
@@ -1485,44 +1689,92 @@ export default function SalesPage() {
                                 <div className="mb-2">
                                     <AdCarousel page="sales" />
                                 </div>
-                                <div className="relative">
-                                    <Dialog open={isPatientModalOpen} onOpenChange={setIsPatientModalOpen}>
-                                        <DialogTrigger asChild>
-                                            <Button variant="outline" className="w-full justify-between text-left font-normal">
-                                                <span className="flex items-center gap-2">
-                                                    <UserIcon className="text-muted-foreground" />
-                                                    {selectedPatient ? selectedPatient.name : "تحديد صديق الصيدلية"}
-                                                </span>
+                                <div className="space-y-2">
+                                    <div className="relative">
+                                        <Dialog open={isPatientModalOpen} onOpenChange={setIsPatientModalOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button variant="outline" className="w-full justify-between text-left font-normal">
+                                                    <span className="flex items-center gap-2">
+                                                        <UserIcon className="text-muted-foreground" />
+                                                        {selectedPatient ? selectedPatient.name : "تحديد صديق الصيدلية"}
+                                                    </span>
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogHeader>
+                                                    <DialogTitle>تحديد أو إضافة صديق للصيدلية</DialogTitle>
+                                                </DialogHeader>
+                                                <div className="space-y-4">
+                                                    <Input placeholder="ابحث بالاسم..." value={patientSearchTerm} onChange={(e) => handlePatientSearch(e.target.value)} />
+                                                    <ScrollArea className="h-48 border rounded-md">
+                                                        {patientSuggestions.map(p => (
+                                                            <div key={p.id} onClick={() => { updateActiveInvoice(prev => ({ ...prev, patientId: p.id })); setIsPatientModalOpen(false); }}
+                                                                className="p-2 hover:bg-accent cursor-pointer">
+                                                                {p.name}
+                                                            </div>
+                                                        ))}
+                                                    </ScrollArea>
+                                                    <Separator />
+                                                    {/* <div className="space-y-2">
+                                                        <h4 className="font-medium">أو إضافة جديد</h4>
+                                                        <Input placeholder="اسم المريض الجديد" value={newPatientName} onChange={e => setNewPatientName(e.target.value)} />
+                                                        <Input placeholder="رقم الهاتف (اختياري)" value={newPatientPhone} onChange={e => setNewPatientPhone(e.target.value)} />
+                                                        <Button onClick={handleAddNewPatient} className="w-full" variant="success">
+                                                            <UserPlus className="me-2" /> إضافة وتحديد
+                                                        </Button>
+                                                    </div> */}
+                                                </div>
+                                            </DialogContent>
+                                        </Dialog>
+                                        {selectedPatient && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="absolute top-1/2 left-1 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-destructive"
+                                                onClick={() => updateActiveInvoice(prev => ({ ...prev, patientId: null }))}
+                                            >
+                                                <X className="h-4 w-4" />
                                             </Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogHeader>
-                                                <DialogTitle>تحديد أو إضافة صديق للصيدلية</DialogTitle>
-                                            </DialogHeader>
-                                            <div className="space-y-4">
-                                                <Input placeholder="ابحث بالاسم..." value={patientSearchTerm} onChange={(e) => handlePatientSearch(e.target.value)} />
-                                                <ScrollArea className="h-48 border rounded-md">
-                                                    {patientSuggestions.map(p => (
-                                                        <div key={p.id} onClick={() => { updateActiveInvoice(prev => ({ ...prev, patientId: p.id })); setIsPatientModalOpen(false); }}
-                                                            className="p-2 hover:bg-accent cursor-pointer">
-                                                            {p.name}
-                                                        </div>
-                                                    ))}
-                                                </ScrollArea>
-                                                <Separator />
-                                            </div>
-                                        </DialogContent>
-                                    </Dialog>
-                                    {selectedPatient && (
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="absolute top-1/2 left-1 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-destructive"
-                                            onClick={() => updateActiveInvoice(prev => ({ ...prev, patientId: null }))}
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    )}
+                                        )}
+                                    </div>
+                                    <div className="relative">
+                                        <Dialog open={isDoctorModalOpen} onOpenChange={setIsDoctorModalOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button variant="outline" className="w-full justify-between text-left font-normal">
+                                                    <span className="flex items-center gap-2">
+                                                        <Stethoscope className="text-muted-foreground" />
+                                                        {selectedDoctor ? selectedDoctor.name : "تحديد الطبيب"}
+                                                    </span>
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogHeader>
+                                                    <DialogTitle>تحديد الطبيب</DialogTitle>
+                                                </DialogHeader>
+                                                <div className="space-y-4">
+                                                    <Input placeholder="ابحث بالاسم..." value={doctorSearchTerm} onChange={(e) => handleDoctorSearch(e.target.value)} />
+                                                    <ScrollArea className="h-48 border rounded-md">
+                                                        {filteredDoctors.map(d => (
+                                                            <div key={d.id} onClick={() => { updateActiveInvoice(prev => ({ ...prev, doctorId: d.id })); setIsDoctorModalOpen(false); }}
+                                                                className="p-2 hover:bg-accent cursor-pointer">
+                                                                {d.name}
+                                                            </div>
+                                                        ))}
+                                                    </ScrollArea>
+                                                </div>
+                                            </DialogContent>
+                                        </Dialog>
+                                        {selectedDoctor && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="absolute top-1/2 left-1 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-destructive"
+                                                onClick={() => updateActiveInvoice(prev => ({ ...prev, doctorId: null }))}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
                                 <Separator />
 
@@ -1530,13 +1782,13 @@ export default function SalesPage() {
                                     <span>المجموع</span>
                                     <span className="font-mono">{subtotal.toLocaleString()}</span>
                                 </div>
-                                <div className={cn(
+                                {/* <div className={cn(
                                     "flex justify-between w-full text-md",
                                     finalProfit >= 0 ? "text-green-600" : "text-destructive"
                                 )}>
                                     <span className="flex items-center gap-1"><TrendingUp className="h-4 w-4" /> الربح الصافي</span>
                                     <span className="font-semibold font-mono">{finalProfit.toLocaleString()}</span>
-                                </div>
+                                </div> */}
                                 <div className="flex items-center gap-2">
                                     <Label htmlFor="discount" className="text-md shrink-0">خصم</Label>
                                     <Input
@@ -1610,7 +1862,7 @@ export default function SalesPage() {
                                                         </TableHeader>
                                                         <TableBody>
                                                             {cart.map(item => (
-                                                                <TableRow key={`${item.id}-${item.is_return}`} className={cn(item.is_return && "text-destructive")}>
+                                                                <TableRow key={`${item.id}-${item.is_return}-${item.unit_type || 'strip'}`} className={cn(item.is_return && "text-destructive")}>
                                                                     <TableCell>{item.name} {item.is_return && "(مرتجع)"}</TableCell>
                                                                     <TableCell className="text-center font-mono">{item.quantity}</TableCell>
                                                                     <TableCell className="text-left font-mono">{((item.is_return ? -1 : 1) * (item.price || 0) * (item.quantity || 0)).toLocaleString()}</TableCell>
@@ -1635,10 +1887,10 @@ export default function SalesPage() {
                                                         <span>الخصم:</span>
                                                         <span>-{discountAmount.toLocaleString()}</span>
                                                     </div>
-                                                    <div className={cn("flex justify-between", finalProfit >= 0 ? "text-green-600" : "text-destructive")}>
+                                                    {/* <div className={cn("flex justify-between", finalProfit >= 0 ? "text-green-600" : "text-destructive")}>
                                                         <span>الربح الصافي:</span>
                                                         <span>{finalProfit.toLocaleString()}</span>
-                                                    </div>
+                                                    </div> */}
                                                     <div className="flex justify-between font-bold text-lg">
                                                         <span>الإجمالي النهائي:</span>
                                                         <span>{finalTotal.toLocaleString()}</span>
@@ -1689,7 +1941,7 @@ export default function SalesPage() {
                                             <AlertDialogFooter>
                                                 <AlertDialogCancel>تراجع</AlertDialogCancel>
                                                 <AlertDialogAction onClick={() => {
-                                                    closeInvoice(currentInvoiceIndex);
+                                                    handleCloseInvoice(currentInvoiceIndex);
                                                     setAlternativeExpiryAlert(null);
                                                 }} className={buttonVariants({ variant: "destructive" })}>نعم</AlertDialogAction>
                                             </AlertDialogFooter>
@@ -1794,7 +2046,7 @@ export default function SalesPage() {
                         </DialogContent>
                     </Dialog>
                 </div>
-            </TooltipProvider>
+            </TooltipProvider >
         </>
     )
 }
