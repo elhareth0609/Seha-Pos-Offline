@@ -1,15 +1,16 @@
 
 
 import * as React from 'react';
-import type { User, TimeLog, AppSettings, Medication, Sale, Patient, Advertisement, SaleItem, PaginatedResponse, Expense, PharmacyGroup, BranchInventory, Doctor } from '@/lib/types';
+import type { User, TimeLog, AppSettings, Medication, Sale, Patient, Advertisement, SaleItem, PaginatedResponse, Expense, PharmacyGroup, BranchInventory, Doctor, PatientMedication } from '@/lib/types';
 import { toast } from './use-toast';
 import { db } from '@/lib/db';
 import { useSync } from './use-sync';
 import { electronStorage } from '@/lib/electron-storage';
 import { useOnlineStatus } from './use-online-status-electron';
+import { useNavigate } from 'react-router-dom';
 
 
-const API_URL = import.meta.env.VITE_API_URL || "https://backend-uat.midgram.net/api";
+const API_URL = import.meta.env.VITE_API_URL || "https://backend.midgram.net/api";
 
 type AuthResponse = {
     token: string;
@@ -82,6 +83,7 @@ interface AuthContextType {
     // Patients
     getPaginatedPatients: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Patient>>;
     searchAllPatients: (search: string) => Promise<Patient[]>;
+    getPatientMedications: (patientId: string) => Promise<PatientMedication[]>;
 
     // Multi-invoice state
     activeInvoices: ActiveInvoice[];
@@ -176,7 +178,7 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
     // Enhanced offline detection
     const isElectron = typeof window !== 'undefined' && window.process && window.process.type;
     const isOffline = !navigator.onLine;
-
+    const navigate = useNavigate();
     // Log network status for debugging
     console.log(`Network status: ${isOffline ? 'Offline' : 'Online'}`);
 
@@ -208,13 +210,16 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
 
         if (!response.ok) {
             const errorMessage = responseData.message || 'An API error occurred';
-
+            
             console.log(`[API Error] Status: ${response.status}, Message: ${errorMessage}`);
             console.log(`[API Error] Request: ${endpoint}, Token used: ${token ? 'Yes' : 'No'}`);
 
             // If the error message is "Unauthenticated", redirect to login page
             if (response.status === 401 || errorMessage === "Unauthenticated") {
                 console.error("Authentication failed. Token might be invalid or expired.");
+                electronStorage.removeItem('authToken');
+                electronStorage.removeItem('currentUser');
+                navigate('/login');
                 throw new Error('Session expired. Please login again.');
             }
 
@@ -482,6 +487,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const login = async (email: string, pin: string) => {
+        console.log('login', email, pin);
         setLoading(true);
         try {
             const data: AuthResponse = await apiRequest('/login', 'POST', { email, pin });
@@ -1255,6 +1261,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
+    const getPatientMedications = async (patientId: string): Promise<PatientMedication[]> => {
+        try {
+            return await apiRequest(`/patients/${patientId}/medications`);
+        } catch (e) { return []; }
+    }
+
     const scopedData: ScopedDataContextType = {
         inventory: [inventory, setInventory],
         sales: [sales, setSales],
@@ -1281,7 +1293,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             getCentralDrugs, uploadCentralDrugList, bulkUploadCentralDrugs,
             searchInOtherBranches,
             pharmacyGroups, getPharmacyGroups, createPharmacyGroup, updatePharmacyGroup, deletePharmacyGroup,
-            getDoctors,
+            getDoctors, getPatientMedications,
         }}>
             {children}
         </AuthContext.Provider>

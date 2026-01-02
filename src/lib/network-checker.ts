@@ -12,7 +12,7 @@ const checkNetworkStatus = async () => {
     const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
 
     // Use reliable endpoints for connectivity check
-    const endpoint = 'https://backend-uat.midgram.net/api/health';
+    const endpoint = 'https://backend.midgram.net/api/health';
 
     let isOnline = false;
       try {

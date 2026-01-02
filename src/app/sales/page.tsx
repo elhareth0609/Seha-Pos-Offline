@@ -47,8 +47,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput, Notification, BranchInventory, Doctor } from "@/lib/types"
-import { PlusCircle, X, PackageSearch, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText, Calculator, Search, Plus, Minus, Star, History, Stethoscope } from "lucide-react"
+import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput, Notification, BranchInventory, Doctor, PatientMedication } from "@/lib/types"
+import { PlusCircle, X, PackageSearch, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText, Calculator, Search, Plus, Minus, Star, History, Stethoscope, Pill } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
@@ -534,6 +534,7 @@ export default function SalesPage() {
         verifyPin,
         toggleFavoriteMedication,
         searchInOtherBranches,
+        getPatientMedications,
     } = useAuth();
 
     const navigate = useNavigate();
@@ -579,6 +580,56 @@ export default function SalesPage() {
     const [newPatientPhone, setNewPatientPhone] = React.useState("");
     const [sortedSales, setSortedSales] = React.useState<Sale[]>([]);
     const [hasLoadedPatients, setHasLoadedPatients] = React.useState(false);
+
+    // Patient Medications Logic
+    const [isPatientMedsOpen, setIsPatientMedsOpen] = React.useState(false);
+    const [patientMedications, setPatientMedications] = React.useState<PatientMedication[]>([]);
+
+    const handleOpenPatientMeds = async () => {
+        if (!patientId) return;
+        const meds = await getPatientMedications(patientId);
+        setPatientMedications(meds);
+        setIsPatientMedsOpen(true);
+    };
+
+    const handleAddPatientMedToCart = async (medId: string) => {
+        const meds = await searchAllInventory(medId); // Search by ID/Barcode to get full object
+        // Since we store med ID in patient medications, we need to fetch the full object to add to cart
+        // But searchAllInventory is usually fuzzy. Let's try to find it in fullInventory first.
+        let med = fullInventory.find(m => m.id === medId);
+        if (!med) {
+            // If not in fullInventory, try fetching specifically (if we had a getMedicationById). 
+            // Currently we might rely on it being in fullInventory or fetch via search.
+            // Let's assume for now we can find it via search if not in fullInventory.
+            // Actually, the `getPatientMedications` returns name. We might need the full object.
+            // Let's iterate `fullInventory`.
+            // If local update is slow, we might miss it.
+        }
+
+        // Better approach:
+        // We know the ID.
+        if (med) {
+            const added = addToCart(med);
+            if (added) {
+                toast({ title: "تمت الإضافة للسلة" });
+            }
+        } else {
+            // Fallback: This might fail if fullInventory isn't fully loaded or pagination.
+            // But usually for sales heavily used items are there.
+            // As a fallback, we could trigger a specific search?
+            // Simple fallback:
+            const results = await searchAllInventory(medId); // Assuming search works with ID roughly or name
+            const found = results.find(m => m.id === medId);
+            if (found) {
+                const added = addToCart(found);
+                if (added) {
+                    toast({ title: "تمت الإضافة للسلة" });
+                }
+            } else {
+                toast({ variant: 'destructive', title: "لم يتم العثور على تفاصيل الدواء" });
+            }
+        }
+    };
 
     const [mode, setMode] = React.useState<'sale' | 'return'>('sale');
 
@@ -669,14 +720,16 @@ export default function SalesPage() {
         today.setHours(0, 0, 0, 0);
         if (medication.expiration_date && parseISO(medication.expiration_date) < today && mode !== 'return') {
             toast({ variant: 'destructive', title: 'منتج منتهي الصلاحية', description: `لا يمكن بيع ${medication.name} لأنه منتهي الصلاحية.` });
-            return;
+            return false;
         }
 
         // Stock check
         if (medication.stock <= 0 && mode !== 'return') {
             toast({ variant: 'destructive', title: 'نفد من المخزون', description: `لا يمكن بيع ${medication.name} لأن الكمية 0.` });
-            return;
+            return false;
         }
+
+        let success = true;
 
         // Ensure the medication is in fullInventory so the cart can render it correctly
         setFullInventory(prev => {
@@ -700,6 +753,7 @@ export default function SalesPage() {
 
                 if (Number(existingItem.quantity) >= Number(availableStock) && mode !== 'return') {
                     toast({ variant: 'destructive', title: 'كمية غير كافية', description: `لا يمكن إضافة المزيد من ${medication.name}. الرصيد المتوفر: ${availableStock} ${unitType === 'box' ? 'علبة' : 'شريط'}` });
+                    success = false;
                     return invoice;
                 }
                 return {
@@ -735,8 +789,11 @@ export default function SalesPage() {
             }
         });
 
-        checkAlternativeExpiry(medication);
-        setSearchTerm("")
+        if (success) {
+            checkAlternativeExpiry(medication);
+            setSearchTerm("")
+        }
+        return success;
     }, [mode, updateActiveInvoice, toast, checkAlternativeExpiry])
 
     const removeFromCart = React.useCallback((id: string, isReturn: boolean | undefined, unitType?: 'box' | 'strip') => {
@@ -1323,6 +1380,16 @@ export default function SalesPage() {
                             <Button variant="outline" size="icon" className="shrink-0" onClick={() => setIsBranchSearchOpen(true)}>
                                 <ArrowLeftRight />
                             </Button>
+
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="outline" size="icon" className="shrink-0 text-blue-500 border-blue-500 hover:bg-blue-500 hover:text-white" onClick={handleOpenPatientMeds} disabled={!patientId}>
+                                        <Pill />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>أدوية المريض المفضلة</TooltipContent>
+                            </Tooltip>
+
                             <FavoritesPopover onSelect={addToCart} />
                             <Popover>
                                 <PopoverTrigger asChild>
@@ -1973,6 +2040,31 @@ export default function SalesPage() {
                             </CardFooter>
                         </Card>
                     </div>
+
+                    {/* Patient Medications Dialog */}
+                    <Dialog open={isPatientMedsOpen} onOpenChange={setIsPatientMedsOpen}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>أدوية المريض المسجلة</DialogTitle>
+                                <DialogDescription>قائمة الأدوية المفضلة للمريض الحالي.</DialogDescription>
+                            </DialogHeader>
+                            <div className="py-4 space-y-2 max-h-96 overflow-y-auto">
+                                {patientMedications.length > 0 ? (
+                                    patientMedications.map(pm => (
+                                        <div key={pm.id} className="flex justify-between items-center p-3 border rounded-md hover:bg-accent cursor-pointer group" onClick={() => handleAddPatientMedToCart(pm.medication_id)}>
+                                            <span className="font-medium">{pm.medication_name}</span>
+                                            <Button size="sm" variant="ghost" className="h-8 w-8">
+                                                <PlusCircle className="h-5 w-5 text-green-600 group-hover:text-white" />
+                                            </Button>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-center text-muted-foreground py-8">لا توجد أدوية مسجلة لهذا المريض.</p>
+                                )}
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+
                     <Dialog open={isReceiptOpen} onOpenChange={(open) => {
                         if (!open) closeInvoice(currentInvoiceIndex, true);
                         setIsReceiptOpen(open);

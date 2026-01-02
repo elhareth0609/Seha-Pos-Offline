@@ -323,6 +323,12 @@ export type Patient = {
   phone?: string;
 };
 
+export type PatientMedication = {
+  id: string;
+  patient_id: string;
+  medication_id: string;
+  medication_name: string;
+};
 
 export type TimeLog = {
   id: string;

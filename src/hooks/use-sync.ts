@@ -37,7 +37,7 @@ export function useSync(refreshData: () => Promise<void>) {
                         headers['Authorization'] = `Bearer ${token}`;
                     }
 
-                    const API_URL = import.meta.env.VITE_API_URL || 'https://backend-uat.midgram.net/api';
+                    const API_URL = import.meta.env.VITE_API_URL || 'https://backend.midgram.net/api';
                     const fullUrl = req.url.startsWith('http') ? req.url : `${API_URL}${req.url}`;
 
                     const response = await fetch(fullUrl, {
