@@ -23,6 +23,7 @@ type AuthResponse = {
         doctors: Doctor[];
         timeLogs: TimeLog[];
         expenses: Expense[];
+        patientMedications: PatientMedication[];
     };
     all_users_in_pharmacy: User[];
     advertisements: Advertisement[];
@@ -421,6 +422,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         await db.inventory.bulkPut(data.pharmacy_data.inventory);
                         await db.patients.clear();
                         await db.patients.bulkPut(data.pharmacy_data.patients);
+                        await db.patientMedications.clear();
+                        await db.patientMedications.bulkPut(data.pharmacy_data.patientMedications);
                         if (data.pharmacy_data.settings) {
                             await db.settings.put({ ...data.pharmacy_data.settings, id: 1 }); // Use fixed ID for settings
                         }
@@ -434,12 +437,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     const sales = await db.sales.toArray();
                     const inventory = await db.inventory.toArray();
                     const patients = await db.patients.toArray();
+                    const patientMedications = await db.patientMedications.toArray();
                     const settings = await db.settings.get(1);
 
                     if (inventory.length > 0 || sales.length > 0) {
                         setInventory(inventory);
                         setSales(sales);
                         setPatients(patients);
+                        setPatientMedications(patientMedications);
                         if (settings) setSettings(settings);
 
                         console.log('[Auth] Offline recovery successful. Data loaded from DB.');
@@ -476,6 +481,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [inventory, setInventory] = React.useState<Medication[]>([]);
     const [sales, setSales] = React.useState<Sale[]>([]);
     const [patients, setPatients] = React.useState<Patient[]>([]);
+    const [patientMedications, setPatientMedications] = React.useState<PatientMedication[]>([]);
     const [timeLogs, setTimeLogs] = React.useState<TimeLog[]>([]);
     const [settings, setSettings] = React.useState<AppSettings>(fallbackAppSettings);
     const [expenses, setExpenses] = React.useState<Expense[]>([]);
@@ -1321,19 +1327,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Doctor Management
     const getDoctors = React.useCallback(async (): Promise<Doctor[]> => {
+        if (!isOnline) {
+            console.log('[getDoctors] Using local doctors (offline mode)');
+            return doctors;
+        }
+
         try {
             const fetchedDoctors = await apiRequest('/doctors');
             setDoctors(fetchedDoctors);
             return fetchedDoctors;
         } catch (e) {
-            return [];
+            console.log('[getDoctors] API request failed, falling back to local doctors');
+            return doctors;
         }
-    }, []);
+    }, [isOnline, doctors]);
 
     const getPatientMedications = async (patientId: string): Promise<PatientMedication[]> => {
+        if (!isOnline) {
+            console.log('[getPatientMedications] Offline mode - patient medications require online connection');
+            return patientMedications.filter(pm => pm.patient_id === patientId);
+        }
+
         try {
             return await apiRequest(`/patients/${patientId}/medications`);
-        } catch (e) { return []; }
+        } catch (e) {
+            console.log('[getPatientMedications] API request failed');
+            return [];
+        }
     }
 
     const scopedData: ScopedDataContextType = {
