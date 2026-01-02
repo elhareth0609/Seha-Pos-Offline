@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getLastKnownStatus } from '@/lib/network-checker';
 
 // Enhanced online status hook for Electron environment
 export function useOnlineStatus() {
@@ -10,8 +11,9 @@ export function useOnlineStatus() {
       if (isElectron) {
         // In Electron, start with null (unknown) status
         // The network checker will determine the actual status
-        console.log('[Initial Check] Electron: Starting with unknown status (will be updated by network checker)');
-        return null;
+        const current = getLastKnownStatus();
+        console.log('[Initial Check] Electron: Starting with status from checker:', current);
+        return current;
       }
       return navigator.onLine;
     }

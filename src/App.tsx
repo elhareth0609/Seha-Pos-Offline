@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/hooks/use-auth';
 import { ThemeProvider } from "next-themes";
@@ -27,53 +27,34 @@ const PUBLIC_ROUTES = ['/', '/login', '/signup', '/welcome'];
 
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
     const { loading, isAuthenticated, currentUser } = useAuth();
-    // Use hash for routing in Electron environment
-    const getHashPath = () => {
-        const hash = window.location.hash;
-        return hash ? hash.slice(1) : '/'; // Remove # and return path or default to '/'
-    };
-    const [pathname, setPathname] = React.useState(getHashPath());
-    
-    // Update pathname when hash changes
-    React.useEffect(() => {
-        const handleHashChange = () => {
-            setPathname(getHashPath());
-        };
-        
-        window.addEventListener('hashchange', handleHashChange);
-        return () => window.removeEventListener('hashchange', handleHashChange);
-    }, []);
-    
-    // Update pathname on initial load
-    React.useEffect(() => {
-        setPathname(getHashPath());
-    }, []);
-    
-    // Update pathname when authentication state changes
-    React.useEffect(() => {
-        if (isAuthenticated && currentUser) {
-            setPathname(getHashPath());
-        }
-    }, [isAuthenticated, currentUser]);
+    const location = useLocation();
+    const navigate = useNavigate();
+    const pathname = location.pathname;
+    const [isRedirecting, setIsRedirecting] = React.useState(false);
 
     React.useEffect(() => {
-        console.log('loading', loading)
-        console.log('currentUser', currentUser)
-        console.log('isAuthenticated', isAuthenticated)
-        console.log('pathname', pathname)
-        
-        if (loading) return;
+        // console.log('loading', loading)
+        // console.log('currentUser', currentUser)
+        // console.log('isAuthenticated', isAuthenticated)
+        // console.log('pathname', pathname)
+
+        if (loading || isRedirecting) return;
 
         // If user is authenticated and on the root route, redirect to sales
         if (isAuthenticated && pathname === '/') {
             console.log('[App] Authenticated at root, redirecting to /sales');
-            window.location.hash = '#/sales';
+            setIsRedirecting(true);
+            navigate('/sales');
+            setTimeout(() => setIsRedirecting(false), 200);
             return;
         }
 
         // If user is not authenticated and trying to access a protected route, redirect to login
         if (!isAuthenticated && !PUBLIC_ROUTES.includes(pathname)) {
-            window.location.hash = '#/login';
+            console.log('[App] Not authenticated, redirecting to /login');
+            setIsRedirecting(true);
+            navigate('/login');
+            setTimeout(() => setIsRedirecting(false), 200);
             return;
         }
 
@@ -87,11 +68,11 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
                 const userPermissions = currentUser.permissions as UserPermissions;
 
                 if (requiredPermission && (!userPermissions || !userPermissions[requiredPermission as keyof UserPermissions])) {
-                    window.location.hash = '#/sales';
+                    navigate('/sales');
                 }
             }
         }
-    }, [isAuthenticated, currentUser, loading, pathname]);
+    }, [isAuthenticated, currentUser, loading, pathname, navigate]);
 
     if (loading) {
         return (
@@ -143,16 +124,21 @@ function App() {
     React.useEffect(() => {
         // Check if user is already authenticated
         const token = electronStorage.getItem('authToken');
-        
-        // If user is authenticated, redirect to sales page
-        if (token) {
-            window.location.hash = '#/sales';
+        const currentUser = electronStorage.getItem('currentUser');
+
+        // Only redirect to sales if both token and user exist
+        // This prevents redirecting when session has expired but token wasn't properly cleared
+        if (token && currentUser) {
+            // Only redirect if not already on a hash route
+            if (!window.location.hash || window.location.hash === '#/') {
+                window.location.hash = '#/sales';
+            }
         } else if (!window.location.hash) {
             // If not authenticated and no hash, set default hash
-            window.location.hash = '#/' ;
+            window.location.hash = '#/';
         }
     }, []);
-    
+
     return (
         <Router>
             <AuthProvider>

@@ -1,6 +1,7 @@
 
 
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { User, TimeLog, AppSettings, Medication, Sale, Patient, Advertisement, SaleItem, PaginatedResponse, Expense, PharmacyGroup, BranchInventory, Doctor, PatientMedication } from '@/lib/types';
 import { toast } from './use-toast';
 import { db } from '@/lib/db';
@@ -140,7 +141,16 @@ const initialActiveInvoice: ActiveInvoice = {
 
 
 
+// Session management - prevent multiple redirects
+let isSessionExpired = false;
+
 async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?: object) {
+    // Skip login/logout requests if session is expired
+    if (isSessionExpired && endpoint !== '/login') {
+        console.log(`[API] Session expired, skipping request to ${endpoint}`);
+        return null;
+    }
+
     if (endpoint === '/user') {
         console.log('[API] Check URL Base:', API_URL);
     }
@@ -223,7 +233,15 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
                 console.error("Authentication failed. Token might be invalid or expired.");
                 electronStorage.removeItem('authToken');
                 electronStorage.removeItem('currentUser');
-                window.location.href = '/login';
+
+                // Mark session as expired to prevent subsequent requests
+                if (!isSessionExpired) {
+                    isSessionExpired = true;
+                    console.log('[API] Session expired flag set');
+                }
+
+                // Dispatch event so AuthProvider can handle redirect via router
+                window.dispatchEvent(new Event('auth-session-expired'));
                 throw new Error('Session expired. Please login again.');
             }
 
@@ -252,7 +270,7 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
         // This handles cases where navigator.onLine is true but internet is actually down.
         const isNetworkError =
             error.name === 'TypeError' ||
-            error.name === 'AbortError' ||
+            // error.name === 'AbortError' || // AbortError is usually a timeout or user cancellation, not necessarily a network drop
             error.message?.includes('Failed to fetch') ||
             error.message?.includes('NetworkError') ||
             error.message?.includes('ERR_NAME_NOT_RESOLVED') ||
@@ -307,6 +325,43 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     // USE REACTIVE ONLINE STATUS
     const isOnline = useOnlineStatus();
+    const navigate = useNavigate();
+
+    // Track if we're currently handling session expiration
+    const [isHandlingSessionExpired, setIsHandlingSessionExpired] = React.useState(false);
+
+    React.useEffect(() => {
+        const handleSessionExpired = () => {
+            console.log('Session expired - redirecting to login');
+
+            // Prevent multiple simultaneous session expiration handlers
+            if (isHandlingSessionExpired) {
+                console.log('[Auth] Already handling session expiration, skipping...');
+                return;
+            }
+
+            setIsHandlingSessionExpired(true);
+
+            // Clear all auth state immediately (same as logout)
+            electronStorage.removeItem('authToken');
+            electronStorage.removeItem('currentUser');
+            setCurrentUser(null);
+            setUsers([]);
+            setActiveTimeLogId(null);
+
+            // Use setTimeout to ensure the redirect happens after all current operations complete
+            setTimeout(() => {
+                navigate('/login');
+                // Reset the flag after redirect is initiated
+                setTimeout(() => {
+                    setIsHandlingSessionExpired(false);
+                    isSessionExpired = false;
+                }, 500);
+            }, 100);
+        };
+        window.addEventListener('auth-session-expired', handleSessionExpired);
+        return () => window.removeEventListener('auth-session-expired', handleSessionExpired);
+    }, [navigate, isHandlingSessionExpired]);
 
     // Attempt synchronous recovery for faster first render (if stored in localStorage/electronStorage which is sync)
     const [currentUser, setCurrentUser] = React.useState<User | null>(() => {
