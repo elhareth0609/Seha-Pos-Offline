@@ -6,57 +6,72 @@ let lastKnownStatus: boolean | null = null;
 
 // Check network status by making actual HTTP requests
 const checkNetworkStatus = async () => {
-  try {
-    // Try to fetch a small resource with a timeout
+  // Define multiple reliable endpoints
+  const endpoints = [
+    'https://backend.midgram.net/api/health',
+    'https://clients3.google.com/generate_204', // Google's connectivity check
+    'https://www.google.com/favicon.ico'        // Highly available static asset
+  ];
+
+  const checkEndpoint = async (url: string) => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-    // Use reliable endpoints for connectivity check
-    const endpoint = 'https://backend.midgram.net/api/health';
-
-    let isOnline = false;
-      try {
-        const response = await fetch(endpoint, {
-          method: 'HEAD',
-          mode: 'no-cors',
-          signal: controller.signal,
-          cache: 'no-store'
-        });
-        // If we get here, the request didn't throw, so we have some connectivity
-        isOnline = true;
-      } catch (e) {
-        // Try next endpoint
-        console.log("e" + e)
-      }
-
-    clearTimeout(timeoutId);
-
-    // Only dispatch event if status changed
-    if (lastKnownStatus !== isOnline) {
-      console.log(`[Network Check] Status changed: ${isOnline ? 'Online' : 'Offline'}`);
-      lastKnownStatus = isOnline;
-
-      // Dispatch a custom event to notify about network status changes
-      window.dispatchEvent(new CustomEvent('electron-network-status', {
-        detail: { isOnline }
-      }));
-
-      // Also dispatch standard events for compatibility
-      if (isOnline) {
-        window.dispatchEvent(new Event('online'));
-      } else {
-        window.dispatchEvent(new Event('offline'));
-      }
+    try {
+      await fetch(url, {
+        method: 'HEAD',
+        mode: 'no-cors',
+        signal: controller.signal,
+        cache: 'no-store'
+      });
+      return true;
+    } finally {
+      clearTimeout(timeoutId);
     }
-  } catch (error) {
-    // If all checks fail, we're offline
-    if (lastKnownStatus !== false) {
-      console.log('[Network Check] All endpoints failed - going offline');
-      lastKnownStatus = false;
+  };
 
-      window.dispatchEvent(new CustomEvent('electron-network-status', {
-        detail: { isOnline: false }
-      }));
+  let isOnline = false;
+
+  // Polyfill-like behavior for Promise.any since lib might be older than ES2021
+  const promiseAny = <T>(promises: Promise<T>[]): Promise<T> => {
+    return new Promise((resolve, reject) => {
+      let rejectedCount = 0;
+      if (promises.length === 0) {
+        reject(new Error('No endpoints'));
+        return;
+      }
+      promises.forEach(p => {
+        p.then(resolve).catch(() => {
+          rejectedCount++;
+          if (rejectedCount === promises.length) reject(new Error('All rejected'));
+        });
+      });
+    });
+  };
+
+  try {
+    // Check if any endpoint returns success
+    await promiseAny(endpoints.map(checkEndpoint));
+    isOnline = true;
+  } catch (error) {
+    // All promises rejected
+    isOnline = false;
+  }
+
+  // Only dispatch event if status changed
+  if (lastKnownStatus !== isOnline) {
+    console.log(`[Network Check] Status changed: ${isOnline ? 'Online' : 'Offline'}`);
+    lastKnownStatus = isOnline;
+
+    // Dispatch a custom event to notify about network status changes
+    window.dispatchEvent(new CustomEvent('electron-network-status', {
+      detail: { isOnline }
+    }));
+
+    // Also dispatch standard events for compatibility
+    if (isOnline) {
+      window.dispatchEvent(new Event('online'));
+    } else {
       window.dispatchEvent(new Event('offline'));
     }
   }

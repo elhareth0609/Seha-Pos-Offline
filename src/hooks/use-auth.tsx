@@ -7,7 +7,6 @@ import { db } from '@/lib/db';
 import { useSync } from './use-sync';
 import { electronStorage } from '@/lib/electron-storage';
 import { useOnlineStatus } from './use-online-status-electron';
-import { useNavigate } from 'react-router-dom';
 
 
 const API_URL = import.meta.env.VITE_API_URL || "https://backend.midgram.net/api";
@@ -178,12 +177,17 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
     // Enhanced offline detection
     const isElectron = typeof window !== 'undefined' && window.process && window.process.type;
     const isOffline = !navigator.onLine;
-    const navigate = useNavigate();
     // Log network status for debugging
     console.log(`Network status: ${isOffline ? 'Offline' : 'Online'}`);
 
     // For non-GET requests, if we detect offline status, queue the request
     if (isOffline && method !== 'GET') {
+        // CRITICAL: Do NOT queue authentication requests
+        if (endpoint === '/login' || endpoint === '/logout') {
+            toast({ variant: 'destructive', title: 'خطأ في الاتصال', description: 'لا يمكن تسجيل الدخول أثناء وضع عدم الاتصال.' });
+            return null;
+        }
+
         await db.offlineRequests.add({
             url: `${API_URL}${endpoint}`,
             method,
@@ -210,7 +214,7 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
 
         if (!response.ok) {
             const errorMessage = responseData.message || 'An API error occurred';
-            
+
             console.log(`[API Error] Status: ${response.status}, Message: ${errorMessage}`);
             console.log(`[API Error] Request: ${endpoint}, Token used: ${token ? 'Yes' : 'No'}`);
 
@@ -219,7 +223,7 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
                 console.error("Authentication failed. Token might be invalid or expired.");
                 electronStorage.removeItem('authToken');
                 electronStorage.removeItem('currentUser');
-                navigate('/login');
+                window.location.href = '/login';
                 throw new Error('Session expired. Please login again.');
             }
 
@@ -487,17 +491,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const login = async (email: string, pin: string) => {
-        console.log('login', email, pin);
+        console.log('login attempt', email);
         setLoading(true);
         try {
             const data: AuthResponse = await apiRequest('/login', 'POST', { email, pin });
+
+            if (!data) {
+                toast({ variant: "destructive", title: "فشل تسجيل الدخول", description: "تعذر الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت." });
+                return null;
+            }
+
             setAllData(data);
             if (data.user.role !== 'SuperAdmin' && data.user.role !== 'Admin') {
                 const newTimeLog = await apiRequest('/time-logs', 'POST', { user_id: data.user.id, clock_in: new Date().toISOString() });
-                setActiveTimeLogId(newTimeLog.id);
+                if (newTimeLog) {
+                    setActiveTimeLogId(newTimeLog.id);
+                }
             }
             return data.user;
         } catch (error: any) {
+            console.error('[Auth] Login error:', error);
+            toast({ variant: "destructive", title: "خطأ في الاتصال", description: error.message || "حدث خطأ غير متوقع" });
             return null;
         } finally {
             setLoading(false);
