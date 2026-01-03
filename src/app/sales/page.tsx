@@ -969,12 +969,16 @@ export default function SalesPage() {
                     const medication = fullInventory.find(med => med.id === item.id);
                     if (!medication) return item;
 
-                    // Update price based on new unit type
+                    // Update price and purchase_price based on new unit type
                     const newPrice = newUnitType === 'box'
                         ? (medication.box_sell_price || 0)
                         : (medication.strip_sell_price || 0);
 
-                    return { ...item, unit_type: newUnitType, price: newPrice };
+                    const newPurchasePrice = newUnitType === 'box'
+                        ? (medication.box_purchase_price || 0)
+                        : (medication.strip_purchase_price || 0);
+
+                    return { ...item, unit_type: newUnitType, price: newPrice, purchase_price: newPurchasePrice };
                 }
                 return item;
             })
