@@ -1326,10 +1326,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     // Doctor Management
+    // [FIX] Use Ref to track doctors state without causing dependency cycles
+    const doctorsRef = React.useRef(doctors);
+    React.useEffect(() => {
+        doctorsRef.current = doctors;
+    }, [doctors]);
+
     const getDoctors = React.useCallback(async (): Promise<Doctor[]> => {
         if (!isOnline) {
             console.log('[getDoctors] Using local doctors (offline mode)');
-            return doctors;
+            return doctorsRef.current;
         }
 
         try {
@@ -1338,9 +1344,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return fetchedDoctors;
         } catch (e) {
             console.log('[getDoctors] API request failed, falling back to local doctors');
-            return doctors;
+            return doctorsRef.current;
         }
-    }, [isOnline, doctors]);
+    }, [isOnline]);
 
     const getPatientMedications = async (patientId: string): Promise<PatientMedication[]> => {
         if (!isOnline) {
