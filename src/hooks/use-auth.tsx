@@ -387,6 +387,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Router is now handled by components
 
     // Initialize auth state on component mount
+    const saveToLocalDB = async (data: AuthResponse) => {
+        if (!data.pharmacy_data) return;
+
+        try {
+            await db.transaction('rw', [db.sales, db.inventory, db.patients, db.settings, db.patientMedications, db.expenses, db.timeLogs, db.doctors], async () => {
+                await db.sales.clear();
+                await db.sales.bulkPut(data.pharmacy_data.sales);
+                await db.inventory.clear();
+                await db.inventory.bulkPut(data.pharmacy_data.inventory);
+                await db.patients.clear();
+                await db.patients.bulkPut(data.pharmacy_data.patients);
+                await db.patientMedications.clear();
+                await db.patientMedications.bulkPut(data.pharmacy_data.patientMedications);
+                await db.expenses.clear();
+                await db.expenses.bulkPut(data.pharmacy_data.expenses);
+                await db.timeLogs.clear();
+                await db.timeLogs.bulkPut(data.pharmacy_data.timeLogs);
+                await db.doctors.clear();
+                await db.doctors.bulkPut(data.pharmacy_data.doctors);
+
+                if (data.pharmacy_data.settings) {
+                    await db.settings.put({ ...data.pharmacy_data.settings, id: 1 }); // Use fixed ID for settings
+                }
+            });
+            console.log('[Auth] Local DB updated successfully.');
+        } catch (e) {
+            console.error('[Auth] Failed to save to local DB', e);
+        }
+    };
+
     const initializeAuth = React.useCallback(async () => {
         const token = electronStorage.getItem('authToken');
         console.log('[Auth] initializeAuth started. Token in storage:', token ? 'Yes' : 'No');
@@ -414,22 +444,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setAllData(data);
 
                 // Save to local DB
-                if (data.pharmacy_data) {
-                    await db.transaction('rw', [db.sales, db.inventory, db.patients, db.settings], async () => {
-                        await db.sales.clear();
-                        await db.sales.bulkPut(data.pharmacy_data.sales);
-                        await db.inventory.clear();
-                        await db.inventory.bulkPut(data.pharmacy_data.inventory);
-                        await db.patients.clear();
-                        await db.patients.bulkPut(data.pharmacy_data.patients);
-                        await db.patientMedications.clear();
-                        await db.patientMedications.bulkPut(data.pharmacy_data.patientMedications);
-                        if (data.pharmacy_data.settings) {
-                            await db.settings.put({ ...data.pharmacy_data.settings, id: 1 }); // Use fixed ID for settings
-                        }
-                    });
-                    console.log('[Auth] Local DB updated successfully.');
-                }
+                await saveToLocalDB(data);
             } catch (error) {
                 console.warn('[Auth] API request failed or DB error:', error);
                 console.log('[Auth] Attempting offline recovery...');
@@ -439,6 +454,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     const patients = await db.patients.toArray();
                     const patientMedications = await db.patientMedications.toArray();
                     const settings = await db.settings.get(1);
+                    const doctors = await db.doctors.toArray();
 
                     if (inventory.length > 0 || sales.length > 0) {
                         setInventory(inventory);
@@ -446,6 +462,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         setPatients(patients);
                         setPatientMedications(patientMedications);
                         if (settings) setSettings(settings);
+                        setDoctors(doctors);
 
                         console.log('[Auth] Offline recovery successful. Data loaded from DB.');
 
@@ -547,6 +564,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setTimeLogs(pd.timeLogs || []);
             setExpenses(pd.expenses || []);
             setSettings(pd.settings || fallbackAppSettings);
+            setDoctors(pd.doctors || []);
         }
         electronStorage.setItem('authToken', data.token);
     };
@@ -563,6 +581,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             setAllData(data);
+            await saveToLocalDB(data);
             if (data.user.role !== 'SuperAdmin' && data.user.role !== 'Admin') {
                 const newTimeLog = await apiRequest('/time-logs', 'POST', { user_id: data.user.id, clock_in: new Date().toISOString() });
                 if (newTimeLog) {

@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { Sale, Medication, Patient, AppSettings, Expense, Task, TimeLog, Advertisement, PharmacyGroup, PatientMedication } from './types';
+import type { Sale, Medication, Patient, AppSettings, Expense, Task, TimeLog, Advertisement, PharmacyGroup, PatientMedication, Doctor } from './types';
 
 interface OfflineRequest {
     id?: number;
@@ -23,10 +23,11 @@ const db = new Dexie('SehaPosOfflineDB') as Dexie & {
     tasks: EntityTable<Task, 'id'>;
     advertisements: EntityTable<Advertisement, 'id'>;
     pharmacyGroups: EntityTable<PharmacyGroup, 'id'>;
+    doctors: EntityTable<Doctor, 'id'>;
 };
 
 // Schema definition
-db.version(1).stores({
+db.version(2).stores({
     sales: 'id, date, patient_id, employee_id, payment_method',
     inventory: 'id, name, *barcodes, *scientific_names',
     patientMedications: 'id, patient_id, medication_id',
@@ -39,7 +40,8 @@ db.version(1).stores({
     expenses: 'id, created_at, user_id',
     tasks: 'id, user_id, completed',
     advertisements: 'id, created_at',
-    pharmacyGroups: 'id'
+    pharmacyGroups: 'id',
+    doctors: 'id, name'
 });
 
 export { db };
