@@ -24,48 +24,82 @@ export function UpdateNotification() {
     const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
     const [isDismissed, setIsDismissed] = useState(false);
 
+    const [isPwaUpdate, setIsPwaUpdate] = useState(false);
+    const [pwaRegistration, setPwaRegistration] = useState<ServiceWorkerRegistration | null>(null);
+
     useEffect(() => {
-        // Check if window.electron exists (only in Electron environment)
-        if (typeof window === 'undefined' || !window.electron?.ipcRenderer) {
-            return;
+        // Handle Electron Updates
+        if (window.electron?.ipcRenderer) {
+            const handleUpdateAvailable = (info: UpdateInfo) => {
+                console.log('Update available:', info);
+                setUpdateAvailable(true);
+                setUpdateInfo(info);
+                setIsDismissed(false);
+            };
+
+            const handleUpdateDownloaded = (info: UpdateInfo) => {
+                console.log('Update downloaded:', info);
+                setUpdateDownloaded(true);
+                setIsDownloading(false);
+                setIsDismissed(false);
+            };
+
+            const handleDownloadProgress = (progress: ProgressInfo) => {
+                setDownloadProgress(Math.round(progress.percent));
+            };
+
+            const handleUpdateError = (error: string) => {
+                console.error('Update error:', error);
+                setIsDownloading(false);
+            };
+
+            // Register listeners
+            const cleanupAvailable = window.electron.ipcRenderer.on('update-available', handleUpdateAvailable);
+            const cleanupDownloaded = window.electron.ipcRenderer.on('update-downloaded', handleUpdateDownloaded);
+            const cleanupProgress = window.electron.ipcRenderer.on('download-progress', handleDownloadProgress);
+            const cleanupError = window.electron.ipcRenderer.on('update-error', handleUpdateError);
+
+            // Cleanup on unmount
+            return () => {
+                if (cleanupAvailable) cleanupAvailable();
+                if (cleanupDownloaded) cleanupDownloaded();
+                if (cleanupProgress) cleanupProgress();
+                if (cleanupError) cleanupError();
+            };
+        } else if ('serviceWorker' in navigator) {
+            // Handle PWA Updates
+            const handleSW = async () => {
+                const registration = await navigator.serviceWorker.getRegistration();
+                
+                // Check if there's a waiting worker (update already downloaded but not activated)
+                if (registration?.waiting) {
+                    setPwaRegistration(registration);
+                    setIsPwaUpdate(true);
+                    setUpdateAvailable(true);
+                    setUpdateDownloaded(true); // Treat as downloaded so we show "Restart" equivalent
+                    setUpdateInfo({ version: 'New Version' }); // Generic version info
+                }
+
+                // Listen for new updates found
+                if (registration) {
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        if (newWorker) {
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    setPwaRegistration(registration);
+                                    setIsPwaUpdate(true);
+                                    setUpdateAvailable(true);
+                                    setUpdateDownloaded(true);
+                                    setUpdateInfo({ version: 'New Version' });
+                                }
+                            });
+                        }
+                    });
+                }
+            };
+            handleSW();
         }
-
-        const handleUpdateAvailable = (info: UpdateInfo) => {
-            console.log('Update available:', info);
-            setUpdateAvailable(true);
-            setUpdateInfo(info);
-            setIsDismissed(false);
-        };
-
-        const handleUpdateDownloaded = (info: UpdateInfo) => {
-            console.log('Update downloaded:', info);
-            setUpdateDownloaded(true);
-            setIsDownloading(false);
-            setIsDismissed(false);
-        };
-
-        const handleDownloadProgress = (progress: ProgressInfo) => {
-            setDownloadProgress(Math.round(progress.percent));
-        };
-
-        const handleUpdateError = (error: string) => {
-            console.error('Update error:', error);
-            setIsDownloading(false);
-        };
-
-        // Register listeners
-        const cleanupAvailable = window.electron.ipcRenderer.on('update-available', handleUpdateAvailable);
-        const cleanupDownloaded = window.electron.ipcRenderer.on('update-downloaded', handleUpdateDownloaded);
-        const cleanupProgress = window.electron.ipcRenderer.on('download-progress', handleDownloadProgress);
-        const cleanupError = window.electron.ipcRenderer.on('update-error', handleUpdateError);
-
-        // Cleanup on unmount
-        return () => {
-            if (cleanupAvailable) cleanupAvailable();
-            if (cleanupDownloaded) cleanupDownloaded();
-            if (cleanupProgress) cleanupProgress();
-            if (cleanupError) cleanupError();
-        };
     }, []);
 
     const handleDownload = () => {
@@ -74,6 +108,18 @@ export function UpdateNotification() {
     };
 
     const handleInstall = () => {
+        if (isPwaUpdate && pwaRegistration && pwaRegistration.waiting) {
+            pwaRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            // The controllerchange event in sw.js or main should handle reload, 
+            // but we can also force reload if needed, usually better to wait for controller change.
+            // However, straightforward reload often works if skipWaiting is handled.
+            
+            // We'll listen for controller change to reload
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                window.location.reload();
+            });
+            return;
+        }
         window.electron?.ipcRenderer.send('install-update');
     };
 
@@ -124,7 +170,7 @@ export function UpdateNotification() {
                             className="w-full bg-blue-600 hover:bg-blue-700"
                         >
                             <RefreshCw className="ml-2 h-4 w-4" />
-                            إعادة التشغيل والتحديث
+                            {isPwaUpdate ? 'تحديث وإعادة التحميل' : 'إعادة التشغيل والتحديث'}
                         </Button>
                     ) : (
                         <>
@@ -137,7 +183,7 @@ export function UpdateNotification() {
                                         />
                                     </div>
                                     <p className="text-sm text-blue-700 dark:text-blue-300 text-center">
-                                        جاري التنزيل: {downloadProgress}%
+                                        {isPwaUpdate ? 'جاري التحضير...' : `جاري التنزيل: ${downloadProgress}%`}
                                     </p>
                                 </div>
                             ) : (

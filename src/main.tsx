@@ -12,6 +12,17 @@ initElectronNetwork();
 // Start periodic network checks
 startNetworkChecks();
 
+// Register Service Worker for PWA (only if not in Electron)
+if ('serviceWorker' in navigator && !window.electron) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then(registration => {
+      console.log('SW registered: ', registration);
+    }).catch(registrationError => {
+      console.log('SW registration failed: ', registrationError);
+    });
+  });
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
