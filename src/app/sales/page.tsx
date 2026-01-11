@@ -47,8 +47,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput, Notification, BranchInventory, Doctor, PatientMedication } from "@/lib/types"
-import { PlusCircle, X, PackageSearch, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, TrendingUp, FilePlus, UserPlus, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText, Calculator, Search, Plus, Minus, Star, History, Stethoscope, Pill } from "lucide-react"
+import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput, Notification, BranchInventory, PatientMedication } from "@/lib/types"
+import { PlusCircle, X, PackageSearch, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText, Calculator, Search, Plus, Minus, Star, History, Stethoscope, Pill } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
@@ -61,7 +61,7 @@ import { useOnlineStatus } from "@/hooks/use-online-status"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import AdCarousel from "@/components/ui/ad-carousel"
-import { differenceInDays, parseISO, startOfToday, formatDistanceToNowStrict, format } from "date-fns"
+import { differenceInDays, parseISO, startOfToday, format } from "date-fns"
 import { Badge } from "@/components/ui/badge"
 import { useNavigate } from "react-router-dom"
 import { PinDialog } from "@/components/auth/PinDialog"
@@ -125,114 +125,6 @@ const printElement = (element: HTMLElement, title: string = 'Print') => {
     };
 };
 
-function DosingAssistant({ cartItems }: { cartItems: SaleItem[] }) {
-    const [patientWeight, setPatientWeight] = React.useState('');
-    const [isLoading, setIsLoading] = React.useState(false);
-    const [results, setResults] = React.useState<DoseCalculationOutput | null>(null);
-    const { toast } = useToast();
-
-    const handleCalculate = async () => {
-        const weight = parseFloat(patientWeight);
-        if (isNaN(weight) || weight <= 0) {
-            toast({ variant: 'destructive', title: 'وزن غير صالح', description: 'الرجاء إدخال وزن صحيح.' });
-            return;
-        }
-
-        setIsLoading(true);
-        setResults(null);
-
-        const medicationsInput: DoseCalculationInput['medications'] = cartItems
-            .filter(item => !item.is_return)
-            .map(item => ({
-                tradeName: item.name,
-                scientific_names: item.scientific_names || [],
-                dosage_form: item.dosage_form || '',
-            }));
-
-        try {
-            const response = await calculateDose({
-                patientWeight: weight,
-                medications: medicationsInput,
-            });
-            setResults(response);
-        } catch (error) {
-            console.error(error);
-            toast({ variant: 'destructive', title: 'حدث خطأ', description: 'لم نتمكن من حساب الجرعة. الرجاء المحاولة مرة أخرى.' });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    return (
-        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-                <DialogTitle>مساعد الجرعات الذكي</DialogTitle>
-                <DialogDescription>
-                    أدخل وزن المريض للحصول على اقتراحات للجرعات.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                    <div className="space-y-2">
-                        <Label htmlFor="patient-weight">وزن المريض (بالكيلوجرام)</Label>
-                        <Input id="patient-weight" type="number" step="0.1" value={patientWeight} onChange={(e) => setPatientWeight(e.target.value)} placeholder="مثال: 25.5" />
-                    </div>
-                    <div className="md:col-span-2">
-                        <Button onClick={handleCalculate} disabled={isLoading || cartItems.length === 0} className="w-full">
-                            {isLoading ? <BrainCircuit className="me-2 h-4 w-4 animate-spin" /> : <Thermometer className="me-2 h-4 w-4" />}
-                            حساب وتحليل
-                        </Button>
-                    </div>
-                </div>
-
-                {isLoading && (
-                    <div className="space-y-2 pt-4">
-                        <Skeleton className="h-8 w-full" />
-                        <Skeleton className="h-8 w-full" />
-                    </div>
-                )}
-
-                {results && (
-                    <div className="space-y-4 pt-4">
-                        <Alert variant="default">
-                            <AlertDescription>
-                                هذه النتائج هي مجرد اقتراحات من الذكاء الاصطناعي ولا تغني عن خبرة الصيدلي وقراره النهائي. يجب التحقق من الجرعات والتفاعلات دائمًا.
-                            </AlertDescription>
-                        </Alert>
-
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>الدواء</TableHead>
-                                    <TableHead>الجرعة المقترحة</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {results.medicationAnalysis.map((res, index) => (
-                                    <TableRow key={index}>
-                                        <TableCell className="font-medium">{res.tradeName}</TableCell>
-                                        <TableCell dir="ltr">{res.suggestedDose}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                )}
-            </div>
-            {/* <div className="flex flex-col items-center justify-center space-y-4 py-8">
-                <PackageSearch className="w-16 h-16 text-muted-foreground" />
-                <p className="text-xl font-medium text-center">ستتوفر الميزة قريبا</p>
-            </div> */}
-            <DialogFooter>
-                <DialogClose asChild>
-                    <Button variant="outline">إغلاق</Button>
-                </DialogClose>
-            </DialogFooter>
-        </DialogContent>
-    );
-
-}
-
 function BarcodeConflictDialog({ open, onOpenChange, conflictingMeds, onSelect }: { open: boolean, onOpenChange: (open: boolean) => void, conflictingMeds: Medication[], onSelect: (med: Medication) => void }) {
     const sortedMeds = React.useMemo(() => {
         return [...conflictingMeds].sort((a, b) => {
@@ -287,233 +179,6 @@ const getExpirationBadge = (expiration_date: string | undefined, threshold: numb
     return null;
 };
 
-const referenceSites = [
-    { name: "PedDose", url: "https://www.peddose.com/" },
-    { name: "DawaSeek", url: "https://www.dawaseek.com/" },
-];
-
-function FavoritesPopover({ onSelect }: { onSelect: (med: Medication) => void }) {
-    const { scopedData, searchAllInventory, toggleFavoriteMedication } = useAuth();
-    const { settings: [settings] } = scopedData;
-    const [allMeds, setAllMeds] = React.useState<Medication[]>([]);
-    const [searchTerm, setSearchTerm] = React.useState('');
-    const [searchResults, setSearchResults] = React.useState<Medication[]>([]);
-
-    React.useEffect(() => {
-        searchAllInventory('').then(setAllMeds);
-    }, [searchAllInventory]);
-
-    React.useEffect(() => {
-        if (searchTerm.length > 1) {
-            const results = allMeds.filter(med =>
-                (med.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                med.scientific_names?.some(s => (s || '').toLowerCase().includes(searchTerm.toLowerCase()))
-            );
-            setSearchResults(results.slice(0, 5));
-        } else {
-            setSearchResults([]);
-        }
-    }, [searchTerm, allMeds]);
-
-    const favoriteMeds = React.useMemo(() => {
-        const favIds = new Set(settings.favorite_med_ids || []);
-        return allMeds.filter(med => favIds.has(med.id));
-    }, [settings.favorite_med_ids, allMeds]);
-
-    return (
-        <Popover>
-            <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="shrink-0 text-yellow-400 border-yellow-400 hover:bg-yellow-400 hover:text-white">
-                    <Star />
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-96">
-                <div className="space-y-4">
-                    <div>
-                        <h4 className="font-medium leading-none">الأدوية المفضلة</h4>
-                        <p className="text-sm text-muted-foreground">أضف الأدوية الأكثر مبيعاً للوصول السريع.</p>
-                    </div>
-
-                    <div className="relative">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="ابحث لإضافة دواء للمفضلة..."
-                            className="pl-8"
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        {searchTerm.length > 1 ? (
-                            // Search results
-                            searchResults.length > 0 ? searchResults.map(med => (
-                                <div key={med.id} className="p-2 flex items-center justify-between hover:bg-accent rounded-md text-sm">
-                                    <span>{med.name}</span>
-                                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { toggleFavoriteMedication(med.id); setSearchTerm(''); }}>
-                                        <PlusCircle className="h-4 w-4 text-green-600" />
-                                    </Button>
-                                </div>
-                            )) : <p className="text-xs text-muted-foreground text-center">لم يتم العثور على نتائج.</p>
-                        ) : (
-                            // Favorites list
-                            <ScrollArea className="h-48">
-                                <div className="space-y-2">
-                                    {favoriteMeds.length > 0 ? favoriteMeds.map(med => (
-                                        <div key={med.id} className="group p-2 flex items-center justify-between hover:bg-accent rounded-md cursor-pointer text-sm" onClick={() => onSelect(med)}>
-                                            <span>{med.name}</span>
-                                            <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); toggleFavoriteMedication(med.id); }}>
-                                                <X className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                        </div>
-                                    )) : (
-                                        <p className="text-xs text-muted-foreground text-center pt-4">
-                                            قائمة المفضلة فارغة. ابحث عن دواء لإضافته.
-                                        </p>
-                                    )}
-                                </div>
-                            </ScrollArea>
-                        )}
-                    </div>
-                </div>
-            </PopoverContent>
-        </Popover>
-    );
-}
-
-function BranchSearchDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
-    const { searchInOtherBranches } = useAuth();
-    const [branchSearchTerm, setBranchSearchTerm] = React.useState('');
-    const [branchSearchResults, setBranchSearchResults] = React.useState<BranchInventory[]>([]);
-    const [branchSearchLoading, setBranchSearchLoading] = React.useState(false);
-
-    const handleBranchSearch = async (term: string) => {
-        setBranchSearchTerm(term);
-        if (term.length > 0) {
-            setBranchSearchLoading(true);
-            const results = await searchInOtherBranches(term);
-            setBranchSearchResults(results);
-            setBranchSearchLoading(false);
-        } else {
-            setBranchSearchResults([]);
-        }
-    };
-
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                    <DialogTitle>البحث عن دواء في الأفرع</DialogTitle>
-                    <DialogDescription>
-                        ابحث عن أي دواء لمعرفة الكميات المتوفرة في شبكة صيدلياتك.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="py-4 space-y-4">
-                    <Input
-                        placeholder="ابحث بالاسم التجاري أو العلمي..."
-                        value={branchSearchTerm}
-                        onChange={(e) => handleBranchSearch(e.target.value)}
-                    />
-                    <div className="max-h-80 overflow-y-auto">
-                        {branchSearchLoading ? (
-                            <div className="space-y-2 py-4">
-                                <Skeleton className="h-10 w-full" />
-                                <Skeleton className="h-10 w-full" />
-                            </div>
-                        ) : branchSearchResults.length > 0 ? (
-                            <Table>
-                                <TableHeader><TableRow><TableHead>اسم الفرع</TableHead><TableHead>الكمية المتوفرة</TableHead></TableRow></TableHeader>
-                                <TableBody>
-                                    {branchSearchResults.map(result => (
-                                        <TableRow key={result.pharmacy_id}>
-                                            <TableCell className="font-medium">{result.pharmacy_name}</TableCell>
-                                            <TableCell className="font-mono">{result.stock}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        ) : (
-                            branchSearchTerm.length > 2 && <p className="text-center text-muted-foreground py-8">لم يتم العثور على الدواء في أي فرع آخر.</p>
-                        )}
-                    </div>
-                </div>
-            </DialogContent>
-        </Dialog>
-    )
-}
-
-function SearchHistoryPopover({ onSelect }: { onSelect: (term: string) => void }) {
-    const [recentSearches, setRecentSearches] = React.useState<{ term: string, date: string }[]>([]);
-
-    const loadSearches = React.useCallback(() => {
-        const searches = localStorage.getItem('recentSearches');
-        if (searches) {
-            try {
-                const parsedSearches = JSON.parse(searches);
-                const oneWeekAgo = new Date();
-                oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-                const filtered = parsedSearches.filter((s: { date: string }) => new Date(s.date) > oneWeekAgo);
-                setRecentSearches(filtered);
-            } catch {
-                setRecentSearches([]);
-            }
-        }
-    }, []);
-
-    React.useEffect(() => {
-        loadSearches();
-
-        const handleUpdate = () => loadSearches();
-        window.addEventListener('recentSearchesUpdated', handleUpdate);
-        return () => window.removeEventListener('recentSearchesUpdated', handleUpdate);
-    }, [loadSearches]);
-
-    const handleSelect = (term: string) => {
-        onSelect(term);
-    };
-
-    return (
-        <Popover>
-            <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="shrink-0">
-                    <History />
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-80">
-                <div className="space-y-2">
-                    <h4 className="font-medium leading-none">سجل المواد المحذوفة (آخر 7 أيام)</h4>
-                    <p className="text-sm text-muted-foreground">قائمة بالأصناف التي تم حذفها من الفواتير مؤخراً.</p>
-                </div>
-                <Separator className="my-4" />
-                <ScrollArea className="h-64">
-                    <div className="space-y-2">
-                        {recentSearches.length > 0 ? (
-                            recentSearches.map((item, index) => (
-                                <div key={index} onClick={() => handleSelect(item.term)} className="text-sm p-2 hover:bg-accent rounded-md cursor-pointer flex justify-between items-center">
-                                    <span>{item.term}</span>
-                                    <span className="text-xs text-muted-foreground">
-                                        {format(new Date(item.date), 'Pp', { locale: ar })}
-                                    </span>
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-sm text-muted-foreground text-center py-8">لا يوجد سجل بحث.</p>
-                        )}
-                    </div>
-                </ScrollArea>
-            </PopoverContent>
-        </Popover>
-    );
-}
-
-const updateRecentSearches = (term: string) => {
-    if (!term) return;
-    const searches: { term: string, date: string }[] = JSON.parse(localStorage.getItem('recentSearches') || '[]');
-    const updatedSearches = [{ term, date: new Date().toISOString() }, ...searches].slice(0, 50);
-    localStorage.setItem('recentSearches', JSON.stringify(updatedSearches));
-    window.dispatchEvent(new Event('recentSearchesUpdated'));
-};
-
 export default function SalesPage() {
     const {
         currentUser,
@@ -530,10 +195,7 @@ export default function SalesPage() {
         searchAllInventory,
         searchAllSales,
         searchAllPatients,
-        getDoctors,
         verifyPin,
-        toggleFavoriteMedication,
-        searchInOtherBranches,
         getPatientMedications,
     } = useAuth();
 
@@ -554,7 +216,7 @@ export default function SalesPage() {
     if (!activeInvoice) {
         return <div>Loading...</div>;
     }
-    const { cart, discountType, discountValue, patientId, doctorId, paymentMethod, saleIdToUpdate } = activeInvoice;
+    const { cart, discountType, discountValue, patientId, paymentMethod, saleIdToUpdate } = activeInvoice;
 
     const [searchTerm, setSearchTerm] = React.useState("")
     const [isSearchLoading, setIsSearchLoading] = React.useState(false);
@@ -567,7 +229,6 @@ export default function SalesPage() {
     const [alternativeExpiryAlert, setAlternativeExpiryAlert] = React.useState<Notification | null>(null);
     const [barcodeConflictMeds, setBarcodeConflictMeds] = React.useState<Medication[]>([]);
     const [isBarcodeConflictDialogOpen, setIsBarcodeConflictDialogOpen] = React.useState(false);
-    const [isBranchSearchOpen, setIsBranchSearchOpen] = React.useState(false);
     const [isProcessingSale, setIsProcessingSale] = React.useState(false);
 
 
@@ -633,11 +294,6 @@ export default function SalesPage() {
 
     const [mode, setMode] = React.useState<'sale' | 'return'>('sale');
 
-    const [isDoctorModalOpen, setIsDoctorModalOpen] = React.useState(false);
-    const [doctorSearchTerm, setDoctorSearchTerm] = React.useState("");
-    const [doctorList, setDoctorList] = React.useState<Doctor[]>([]);
-    const [filteredDoctors, setFilteredDoctors] = React.useState<Doctor[]>([]);
-
     const isOnline = useOnlineStatus();
     const priceModificationAllowed = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_salesPriceModification;
     const canManagePreviousSales = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_previous_sales;
@@ -666,19 +322,15 @@ export default function SalesPage() {
         fetchInitialSales();
     }, [searchAllSales]);
 
-    // Load all patients and doctors when component mounts
+    // Load all patients when component mounts
     React.useEffect(() => {
         async function fetchInitialData() {
             const allPatients = await searchAllPatients("");
             setPatientSuggestions(allPatients);
             setHasLoadedPatients(true);
-
-            const allDoctors = await getDoctors();
-            setDoctorList(allDoctors);
-            setFilteredDoctors(allDoctors);
         }
         fetchInitialData();
-    }, [searchAllPatients, getDoctors]);
+    }, [searchAllPatients]);
 
     const checkAlternativeExpiry = React.useCallback((medication: Medication) => {
         if (!medication.scientific_names || medication.scientific_names.length === 0 || mode === 'return') {
@@ -809,9 +461,6 @@ export default function SalesPage() {
             item.is_return === isReturn &&
             item.unit_type === (unitType || 'strip')
         );
-        if (itemToRemove) {
-            updateRecentSearches(itemToRemove.name);
-        }
 
         updateActiveInvoice(invoice => {
             const newCart = invoice.cart.filter(item => !(
@@ -825,7 +474,7 @@ export default function SalesPage() {
                 cart: newCart
             };
         });
-    }, [updateActiveInvoice, activeInvoices, currentInvoiceIndex, updateRecentSearches]);
+    }, [updateActiveInvoice, activeInvoices, currentInvoiceIndex]);
 
     const handleSwapAndAddToCart = () => {
         if (!alternativeExpiryAlert || !alternativeExpiryAlert.data) return;
@@ -1028,16 +677,6 @@ export default function SalesPage() {
         getPatient();
     }, [patientId, searchAllPatients]);
 
-    const [selectedDoctor, setSelectedDoctor] = React.useState<Doctor | null>(null);
-    React.useEffect(() => {
-        if (doctorId) {
-            const doctor = doctorList.find(d => d.id === doctorId);
-            setSelectedDoctor(doctor || null);
-        } else {
-            setSelectedDoctor(null);
-        }
-    }, [doctorId, doctorList]);
-
     const handleCheckout = async () => {
         if (cart.length === 0) {
             toast({ title: "السلة فارغة", description: "أضف منتجات إلى السلة قبل إتمام العملية.", variant: "destructive" })
@@ -1113,8 +752,6 @@ export default function SalesPage() {
                 discount: discountAmount,
                 patient_id: selectedPatient?.id || null,
                 patient_name: selectedPatient?.name,
-                doctor_id: selectedDoctor?.id || null,
-                doctor_name: selectedDoctor?.name,
                 employee_id: currentUser.id,
                 employee_name: currentUser.name,
                 payment_method: paymentMethod,
@@ -1192,11 +829,6 @@ export default function SalesPage() {
     };
 
     const handleCloseInvoice = (index: number) => {
-        const invoiceToClose = activeInvoices[index];
-        if (invoiceToClose.cart.length > 0) {
-            invoiceToClose.cart.forEach(item => updateRecentSearches(item.name));
-        }
-
         closeInvoice(index);
         setSearchTerm('');
         setSaleToPrint(null);
@@ -1244,15 +876,6 @@ export default function SalesPage() {
             } else {
                 setPatientSuggestions([]);
             }
-        }
-    }
-
-    const handleDoctorSearch = (term: string) => {
-        setDoctorSearchTerm(term);
-        if (term) {
-            setFilteredDoctors(doctorList.filter(d => d.name.toLowerCase().includes(term.toLowerCase())));
-        } else {
-            setFilteredDoctors(doctorList);
         }
     }
 
@@ -1384,13 +1007,6 @@ export default function SalesPage() {
                                     autoFocus
                                 />
                             </div>
-                            <SearchHistoryPopover onSelect={(term) => {
-                                setNameSearchTerm(term);
-                                handleNameSearchChange({ target: { value: term } } as React.ChangeEvent<HTMLInputElement>);
-                            }} />
-                            <Button variant="outline" size="icon" className="shrink-0" onClick={() => setIsBranchSearchOpen(true)}>
-                                <ArrowLeftRight />
-                            </Button>
 
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -1400,30 +1016,6 @@ export default function SalesPage() {
                                 </TooltipTrigger>
                                 <TooltipContent>أدوية المريض المفضلة</TooltipContent>
                             </Tooltip>
-
-                            <FavoritesPopover onSelect={addToCart} />
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" size="icon" className="shrink-0"><BrainCircuit /></Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <div className="flex flex-col gap-1">
-                                        {referenceSites.map((site) => (
-                                            <Dialog key={site.name}>
-                                                <DialogTrigger asChild>
-                                                    <Button variant="ghost" className="justify-start">{site.name}</Button>
-                                                </DialogTrigger>
-                                                <DialogContent className="p-0 border-0 sm:max-w-[400px] h-[70vh] flex flex-col gap-0">
-                                                    <DialogHeader className="sr-only">
-                                                        <DialogTitle>{site.name}</DialogTitle>
-                                                    </DialogHeader>
-                                                    <iframe src={site.url} title={site.name} className="w-full h-full" />
-                                                </DialogContent>
-                                            </Dialog>
-                                        ))}
-                                    </div>
-                                </PopoverContent>
-                            </Popover>
                             <Button variant="secondary" onClick={handleReviewClick}>
                                 <FileText className="me-2" />
                                 مراجعة الفواتير
@@ -1823,45 +1415,7 @@ export default function SalesPage() {
                                             </Button>
                                         )}
                                     </div>
-                                    <div className="relative">
-                                        <Dialog open={isDoctorModalOpen} onOpenChange={setIsDoctorModalOpen}>
-                                            <DialogTrigger asChild>
-                                                <Button variant="outline" className="w-full justify-between text-left font-normal">
-                                                    <span className="flex items-center gap-2">
-                                                        <Stethoscope className="text-muted-foreground" />
-                                                        {selectedDoctor ? selectedDoctor.name : "تحديد الطبيب"}
-                                                    </span>
-                                                </Button>
-                                            </DialogTrigger>
-                                            <DialogContent>
-                                                <DialogHeader>
-                                                    <DialogTitle>تحديد الطبيب</DialogTitle>
-                                                </DialogHeader>
-                                                <div className="space-y-4">
-                                                    <Input placeholder="ابحث بالاسم..." value={doctorSearchTerm} onChange={(e) => handleDoctorSearch(e.target.value)} />
-                                                    <ScrollArea className="h-48 border rounded-md">
-                                                        {filteredDoctors.map(d => (
-                                                            <div key={d.id} onClick={() => { updateActiveInvoice(prev => ({ ...prev, doctorId: d.id })); setIsDoctorModalOpen(false); }}
-                                                                className="p-2 hover:bg-accent cursor-pointer">
-                                                                {d.name}
-                                                            </div>
-                                                        ))}
-                                                    </ScrollArea>
-                                                </div>
-                                            </DialogContent>
-                                        </Dialog>
-                                        {selectedDoctor && (
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="absolute top-1/2 left-1 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-destructive"
-                                                onClick={() => updateActiveInvoice(prev => ({ ...prev, doctorId: null }))}
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
+                                </div> 
                                 <Separator />
 
                                 <div className="flex justify-between w-full text-md">
@@ -1912,19 +1466,6 @@ export default function SalesPage() {
                                             </DialogHeader>
                                             <CalculatorComponent />
                                         </DialogContent>
-                                    </Dialog>
-                                    <Dialog open={isDosingAssistantOpen} onOpenChange={setIsDosingAssistantOpen}>
-                                        <DialogTrigger asChild>
-                                            <Button size="icon" variant="outline" className="relative" disabled={!isOnline || cart.length === 0} aria-label="مساعد الجرعات">
-                                                <Thermometer />
-                                                {isOnline ? (
-                                                    <Wifi className="absolute top-1 right-1 h-3 w-3 text-green-500" />
-                                                ) : (
-                                                    <WifiOff className="absolute top-1 right-1 h-3 w-3 text-muted-foreground" />
-                                                )}
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DosingAssistant cartItems={cart} />
                                     </Dialog>
                                     <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
                                         <DialogTrigger asChild>
