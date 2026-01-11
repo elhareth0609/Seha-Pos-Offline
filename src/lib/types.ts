@@ -350,6 +350,7 @@ export type AppSettings = {
   controlled_substances?: string[];
   favorite_med_ids?: string[];
   expense_categories?: { id: string; name: string }[];
+  force_box_if_single_strip?: boolean;
 }
 
 export type TrashItem = {

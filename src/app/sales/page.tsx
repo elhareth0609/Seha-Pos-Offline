@@ -306,8 +306,8 @@ function FavoritesPopover({ onSelect }: { onSelect: (med: Medication) => void })
     React.useEffect(() => {
         if (searchTerm.length > 1) {
             const results = allMeds.filter(med =>
-                med.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                med.scientific_names?.some(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
+                (med.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                med.scientific_names?.some(s => (s || '').toLowerCase().includes(searchTerm.toLowerCase()))
             );
             setSearchResults(results.slice(0, 5));
         } else {
@@ -715,6 +715,13 @@ export default function SalesPage() {
     }, [fullInventory, mode]);
 
     const addToCart = React.useCallback((medication: Medication, unitType: 'box' | 'strip' = 'strip') => {
+        // Force box unit if strips_per_box is 1
+        // Force box unit if strips_per_box is 1 AND the setting is enabled
+        const shouldForceBox = Number(medication.strips_per_box || 1) === 1 && (settings.force_box_if_single_strip ?? true);
+        if (shouldForceBox) {
+            unitType = 'box';
+        }
+
         // Expiry check
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -1561,16 +1568,20 @@ export default function SalesPage() {
                                                                 </div>
                                                                 <div className="space-y-1">
                                                                     <Label className="text-xs">الوحدة</Label>
-                                                                    <ToggleGroup
-                                                                        type="single"
-                                                                        value={item.unit_type || 'strip'}
-                                                                        onValueChange={(value) => value && updateUnitType(item.id, item.is_return, value as 'box' | 'strip')}
-                                                                        className="justify-start"
-                                                                        disabled={hasDuplicateWithDifferentUnit}
-                                                                    >
-                                                                        <ToggleGroupItem value="strip" aria-label="Strip" className="h-9 px-3 text-xs" disabled={hasDuplicateWithDifferentUnit}>شريط</ToggleGroupItem>
-                                                                        <ToggleGroupItem value="box" aria-label="Box" className="h-9 px-3 text-xs" disabled={hasDuplicateWithDifferentUnit}>علبة</ToggleGroupItem>
-                                                                    </ToggleGroup>
+                                                                    {Number(medInInventory?.strips_per_box || 1) === 1 && (settings.force_box_if_single_strip ?? true) ? (
+                                                                        <div className="h-9 px-3 flex items-center justify-center text-xs border rounded-md bg-muted/50 font-medium">علبة</div>
+                                                                    ) : (
+                                                                        <ToggleGroup
+                                                                            type="single"
+                                                                            value={item.unit_type || 'strip'}
+                                                                            onValueChange={(value) => value && updateUnitType(item.id, item.is_return, value as 'box' | 'strip')}
+                                                                            className="justify-start"
+                                                                            disabled={hasDuplicateWithDifferentUnit}
+                                                                        >
+                                                                            <ToggleGroupItem value="strip" aria-label="Strip" className="h-9 px-3 text-xs" disabled={hasDuplicateWithDifferentUnit}>شريط</ToggleGroupItem>
+                                                                            <ToggleGroupItem value="box" aria-label="Box" className="h-9 px-3 text-xs" disabled={hasDuplicateWithDifferentUnit}>علبة</ToggleGroupItem>
+                                                                        </ToggleGroup>
+                                                                    )}
                                                                 </div>
                                                                 {/* </div> */}
                                                                 <div className="space-y-1">
@@ -1686,16 +1697,20 @@ export default function SalesPage() {
                                                                     </div>
                                                                 </TableCell>
                                                                 <TableCell>
-                                                                    <ToggleGroup
-                                                                        type="single"
-                                                                        value={item.unit_type || 'strip'}
-                                                                        onValueChange={(value) => value && updateUnitType(item.id, item.is_return, value as 'box' | 'strip')}
-                                                                        className="justify-center"
-                                                                        disabled={hasDuplicateWithDifferentUnit}
-                                                                    >
-                                                                        <ToggleGroupItem value="strip" aria-label="Strip" className="h-8 px-2 text-xs" disabled={hasDuplicateWithDifferentUnit}>شريط</ToggleGroupItem>
-                                                                        <ToggleGroupItem value="box" aria-label="Box" className="h-8 px-2 text-xs" disabled={hasDuplicateWithDifferentUnit}>علبة</ToggleGroupItem>
-                                                                    </ToggleGroup>
+                                                                    {Number(medInInventory?.strips_per_box || 1) === 1 && (settings.force_box_if_single_strip ?? true) ? (
+                                                                        <div className="h-8 px-2 flex items-center justify-center text-xs border rounded-md bg-muted/50 font-medium">علبة</div>
+                                                                    ) : (
+                                                                        <ToggleGroup
+                                                                            type="single"
+                                                                            value={item.unit_type || 'strip'}
+                                                                            onValueChange={(value) => value && updateUnitType(item.id, item.is_return, value as 'box' | 'strip')}
+                                                                            className="justify-center"
+                                                                            disabled={hasDuplicateWithDifferentUnit}
+                                                                        >
+                                                                            <ToggleGroupItem value="strip" aria-label="Strip" className="h-8 px-2 text-xs" disabled={hasDuplicateWithDifferentUnit}>شريط</ToggleGroupItem>
+                                                                            <ToggleGroupItem value="box" aria-label="Box" className="h-8 px-2 text-xs" disabled={hasDuplicateWithDifferentUnit}>علبة</ToggleGroupItem>
+                                                                        </ToggleGroup>
+                                                                    )}
                                                                 </TableCell>
                                                                 <TableCell>
                                                                     <div className="flex items-center justify-center">
