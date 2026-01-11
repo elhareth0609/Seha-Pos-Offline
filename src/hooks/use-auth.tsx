@@ -746,20 +746,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [isOnline]);
 
     const searchAllInventory = React.useCallback(async (search: string) => {
-        // Only check isOnline from the hook (DNS-based check)
-        // Don't use navigator.onLine as it's unreliable when WiFi is connected but no internet
-        if (!isOnline) {
+        // Only check isOnline from the hook (DNS-based check)        
+        const performLocalSearch = async () => {
             console.log('[Search] Using local database for inventory search (offline mode)');
             let allItems = await db.inventory.toArray();
+            
             if (search && typeof search === 'string') {
-                const lowerSearch = search.toLowerCase();
-                allItems = allItems.filter(i =>
-                    (i.name || '').toLowerCase().includes(lowerSearch) ||
-                    (Array.isArray(i.barcodes) && i.barcodes.some(b => (b || '').toLowerCase().includes(lowerSearch))) ||
-                    (Array.isArray(i.scientific_names) && i.scientific_names.some(s => (s || '').toLowerCase().includes(lowerSearch)))
-                );
+                const lowerSearch = search.trim().toLowerCase();
+                const keywords = lowerSearch.split(/\s+/).filter(k => k.length > 0);
+
+                if (keywords.length > 0) {
+                    allItems = allItems.filter(i => {
+                        const name = (i.name || '').toLowerCase();
+                        const barcodes = Array.isArray(i.barcodes) ? i.barcodes : [];
+                        const scientificNames = Array.isArray(i.scientific_names) ? i.scientific_names : [];
+
+                        // 1. Name match: Match ALL keywords (AND logic)
+                        const nameMatch = keywords.every(k => name.includes(k));
+                        
+                        // 2. Barcode match
+                        const barcodeMatch = barcodes.some(b => (b || '').toLowerCase() === lowerSearch);
+                        
+                        // 3. Scientific name match
+                        const scientificMatch = scientificNames.some(s => (s || '').toLowerCase() === lowerSearch);
+
+                        return nameMatch || barcodeMatch || scientificMatch;
+                    });
+
+                    // Sort results to match backend logic
+                    allItems.sort((a, b) => {
+                        const nameA = (a.name || '').toLowerCase();
+                        const nameB = (b.name || '').toLowerCase();
+
+                        // Priority 1: Exact name match
+                        if (nameA === lowerSearch && nameB !== lowerSearch) return -1;
+                        if (nameA !== lowerSearch && nameB === lowerSearch) return 1;
+
+                        // Priority 2: Name starts with search term
+                        const startsA = nameA.startsWith(lowerSearch);
+                        const startsB = nameB.startsWith(lowerSearch);
+                        if (startsA && !startsB) return -1;
+                        if (!startsA && startsB) return 1;
+
+                         return 0; // Default order
+                    });
+                }
             }
-            return allItems.slice(0, 50); // Limit results
+            return allItems.slice(0, 50);
+        };
+
+        if (!isOnline) {
+            return performLocalSearch();
         }
 
         try {
@@ -769,16 +806,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
             // If API request fails, fallback to local search
             console.log('[Search] API request failed, falling back to local database');
-            let allItems = await db.inventory.toArray();
-            if (search && typeof search === 'string') {
-                const lowerSearch = search.toLowerCase();
-                allItems = allItems.filter(i =>
-                    (i.name || '').toLowerCase().includes(lowerSearch) ||
-                    (Array.isArray(i.barcodes) && i.barcodes.some(b => (b || '').toLowerCase().includes(lowerSearch))) ||
-                    (Array.isArray(i.scientific_names) && i.scientific_names.some(s => (s || '').toLowerCase().includes(lowerSearch)))
-                );
-            }
-            return allItems.slice(0, 50);
+            return performLocalSearch();
         }
     }, [isOnline]);
 

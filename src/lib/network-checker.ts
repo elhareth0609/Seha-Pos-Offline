@@ -32,7 +32,7 @@ const checkNetworkStatus = async () => {
 
     const checkEndpoint = async (url: string) => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
 
       // Link to the main controller so it can be aborted
       currentCheckController?.signal.addEventListener('abort', () => {
@@ -123,8 +123,8 @@ export const startNetworkChecks = () => {
       clearInterval(intervalId);
     }
 
-    // Check network status every 5 seconds
-    intervalId = window.setInterval(checkNetworkStatus, 5000);
+    // Check network status every 3 seconds
+    intervalId = window.setInterval(checkNetworkStatus, 3000);
 
     // Initial check
     checkNetworkStatus();
