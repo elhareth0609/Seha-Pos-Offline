@@ -684,9 +684,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (search) {
                 const lowerSearch = search.toLowerCase();
                 allItems = allItems.filter(i =>
-                    i.name.toLowerCase().includes(lowerSearch) ||
-                    (Array.isArray(i.barcodes) && i.barcodes.some(b => b.toLowerCase().includes(lowerSearch))) ||
-                    (Array.isArray(i.scientific_names) && i.scientific_names.some(s => s.toLowerCase().includes(lowerSearch)))
+                    (i.name || '').toLowerCase().includes(lowerSearch) ||
+                    (Array.isArray(i.barcodes) && i.barcodes.some(b => (b || '').toLowerCase().includes(lowerSearch))) ||
+                    (Array.isArray(i.scientific_names) && i.scientific_names.some(s => (s || '').toLowerCase().includes(lowerSearch)))
                 );
             }
             // Apply other filters if needed
@@ -723,9 +723,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (search) {
                 const lowerSearch = search.toLowerCase();
                 allItems = allItems.filter(i =>
-                    i.name.toLowerCase().includes(lowerSearch) ||
-                    (Array.isArray(i.barcodes) && i.barcodes.some(b => b.toLowerCase().includes(lowerSearch))) ||
-                    (Array.isArray(i.scientific_names) && i.scientific_names.some(s => s.toLowerCase().includes(lowerSearch)))
+                    (i.name || '').toLowerCase().includes(lowerSearch) ||
+                    (Array.isArray(i.barcodes) && i.barcodes.some(b => (b || '').toLowerCase().includes(lowerSearch))) ||
+                    (Array.isArray(i.scientific_names) && i.scientific_names.some(s => (s || '').toLowerCase().includes(lowerSearch)))
                 );
             }
             // Apply other filters if needed
@@ -754,9 +754,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (search && typeof search === 'string') {
                 const lowerSearch = search.toLowerCase();
                 allItems = allItems.filter(i =>
-                    i.name.toLowerCase().includes(lowerSearch) ||
-                    (Array.isArray(i.barcodes) && i.barcodes.some(b => b.toLowerCase().includes(lowerSearch))) ||
-                    (Array.isArray(i.scientific_names) && i.scientific_names.some(s => s.toLowerCase().includes(lowerSearch)))
+                    (i.name || '').toLowerCase().includes(lowerSearch) ||
+                    (Array.isArray(i.barcodes) && i.barcodes.some(b => (b || '').toLowerCase().includes(lowerSearch))) ||
+                    (Array.isArray(i.scientific_names) && i.scientific_names.some(s => (s || '').toLowerCase().includes(lowerSearch)))
                 );
             }
             return allItems.slice(0, 50); // Limit results
@@ -773,9 +773,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (search && typeof search === 'string') {
                 const lowerSearch = search.toLowerCase();
                 allItems = allItems.filter(i =>
-                    i.name.toLowerCase().includes(lowerSearch) ||
-                    (Array.isArray(i.barcodes) && i.barcodes.some(b => b.toLowerCase().includes(lowerSearch))) ||
-                    (Array.isArray(i.scientific_names) && i.scientific_names.some(s => s.toLowerCase().includes(lowerSearch)))
+                    (i.name || '').toLowerCase().includes(lowerSearch) ||
+                    (Array.isArray(i.barcodes) && i.barcodes.some(b => (b || '').toLowerCase().includes(lowerSearch))) ||
+                    (Array.isArray(i.scientific_names) && i.scientific_names.some(s => (s || '').toLowerCase().includes(lowerSearch)))
                 );
             }
             return allItems.slice(0, 50);
