@@ -59,6 +59,22 @@ export function UpdateNotification() {
             const cleanupProgress = window.electron.ipcRenderer.on('download-progress', handleDownloadProgress);
             const cleanupError = window.electron.ipcRenderer.on('update-error', handleUpdateError);
 
+            // Check initial status (in case we missed the event)
+            window.electron.ipcRenderer.invoke('get-update-status').then((status: any) => {
+                console.log('Initial update status:', status);
+                if (status.status === 'available') {
+                    handleUpdateAvailable(status.info);
+                } else if (status.status === 'downloaded') {
+                    handleUpdateDownloaded(status.info);
+                } else if (status.status === 'downloading') {
+                    setUpdateAvailable(true);
+                    setIsDownloading(true);
+                    if (status.progress) {
+                        handleDownloadProgress(status.progress);
+                    }
+                }
+            });
+
             // Cleanup on unmount
             return () => {
                 if (cleanupAvailable) cleanupAvailable();

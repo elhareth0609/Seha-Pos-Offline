@@ -18,7 +18,8 @@ const validChannels = [
     'dialog:saveFile', // Keep existing dialog channels
     'toMain', // Keep existing toMain channel
     'fromMain', // Keep existing fromMain channel
-    'network-status-changed' // Network status from main process
+    'network-status-changed', // Network status from main process
+    'get-update-status' // Get current update status
 ];
 
 contextBridge.exposeInMainWorld('electron', {

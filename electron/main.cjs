@@ -11,6 +11,12 @@ autoUpdater.autoDownload = false; // Don't auto-download, let user choose
 autoUpdater.autoInstallOnAppQuit = true; // Install when app closes
 
 let mainWindow;
+let updateModel = {
+    status: 'idle', // idle, checking, available, not-available, downloading, downloaded, error
+    info: null,
+    progress: null,
+    error: null
+};
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -105,10 +111,13 @@ app.on('window-all-closed', () => {
 
 autoUpdater.on('checking-for-update', () => {
     console.log('Checking for update...');
+    updateModel.status = 'checking';
 });
 
 autoUpdater.on('update-available', (info) => {
     console.log('Update available:', info.version);
+    updateModel.status = 'available';
+    updateModel.info = info;
     if (mainWindow) {
         mainWindow.webContents.send('update-available', {
             version: info.version,
@@ -119,10 +128,14 @@ autoUpdater.on('update-available', (info) => {
 
 autoUpdater.on('update-not-available', (info) => {
     console.log('Update not available.');
+    updateModel.status = 'not-available';
+    updateModel.info = info;
 });
 
 autoUpdater.on('error', (error) => {
     console.error('Update error:', error);
+    updateModel.status = 'error';
+    updateModel.error = error.message;
     if (mainWindow) {
         mainWindow.webContents.send('update-error', error.message);
     }
@@ -130,6 +143,8 @@ autoUpdater.on('error', (error) => {
 
 autoUpdater.on('download-progress', (progressObj) => {
     console.log(`Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}%`);
+    updateModel.status = 'downloading';
+    updateModel.progress = progressObj;
     if (mainWindow) {
         mainWindow.webContents.send('download-progress', {
             percent: progressObj.percent,
@@ -141,6 +156,8 @@ autoUpdater.on('download-progress', (progressObj) => {
 
 autoUpdater.on('update-downloaded', (info) => {
     console.log('Update downloaded:', info.version);
+    updateModel.status = 'downloaded';
+    updateModel.info = info;
     if (mainWindow) {
         mainWindow.webContents.send('update-downloaded', {
             version: info.version
@@ -158,6 +175,10 @@ ipcMain.on('download-update', () => {
 ipcMain.on('install-update', () => {
     console.log('User requested update installation');
     autoUpdater.quitAndInstall();
+});
+
+ipcMain.handle('get-update-status', () => {
+    return updateModel;
 });
 
 process.on('uncaughtException', (error) => {

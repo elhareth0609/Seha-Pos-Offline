@@ -9,6 +9,7 @@ import {
   FileText,
   LogOut,
   Users,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,7 +52,7 @@ const navGroups = [
 ]
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, refreshData } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
 
@@ -100,6 +101,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <img src="./favicon.png" alt="Site Icon" className="h-6 w-6" />
                   </Link>
                   <div className="flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={async () => {
+                        try {
+                          await refreshData();
+                          // Optional: Add toast success message here if toast is available in context/scope
+                        } catch (error) {
+                          console.error('Failed to refresh data:', error);
+                        }
+                      }} 
+                      title="تحديث البيانات"
+                    >
+                      <RefreshCw className="h-[1.2rem] w-[1.2rem]" />
+                      <span className="sr-only">تحديث البيانات</span>
+                    </Button>
                     <ThemeToggle />
                   </div>
                 </div>

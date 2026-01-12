@@ -106,6 +106,9 @@ interface AuthContextType {
 
     // Doctors
     getDoctors: () => Promise<Doctor[]>;
+
+    // Sync
+    refreshData: () => Promise<void>;
 }
 export interface ScopedDataContextType {
     inventory: [Medication[], React.Dispatch<React.SetStateAction<Medication[]>>];
@@ -325,7 +328,8 @@ async function apiRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DE
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     // USE REACTIVE ONLINE STATUS
-    const isOnline = useOnlineStatus();
+    const isCurrentOnline = useOnlineStatus();
+    const isOnline = isCurrentOnline;
     const navigate = useNavigate();
 
     // Track if we're currently handling session expiration
@@ -431,14 +435,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (token) {
             try {
-                // Enhanced offline detection with logging
-                const isOffline = !navigator.onLine;
-                console.log(`[Auth] Network status before API request: ${isOffline ? 'Offline' : 'Online'}`);
-
-                // If we detect we are offline via navigator (even if reactive is delayed), throw immediately to hit recovery
-                if (isOffline) {
-                    throw new TypeError('Offline (Detected by navigator)');
-                }
+                // Remove strict navigator.onLine check for Electron to avoid false positives
+                // apiRequest will handle timeout/failure and dispatch events
+                console.log(`[Auth] Attempting /user fetch (Navigator status: ${navigator.onLine ? 'Online' : 'Offline'})`);
 
                 const data: AuthResponse = await apiRequest('/user');
                 setAllData(data);
@@ -746,9 +745,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [isOnline]);
 
     const searchAllInventory = React.useCallback(async (search: string) => {
-        // Only check isOnline from the hook (DNS-based check)        
+        // Only check isOnline from the hook (DNS-based check)
+        const isOnlineForSearchAllInventory = isCurrentOnline;
+        
         const performLocalSearch = async () => {
-            console.log('[Search] Using local database for inventory search (offline mode)');
+             console.log('[Search] Using local database for inventory search (offline mode)');
             let allItems = await db.inventory.toArray();
             
             if (search && typeof search === 'string') {
@@ -756,7 +757,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const keywords = lowerSearch.split(/\s+/).filter(k => k.length > 0);
 
                 if (keywords.length > 0) {
-                    allItems = allItems.filter(i => {
+                     allItems = allItems.filter(i => {
                         const name = (i.name || '').toLowerCase();
                         const barcodes = Array.isArray(i.barcodes) ? i.barcodes : [];
                         const scientificNames = Array.isArray(i.scientific_names) ? i.scientific_names : [];
@@ -768,7 +769,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         const barcodeMatch = barcodes.some(b => (b || '').toLowerCase() === lowerSearch);
                         
                         // 3. Scientific name match
-                        const scientificMatch = scientificNames.some(s => (s || '').toLowerCase() === lowerSearch);
+                         const scientificMatch = scientificNames.some(s => (s || '').toLowerCase() === lowerSearch);
 
                         return nameMatch || barcodeMatch || scientificMatch;
                     });
@@ -795,8 +796,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return allItems.slice(0, 50);
         };
 
-        if (!isOnline) {
-            return performLocalSearch();
+        if (!isOnlineForSearchAllInventory) {
+           return performLocalSearch();
         }
 
         try {
@@ -808,7 +809,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('[Search] API request failed, falling back to local database');
             return performLocalSearch();
         }
-    }, [isOnline]);
+    }, [isCurrentOnline]);
 
     const searchInOtherBranches = React.useCallback(async (medicationName: string): Promise<BranchInventory[]> => {
         if (!isOnline) {
@@ -1436,6 +1437,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             searchInOtherBranches,
             pharmacyGroups, getPharmacyGroups, createPharmacyGroup, updatePharmacyGroup, deletePharmacyGroup,
             getDoctors, getPatientMedications,
+            refreshData: initializeAuth,
         }}>
             {children}
         </AuthContext.Provider>
