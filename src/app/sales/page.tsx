@@ -202,41 +202,21 @@ export default function SalesPage() {
     };
 
     const handleAddPatientMedToCart = async (medId: string) => {
-        const meds = await searchAllInventory(medId); // Search by ID/Barcode to get full object
-        // Since we store med ID in patient medications, we need to fetch the full object to add to cart
-        // But searchAllInventory is usually fuzzy. Let's try to find it in fullInventory first.
-        let med = fullInventory.find(m => m.id === medId);
+        // Try to find in fullInventory first (offline friendly)
+        let med = fullInventory.find(m => String(m.id) === String(medId));
+
         if (!med) {
-            // If not in fullInventory, try fetching specifically (if we had a getMedicationById). 
-            // Currently we might rely on it being in fullInventory or fetch via search.
-            // Let's assume for now we can find it via search if not in fullInventory.
-            // Actually, the `getPatientMedications` returns name. We might need the full object.
-            // Let's iterate `fullInventory`.
-            // If local update is slow, we might miss it.
+            // Fallback to API/DB search if not found locally
+            const results = await searchAllInventory(medId);
+            med = results.find(m => String(m.id) === String(medId));
         }
 
-        // Better approach:
-        // We know the ID.
         if (med) {
-            const added = addToCart(med);
-            if (added) {
-                toast({ title: "تمت الإضافة للسلة" });
-            }
+            addToCart(med);
+            // setIsPatientMedsOpen(false); // Optional: close dialog or keep open for multiple adds
+            toast({ title: "تمت الإضافة", description: `تمت إضافة ${med.name} إلى السلة.` })
         } else {
-            // Fallback: This might fail if fullInventory isn't fully loaded or pagination.
-            // But usually for sales heavily used items are there.
-            // As a fallback, we could trigger a specific search?
-            // Simple fallback:
-            const results = await searchAllInventory(medId); // Assuming search works with ID roughly or name
-            const found = results.find(m => m.id === medId);
-            if (found) {
-                const added = addToCart(found);
-                if (added) {
-                    toast({ title: "تمت الإضافة للسلة" });
-                }
-            } else {
-                toast({ variant: 'destructive', title: "لم يتم العثور على تفاصيل الدواء" });
-            }
+            toast({ variant: 'destructive', title: "لم يتم العثور على تفاصيل الدواء", description: "قد يكون الدواء غير متوفر في المخزون الحالي." })
         }
     };
 
@@ -317,6 +297,7 @@ export default function SalesPage() {
     const addToCart = React.useCallback((medication: Medication, unitType: 'box' | 'strip' = 'strip') => {
         // Force box unit if strips_per_box is 1
         // Force box unit if strips_per_box is 1 AND the setting is enabled
+        console.log(medication)
         const shouldForceBox = Number(medication.strips_per_box || 1) === 1 && (settings.force_box_if_single_strip ?? true);
         if (shouldForceBox) {
             unitType = 'box';
@@ -908,7 +889,7 @@ export default function SalesPage() {
                                                         }}
                                                     >
                                                         <div className="flex items-center gap-3">
-                                                            {typeof med.image_url === 'string' && med.image_url !== "" ? (
+                                                            {typeof med.image_url === 'string' && med.image_url !== "" && isOnline ? (
                                                                 <img
                                                                     src={med.image_url}
                                                                     alt={med.name || ''}

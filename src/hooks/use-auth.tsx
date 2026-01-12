@@ -758,7 +758,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const keywords = lowerSearch.split(/\s+/).filter(k => k.length > 0);
 
                 if (keywords.length > 0) {
-                     allItems = allItems.filter(i => {
+                    allItems = allItems.filter(i => {
                         const name = (i.name || '').toLowerCase();
                         const barcodes = Array.isArray(i.barcodes) ? i.barcodes : [];
                         const scientificNames = Array.isArray(i.scientific_names) ? i.scientific_names : [];
@@ -770,9 +770,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         const barcodeMatch = barcodes.some(b => (b || '').toLowerCase() === lowerSearch);
                         
                         // 3. Scientific name match
-                         const scientificMatch = scientificNames.some(s => (s || '').toLowerCase() === lowerSearch);
+                        const scientificMatch = scientificNames.some(s => (s || '').toLowerCase() === lowerSearch);
 
-                        return nameMatch || barcodeMatch || scientificMatch;
+                        // 4. ID match (exact)
+                        const idMatch = String(i.id) === lowerSearch;
+
+                        return nameMatch || barcodeMatch || scientificMatch || idMatch;
                     });
 
                     // Sort results to match backend logic
@@ -794,7 +797,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     });
                 }
             }
-            return allItems.slice(0, 50);
+            return allItems;
         };
 
         if (!isOnlineForSearchAllInventory) {
@@ -894,7 +897,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const lowerSearch = search.toLowerCase();
                 allItems = allItems.filter(p => p.name.toLowerCase().includes(lowerSearch) || p.phone?.includes(search));
             }
-            return allItems.slice(0, 50);
+            return allItems;
         }
 
         try {
@@ -909,7 +912,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const lowerSearch = search.toLowerCase();
                 allItems = allItems.filter(p => p.name.toLowerCase().includes(lowerSearch) || p.phone?.includes(search));
             }
-            return allItems.slice(0, 50);
+            return allItems;
         }
     }, [isOnline]);
 
@@ -1039,7 +1042,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             // Sort by date desc
             allSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            return allSales.slice(0, 50);
+            return allSales;
         }
 
         try {
@@ -1056,7 +1059,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             // Sort by date desc
             allSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            return allSales.slice(0, 50);
+            return allSales;
         }
     }, [isOnline]);
 
