@@ -560,6 +560,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setInventory(pd.inventory || []);
             setSales(pd.sales || []);
             setPatients(pd.patients || []);
+            setPatientMedications(pd.patientMedications || []);
             setTimeLogs(pd.timeLogs || []);
             setExpenses(pd.expenses || []);
             setSettings(pd.settings || fallbackAppSettings);
@@ -1399,6 +1400,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const getPatientMedications = async (patientId: string): Promise<PatientMedication[]> => {
         if (!isOnline) {
             console.log('[getPatientMedications] Offline mode - patient medications require online connection');
+            console.log(patientMedications)
             return patientMedications.filter(pm => pm.patient_id === patientId);
         }
 

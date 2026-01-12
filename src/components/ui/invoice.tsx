@@ -74,9 +74,9 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
         <thead>
           <tr className="bg-gray-100 text-center">
             <th className="border border-black p-1 w-[20%] font-bold">المبلغ</th>
-            <th className="border border-black p-1 w-[20%] font-bold">سعر المفرد</th>
-            <th className="border border-black p-1 w-[15%] font-bold">الكمية</th>
-            <th className="border border-black p-1 w-[45%] font-bold">التفاصيل</th>
+            {/* <th className="border border-black p-1 w-[20%] font-bold">سعر المفرد</th> */}
+            <th className="border border-black p-1 w-[20%] font-bold">الكمية</th>
+            <th className="border border-black p-1 w-[60%] font-bold">العنصر</th>
           </tr>
         </thead>
         <tbody>
@@ -85,7 +85,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
             return (
               <tr key={idx} className={cn("text-center font-bold", item.is_return ? 'text-red-600' : '')}>
                 <td className="border border-black p-1 font-mono text-sm align-middle">{itemTotal.toLocaleString()}</td>
-                <td className="border border-black p-1 font-mono align-middle">{item.price.toLocaleString()}</td>
+                {/* <td className="border border-black p-1 font-mono align-middle">{item.price.toLocaleString()}</td> */}
                 <td className="border border-black p-1 font-mono align-middle">{item.quantity}</td>
                 <td className="border border-black p-1 text-right align-middle">
                   <div>{item.name}</div>
@@ -97,7 +97,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
           {/* Total Row */}
           <tr>
             <td className="border border-black p-1 font-mono text-xl font-bold text-center bg-gray-50">{sale.total.toLocaleString()}</td>
-            <td colSpan={3} className="border border-black p-1 text-center font-bold text-xl bg-gray-50">المجموع</td>
+            <td colSpan={2} className="border border-black p-1 text-center font-bold text-xl bg-gray-50">المجموع</td>
           </tr>
         </tbody>
       </table>

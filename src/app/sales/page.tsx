@@ -69,61 +69,9 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { CalculatorComponent } from "@/components/ui/calculator"
 import { Textarea } from "@/components/ui/textarea"
 import { ar } from "date-fns/locale"
+import { printElement } from "@/lib/print-utils"
 
-const printElement = (element: HTMLElement, title: string = 'Print') => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
 
-    const stylesheets = Array.from(document.styleSheets)
-        .map(stylesheet => {
-            try {
-                return Array.from(stylesheet.cssRules)
-                    .map(rule => rule.cssText)
-                    .join('\n');
-            } catch (e) {
-                if (stylesheet.href) {
-                    return `@import url("${stylesheet.href}");`;
-                }
-                return '';
-            }
-        })
-        .join('\n');
-
-    const inlineStyles = Array.from(document.querySelectorAll('style'))
-        .map(style => style.innerHTML)
-        .join('\n');
-
-    printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>${title}</title>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <style>
-            ${stylesheets}
-            ${inlineStyles}
-            @media print {
-                body { margin: 0; }
-                * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
-            }
-            </style>
-        </head>
-        <body dir="rtl">
-            ${element.outerHTML}
-        </body>
-        </html>
-    `);
-
-    printWindow.document.close();
-
-    printWindow.onload = () => {
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 250);
-    };
-};
 
 function BarcodeConflictDialog({ open, onOpenChange, conflictingMeds, onSelect }: { open: boolean, onOpenChange: (open: boolean) => void, conflictingMeds: Medication[], onSelect: (med: Medication) => void }) {
     const sortedMeds = React.useMemo(() => {
