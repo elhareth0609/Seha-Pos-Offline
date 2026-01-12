@@ -37,6 +37,7 @@ import { ThemeToggle } from "../ui/theme-toggle";
 import { NetworkStatus } from "@/components/ui/network-status";
 import { UpdateNotification } from "@/components/ui/update-notification";
 import { cn } from "@/lib/utils";
+import { useOnlineStatus } from "@/hooks/use-online-status";
 
 const allNavItems = [
   { href: "/sales", icon: ShoppingCart, label: "المبيعات", group: 'main' },
@@ -57,6 +58,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
 
+  const isOnline = useOnlineStatus();
 
   const navItems = React.useMemo(() => {
     if (!currentUser) return [];
@@ -103,26 +105,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <img src="./favicon.png" alt="Site Icon" className="h-6 w-6" />
                   </Link>
                   <div className="flex items-center gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={async () => {
-                        setIsRefreshing(true);
-                        try {
-                          await refreshData();
-                          // Optional: Add toast success message here if toast is available in context/scope
-                        } catch (error) {
-                          console.error('Failed to refresh data:', error);
-                        } finally {
-                          setIsRefreshing(false);
-                        }
-                      }} 
-                      title="تحديث البيانات"
-                      disabled={isRefreshing}
-                    >
-                      <RefreshCw className={cn("h-[1.2rem] w-[1.2rem]", isRefreshing && "animate-spin")} />
-                      <span className="sr-only">تحديث البيانات</span>
-                    </Button>
+                    {isOnline && (
+
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={async () => {
+                          setIsRefreshing(true);
+                          try {
+                            await refreshData();
+                            // Optional: Add toast success message here if toast is available in context/scope
+                          } catch (error) {
+                            console.error('Failed to refresh data:', error);
+                          } finally {
+                            setIsRefreshing(false);
+                          }
+                        }} 
+                        title="تحديث البيانات"
+                        disabled={isRefreshing}
+                        >
+                        <RefreshCw className={cn("h-[1.2rem] w-[1.2rem]", isRefreshing && "animate-spin")} />
+                        <span className="sr-only">تحديث البيانات</span>
+                      </Button>
+                    )}
                     <ThemeToggle />
                   </div>
                 </div>

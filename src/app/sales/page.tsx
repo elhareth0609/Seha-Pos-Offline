@@ -212,9 +212,11 @@ export default function SalesPage() {
         }
 
         if (med) {
-            addToCart(med);
-            // setIsPatientMedsOpen(false); // Optional: close dialog or keep open for multiple adds
-            toast({ title: "تمت الإضافة", description: `تمت إضافة ${med.name} إلى السلة.` })
+            const added = addToCart(med);
+            if (added) {
+                // setIsPatientMedsOpen(false); // Optional: close dialog or keep open for multiple adds
+                toast({ title: "تمت الإضافة", description: `تمت إضافة ${med.name} إلى السلة.` })
+            }
         } else {
             toast({ variant: 'destructive', title: "لم يتم العثور على تفاصيل الدواء", description: "قد يكون الدواء غير متوفر في المخزون الحالي." })
         }
@@ -297,7 +299,8 @@ export default function SalesPage() {
     const addToCart = React.useCallback((medication: Medication, unitType: 'box' | 'strip' = 'strip') => {
         // Force box unit if strips_per_box is 1
         // Force box unit if strips_per_box is 1 AND the setting is enabled
-        console.log(medication)
+        // Force box unit if strips_per_box is 1
+        // Force box unit if strips_per_box is 1 AND the setting is enabled
         const shouldForceBox = Number(medication.strips_per_box || 1) === 1 && (settings.force_box_if_single_strip ?? true);
         if (shouldForceBox) {
             unitType = 'box';
