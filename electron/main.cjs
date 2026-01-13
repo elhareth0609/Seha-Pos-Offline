@@ -181,6 +181,25 @@ ipcMain.handle('get-update-status', () => {
     return updateModel;
 });
 
+ipcMain.on('print-component', (event, content) => {
+    const workerWindow = new BrowserWindow({
+        show: false,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true
+        }
+    });
+
+    workerWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(content));
+
+    workerWindow.webContents.on('did-finish-load', () => {
+        workerWindow.webContents.print({ silent: true, printBackground: true }, (success, errorType) => {
+            if (!success) console.log("Print failed:", errorType);
+            workerWindow.close();
+        });
+    });
+});
+
 process.on('uncaughtException', (error) => {
     console.error('Uncaught Exception:', error);
 });

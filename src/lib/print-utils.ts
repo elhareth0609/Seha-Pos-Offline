@@ -1,23 +1,5 @@
 
 export const printElement = (element: HTMLElement, title: string = 'Print') => {
-    // Create iframe element
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.top = '0';
-    iframe.style.left = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = 'none';
-    iframe.style.visibility = 'hidden';
-    
-    document.body.appendChild(iframe);
-    
-    const doc = iframe.contentWindow?.document;
-    if (!doc) {
-        document.body.removeChild(iframe);
-        return;
-    }
-
     // Get all style sheets
     const stylesheets = Array.from(document.styleSheets)
         .map(stylesheet => {
@@ -40,8 +22,7 @@ export const printElement = (element: HTMLElement, title: string = 'Print') => {
         .map(style => style.outerHTML)
         .join('\n');
 
-    doc.open();
-    doc.write(`
+    const htmlContent = `
         <!DOCTYPE html>
         <html dir="rtl">
         <head>
@@ -61,7 +42,34 @@ export const printElement = (element: HTMLElement, title: string = 'Print') => {
             ${element.outerHTML}
         </body>
         </html>
-    `);
+    `;
+
+    // Check if running in Electron
+    if (window.electron) {
+        window.electron.ipcRenderer.send('print-component', htmlContent);
+        return;
+    }
+
+    // Fallback: Create iframe element for web
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.top = '0';
+    iframe.style.left = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    iframe.style.visibility = 'hidden';
+    
+    document.body.appendChild(iframe);
+    
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+        document.body.removeChild(iframe);
+        return;
+    }
+
+    doc.open();
+    doc.write(htmlContent);
     doc.close();
 
     // Print when images needed for print are loaded (optional improvement), 
