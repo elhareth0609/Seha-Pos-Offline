@@ -105,6 +105,36 @@
     --medical-success: 130 60% 50%;
     --medical-warning: 40 90% 70%;
   }
+
+  .theme-pink {
+    --background: 330 80% 98%;
+    --foreground: 330 50% 10%;
+    --card: 330 60% 100%;
+    --card-foreground: 330 50% 10%;
+    --popover: 330 60% 100%;
+    --popover-foreground: 330 50% 10%;
+    --primary: 329 79% 51%; /* #E11584 */
+    --primary-foreground: 330 100% 98%;
+    --primary-glow: 329 79% 61%;
+    --secondary: 330 60% 92%;
+    --secondary-foreground: 330 50% 10%;
+    --muted: 330 60% 95%;
+    --muted-foreground: 330 30% 40%;
+    --accent: 329 79% 51%;
+    --accent-foreground: 330 100% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 355.7 100% 97.3%;
+    --success: 329 79% 51%;
+    --success-foreground: 330 100% 98%;
+    --border: 330 40% 90%;
+    --input: 330 40% 90%;
+    --ring: 329 79% 51%;
+
+    --medical-primary: 329 79% 51%;
+    --medical-secondary: 329 60% 40%;
+    --medical-success: 329 79% 51%;
+    --medical-warning: 38 92% 50%;
+  }
 }
 
 @layer base {
