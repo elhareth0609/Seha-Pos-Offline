@@ -3,7 +3,6 @@
 "use client"
 
 import * as React from 'react';
-import * as XLSX from 'xlsx';
 import {
     Card,
     CardContent,
@@ -29,9 +28,11 @@ import {
     DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import type { Sale, SaleItem, User, PaginatedResponse, Patient } from '@/lib/types';
+import type { Sale, SaleItem, Patient } from '@/lib/types';
 import { InvoiceTemplate } from '@/components/ui/invoice';
-import { Printer, DollarSign, TrendingUp, ChevronDown, Trash2, Pencil, FileArchive } from 'lucide-react';
+import { Printer, DollarSign, TrendingUp, ChevronDown, FileDown, Loader2 } from 'lucide-react';
+import { DatePicker } from "@/components/ui/date-picker";
+import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -39,28 +40,29 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
 import { Label } from '@/components/ui/label';
 import AdCarousel from '@/components/ui/ad-carousel';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { buttonVariants } from '@/components/ui/button';
+// import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PinDialog } from '@/components/auth/PinDialog';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 import { printElement } from '@/lib/print-utils';
 
 
 
 
 export default function ReportsPage() {
-    const { currentUser, users, scopedData, deleteSale, updateActiveInvoice, getPaginatedSales, verifyPin, switchToInvoice, getPaginatedPatients, getDoctors, searchAllPatients } = useAuth();
+    const { currentUser, users, scopedData, deleteSale, updateActiveInvoice, getPaginatedSales, verifyPin, switchToInvoice, getPaginatedPatients, getDoctors, searchAllPatients, exportSales } = useAuth();
     const [settings] = scopedData.settings;
     const [sales, setSales] = React.useState<Sale[]>([]);
     const [totalPages, setTotalPages] = React.useState(1);
     const [currentPage, setCurrentPage] = React.useState(1);
     const [perPage, setPerPage] = React.useState(10);
     const [loading, setLoading] = React.useState(true);
-    const [patients, setPatients] = React.useState<any[]>([]);
+    const [exporting, setExporting] = React.useState(false);
     const [allPatients, setAllPatients] = React.useState<Patient[]>([]);
     const [doctors, setDoctors] = React.useState<any[]>([]);
+    const [totalSalesDisplayed, setTotalSalesDisplayed] = React.useState(0);
+    const [totalProfitDisplayed, setTotalProfitDisplayed] = React.useState(0);
 
     const [searchTerm, setSearchTerm] = React.useState("");
     const [isClient, setIsClient] = React.useState(false);
@@ -77,9 +79,9 @@ export default function ReportsPage() {
     const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
     const { toast } = useToast();
 
-    const navigate = useNavigate();
+    // const navigate = useNavigate();
 
-    const canManagePreviousSales = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_previous_sales;
+    // const canManagePreviousSales = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_previous_sales;
 
     const fetchDropdownData = React.useCallback(async () => {
         try {
@@ -114,12 +116,33 @@ export default function ReportsPage() {
             setSales(filteredData);
             setTotalPages(data.last_page);
             setCurrentPage(data.current_page);
+
+            if (data.totals) {
+                setTotalSalesDisplayed(Number(data.totals.total_sales) || 0);
+                setTotalProfitDisplayed(Number(data.totals.total_profit) || 0);
+            } else {
+                const total = filteredData.reduce((acc, sale) => acc + (Number(sale.total) || 0), 0);
+                const profit = filteredData.reduce((acc, sale) => acc + (Number(sale.profit) || 0), 0);
+                setTotalSalesDisplayed(total);
+                setTotalProfitDisplayed(profit);
+            }
         } catch (error) {
             console.error("Failed to fetch sales", error);
         } finally {
             setLoading(false);
         }
     }, [getPaginatedSales]);
+
+    const handleExport = async () => {
+        setExporting(true);
+        try {
+            const fromStr = dateFrom ? format(dateFrom, "yyyy-MM-dd") : "";
+            const toStr = dateTo ? format(dateTo, "yyyy-MM-dd") : "";
+            await exportSales(searchTerm, fromStr, toStr, employeeId, paymentMethod, doctorId, patientId);
+        } finally {
+            setExporting(false);
+        }
+    };
 
     React.useEffect(() => {
         setIsClient(true);
@@ -172,19 +195,19 @@ export default function ReportsPage() {
         setDoctorId("all");
     };
 
-    const handleDeleteSale = async () => {
-        if (!itemToDelete) return;
+    // const handleDeleteSale = async () => {
+    //     if (!itemToDelete) return;
 
-        if (currentUser?.require_pin_for_delete) {
-            setIsPinDialogOpen(true);
-        } else {
-            const success = await deleteSale(itemToDelete.id);
-            if (success) {
-                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, invoiceType, patientId);
-                setItemToDelete(null);
-            }
-        }
-    }
+    //     if (currentUser?.require_pin_for_delete) {
+    //         setIsPinDialogOpen(true);
+    //     } else {
+    //         const success = await deleteSale(itemToDelete.id);
+    //         if (success) {
+    //             fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, invoiceType, patientId);
+    //             setItemToDelete(null);
+    //         }
+    //     }
+    // }
 
     const handlePinConfirmDelete = async (pin: string) => {
         if (!itemToDelete) return;
@@ -201,32 +224,24 @@ export default function ReportsPage() {
         }
     };
 
-    const handleEditSale = (sale: Sale) => {
-        const saleToEdit = sales.find(s => s.id === sale.id);
-        if (saleToEdit) {
-            switchToInvoice(0); // Switch to the first invoice tab
-            updateActiveInvoice(() => ({ // Replace its content
-                cart: saleToEdit.items.map((i: SaleItem) => ({ ...i, id: i.medication_id })),
-                discountValue: (saleToEdit.discount || 0).toString(),
-                discountType: 'fixed',
-                patientId: saleToEdit.patient_id || null,
-                doctorId: saleToEdit.doctor_id || null,
-                paymentMethod: saleToEdit.payment_method || 'cash',
-                saleIdToUpdate: saleToEdit.id,
-            }));
-            navigate('/sales');
-        }
-    };
+    // const handleEditSale = (sale: Sale) => {
+    //     const saleToEdit = sales.find(s => s.id === sale.id);
+    //     if (saleToEdit) {
+    //         switchToInvoice(0); // Switch to the first invoice tab
+    //         updateActiveInvoice(() => ({ // Replace its content
+    //             cart: saleToEdit.items.map((i: SaleItem) => ({ ...i, id: i.medication_id })),
+    //             discountValue: (saleToEdit.discount || 0).toString(),
+    //             discountType: 'fixed',
+    //             patientId: saleToEdit.patient_id || null,
+    //             doctorId: saleToEdit.doctor_id || null,
+    //             paymentMethod: saleToEdit.payment_method || 'cash',
+    //             saleIdToUpdate: saleToEdit.id,
+    //         }));
+    //         navigate('/sales');
+    //     }
+    // };
 
-    const totalSalesValue = sales.reduce((acc, sale) => {
-        const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
-        return acc + (isNaN(total) ? 0 : total);
-    }, 0);
-    const totalProfit = sales.reduce((acc, sale) => {
-        const total = (typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0))) -
-            (typeof sale.discount === 'number' ? sale.discount : parseFloat(String(sale.discount || 0)));
-        return acc + (isNaN(total) ? 0 : total);
-    }, 0);
+    // Removed client-side calculation. Using API values.
 
     const pharmacyUsers = React.useMemo(() => {
         return users.filter(u => u.pharmacy_id === currentUser?.pharmacy_id);
@@ -300,7 +315,7 @@ export default function ReportsPage() {
                                 <DollarSign className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold font-mono">{totalSalesValue.toLocaleString()}</div>
+                                <div className="text-2xl font-bold font-mono">{totalSalesDisplayed.toLocaleString()}</div>
                             </CardContent>
                         </Card>
                         <Card className="flex flex-col justify-center">
@@ -309,7 +324,7 @@ export default function ReportsPage() {
                                 <TrendingUp className="h-4 w-4 text-green-600" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-green-600 font-mono">{totalProfit.toLocaleString()}</div>
+                                <div className="text-2xl font-bold text-green-600 font-mono">{totalProfitDisplayed.toLocaleString()}</div>
                             </CardContent>
                         </Card>
                     </>
@@ -356,11 +371,21 @@ export default function ReportsPage() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="date-from">من تاريخ</Label>
-                            <Input id="date-from" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+                            <DatePicker 
+                                id="date-from" 
+                                value={dateFrom} 
+                                onChange={(value: string) => setDateFrom(value)} 
+                                showTime
+                            />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="date-to">إلى تاريخ</Label>
-                            <Input id="date-to" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+                            <DatePicker 
+                                id="date-to" 
+                                value={dateTo} 
+                                onChange={(value: string) => setDateTo(value)} 
+                                showTime
+                            />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="employee-filter">الموظف</Label>
@@ -432,8 +457,16 @@ export default function ReportsPage() {
                             </Select>
                         </div>
                     </div>
-                    <div className="pt-2">
+                    <div className="pt-2 flex items-center justify-between">
                         <Button onClick={clearFilters} variant="link" className="p-0 h-auto">إزالة كل الفلاتر</Button>
+                        <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
+                            {exporting ? (
+                                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <FileDown className="ml-2 h-4 w-4" />
+                            )}
+                            تصدير Excel
+                        </Button>
                     </div>
                 </CardHeader>
                 <CardContent>

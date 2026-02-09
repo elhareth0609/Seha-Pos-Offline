@@ -65,7 +65,7 @@ interface AuthContextType {
     bulkAddOrUpdateInventory: (items: Partial<Medication>[]) => Promise<{ new_count: number; updated_count?: number; } | null>;
     bulkUploadInventory: (file: File) => Promise<{ new_count: number; updated_count?: number; processed_medications?: number; } | null>;
     getPaginatedInventory: (page: number, perPage: number, search: string, filters: Record<string, any>) => Promise<PaginatedResponse<Medication>>;
-    searchAllInventory: (search: string) => Promise<Medication[]>;
+    searchAllInventory: (search: string, filters?: Record<string, any>) => Promise<Medication[]>;
     toggleFavoriteMedication: (medId: string) => Promise<void>;
     searchInOtherBranches: (medicationName: string) => Promise<BranchInventory[]>;
 
@@ -78,7 +78,7 @@ interface AuthContextType {
     addSale: (saleData: any) => Promise<Sale | null>;
     updateSale: (saleData: any) => Promise<Sale | null>;
     deleteSale: (saleId: string) => Promise<boolean>;
-    getPaginatedSales: (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string) => Promise<PaginatedResponse<Sale>>;
+    getPaginatedSales: (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string) => Promise<PaginatedResponse<Sale> & { totals?: { total_sales: number, total_profit: number } }>;
     searchAllSales: (search?: string) => Promise<Sale[]>;
 
     // Patients
@@ -109,6 +109,9 @@ interface AuthContextType {
 
     // Sync
     refreshData: () => Promise<void>;
+
+    // Export
+    exportSales: (search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string) => Promise<void>;
 }
 export interface ScopedDataContextType {
     inventory: [Medication[], React.Dispatch<React.SetStateAction<Medication[]>>];
@@ -745,7 +748,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [isOnline]);
 
-    const searchAllInventory = React.useCallback(async (search: string) => {
+    const searchAllInventory = React.useCallback(async (search: string, filters: Record<string, any> = {}) => {
         // Only check isOnline from the hook (DNS-based check)
         const isOnlineForSearchAllInventory = isCurrentOnline;
         
@@ -775,27 +778,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         // 4. ID match (exact)
                         const idMatch = String(i.id) === lowerSearch;
 
-                        return nameMatch || barcodeMatch || scientificMatch || idMatch;
-                    });
-
-                    // Sort results to match backend logic
-                    allItems.sort((a, b) => {
-                        const nameA = (a.name || '').toLowerCase();
-                        const nameB = (b.name || '').toLowerCase();
-
-                        // Priority 1: Exact name match
-                        if (nameA === lowerSearch && nameB !== lowerSearch) return -1;
-                        if (nameA !== lowerSearch && nameB === lowerSearch) return 1;
-
-                        // Priority 2: Name starts with search term
-                        const startsA = nameA.startsWith(lowerSearch);
-                        const startsB = nameB.startsWith(lowerSearch);
-                        if (startsA && !startsB) return -1;
-                        if (!startsA && startsB) return 1;
-
-                         return 0; // Default order
+                        return (nameMatch || barcodeMatch || scientificMatch || idMatch);
                     });
                 }
+            }
+
+            // Apply offline filters
+            if (filters.stock_status === 'has_stock') {
+                allItems = allItems.filter(i => (i.stock || 0) > 0);
+            }
+
+            if (search) {
+                const lowerSearch = search.trim().toLowerCase();
+                // Sort results to match backend logic
+                allItems.sort((a, b) => {
+                    const nameA = (a.name || '').toLowerCase();
+                    const nameB = (b.name || '').toLowerCase();
+
+                    // Priority 1: Exact name match
+                    if (nameA === lowerSearch && nameB !== lowerSearch) return -1;
+                    if (nameA !== lowerSearch && nameB === lowerSearch) return 1;
+
+                    // Priority 2: Name starts with search term
+                    const startsA = nameA.startsWith(lowerSearch);
+                    const startsB = nameB.startsWith(lowerSearch);
+                    if (startsA && !startsB) return -1;
+                    if (!startsA && startsB) return 1;
+
+                     return 0; // Default order
+                });
             }
             return allItems;
         };
@@ -806,8 +817,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         try {
             console.log('[Search] Using API for inventory search (online mode)');
-            const params = new URLSearchParams({ search });
-            return await apiRequest(`/medications?${params.toString()}`);
+            const params = new URLSearchParams({ search, ...filters });
+            const result = await apiRequest(`/medications?${params.toString()}`);
+            // The API returns paginated data even without paginate=true, so we access .data
+            return result.data || result;
         } catch (e) {
             // If API request fails, fallback to local search
             console.log('[Search] API request failed, falling back to local database');
@@ -965,7 +978,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 total,
                 per_page: perPage,
                 first_page_url: '', from: start + 1, last_page_url: '', links: [], next_page_url: null, path: '', prev_page_url: null, to: start + data.length
-            } as PaginatedResponse<Sale>;
+            } as PaginatedResponse<Sale> & { totals?: { total_sales: number, total_profit: number } };
         }
 
         try {
@@ -1025,7 +1038,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 total,
                 per_page: perPage,
                 first_page_url: '', from: start + 1, last_page_url: '', links: [], next_page_url: null, path: '', prev_page_url: null, to: start + data.length
-            } as PaginatedResponse<Sale>;
+            } as PaginatedResponse<Sale> & { totals?: { total_sales: number, total_profit: number } };
         }
     }, [isOnline]);
 
@@ -1415,6 +1428,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }
 
+    const exportSales = async (search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string) => {
+        try {
+            const params = new URLSearchParams({
+                search: search || "",
+                from: dateFrom || "",
+                to: dateTo || "",
+                employee_id: employeeId || "all",
+                payment_method: paymentMethod || "all",
+                doctor_id: doctorId || "all",
+                patient_id: patientId || "all"
+            });
+
+            const response = await fetch(`${API_URL}/sales/export?${params.toString()}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                }
+            });
+
+            if (!response.ok) throw new Error('Export failed');
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sales_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            toast({
+                title: "تم التصدير",
+                description: "تم تحميل ملف المبيعات بنجاح",
+            });
+        } catch (error) {
+            console.error('Export error:', error);
+            toast({
+                title: "فشل التصدير",
+                description: "حدث خطأ أثناء محاولة تصدير البيانات",
+                variant: "destructive",
+            });
+        }
+    };
+
     const scopedData: ScopedDataContextType = {
         inventory: [inventory, setInventory],
         sales: [sales, setSales],
@@ -1442,6 +1499,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             searchInOtherBranches,
             pharmacyGroups, getPharmacyGroups, createPharmacyGroup, updatePharmacyGroup, deletePharmacyGroup,
             getDoctors, getPatientMedications,
+            exportSales,
             refreshData: initializeAuth,
         }}>
             {children}

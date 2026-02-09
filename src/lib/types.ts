@@ -62,6 +62,7 @@ export type UserPermissions = {
   // manage_exchange: boolean;
   // manage_doctors: boolean;
   manage_sales_performance_period: boolean;
+  manage_salesDiscount: boolean;
 };
 
 export type Notification = {
@@ -236,6 +237,7 @@ export type PurchaseOrder = {
   items: PurchaseOrderItem[];
   status: "Pending" | "Received" | "Cancelled";
   total_amount: number;
+  notes?: string;
 };
 
 export type ReturnOrderItem = {
@@ -351,6 +353,7 @@ export type AppSettings = {
   favorite_med_ids?: string[];
   expense_categories?: { id: string; name: string }[];
   force_box_if_single_strip?: boolean;
+  default_unit_type?: 'box' | 'strip';
 }
 
 export type TrashItem = {

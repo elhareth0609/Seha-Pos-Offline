@@ -3,9 +3,7 @@ import * as React from "react"
 import {
     Card,
     CardContent,
-    CardDescription,
     CardHeader,
-    CardTitle,
     CardFooter
 } from "@/components/ui/card"
 import {
@@ -47,28 +45,24 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import type { Medication, SaleItem, Sale, AppSettings, Patient, DoseCalculationOutput, Notification, BranchInventory, PatientMedication } from "@/lib/types"
-import { PlusCircle, X, PackageSearch, ArrowLeftRight, Printer, User as UserIcon, AlertTriangle, Package, Thermometer, BrainCircuit, WifiOff, Wifi, Replace, Percent, Pencil, Trash2, ArrowRight, FileText, Calculator, Search, Plus, Minus, Star, History, Stethoscope, Pill } from "lucide-react"
+import type { Medication, SaleItem, Sale, AppSettings, Patient, Notification, PatientMedication } from "@/lib/types"
+import { Loader2, PlusCircle, X, PackageSearch, Printer, User as UserIcon, AlertTriangle, Package, Replace, Percent, Trash2, FileText, Calculator, Plus, Minus, Pill } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 import { InvoiceTemplate } from "@/components/ui/invoice"
 import { useAuth } from "@/hooks/use-auth"
 import { buttonVariants } from "@/components/ui/button"
-import { calculateDose, type DoseCalculationInput } from "@/ai/flows/dose-calculator-flow"
-import { Skeleton } from "@/components/ui/skeleton"
 import { useOnlineStatus } from "@/hooks/use-online-status"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import AdCarousel from "@/components/ui/ad-carousel"
-import { differenceInDays, parseISO, startOfToday, format } from "date-fns"
+import { differenceInDays, parseISO, startOfToday } from "date-fns"
 import { Badge } from "@/components/ui/badge"
 import { useNavigate } from "react-router-dom"
 import { PinDialog } from "@/components/auth/PinDialog"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { CalculatorComponent } from "@/components/ui/calculator"
-import { Textarea } from "@/components/ui/textarea"
-import { ar } from "date-fns/locale"
 import { printElement } from "@/lib/print-utils"
 
 
@@ -171,7 +165,6 @@ export default function SalesPage() {
     const [nameSearchTerm, setNameSearchTerm] = React.useState("")
     const [nameSuggestions, setNameSuggestions] = React.useState<Medication[]>([])
     const [barcodeSearchTerm, setBarcodeSearchTerm] = React.useState("")
-    const [isCheckoutOpen, setIsCheckoutOpen] = React.useState(false);
     const [isReceiptOpen, setIsReceiptOpen] = React.useState(false);
     const [saleToPrint, setSaleToPrint] = React.useState<Sale | null>(null);
     const [alternativeExpiryAlert, setAlternativeExpiryAlert] = React.useState<Notification | null>(null);
@@ -180,14 +173,10 @@ export default function SalesPage() {
     const [isProcessingSale, setIsProcessingSale] = React.useState(false);
 
 
-    const [isDosingAssistantOpen, setIsDosingAssistantOpen] = React.useState(false);
 
     const [isPatientModalOpen, setIsPatientModalOpen] = React.useState(false);
     const [patientSearchTerm, setPatientSearchTerm] = React.useState("");
     const [patientSuggestions, setPatientSuggestions] = React.useState<Patient[]>([]);
-    const [newPatientName, setNewPatientName] = React.useState("");
-    const [newPatientPhone, setNewPatientPhone] = React.useState("");
-    const [sortedSales, setSortedSales] = React.useState<Sale[]>([]);
     const [hasLoadedPatients, setHasLoadedPatients] = React.useState(false);
 
     // Patient Medications Logic
@@ -227,6 +216,7 @@ export default function SalesPage() {
     const isOnline = useOnlineStatus();
     const priceModificationAllowed = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_salesPriceModification;
     const canManagePreviousSales = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_previous_sales;
+    const canApplyDiscount = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_salesDiscount;
 
     const { toast } = useToast()
 
@@ -243,14 +233,6 @@ export default function SalesPage() {
             printElement(printComponentRef.current, `invoice-${saleToPrint?.id}`);
         }
     };
-
-    React.useEffect(() => {
-        async function fetchInitialSales() {
-            const initialSales = await searchAllSales();
-            setSortedSales(initialSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-        }
-        fetchInitialSales();
-    }, [searchAllSales]);
 
     // Load all patients when component mounts
     React.useEffect(() => {
@@ -296,10 +278,9 @@ export default function SalesPage() {
         }
     }, [fullInventory, mode]);
 
-    const addToCart = React.useCallback((medication: Medication, unitType: 'box' | 'strip' = 'strip') => {
-        // Force box unit if strips_per_box is 1
-        // Force box unit if strips_per_box is 1 AND the setting is enabled
-        // Force box unit if strips_per_box is 1
+    const addToCart = React.useCallback((medication: Medication, unitTypeArg?: 'box' | 'strip') => {
+        let unitType = unitTypeArg || settings.default_unit_type || 'strip';
+
         // Force box unit if strips_per_box is 1 AND the setting is enabled
         const shouldForceBox = Number(medication.strips_per_box || 1) === 1 && (settings.force_box_if_single_strip ?? true);
         if (shouldForceBox) {
@@ -388,12 +369,6 @@ export default function SalesPage() {
     }, [mode, updateActiveInvoice, toast, checkAlternativeExpiry])
 
     const removeFromCart = React.useCallback((id: string, isReturn: boolean | undefined, unitType?: 'box' | 'strip') => {
-        const itemToRemove = activeInvoices[currentInvoiceIndex].cart.find(item =>
-            item.id === id &&
-            item.is_return === isReturn &&
-            item.unit_type === (unitType || 'strip')
-        );
-
         updateActiveInvoice(invoice => {
             const newCart = invoice.cart.filter(item => !(
                 item.id === id &&
@@ -406,7 +381,7 @@ export default function SalesPage() {
                 cart: newCart
             };
         });
-    }, [updateActiveInvoice, activeInvoices, currentInvoiceIndex]);
+    }, [updateActiveInvoice]);
 
     const handleSwapAndAddToCart = () => {
         if (!alternativeExpiryAlert || !alternativeExpiryAlert.data) return;
@@ -422,11 +397,12 @@ export default function SalesPage() {
     const processBarcode = async (barcode: string) => {
         setIsSearchLoading(true);
         try {
-            // Search via DB/API to ensure we find items even if not in current fullInventoryView
-            const results = await searchAllInventory(barcode);
+            if (fullInventory.length === 0) {
+                const results = await searchAllInventory('');
+                setFullInventory(results);
+            }
 
-            // Filter strictly for barcode match from the search results
-            const matchingMeds = results.filter(med =>
+            const matchingMeds = fullInventory.filter(med =>
                 med.barcodes && Array.isArray(med.barcodes) && med.barcodes.some(bc => bc && bc.toLowerCase() === barcode.toLowerCase())
             );
 
@@ -470,26 +446,26 @@ export default function SalesPage() {
     }, [cart, alternativeExpiryAlert]);
 
 
-    React.useEffect(() => {
-        async function fetchInventory() {
-            const results = await searchAllInventory('');
-            setFullInventory(results);
-        }
-        fetchInventory();
+    const fetchInventory = React.useCallback(async () => {
+        const results = await searchAllInventory('');
+        setFullInventory(results);
     }, [searchAllInventory]);
 
+    React.useEffect(() => {
+        fetchInventory();
+    }, [fetchInventory]);
 
-    const handleNameSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setNameSearchTerm(value);
+    const handleNameSearchChange = React.useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+        setNameSearchTerm(value)
 
-        if (value.length > 0) {
-            const results = await searchAllInventory(value);
-            setNameSuggestions(results);
+        if (value.trim().length > 1) {
+            const results = await searchAllInventory(value, { stock_status: 'has_stock' });
+            setNameSuggestions(results)
         } else {
-            setNameSuggestions([]);
+            setNameSuggestions([])
         }
-    }
+    }, [searchAllInventory]);
 
     const handleBarcodeSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -593,7 +569,6 @@ export default function SalesPage() {
     }, [discountValue, discountType, subtotal]);
 
     const finalTotal = subtotal - discountAmount;
-    const finalProfit = totalProfit - discountAmount;
 
     const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
     React.useEffect(() => {
@@ -655,18 +630,16 @@ export default function SalesPage() {
         );
 
         if (drugsInCart.length > 0) {
-            // تحقق إذا كان الرمز قد تم تأكيده بالفعل
             if (isControlledDrugConfirmed) {
-                setIsCheckoutOpen(true);
-                setIsControlledDrugConfirmed(false); // إعادة تعيين الحالة للاستخدام المستقبلي
+                handleFinalizeSale();
+                setIsControlledDrugConfirmed(false);
             } else {
                 setControlledDrugsInCart(drugsInCart.map(d => d.name));
                 setIsControlledDrugPinOpen(true);
-                // لا تفتح نافذة الدفع مباشرة، انتظر تأكيد الرمز
                 return;
             }
         } else {
-            setIsCheckoutOpen(true);
+            handleFinalizeSale();
         }
     }
 
@@ -695,16 +668,14 @@ export default function SalesPage() {
                 toast({ title: saleIdToUpdate ? "تم تحديث الفاتورة بنجاح" : "تمت العملية بنجاح", description: `تم تسجيل الفاتورة رقم ${resultSale.id}` });
 
                 setSaleToPrint(resultSale);
-                setIsCheckoutOpen(false);
                 setIsReceiptOpen(true);
-                const latestSales = await searchAllSales();
-                setSortedSales(latestSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
                 setAlternativeExpiryAlert(null);
             }
         } catch (error) {
             // Errors are already toasted in apiRequest
         } finally {
             setIsProcessingSale(false);
+            await fetchInventory();
         }
     }
 
@@ -713,7 +684,7 @@ export default function SalesPage() {
         setControlledDrugPin('');
         setIsControlledDrugPinOpen(false);
         setIsControlledDrugConfirmed(true);
-        setIsCheckoutOpen(true);
+        await handleFinalizeSale();
         toast({
             variant: "default",
             title: "تنبيه: دواء خاضع للرقابة",
@@ -728,7 +699,6 @@ export default function SalesPage() {
         } else {
             const success = await deleteSale(saleIdToUpdate);
             if (success) {
-                setSortedSales(prev => prev.filter(s => s.id !== saleIdToUpdate));
                 closeInvoice(currentInvoiceIndex);
                 toast({ title: "تم حذف الفاتورة" });
             }
@@ -742,7 +712,6 @@ export default function SalesPage() {
             setIsPinDialogOpen(false);
             const success = await deleteSale(saleIdToUpdate);
             if (success) {
-                setSortedSales(prev => prev.filter(s => s.id !== saleIdToUpdate));
                 closeInvoice(currentInvoiceIndex);
                 toast({ title: "تم حذف الفاتورة" });
             }
@@ -1372,10 +1341,11 @@ export default function SalesPage() {
                                         placeholder="0"
                                         inputMode="decimal"
                                         pattern="[0-9]*\.?[0-9]*"
+                                        disabled={!canApplyDiscount}
                                     />
-                                    <RadioGroup defaultValue="fixed" value={discountType} onValueChange={(value: any) => updateActiveInvoice(prev => ({ ...prev, discountType: value }))} className="flex">
-                                        <Button type="button" size="sm" variant={discountType === 'fixed' ? 'secondary' : 'ghost'} onClick={() => updateActiveInvoice(prev => ({ ...prev, discountType: 'fixed' }))}>IQD</Button>
-                                        <Button type="button" size="icon" variant={discountType === 'percentage' ? 'secondary' : 'ghost'} onClick={() => updateActiveInvoice(prev => ({ ...prev, discountType: 'percentage' }))} className="h-9 w-9"><Percent className="h-4 w-4" /></Button>
+                                    <RadioGroup defaultValue="fixed" value={discountType} onValueChange={(value: any) => updateActiveInvoice(prev => ({ ...prev, discountType: value }))} className="flex" disabled={!canApplyDiscount}>
+                                        <Button type="button" size="sm" variant={discountType === 'fixed' ? 'secondary' : 'ghost'} onClick={() => updateActiveInvoice(prev => ({ ...prev, discountType: 'fixed' }))} disabled={!canApplyDiscount}>IQD</Button>
+                                        <Button type="button" size="icon" variant={discountType === 'percentage' ? 'secondary' : 'ghost'} onClick={() => updateActiveInvoice(prev => ({ ...prev, discountType: 'percentage' }))} className="h-9 w-9" disabled={!canApplyDiscount}><Percent className="h-4 w-4" /></Button>
                                     </RadioGroup>
                                 </div>
                                 <Separator />
@@ -1399,88 +1369,36 @@ export default function SalesPage() {
                                             <CalculatorComponent />
                                         </DialogContent>
                                     </Dialog>
-                                    <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-                                        <DialogTrigger asChild>
-                                            <Button size="lg" className="flex-1" onClick={handleCheckout} disabled={cart.length === 0 || isProcessingSale} variant={saleIdToUpdate ? 'default' : 'success'}>
-                                                {isProcessingSale ? "جاري الحفظ..." : (saleIdToUpdate ? 'تحديث الفاتورة' : (mode === 'return' ? 'إتمام الاسترجاع' : 'إتمام العملية'))}
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogHeader>
-                                                <DialogTitle>{saleIdToUpdate ? 'تأكيد التعديل' : 'تأكيد الفاتورة'}</DialogTitle>
-                                            </DialogHeader>
-                                            <div className="space-y-4">
-                                                <div className="max-h-64 overflow-y-auto p-1">
-                                                    <Table>
-                                                        <TableHeader>
-                                                            <TableRow>
-                                                                <TableHead>المنتج</TableHead>
-                                                                <TableHead className="text-center">الكمية</TableHead>
-                                                                <TableHead className="text-left">السعر</TableHead>
-                                                            </TableRow>
-                                                        </TableHeader>
-                                                        <TableBody>
-                                                            {cart.map(item => (
-                                                                <TableRow key={`${item.id}-${item.is_return}-${item.unit_type || 'strip'}`} className={cn(item.is_return && "text-destructive")}>
-                                                                    <TableCell>{item.name} {item.is_return && "(مرتجع)"}</TableCell>
-                                                                    <TableCell className="text-center font-mono">{item.quantity}</TableCell>
-                                                                    <TableCell className="text-left font-mono">{((item.is_return ? -1 : 1) * (item.price || 0) * (item.quantity || 0)).toLocaleString()}</TableCell>
-                                                                </TableRow>
-                                                            ))}
-                                                        </TableBody>
-                                                    </Table>
-                                                </div>
-                                                <Separator />
-                                                <div className="space-y-2 text-sm font-mono">
-                                                    {selectedPatient &&
-                                                        <div className="flex justify-between">
-                                                            <span>المريض:</span>
-                                                            <span>{selectedPatient.name}</span>
-                                                        </div>
-                                                    }
-                                                    <div className="flex justify-between">
-                                                        <span>المجموع:</span>
-                                                        <span>{subtotal.toLocaleString()}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span>الخصم:</span>
-                                                        <span>-{discountAmount.toLocaleString()}</span>
-                                                    </div>
-                                                    {/* <div className={cn("flex justify-between", finalProfit >= 0 ? "text-green-600" : "text-destructive")}>
-                                                        <span>الربح الصافي:</span>
-                                                        <span>{finalProfit.toLocaleString()}</span>
-                                                    </div> */}
-                                                    <div className="flex justify-between font-bold text-lg">
-                                                        <span>الإجمالي النهائي:</span>
-                                                        <span>{finalTotal.toLocaleString()}</span>
-                                                    </div>
-                                                </div>
-                                                <Separator />
-                                                <RadioGroup defaultValue="cash" value={paymentMethod} onValueChange={handlePaymentMethodChange} className="grid grid-cols-3 gap-4 pt-2">
-                                                    <Label htmlFor="payment-cash" className="flex items-center justify-center gap-2 cursor-pointer rounded-md border p-3 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
-                                                        <RadioGroupItem value="cash" id="payment-cash" />
-                                                        نقداً
-                                                    </Label>
-                                                    <Label htmlFor="payment-card" className="flex items-center justify-center gap-2 cursor-pointer rounded-md border p-3 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
-                                                        <RadioGroupItem value="card" id="payment-card" />
-                                                        بطاقة
-                                                    </Label>
-                                                    <Label htmlFor="payment-credit" className="flex items-center justify-center gap-2 cursor-pointer rounded-md border p-3 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
-                                                        <RadioGroupItem value="credit" id="payment-credit" />
-                                                        آجل (دين)
-                                                    </Label>
-                                                </RadioGroup>
-                                            </div>
-                                            <DialogFooter className='sm:space-x-reverse'>
-                                                <DialogClose asChild>
-                                                    <Button variant="outline" disabled={isProcessingSale}>إلغاء</Button>
-                                                </DialogClose>
-                                                <Button onClick={handleFinalizeSale} disabled={isProcessingSale} variant={saleIdToUpdate ? 'default' : 'success'}>
-                                                    {isProcessingSale ? 'جاري الحفظ...' : (saleIdToUpdate ? 'تأكيد التعديل' : (mode === 'return' ? 'تأكيد الاسترجاع' : 'تأكيد البيع'))}
-                                                </Button>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                    </Dialog>
+                                </div>
+                                <Separator className="my-2" />
+                                <div className="space-y-4">
+                                    <Label className="text-sm font-bold">طريقة الدفع</Label>
+                                    <RadioGroup defaultValue="cash" value={paymentMethod} onValueChange={handlePaymentMethodChange} className="grid grid-cols-3 gap-4 pt-2">
+                                        <Label htmlFor="payment-cash" className="flex items-center justify-center gap-2 cursor-pointer rounded-md border p-3 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
+                                            <RadioGroupItem value="cash" id="payment-cash" />
+                                            نقداً
+                                        </Label>
+                                        <Label htmlFor="payment-card" className="flex items-center justify-center gap-2 cursor-pointer rounded-md border p-3 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
+                                            <RadioGroupItem value="card" id="payment-card" />
+                                            بطاقة
+                                        </Label>
+                                        <Label htmlFor="payment-credit" className="flex items-center justify-center gap-2 cursor-pointer rounded-md border p-3 has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground">
+                                            <RadioGroupItem value="credit" id="payment-credit" />
+                                            آجل (دين)
+                                        </Label>
+                                    </RadioGroup>
+                                </div>
+                                <div className="flex gap-2 mt-4">
+                                    <Button size="lg" className="flex-1" onClick={handleCheckout} disabled={cart.length === 0 || isProcessingSale} variant={saleIdToUpdate ? 'default' : 'success'}>
+                                        {isProcessingSale ? (
+                                            <>
+                                                <Loader2 className="me-2 h-4 w-4 animate-spin" />
+                                                جاري الحفظ...
+                                            </>
+                                        ) : (
+                                            saleIdToUpdate ? 'تحديث الفاتورة' : (mode === 'return' ? 'إتمام الاسترجاع' : 'إتمام العملية')
+                                        )}
+                                    </Button>
                                 </div>
                                 {activeInvoices.length === 1 && activeInvoice.cart.length > 0 && (
                                     <AlertDialog>
