@@ -101,16 +101,9 @@ export default function ReportsPage() {
     const fetchData = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string, empId: string, pMethod: string, docId: string, invType: string, patId: string) => {
         setLoading(true);
         try {
-            const data = await getPaginatedSales(page, limit, search, from, to, empId, pMethod, docId, patId);
+            const data = await getPaginatedSales(page, limit, search, from, to, empId, pMethod, docId, patId, invType);
 
             let filteredData = data.data;
-
-            if (invType !== 'all') {
-                filteredData = filteredData.filter(sale => {
-                    const isReturnInvoice = sale.items.every(item => item.is_return);
-                    return invType === 'returns' ? isReturnInvoice : !isReturnInvoice;
-                });
-            }
 
             // Add patientName to each sale based on patient_id
             setSales(filteredData);
@@ -229,18 +222,22 @@ export default function ReportsPage() {
     //     if (saleToEdit) {
     //         switchToInvoice(0); // Switch to the first invoice tab
     //         updateActiveInvoice(() => ({ // Replace its content
-    //             cart: saleToEdit.items.map((i: SaleItem) => ({ ...i, id: i.medication_id })),
+    //             cart: saleToEdit.items.map((i: SaleItem) => ({ 
+    //                 ...i, 
+    //                 id: i.medication_id,
+    //                 original_quantity: i.quantity,
+    //                 original_unit_type: i.unit_type || 'strip'
+    //             })),
     //             discountValue: (saleToEdit.discount || 0).toString(),
     //             discountType: 'fixed',
     //             patientId: saleToEdit.patient_id || null,
     //             doctorId: saleToEdit.doctor_id || null,
     //             paymentMethod: saleToEdit.payment_method || 'cash',
     //             saleIdToUpdate: saleToEdit.id,
-    //         }));
+    //         }), 0);
     //         navigate('/sales');
     //     }
     // };
-
     // Removed client-side calculation. Using API values.
 
     const pharmacyUsers = React.useMemo(() => {

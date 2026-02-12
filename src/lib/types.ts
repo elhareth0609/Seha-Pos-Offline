@@ -176,6 +176,8 @@ export type SaleItem = {
   is_return?: boolean;
   dosage_form?: string;
   unit_type?: 'box' | 'strip';    // Unit being sold (علبة or شريط)
+  original_quantity?: number;     // For tracking stock during edit
+  original_unit_type?: 'box' | 'strip';
 };
 
 export type Sale = {

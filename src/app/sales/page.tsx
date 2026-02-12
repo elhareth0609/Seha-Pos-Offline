@@ -608,14 +608,23 @@ export default function SalesPage() {
                     ? (itemInCart.quantity || 0) * (med.strips_per_box || 1)
                     : (itemInCart.quantity || 0);
 
-                if (Number(med.stock) < requiredStock) {
+                // Account for original quantity in edit mode
+                const originalQuantityStrips = (saleIdToUpdate && itemInCart.original_quantity)
+                    ? (itemInCart.original_unit_type === 'box'
+                        ? (itemInCart.original_quantity || 0) * (med.strips_per_box || 1)
+                        : (itemInCart.original_quantity || 0))
+                    : 0;
+
+                const effectiveStock = Number(med.stock) + originalQuantityStrips;
+
+                if (effectiveStock < requiredStock) {
                     const availableInUnits = itemInCart.unit_type === 'box'
-                        ? Math.floor(med.stock / (med.strips_per_box || 1))
-                        : med.stock;
+                        ? Math.floor(effectiveStock / (med.strips_per_box || 1))
+                        : effectiveStock;
                     toast({
                         variant: 'destructive',
                         title: `كمية غير كافية من ${itemInCart.name}`,
-                        description: `الكمية المطلوبة ${itemInCart.quantity} ${itemInCart.unit_type === 'box' ? 'علبة' : 'شريط'}, المتوفر ${availableInUnits} ${itemInCart.unit_type === 'box' ? 'علبة' : 'شريط'}`
+                        description: `الكمية المطلوبة ${itemInCart.quantity} ${itemInCart.unit_type === 'box' ? 'علبة' : 'شريط'}, المتاح ${availableInUnits} ${itemInCart.unit_type === 'box' ? 'علبة' : 'شريط'}`
                     });
                     return;
                 }
@@ -625,7 +634,7 @@ export default function SalesPage() {
         const controlledSubstances = settings.controlled_substances || [];
         const drugsInCart = cart.filter(item =>
             !item.is_return && item.scientific_names?.some(scName =>
-                controlledSubstances.map(cs => cs.toLowerCase()).includes(scName.toLowerCase())
+                scName != null && controlledSubstances.map(cs => cs.toLowerCase()).includes(scName.toLowerCase())
             )
         );
 
@@ -1121,11 +1130,18 @@ export default function SalesPage() {
                                                         const medInInventory = fullInventory.find(med => med.id === item.id);
                                                         const stock = medInInventory?.stock ?? 0;
 
-                                                        // Calculate stock based on unit type
+                                                        // Calculate stock restoration for edit mode
+                                                        const originalQuantityInStrips = item.original_unit_type === 'box'
+                                                            ? (item.original_quantity || 0) * (medInInventory?.strips_per_box || 1)
+                                                            : (item.original_quantity || 0);
+                                                        const effectiveStock = stock + originalQuantityInStrips;
+
+                                                        // Calculate current item total in strips
                                                         const quantityInStrips = item.unit_type === 'box'
                                                             ? (item.quantity || 0) * (medInInventory?.strips_per_box || 1)
                                                             : (item.quantity || 0);
-                                                        const remainingStock = stock - quantityInStrips;
+                                                        
+                                                        const remainingStock = effectiveStock - quantityInStrips;
 
                                                         const isBelowCost = (Number(item.price) || 0) < (Number(item.purchase_price) || 0);
                                                         const alternatives = findAlternatives(item);
@@ -1184,7 +1200,7 @@ export default function SalesPage() {
                                                                     </div>
                                                                     <div className="text-xs text-muted-foreground">({(item.scientific_names || []).join(', ')})</div>
                                                                     <div className="text-xs text-muted-foreground flex gap-2">
-                                                                        <span>الرصيد: {stock}</span>
+                                                                        <span>الرصيد: {effectiveStock}</span>
                                                                         {!item.is_return && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
                                                                         <span>| الشراء: <span className="font-mono">{Number(displayPurchasePrice || 0).toFixed(2)}</span></span>
                                                                     </div>
