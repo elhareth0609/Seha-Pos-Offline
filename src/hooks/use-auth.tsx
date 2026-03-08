@@ -1547,10 +1547,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (dosageForm && dosageForm !== 'all') params.append('dosage_form', dosageForm);
             if (itemName && itemName.trim()) params.append('item_name', itemName.trim());
 
+            const token = localStorage.getItem('authToken');
             const response = await fetch(`${API_URL}/sales/export?${params.toString()}`, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                 }
             });
 
