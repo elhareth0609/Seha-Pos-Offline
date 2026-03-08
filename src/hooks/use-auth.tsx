@@ -1534,6 +1534,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const exportSales = async (search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string, dosageForm?: string, itemName?: string) => {
+        if (!isOnline) {
+            toast({
+                title: "غير متصل",
+                description: "لا يمكن تصدير المبيعات في وضع عدم الاتصال",
+                variant: "destructive",
+            });
+            return;
+        }
         try {
             const params = new URLSearchParams({
                 search: search || "",
