@@ -938,9 +938,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             let allSales = await db.sales.toArray();
 
             // Filter
-            if (search) {
-                const lowerSearch = search.toLowerCase();
-                allSales = allSales.filter(s => s.id.toLowerCase().includes(lowerSearch) || s.patientName?.toLowerCase().includes(lowerSearch));
+            const lowerSearch = search ? search.toLowerCase() : "";
+            if (lowerSearch) {
+                allSales = allSales.filter(s => 
+                    s.id.toLowerCase().includes(lowerSearch) || 
+                    (s.patientName && s.patientName.toLowerCase().includes(lowerSearch)) ||
+                    s.items.some(item => item.name.toLowerCase().includes(lowerSearch))
+                );
             }
             if (dateFrom) {
                 allSales = allSales.filter(s => new Date(s.date) >= new Date(dateFrom));
@@ -951,15 +955,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (employeeId && employeeId !== 'all') {
                 allSales = allSales.filter(s => s.employee_id === employeeId);
             }
-
             if (patientId && patientId !== 'all') {
                 allSales = allSales.filter(s => s.patient_id === patientId);
             }
-
             if (doctorId && doctorId !== 'all') {
                 allSales = allSales.filter(s => s.doctor_id === doctorId);
             }
-
             if (paymentMethod && paymentMethod !== 'all') {
                 allSales = allSales.filter(s => s.payment_method === paymentMethod);
             }
@@ -971,8 +972,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 });
             }
 
-            // if (dosageForm && dosageForm !== 'all') params.append('dosage_form', dosageForm);
-            // if (itemName && itemName.trim()) params.append('item_name', itemName.trim());
+            // Item-level filtering: dosage_form and item_name (matches online behavior)
+            const hasItemFilter = (dosageForm && dosageForm !== 'all') || (itemName && itemName.trim());
+            if (hasItemFilter) {
+                const lowerItemName = itemName?.trim().toLowerCase();
+                
+                // 1. Keep only sales that have at least one matching item
+                allSales = allSales.filter(sale => {
+                    return sale.items.some(item => {
+                        const matchesDosage = !dosageForm || dosageForm === 'all' || item.dosage_form === dosageForm;
+                        const matchesName = !lowerItemName || (item.name || '').toLowerCase().includes(lowerItemName);
+                        return matchesDosage && matchesName;
+                    });
+                });
+
+                // 2. Trim items per sale and recalculate totals/profit
+                allSales = allSales.map(sale => {
+                    const filteredItems = sale.items.filter(item => {
+                        const matchesDosage = !dosageForm || dosageForm === 'all' || item.dosage_form === dosageForm;
+                        const matchesName = !lowerItemName || (item.name || '').toLowerCase().includes(lowerItemName);
+                        return matchesDosage && matchesName;
+                    });
+
+                    const total = filteredItems.reduce((sum, item) => {
+                        const amount = (item.price || 0) * (item.quantity || 0);
+                        return item.is_return ? sum - amount : sum + amount;
+                    }, 0);
+
+                    const profit = filteredItems.reduce((sum, item) => {
+                        const p = ((item.price || 0) - (item.purchase_price || 0)) * (item.quantity || 0);
+                        return item.is_return ? sum - p : sum + p;
+                    }, 0);
+
+                    return { ...sale, items: filteredItems, total, profit };
+                });
+            }
 
             // Sort by date desc
             allSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -981,14 +1015,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const start = (page - 1) * perPage;
             const data = allSales.slice(start, start + perPage);
 
+            // Calculate aggregate totals for the filtered results (matches online behavior)
+            const total_sales = allSales.reduce((sum, s) => sum + s.total, 0);
+            const total_profit = allSales.reduce((sum, s) => sum + s.profit, 0);
+
             return {
                 data,
                 current_page: page,
                 last_page: Math.ceil(total / perPage),
                 total,
                 per_page: perPage,
-                first_page_url: '', from: start + 1, last_page_url: '', links: [], next_page_url: null, path: '', prev_page_url: null, to: start + data.length
-            } as PaginatedResponse<Sale> & { totals?: { total_sales: number, total_profit: number } };
+                first_page_url: '', from: start + 1, last_page_url: '', links: [], next_page_url: null, path: '', prev_page_url: null, to: start + data.length,
+                totals: { total_sales, total_profit }
+            } as any;
         }
 
         try {
@@ -997,11 +1036,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 paginate: "true",
                 page: String(page),
                 per_page: String(perPage),
-                search: search,
-                date_from: dateFrom,
-                date_to: dateTo,
-                employee_id: employeeId,
-                payment_method: paymentMethod,
+                search: search || "",
+                date_from: dateFrom || "",
+                date_to: dateTo || "",
+                employee_id: employeeId || "all",
+                payment_method: paymentMethod || "all",
+                doctor_id: doctorId || "all",
+                patient_id: patientId || "all",
+                invoice_type: invoiceType || "all",
+                dosage_form: dosageForm || "all",
+                item_name: itemName || ""
             });
             const data = await apiRequest(`/sales?${params.toString()}`);
             return data;
@@ -1010,10 +1054,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('[Search] API request failed, falling back to local database');
             let allSales = await db.sales.toArray();
 
-            // Filter
-            if (search) {
-                const lowerSearch = search.toLowerCase();
-                allSales = allSales.filter(s => s.id.toLowerCase().includes(lowerSearch) || s.patientName?.toLowerCase().includes(lowerSearch));
+            const lowerSearch = search ? search.toLowerCase() : "";
+            if (lowerSearch) {
+                allSales = allSales.filter(s => 
+                    s.id.toLowerCase().includes(lowerSearch) || 
+                    (s.patientName && s.patientName.toLowerCase().includes(lowerSearch)) ||
+                    s.items.some(item => item.name.toLowerCase().includes(lowerSearch))
+                );
             }
             if (dateFrom) {
                 allSales = allSales.filter(s => new Date(s.date) >= new Date(dateFrom));
@@ -1034,6 +1081,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 allSales = allSales.filter(s => s.payment_method === paymentMethod);
             }
 
+            if (invoiceType && invoiceType !== 'all') {
+                allSales = allSales.filter(sale => {
+                    const isReturnInvoice = sale.items.every(item => item.is_return);
+                    return invoiceType === 'returns' ? isReturnInvoice : !isReturnInvoice;
+                });
+            }
+
+            // Item-level filtering: dosage_form and item_name (matches online behavior)
+            const hasItemFilter = (dosageForm && dosageForm !== 'all') || (itemName && itemName.trim());
+            if (hasItemFilter) {
+                const lowerItemName = itemName?.trim().toLowerCase();
+                
+                // 1. Keep only sales that have at least one matching item
+                allSales = allSales.filter(sale => {
+                    return sale.items.some(item => {
+                        const matchesDosage = !dosageForm || dosageForm === 'all' || item.dosage_form === dosageForm;
+                        const matchesName = !lowerItemName || (item.name || '').toLowerCase().includes(lowerItemName);
+                        return matchesDosage && matchesName;
+                    });
+                });
+
+                // 2. Trim items per sale and recalculate totals/profit
+                allSales = allSales.map(sale => {
+                    const filteredItems = sale.items.filter(item => {
+                        const matchesDosage = !dosageForm || dosageForm === 'all' || item.dosage_form === dosageForm;
+                        const matchesName = !lowerItemName || (item.name || '').toLowerCase().includes(lowerItemName);
+                        return matchesDosage && matchesName;
+                    });
+
+                    const total = filteredItems.reduce((sum, item) => {
+                        const amount = (item.price || 0) * (item.quantity || 0);
+                        return item.is_return ? sum - amount : sum + amount;
+                    }, 0);
+
+                    const profit = filteredItems.reduce((sum, item) => {
+                        const p = ((item.price || 0) - (item.purchase_price || 0)) * (item.quantity || 0);
+                        return item.is_return ? sum - p : sum + p;
+                    }, 0);
+
+                    return { ...sale, items: filteredItems, total, profit };
+                });
+            }
+
             // Sort by date desc
             allSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -1041,14 +1131,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const start = (page - 1) * perPage;
             const data = allSales.slice(start, start + perPage);
 
+            // Calculate aggregate totals for the filtered results
+            const total_sales = allSales.reduce((sum, s) => sum + s.total, 0);
+            const total_profit = allSales.reduce((sum, s) => sum + s.profit, 0);
+
             return {
                 data,
                 current_page: page,
                 last_page: Math.ceil(total / perPage),
                 total,
                 per_page: perPage,
-                first_page_url: '', from: start + 1, last_page_url: '', links: [], next_page_url: null, path: '', prev_page_url: null, to: start + data.length
-            } as PaginatedResponse<Sale> & { totals?: { total_sales: number, total_profit: number } };
+                first_page_url: '', from: start + 1, last_page_url: '', links: [], next_page_url: null, path: '', prev_page_url: null, to: start + data.length,
+                totals: { total_sales, total_profit }
+            } as any;
         }
     }, [isOnline]);
 
@@ -1449,8 +1544,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 doctor_id: doctorId || "all",
                 patient_id: patientId || "all"
             });
-            // if (dosageForm && dosageForm !== 'all') params.append('dosage_form', dosageForm);
-            // if (itemName && itemName.trim()) params.append('item_name', itemName.trim());
+            if (dosageForm && dosageForm !== 'all') params.append('dosage_form', dosageForm);
+            if (itemName && itemName.trim()) params.append('item_name', itemName.trim());
 
             const response = await fetch(`${API_URL}/sales/export?${params.toString()}`, {
                 headers: {
