@@ -135,8 +135,12 @@ export type Medication = {
   strips_per_box: number;        // التعبئة: number of strips in one box
   box_purchase_price: number;    // سعر شراء العلبة
   strip_purchase_price: number;  // سعر شراء الشريط (calculated)
+  average_purchase_price: number; // متوسط تكلفة شراء العلبة
+  cumulative_purchase_qty: number;  // إجمالي الكمية المشتراة (علب + بونص)
+  cumulative_purchase_cost: number; // إجمالي التكلفة المشتراة
   box_sell_price: number;        // سعر بيع العلبة
   strip_sell_price: number;      // سعر بيع الشريط
+  bonus_boxes?: number;          // عدد علب البونص الافتراضي
 };
 
 export type OrderRequestItem = {
@@ -226,8 +230,10 @@ export type PurchaseOrderItem = {
   strips_per_box: number;        // التعبئة
   box_purchase_price: number;    // سعر شراء العلبة
   strip_purchase_price: number;  // سعر شراء الشريط (calculated)
+  average_purchase_price?: number; // متوسط تكلفة شراء العلبة (شامل البونص والمخزون القديم)
   box_sell_price: number;        // سعر بيع العلبة
   strip_sell_price: number;      // سعر بيع الشريط
+  bonus_boxes?: number;          // عدد العلب المجانية
 };
 
 export type PurchaseOrder = {

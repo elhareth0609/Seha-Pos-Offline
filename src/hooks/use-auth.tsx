@@ -78,7 +78,7 @@ interface AuthContextType {
     addSale: (saleData: any) => Promise<Sale | null>;
     updateSale: (saleData: any) => Promise<Sale | null>;
     deleteSale: (saleId: string) => Promise<boolean>;
-    getPaginatedSales: (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string, invoiceType?: string) => Promise<PaginatedResponse<Sale> & { totals?: { total_sales: number, total_profit: number } }>;
+    getPaginatedSales: (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string, invoiceType?: string, dosageForm?: string, itemName?: string) => Promise<PaginatedResponse<Sale> & { totals?: { total_sales: number, total_profit: number } }>;
     searchAllSales: (search?: string) => Promise<Sale[]>;
 
     // Patients
@@ -111,7 +111,7 @@ interface AuthContextType {
     refreshData: () => Promise<void>;
 
     // Export
-    exportSales: (search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string) => Promise<void>;
+    exportSales: (search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string, dosageForm?: string, itemName?: string) => Promise<void>;
 }
 export interface ScopedDataContextType {
     inventory: [Medication[], React.Dispatch<React.SetStateAction<Medication[]>>];
@@ -929,7 +929,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [isOnline]);
 
-    const getPaginatedSales = React.useCallback(async (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string, invoiceType?: string) => {
+    const getPaginatedSales = React.useCallback(async (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string, invoiceType?: string, dosageForm?: string, itemName?: string) => {
         // Use a more robust check for online status
         const isActuallyOnline = navigator.onLine && isOnline;
 
@@ -970,6 +970,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     return invoiceType === 'returns' ? isReturnInvoice : !isReturnInvoice;
                 });
             }
+
+            // if (dosageForm && dosageForm !== 'all') params.append('dosage_form', dosageForm);
+            // if (itemName && itemName.trim()) params.append('item_name', itemName.trim());
 
             // Sort by date desc
             allSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -1435,7 +1438,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }
 
-    const exportSales = async (search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string) => {
+    const exportSales = async (search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string, dosageForm?: string, itemName?: string) => {
         try {
             const params = new URLSearchParams({
                 search: search || "",
@@ -1446,6 +1449,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 doctor_id: doctorId || "all",
                 patient_id: patientId || "all"
             });
+            // if (dosageForm && dosageForm !== 'all') params.append('dosage_form', dosageForm);
+            // if (itemName && itemName.trim()) params.append('item_name', itemName.trim());
 
             const response = await fetch(`${API_URL}/sales/export?${params.toString()}`, {
                 headers: {

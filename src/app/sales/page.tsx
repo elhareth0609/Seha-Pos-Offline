@@ -278,13 +278,15 @@ export default function SalesPage() {
         }
     }, [fullInventory, mode]);
 
-    const addToCart = React.useCallback((medication: Medication, unitTypeArg?: 'box' | 'strip') => {
-        let unitType = unitTypeArg || settings.default_unit_type || 'strip';
+    const addToCart = React.useCallback((medication: Medication, unitType?: 'box' | 'strip') => {
+        const defaultUnit = unitType || settings.default_unit_type || 'strip';
+        let resolvedUnitType: 'box' | 'strip' = defaultUnit as 'box' | 'strip';
 
+        // Force box unit if strips_per_box is 1
         // Force box unit if strips_per_box is 1 AND the setting is enabled
         const shouldForceBox = Number(medication.strips_per_box || 1) === 1 && (settings.force_box_if_single_strip ?? true);
         if (shouldForceBox) {
-            unitType = 'box';
+            resolvedUnitType = 'box';
         }
 
         // Expiry check
@@ -303,35 +305,29 @@ export default function SalesPage() {
 
         let success = true;
 
-        // Ensure the medication is in fullInventory so the cart can render it correctly
-        setFullInventory(prev => {
-            if (prev.some(m => m.id === medication.id)) return prev;
-            return [...prev, medication];
-        });
-
         updateActiveInvoice(invoice => {
             // Find existing item with same id, return status, AND unit type
             const existingItem = invoice.cart.find(item =>
                 item.id === medication.id &&
                 item.is_return === (mode === 'return') &&
-                item.unit_type === unitType
+                item.unit_type === resolvedUnitType
             )
 
             if (existingItem) {
                 // Calculate available stock based on unit type
-                const availableStock = unitType === 'box'
+                const availableStock = resolvedUnitType === 'box'
                     ? Math.floor(medication.stock / (medication.strips_per_box || 1))
                     : medication.stock;
 
                 if (Number(existingItem.quantity) >= Number(availableStock) && mode !== 'return') {
-                    toast({ variant: 'destructive', title: 'كمية غير كافية', description: `لا يمكن إضافة المزيد من ${medication.name}. الرصيد المتوفر: ${availableStock} ${unitType === 'box' ? 'علبة' : 'شريط'}` });
+                    toast({ variant: 'destructive', title: 'كمية غير كافية', description: `لا يمكن إضافة المزيد من ${medication.name}. الرصيد المتوفر: ${availableStock} ${resolvedUnitType === 'box' ? 'علبة' : 'شريط'}` });
                     success = false;
                     return invoice;
                 }
                 return {
                     ...invoice,
                     cart: invoice.cart.map(item =>
-                        item.id === medication.id && item.is_return === (mode === 'return') && item.unit_type === unitType
+                        item.id === medication.id && item.is_return === (mode === 'return') && item.unit_type === resolvedUnitType
                             ? { ...item, quantity: item.quantity + 1 }
                             : item
                     )
@@ -339,7 +335,7 @@ export default function SalesPage() {
             }
 
             // Determine price based on unit type
-            const itemPrice = unitType === 'box'
+            const itemPrice = resolvedUnitType === 'box'
                 ? (medication.box_sell_price || 0)
                 : (medication.strip_sell_price || 0);
 
@@ -352,11 +348,13 @@ export default function SalesPage() {
                     scientific_names: medication.scientific_names,
                     quantity: 1,
                     price: itemPrice,
-                    purchase_price: unitType === 'box' ? (medication.box_purchase_price || 0) : (medication.strip_purchase_price || 0),
+                    purchase_price: resolvedUnitType === 'box'
+                        ? (medication.average_purchase_price || 0)
+                        : ((medication.average_purchase_price || 0) / (medication.strips_per_box || 1)),
                     expiration_date: medication.expiration_date,
                     is_return: mode === 'return',
                     dosage_form: medication.dosage_form,
-                    unit_type: unitType,
+                    unit_type: resolvedUnitType,
                 }]
             }
         });
@@ -539,8 +537,8 @@ export default function SalesPage() {
                         : (medication.strip_sell_price || 0);
 
                     const newPurchasePrice = newUnitType === 'box'
-                        ? (medication.box_purchase_price || 0)
-                        : (medication.strip_purchase_price || 0);
+                        ? (medication.average_purchase_price || 0)
+                        : ((medication.average_purchase_price || 0) / (medication.strips_per_box || 1));
 
                     return { ...item, unit_type: newUnitType, price: newPrice, purchase_price: newPurchasePrice };
                 }
@@ -569,6 +567,7 @@ export default function SalesPage() {
     }, [discountValue, discountType, subtotal]);
 
     const finalTotal = subtotal - discountAmount;
+    // const finalProfit = totalProfit - discountAmount;
 
     const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
     React.useEffect(() => {
@@ -979,19 +978,26 @@ export default function SalesPage() {
                                         </AlertDescription>
                                     </Alert>
                                 )}
-                                <ScrollArea className="h-full">
+                                <ScrollArea className="h-full" >
                                     {cart.length > 0 ? (
                                         <>
-                                            <div className="md:hidden divide-y divide-border">
+                                            <div className="md:hidden divide-y divide-border" dir="rtl">
                                                 {cart.map((item) => {
                                                     const medInInventory = fullInventory?.find(med => med.id === item.id);
                                                     const stock = medInInventory?.stock ?? 0;
 
-                                                    // Calculate stock based on unit type
+                                                    // Calculate stock restoration for edit mode
+                                                    const originalQuantityInStrips = item.original_unit_type === 'box'
+                                                        ? (item.original_quantity || 0) * (medInInventory?.strips_per_box || 1)
+                                                        : (item.original_quantity || 0);
+                                                    const effectiveStock = stock + originalQuantityInStrips;
+
+                                                    // Calculate current item total in strips
                                                     const quantityInStrips = item.unit_type === 'box'
                                                         ? (item.quantity || 0) * (medInInventory?.strips_per_box || 1)
                                                         : (item.quantity || 0);
-                                                    const remainingStock = stock - quantityInStrips;
+                                                    
+                                                    const remainingStock = effectiveStock - quantityInStrips;
 
                                                     const isBelowCost = (Number(item.price) || 0) < (Number(item.purchase_price) || 0);
                                                     const alternatives = findAlternatives(item);
@@ -1003,10 +1009,10 @@ export default function SalesPage() {
                                                         cartItem.unit_type !== item.unit_type
                                                     );
 
-                                                    // Get purchase price based on unit type
+                                                    // Get average price based on unit type
                                                     const displayPurchasePrice = item.unit_type === 'box'
-                                                        ? (medInInventory?.box_purchase_price || item.purchase_price || 0)
-                                                        : (medInInventory?.strip_purchase_price || item.purchase_price || 0);
+                                                        ? (medInInventory?.average_purchase_price || item.purchase_price || 0)
+                                                        : ((medInInventory?.average_purchase_price || 0) / (medInInventory?.strips_per_box || 1) || item.purchase_price || 0);
 
                                                     return (
                                                         <div key={`${item.id}-${item.is_return}-${item.unit_type || 'strip'}`} className={cn("flex flex-col gap-3 p-3", item.is_return && "bg-red-50 dark:bg-red-900/20")} onClick={() => {
@@ -1106,16 +1112,16 @@ export default function SalesPage() {
                                                                 </div>
                                                             </div>
                                                             <div className="text-xs text-muted-foreground mt-1 flex gap-2">
-                                                                <span>الرصيد: {stock}</span>
+                                                                <span>الرصيد: {effectiveStock}</span>
                                                                 {!item.is_return && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
-                                                                <span>| الشراء: <span className="font-mono">{Number(displayPurchasePrice || 0).toFixed(2)}</span></span>
+                                                                <span>| الشراء (متوسط): <span className="font-mono">{Number(displayPurchasePrice || 0).toFixed(2)}</span></span>
                                                             </div>
                                                         </div>
                                                     )
                                                 })}
                                             </div>
 
-                                            <Table className="hidden md:table">
+                                            <Table className="hidden md:table" dir="rtl">
                                                 <TableHeader className="sticky top-0 bg-background z-10">
                                                     <TableRow>
                                                         <TableHead>المنتج</TableHead>
@@ -1140,7 +1146,7 @@ export default function SalesPage() {
                                                         const quantityInStrips = item.unit_type === 'box'
                                                             ? (item.quantity || 0) * (medInInventory?.strips_per_box || 1)
                                                             : (item.quantity || 0);
-                                                        
+
                                                         const remainingStock = effectiveStock - quantityInStrips;
 
                                                         const isBelowCost = (Number(item.price) || 0) < (Number(item.purchase_price) || 0);
@@ -1153,16 +1159,17 @@ export default function SalesPage() {
                                                             cartItem.unit_type !== item.unit_type
                                                         );
 
-                                                        // Get purchase price based on unit type
+                                                        // Get average price based on unit type
                                                         const displayPurchasePrice = item.unit_type === 'box'
-                                                            ? (medInInventory?.box_purchase_price || item.purchase_price || 0)
-                                                            : (medInInventory?.strip_purchase_price || item.purchase_price || 0);
+                                                            ? (medInInventory?.average_purchase_price || item.purchase_price || 0)
+                                                            : ((medInInventory?.average_purchase_price || 0) / (medInInventory?.strips_per_box || 1) || item.purchase_price || 0);
 
                                                         return (
                                                             <TableRow key={`${item.id}-${item.is_return}-${item.unit_type || 'strip'}`} className={cn(item.is_return && "bg-red-50 dark:bg-red-900/20", "cursor-pointer")} onClick={() => {
                                                                 const medication = fullInventory.find(med => med.id === item.id);
                                                                 if (medication) checkAlternativeExpiry(medication);
-                                                            }}>
+                                                            }}
+                                                            >
 
                                                                 <TableCell>
                                                                     <div className="flex items-center gap-1">
@@ -1202,7 +1209,7 @@ export default function SalesPage() {
                                                                     <div className="text-xs text-muted-foreground flex gap-2">
                                                                         <span>الرصيد: {effectiveStock}</span>
                                                                         {!item.is_return && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
-                                                                        <span>| الشراء: <span className="font-mono">{Number(displayPurchasePrice || 0).toFixed(2)}</span></span>
+                                                                        <span>| الشراء (متوسط): <span className="font-mono">{Number(displayPurchasePrice || 0).toFixed(2)}</span></span>
                                                                     </div>
                                                                 </TableCell>
                                                                 <TableCell>

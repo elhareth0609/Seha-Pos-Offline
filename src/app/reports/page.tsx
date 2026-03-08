@@ -33,6 +33,8 @@ import { InvoiceTemplate } from '@/components/ui/invoice';
 import { Printer, DollarSign, TrendingUp, ChevronDown, FileDown, Loader2 } from 'lucide-react';
 import { DatePicker } from "@/components/ui/date-picker";
 import { format } from "date-fns";
+
+const dosage_forms = ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Cream", "Gel", "Suppository", "Inhaler", "Drops", "Powder", "Lotion", "spray", "مستلزمات طبية", "معجون أسنان", "Oral vial", "Solution", "Suspension", "Sachet", "اخرى"];
 import { Input } from "@/components/ui/input";
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -58,7 +60,6 @@ export default function ReportsPage() {
     const [currentPage, setCurrentPage] = React.useState(1);
     const [perPage, setPerPage] = React.useState(10);
     const [loading, setLoading] = React.useState(true);
-    const [exporting, setExporting] = React.useState(false);
     const [allPatients, setAllPatients] = React.useState<Patient[]>([]);
     const [doctors, setDoctors] = React.useState<any[]>([]);
     const [totalSalesDisplayed, setTotalSalesDisplayed] = React.useState(0);
@@ -74,6 +75,8 @@ export default function ReportsPage() {
     const [paymentMethod, setPaymentMethod] = React.useState<string>("all");
     const [invoiceType, setInvoiceType] = React.useState<string>("all");
     const [doctorId, setDoctorId] = React.useState<string>("all");
+    const [filterDosageForm, setFilterDosageForm] = React.useState<string>("all");
+    const [filterItemName, setFilterItemName] = React.useState<string>("");
 
     const [itemToDelete, setItemToDelete] = React.useState<Sale | null>(null);
     const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
@@ -98,10 +101,10 @@ export default function ReportsPage() {
         }
     }, [searchAllPatients, getDoctors]);
 
-    const fetchData = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string, empId: string, pMethod: string, docId: string, invType: string, patId: string) => {
+    const fetchData = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string, empId: string, pMethod: string, docId: string, invType: string, patId: string, dosageForm: string, itemName: string) => {
         setLoading(true);
         try {
-            const data = await getPaginatedSales(page, limit, search, from, to, empId, pMethod, docId, patId, invType);
+            const data = await getPaginatedSales(page, limit, search, from, to, empId, pMethod, docId, patId, invType, dosageForm, itemName);
 
             let filteredData = data.data;
 
@@ -126,15 +129,8 @@ export default function ReportsPage() {
         }
     }, [getPaginatedSales]);
 
-    const handleExport = async () => {
-        setExporting(true);
-        try {
-            const fromStr = dateFrom ? format(dateFrom, "yyyy-MM-dd") : "";
-            const toStr = dateTo ? format(dateTo, "yyyy-MM-dd") : "";
-            await exportSales(searchTerm, fromStr, toStr, employeeId, paymentMethod, doctorId, patientId);
-        } finally {
-            setExporting(false);
-        }
+    const handleExport = () => {
+        exportSales(searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, patientId, filterDosageForm, filterItemName);
     };
 
     React.useEffect(() => {
@@ -145,11 +141,11 @@ export default function ReportsPage() {
     React.useEffect(() => {
         if (isClient) {
             const handler = setTimeout(() => {
-                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, invoiceType, patientId);
+                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, invoiceType, patientId, filterDosageForm, filterItemName);
             }, 300);
             return () => clearTimeout(handler);
         }
-    }, [isClient, currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, invoiceType, doctorId, patientId, fetchData]);
+    }, [isClient, currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, invoiceType, doctorId, patientId, filterDosageForm, filterItemName, fetchData]);
 
 
     const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
@@ -186,6 +182,8 @@ export default function ReportsPage() {
         setPaymentMethod("all");
         setInvoiceType("all");
         setDoctorId("all");
+        setFilterDosageForm("all");
+        setFilterItemName("");
     };
 
     // const handleDeleteSale = async () => {
@@ -196,7 +194,7 @@ export default function ReportsPage() {
     //     } else {
     //         const success = await deleteSale(itemToDelete.id);
     //         if (success) {
-    //             fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, invoiceType, patientId);
+    //             fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, invoiceType, patientId, filterDosageForm, filterItemName);
     //             setItemToDelete(null);
     //         }
     //     }
@@ -209,7 +207,7 @@ export default function ReportsPage() {
             setIsPinDialogOpen(false);
             const success = await deleteSale(itemToDelete.id);
             if (success) {
-                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, invoiceType, patientId);
+                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, invoiceType, patientId, filterDosageForm, filterItemName);
                 setItemToDelete(null);
             }
         } else {
@@ -354,7 +352,12 @@ export default function ReportsPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>سجل المبيعات</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle>سجل المبيعات</CardTitle>
+                        <Button variant="outline" onClick={handleExport} className="">
+                            تصدير Excel
+                        </Button>
+                    </div>
                     <CardDescription>عرض وطباعة جميع فواتير المبيعات السابقة. اضغط على الصف لعرض التفاصيل.</CardDescription>
                     <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
                         <div className="space-y-2 lg:col-span-2">
@@ -453,17 +456,32 @@ export default function ReportsPage() {
                                 </SelectContent>
                             </Select>
                         </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="dosage-form-filter">الشكل الدوائي</Label>
+                            <Select value={filterDosageForm} onValueChange={setFilterDosageForm}>
+                                <SelectTrigger id="dosage-form-filter">
+                                    <SelectValue placeholder="الكل" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-64">
+                                    <SelectItem value="all">الكل</SelectItem>
+                                    {dosage_forms.map(form => (
+                                        <SelectItem key={form} value={form}>{form}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="item-name-filter">اسم الصنف</Label>
+                            <Input
+                                id="item-name-filter"
+                                placeholder="ابحث باسم الصنف..."
+                                value={filterItemName}
+                                onChange={(e) => setFilterItemName(e.target.value)}
+                            />
+                        </div>
                     </div>
-                    <div className="pt-2 flex items-center justify-between">
+                    <div className="pt-2">
                         <Button onClick={clearFilters} variant="link" className="p-0 h-auto">إزالة كل الفلاتر</Button>
-                        <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
-                            {exporting ? (
-                                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                <FileDown className="ml-2 h-4 w-4" />
-                            )}
-                            تصدير Excel
-                        </Button>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -573,7 +591,7 @@ export default function ReportsPage() {
                                                         <TableBody>
                                                             {(sale.items || []).map((item, index) => (
                                                                 <TableRow key={`${sale.id}-${item.medication_id}-${index}`} className={cn(item.is_return && "text-destructive")}>
-                                                                    <TableCell>{item.name}</TableCell>
+                                                                    <TableCell>{item.name} {item.dosage_form && <span className="text-xs text-muted-foreground">({item.dosage_form})</span>}</TableCell>
                                                                     <TableCell className="font-mono">{item.quantity}</TableCell>
                                                                     <TableCell className="font-mono">{item.price.toLocaleString()}</TableCell>
                                                                     <TableCell className="font-mono">{(item.quantity * item.price).toLocaleString()}</TableCell>
@@ -592,7 +610,7 @@ export default function ReportsPage() {
                             )) : (
                                 <TableRow>
                                     <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                                        لم يتم العثور على فواتير مطابقة.
+                                        {(filterDosageForm !== 'all' || filterItemName) ? 'لا توجد فواتير تحتوي على هذا الصنف أو الشكل الدوائي.' : 'لم يتم العثور على فواتير مطابقة.'}
                                     </TableCell>
                                 </TableRow>
                             )}
