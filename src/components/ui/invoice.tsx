@@ -1,8 +1,6 @@
 "use client"
 import * as React from 'react';
 import type { Sale, AppSettings, User } from '@/lib/types';
-import { cn } from '@/lib/utils';
-// import Barcode from '@/components/ui/barcode';
 
 interface InvoiceTemplateProps {
   sale: Sale | null;
@@ -10,112 +8,225 @@ interface InvoiceTemplateProps {
   user: User | null;
 }
 
-export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateProps>(({ sale, settings, user }, ref) => {
-  if (!sale || !settings) {
-    return null;
+// ── Inline styles ────────────────────────────────────────────────────────────
+// All styles are inlined so the invoice renders correctly in BOTH environments:
+//   • Next.js (online)  — stylesheet is available
+//   • Electron (offline) — new BrowserWindow has no Tailwind, so className fails
+// ─────────────────────────────────────────────────────────────────────────────
+
+const s = {
+  wrapper: {
+    padding: '16px',
+    fontFamily: 'Arial, sans-serif',
+    color: '#000',
+    background: '#fff',
+    maxWidth: '80mm',
+    margin: '0 auto',
+    fontSize: '12px',
+    lineHeight: '1.4',
+    direction: 'rtl' as const,
+  },
+  header: {
+    textAlign: 'center' as const,
+    marginBottom: '8px',
+  },
+  headerH1: {
+    fontSize: '20px',
+    fontWeight: 'bold',
+    margin: '0 0 4px 0',
+  },
+  headerP: {
+    fontWeight: 'bold',
+    margin: '0 0 2px 0',
+  },
+  infoBox: {
+    border: '2px solid #000',
+    marginBottom: '8px',
+    padding: '4px',
+  },
+  infoRow: {
+    display: 'flex' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    marginBottom: '4px',
+    borderBottom: '1px solid rgba(0,0,0,0.2)',
+    paddingBottom: '4px',
+  },
+  infoRowLast: {
+    textAlign: 'right' as const,
+  },
+  bold: {
+    fontWeight: 'bold' as const,
+  },
+  mono: {
+    fontFamily: 'monospace' as const,
+    fontWeight: 'bold' as const,
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse' as const,
+    border: '2px solid #000',
+    marginBottom: '0',
+    direction: 'ltr' as const,
+  },
+  th: {
+    border: '1px solid #000',
+    padding: '4px',
+    fontWeight: 'bold' as const,
+    textAlign: 'center' as const,
+    background: '#f3f4f6',
+    fontSize: '12px',
+  },
+  tdCenter: {
+    border: '1px solid #000',
+    padding: '4px',
+    textAlign: 'center' as const,
+    fontFamily: 'monospace' as const,
+    fontWeight: 'bold' as const,
+    fontSize: '13px',
+    verticalAlign: 'middle' as const,
+  },
+  tdRight: {
+    border: '1px solid #000',
+    padding: '4px',
+    textAlign: 'right' as const,
+    fontWeight: 'bold' as const,
+    verticalAlign: 'middle' as const,
+  },
+  tdTotalAmount: {
+    border: '1px solid #000',
+    padding: '4px',
+    textAlign: 'center' as const,
+    fontFamily: 'monospace' as const,
+    fontWeight: 'bold' as const,
+    fontSize: '20px',
+    background: '#f9fafb',
+  },
+  tdTotalLabel: {
+    border: '1px solid #000',
+    padding: '4px',
+    textAlign: 'center' as const,
+    fontWeight: 'bold' as const,
+    fontSize: '20px',
+    background: '#f9fafb',
+  },
+  returnRow: {
+    color: '#dc2626',
+  },
+  footer: {
+    textAlign: 'center' as const,
+    marginTop: '8px',
+    fontWeight: 'bold' as const,
+  },
+  footerP: {
+    margin: '0 0 4px 0',
+  },
+  timestamp: {
+    display: 'flex' as const,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    fontSize: '10px',
+    direction: 'ltr' as const,
+    marginTop: '16px',
+    borderTop: '1px solid #000',
+    paddingTop: '4px',
+  },
+  brand: {
+    textAlign: 'center' as const,
+    fontSize: '10px',
+    marginTop: '4px',
+  },
+} as const;
+
+export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateProps>(
+  ({ sale, settings, user }, ref) => {
+    if (!sale || !settings) return null;
+
+    const { pharmacyName, pharmacyAddress, pharmacyPhone } = settings;
+
+    const formatDate = (dateString: string) => {
+      const d = new Date(dateString);
+      return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1)
+        .toString()
+        .padStart(2, '0')}/${d.getFullYear()}`;
+    };
+
+    const now = new Date();
+    const printDate = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1)
+      .toString()
+      .padStart(2, '0')}/${now.getFullYear()}`;
+    const printTime = `${now.getHours().toString().padStart(2, '0')}:${now
+      .getMinutes()
+      .toString()
+      .padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+
+    return (
+      <div ref={ref} style={s.wrapper}>
+        {/* Header */}
+        <div style={s.header}>
+          <h1 style={s.headerH1}>{pharmacyName}</h1>
+          <p style={s.headerP}>{pharmacyAddress}</p>
+          <p style={{ ...s.mono, ...s.headerP }}>{pharmacyPhone}</p>
+        </div>
+
+        {/* Info Box */}
+        <div style={s.infoBox}>
+          <div style={s.infoRow}>
+            <div style={{ flex: 1, textAlign: 'right' }}>
+              <span style={s.bold}>رقم الوصل: </span>
+              <span style={s.mono}>{sale.id}</span>
+            </div>
+            <div style={{ flex: 1, textAlign: 'left' }}>
+              <span style={s.mono}>{formatDate(sale.date)}</span>
+              <span style={s.bold}> التاريخ</span>
+            </div>
+          </div>
+          <div style={s.infoRowLast}>
+            <span style={s.mono}>اسم الصيدلي: </span>
+            <span style={s.mono}>{user?.name || 'مسؤول المبيعات'}</span>
+          </div>
+        </div>
+
+        {/* Table */}
+        <table style={s.table}>
+          <thead>
+            <tr>
+              <th style={{ ...s.th, width: '25%' }}>المبلغ</th>
+              <th style={{ ...s.th, width: '20%' }}>الكمية</th>
+              <th style={{ ...s.th, width: '55%' }}>العنصر</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sale.items.map((item, idx) => {
+              const itemTotal = (item.price || 0) * (item.quantity || 0);
+              return (
+                <tr key={idx} style={item.is_return ? s.returnRow : {}}>
+                  <td style={s.tdCenter}>{itemTotal.toLocaleString()}</td>
+                  <td style={s.tdCenter}>{item.quantity}</td>
+                  <td style={s.tdRight}>{item.name}</td>
+                </tr>
+              );
+            })}
+            {/* Total Row */}
+            <tr>
+              <td style={s.tdTotalAmount}>{sale.total.toLocaleString()}</td>
+              <td colSpan={2} style={s.tdTotalLabel}>المجموع</td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* Footer */}
+        <div style={s.footer}>
+          <p style={s.footerP}>مواد الثلاجة لاتسترجع</p>
+          <p style={{ ...s.footerP, marginBottom: '8px' }}>استرجاع العلاج الا بوجود الفاتورة</p>
+          <div style={s.timestamp}>
+            <span style={s.mono}>{printTime} {printDate}</span>
+          </div>
+          <div style={s.brand}>ميدجرام</div>
+        </div>
+      </div>
+    );
   }
-
-  const { pharmacyName, pharmacyAddress, pharmacyPhone } = settings;
-  // Format date as DD/MM/YYYY
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-  };
-
-  // Format time as HH:MM:SS
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    let hours = date.getHours();
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    const seconds = date.getSeconds().toString().padStart(2, '0');
-    const ampm = hours >= 12 ? 'م' : 'ص';
-
-    // Convert to 12-hour format if needed, though standard usually is 24 or 12 without suffix in some receipts. 
-    // The image shows "05:08:18" which looks like 24h or 12h padding. Let's use 24h for simplicity or standard.
-    // Actually image shows 05:08:18, likely 12h or 24h. 
-    return `${hours.toString().padStart(2, '0')}:${minutes}:${seconds}`;
-  };
-
-  const currentDate = new Date();
-  const printDate = `${currentDate.getDate().toString().padStart(2, '0')}/${(currentDate.getMonth() + 1).toString().padStart(2, '0')}/${currentDate.getFullYear()}`;
-  const printTime = `${currentDate.getHours().toString().padStart(2, '0')}:${currentDate.getMinutes().toString().padStart(2, '0')}:${currentDate.getSeconds().toString().padStart(2, '0')}`;
-
-  return (
-    <div ref={ref} className="p-4 font-sans text-black bg-white max-w-[80mm] mx-auto text-xs leading-tight">
-      {/* Header */}
-      <div className="text-center mb-2">
-        <h1 className="text-xl font-bold mb-1">{pharmacyName}</h1>
-        {/* Helper for English name if available or hardcoded for layout demo */}
-        {/* <h2 className="text-lg font-serif font-bold mb-1 tracking-wider uppercase">PHARMACY</h2> */}
-        <p className="font-bold mb-0.5">{pharmacyAddress}</p>
-        <p className="font-mono font-bold">{pharmacyPhone}</p>
-      </div>
-
-      {/* Info Box */}
-      <div className="border-2 border-black mb-2 p-1">
-        <div className="flex justify-between items-center mb-1 border-b border-black/20 pb-1">
-          <div className="flex-1 text-right">
-            <span className="font-bold mx-1">رقم الوصل:</span>
-            <span className="font-mono font-bold">{sale.id}</span>
-          </div>
-          <div className="flex-1 text-left">
-            <span className="font-mono font-bold">{formatDate(sale.date)}</span>
-            <span className="font-mono font-bold mx-1">التاريخ</span>
-          </div>
-        </div>
-        <div className="text-right">
-          <span className="font-mono font-bold mx-1">اسم الصيدلي:</span>
-          <span className="font-mono font-bold">{user?.name || 'مسؤول المبيعات'}</span>
-        </div>
-      </div>
-
-      {/* Table */}
-      <table className="w-full mb-0 border-collapse border-2 border-black" dir="ltr">
-        <thead>
-          <tr className="bg-gray-100 text-center">
-            <th className="border border-black p-1 w-[20%] font-bold">المبلغ</th>
-            {/* <th className="border border-black p-1 w-[20%] font-bold">سعر المفرد</th> */}
-            <th className="border border-black p-1 w-[20%] font-bold">الكمية</th>
-            <th className="border border-black p-1 w-[60%] font-bold">العنصر</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sale.items.map((item, idx) => {
-            const itemTotal = (item.price || 0) * (item.quantity || 0);
-            return (
-              <tr key={idx} className={cn("text-center font-bold", item.is_return ? 'text-red-600' : '')}>
-                <td className="border border-black p-1 font-mono text-sm align-middle">{itemTotal.toLocaleString()}</td>
-                {/* <td className="border border-black p-1 font-mono align-middle">{item.price.toLocaleString()}</td> */}
-                <td className="border border-black p-1 font-mono align-middle">{item.quantity}</td>
-                <td className="border border-black p-1 text-right align-middle">
-                  <div>{item.name}</div>
-                  {/* <div className="text-[10px] font-normal uppercase">EUTHYROX 100 MERCK</div> English name placeholder */}
-                </td>
-              </tr>
-            )
-          })}
-          {/* Total Row */}
-          <tr>
-            <td className="border border-black p-1 font-mono text-xl font-bold text-center bg-gray-50">{sale.total.toLocaleString()}</td>
-            <td colSpan={2} className="border border-black p-1 text-center font-bold text-xl bg-gray-50">المجموع</td>
-          </tr>
-        </tbody>
-      </table>
-
-      {/* Footer */}
-      <div className="text-center mt-2 font-bold">
-        <p className="mb-1">مواد الثلاجة لاتسترجع</p>
-        <p className="mb-2">استرجاع العلاج الا بوجود الفاتورة</p>
-
-        <div className="flex justify-center items-center text-[10px] dir-ltr mt-4 border-t border-black pt-1">
-          <div className="font-mono">{printTime} {printDate}</div>
-        </div>
-        <div className="text-center text-[10px] mt-1">
-          ميدجرام
-        </div>
-      </div>
-    </div>
-  );
-});
+);
 
 InvoiceTemplate.displayName = 'InvoiceTemplate';
