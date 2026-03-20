@@ -64,7 +64,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, InvoiceTemplateP
           </div>
         </div>
         <div className="text-right">
-          <span className="font-mono font-bold mx-1">اسم الكاشير:</span>
+          <span className="font-mono font-bold mx-1">اسم الصيدلي:</span>
           <span className="font-mono font-bold">{user?.name || 'مسؤول المبيعات'}</span>
         </div>
       </div>
