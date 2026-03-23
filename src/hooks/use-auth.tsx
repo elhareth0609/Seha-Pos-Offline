@@ -80,6 +80,7 @@ interface AuthContextType {
     deleteSale: (saleId: string) => Promise<boolean>;
     getPaginatedSales: (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string, invoiceType?: string, dosageForm?: string, itemName?: string, discountFilter?: string) => Promise<PaginatedResponse<Sale> & { totals?: { total_sales: number, total_profit: number } }>;
     searchAllSales: (search?: string) => Promise<Sale[]>;
+    getMyTodaySummary: () => Promise<{ count: number; total: number }>;
 
     // Patients
     getPaginatedPatients: (page: number, perPage: number, search: string) => Promise<PaginatedResponse<Patient>>;
@@ -1196,6 +1197,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [isOnline]);
 
+    const getMyTodaySummary = React.useCallback(async () => {
+        const isActuallyOnline = navigator.onLine && isOnline;
+        if (!isActuallyOnline) {
+            const today = new Date().toISOString().split('T')[0];
+            const sales = await db.sales.where('date').startsWith(today).toArray();
+            const total = sales.reduce((sum, s) => sum + s.total, 0);
+            return { count: sales.length, total };
+        }
+        try {
+            return await apiRequest('/sales/my-today-summary');
+        } catch (e) {
+            return { count: 0, total: 0 };
+        }
+    }, []);
+
     const markAsDamaged = async (medId: string) => {
         try {
             await apiRequest(`/medications/${medId}/damage`, 'POST');
@@ -1623,7 +1639,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             getAllPharmacySettings, getPharmacyData, clearPharmacyData, closeMonth,
             advertisements,
             bulkAddOrUpdateInventory, bulkUploadInventory, getPaginatedInventory, searchAllInventory, markAsDamaged, toggleFavoriteMedication,
-            addSale, updateSale, deleteSale, getPaginatedSales, searchAllSales,
+            addSale, updateSale, deleteSale, getPaginatedSales, searchAllSales, getMyTodaySummary,
             getPaginatedPatients, searchAllPatients,
             activeInvoices, currentInvoiceIndex, updateActiveInvoice, switchToInvoice, createNewInvoice, closeInvoice,
             verifyPin, updateUserPinRequirement,

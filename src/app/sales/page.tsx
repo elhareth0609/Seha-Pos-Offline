@@ -46,7 +46,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import type { Medication, SaleItem, Sale, AppSettings, Patient, Notification, PatientMedication } from "@/lib/types"
-import { Loader2, PlusCircle, X, PackageSearch, Printer, User as UserIcon, AlertTriangle, Package, Replace, Percent, Trash2, FileText, Calculator, Plus, Minus, Pill } from "lucide-react"
+import { Loader2, PlusCircle, X, PackageSearch, Printer, User as UserIcon, AlertTriangle, Package, Replace, Percent, Trash2, FileText, Calculator, Plus, Minus, Pill, TrendingUp } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
@@ -64,6 +64,7 @@ import { PinDialog } from "@/components/auth/PinDialog"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { CalculatorComponent } from "@/components/ui/calculator"
 import { printElement } from "@/lib/print-utils"
+import { Skeleton } from "@/components/ui/skeleton"
 
 
 
@@ -139,6 +140,7 @@ export default function SalesPage() {
         searchAllPatients,
         verifyPin,
         getPatientMedications,
+        getMyTodaySummary,
     } = useAuth();
 
     const navigate = useNavigate();
@@ -182,6 +184,9 @@ export default function SalesPage() {
     // Patient Medications Logic
     const [isPatientMedsOpen, setIsPatientMedsOpen] = React.useState(false);
     const [patientMedications, setPatientMedications] = React.useState<PatientMedication[]>([]);
+
+    const [myTodaySales, setMyTodaySales] = React.useState<{ total: number; count: number } | null>(null);
+    const [isLoadingTodaySales, setIsLoadingTodaySales] = React.useState(false);
 
     const handleOpenPatientMeds = async () => {
         if (!patientId) return;
@@ -443,6 +448,21 @@ export default function SalesPage() {
         }
     }, [cart, alternativeExpiryAlert]);
 
+    const fetchMyTodaySales = React.useCallback(async () => {
+        if (!currentUser) return;
+        setIsLoadingTodaySales(true);
+        try {
+            const data = await getMyTodaySummary();
+            setMyTodaySales({
+                total: data.total || 0,
+                count: data.count || 0,
+            });
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsLoadingTodaySales(false);
+        }
+    }, [currentUser, getMyTodaySummary]);
 
     const fetchInventory = React.useCallback(async () => {
         const results = await searchAllInventory('');
@@ -452,6 +472,10 @@ export default function SalesPage() {
     React.useEffect(() => {
         fetchInventory();
     }, [fetchInventory]);
+
+    React.useEffect(() => {
+        fetchMyTodaySales();
+    }, [fetchMyTodaySales]);
 
     const handleNameSearchChange = React.useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value
@@ -676,6 +700,7 @@ export default function SalesPage() {
                 toast({ title: saleIdToUpdate ? "تم تحديث الفاتورة بنجاح" : "تمت العملية بنجاح", description: `تم تسجيل الفاتورة رقم ${resultSale.id}` });
 
                 setSaleToPrint(resultSale);
+                fetchMyTodaySales();
                 setIsReceiptOpen(true);
                 setAlternativeExpiryAlert(null);
             }
@@ -844,6 +869,32 @@ export default function SalesPage() {
                 />
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:h-[calc(100vh-6rem)]">
                     <div className="lg:col-span-2 flex flex-col gap-4 min-h-0">
+                        <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-4 py-2.5 text-sm">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <UserIcon className="h-4 w-4" />
+                                <span>{currentUser?.name}</span>
+                            </div>
+                            {isLoadingTodaySales ? (
+                                <div className="flex gap-4">
+                                    <Skeleton className="h-4 w-16" />
+                                    <Skeleton className="h-4 w-20" />
+                                </div>
+                            ) : myTodaySales ? (
+                                <div className="flex items-center gap-5">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-muted-foreground">الفواتير:</span>
+                                        <span className="font-bold font-mono text-foreground">{myTodaySales.count}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-muted-foreground">الإجمالي:</span>
+                                        <span className="font-bold font-mono text-primary">{myTodaySales.total.toLocaleString()}</span>
+                                    </div>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={fetchMyTodaySales}>
+                                        <TrendingUp className="h-3 w-3" />
+                                    </Button>
+                                </div>
+                            ) : null}
+                        </div>
                         <div className="flex gap-2 flex-col md:flex-row">
                             <div className="relative flex-[2]">
                                 <Input
