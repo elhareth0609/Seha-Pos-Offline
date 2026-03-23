@@ -77,6 +77,7 @@ export default function ReportsPage() {
     const [doctorId, setDoctorId] = React.useState<string>("all");
     const [filterDosageForm, setFilterDosageForm] = React.useState<string>("all");
     const [filterItemName, setFilterItemName] = React.useState<string>("");
+    const [discountFilter, setDiscountFilter] = React.useState<string>("all");
 
     const [itemToDelete, setItemToDelete] = React.useState<Sale | null>(null);
     const [isPinDialogOpen, setIsPinDialogOpen] = React.useState(false);
@@ -85,6 +86,7 @@ export default function ReportsPage() {
     // const navigate = useNavigate();
 
     // const canManagePreviousSales = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_previous_sales;
+    const showProfitColumn = currentUser?.role === 'Admin' || currentUser?.permissions?.manage_sales_performance_period;
 
     const fetchDropdownData = React.useCallback(async () => {
         try {
@@ -101,10 +103,10 @@ export default function ReportsPage() {
         }
     }, [searchAllPatients, getDoctors]);
 
-    const fetchData = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string, empId: string, pMethod: string, docId: string, invType: string, patId: string, dosageForm: string, itemName: string) => {
+    const fetchData = React.useCallback(async (page: number, limit: number, search: string, from: string, to: string, empId: string, pMethod: string, docId: string, invType: string, patId: string, dosageForm: string, itemName: string, discountFilterValue: string) => {
         setLoading(true);
         try {
-            const data = await getPaginatedSales(page, limit, search, from, to, empId, pMethod, docId, patId, invType, dosageForm, itemName);
+            const data = await getPaginatedSales(page, limit, search, from, to, empId, pMethod, docId, patId, invType, dosageForm, itemName, discountFilterValue);
 
             let filteredData = data.data;
 
@@ -114,13 +116,19 @@ export default function ReportsPage() {
             setCurrentPage(data.current_page);
 
             if (data.totals) {
-                setTotalSalesDisplayed(Number(data.totals.total_sales) || 0);
-                setTotalProfitDisplayed(Number(data.totals.total_profit) || 0);
+                setTotalSalesDisplayed(data.totals.total_sales || 0);
+                setTotalProfitDisplayed(data.totals.total_profit || 0);
             } else {
-                const total = filteredData.reduce((acc, sale) => acc + (Number(sale.total) || 0), 0);
-                const profit = filteredData.reduce((acc, sale) => acc + (Number(sale.profit) || 0), 0);
-                setTotalSalesDisplayed(total);
-                setTotalProfitDisplayed(profit);
+                const pageSales = filteredData.reduce((acc, sale) => {
+                    const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
+                    return acc + (isNaN(total) ? 0 : total);
+                }, 0);
+                const pageProfit = filteredData.reduce((acc, sale) => {
+                    const total = typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0));
+                    return acc + (isNaN(total) ? 0 : total);
+                }, 0);
+                setTotalSalesDisplayed(pageSales);
+                setTotalProfitDisplayed(pageProfit);
             }
         } catch (error) {
             console.error("Failed to fetch sales", error);
@@ -130,7 +138,7 @@ export default function ReportsPage() {
     }, [getPaginatedSales]);
 
     const handleExport = () => {
-        exportSales(searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, patientId, filterDosageForm, filterItemName);
+        exportSales(searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, patientId, filterDosageForm, filterItemName, discountFilter);
     };
 
     React.useEffect(() => {
@@ -141,11 +149,11 @@ export default function ReportsPage() {
     React.useEffect(() => {
         if (isClient) {
             const handler = setTimeout(() => {
-                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, invoiceType, patientId, filterDosageForm, filterItemName);
+                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, invoiceType, patientId, filterDosageForm, filterItemName, discountFilter);
             }, 300);
             return () => clearTimeout(handler);
         }
-    }, [isClient, currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, invoiceType, doctorId, patientId, filterDosageForm, filterItemName, fetchData]);
+    }, [isClient, currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, invoiceType, doctorId, patientId, filterDosageForm, filterItemName, discountFilter, fetchData]);
 
 
     const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
@@ -184,6 +192,7 @@ export default function ReportsPage() {
         setDoctorId("all");
         setFilterDosageForm("all");
         setFilterItemName("");
+        setDiscountFilter("all");
     };
 
     // const handleDeleteSale = async () => {
@@ -194,7 +203,7 @@ export default function ReportsPage() {
     //     } else {
     //         const success = await deleteSale(itemToDelete.id);
     //         if (success) {
-    //             fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, invoiceType, patientId, filterDosageForm, filterItemName);
+    //             fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, invoiceType, patientId, filterDosageForm, filterItemName, discountFilter);
     //             setItemToDelete(null);
     //         }
     //     }
@@ -207,7 +216,7 @@ export default function ReportsPage() {
             setIsPinDialogOpen(false);
             const success = await deleteSale(itemToDelete.id);
             if (success) {
-                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, invoiceType, patientId, filterDosageForm, filterItemName);
+                fetchData(currentPage, perPage, searchTerm, dateFrom, dateTo, employeeId, paymentMethod, doctorId, invoiceType, patientId, filterDosageForm, filterItemName, discountFilter);
                 setItemToDelete(null);
             }
         } else {
@@ -270,7 +279,7 @@ export default function ReportsPage() {
                                     <TableHead>الطبيب</TableHead>
                                     <TableHead className="text-center">عدد الأصناف</TableHead>
                                     <TableHead className="text-left">الإجمالي</TableHead>
-                                    {currentUser && (currentUser.role === 'Admin' || currentUser?.permissions?.manage_sales_performance_period) && (
+                                    {showProfitColumn && (
                                         <TableHead className="text-left">الربح</TableHead>
                                     )}
                                     <TableHead>الإجراءات</TableHead>
@@ -284,7 +293,7 @@ export default function ReportsPage() {
                                         <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                                         <TableCell className="text-center"><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
                                         <TableCell className="text-left"><Skeleton className="h-5 w-16" /></TableCell>
-                                        {currentUser && (currentUser.role === 'Admin' || currentUser?.permissions?.manage_sales_performance_period) && (
+                                        {showProfitColumn && (
                                             <TableCell className="text-left"><Skeleton className="h-5 w-16" /></TableCell>
                                         )}
                                         <TableCell><Skeleton className="h-9 w-24" /></TableCell>
@@ -302,7 +311,7 @@ export default function ReportsPage() {
     return (
         <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-3">
-                {currentUser && (currentUser.role === 'Admin' || currentUser?.permissions?.manage_sales_performance_period) && (
+                {showProfitColumn && (
                     <>
                         <Card className="flex flex-col justify-center">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -444,6 +453,19 @@ export default function ReportsPage() {
                             </Select>
                         </div>
                         <div className="space-y-2">
+                            <Label htmlFor="discount-filter">الخصم</Label>
+                            <Select value={discountFilter} onValueChange={setDiscountFilter}>
+                                <SelectTrigger id="discount-filter">
+                                    <SelectValue placeholder="الكل" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">الكل</SelectItem>
+                                    <SelectItem value="has_discount">مع خصم</SelectItem>
+                                    <SelectItem value="no_discount">بدون خصم</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
                             <Label htmlFor="invoice-type-filter">نوع الفاتورة</Label>
                             <Select value={invoiceType} onValueChange={setInvoiceType}>
                                 <SelectTrigger id="invoice-type-filter">
@@ -492,6 +514,8 @@ export default function ReportsPage() {
                                 <TableHead className="text-right">التاريخ والوقت</TableHead>
                                 <TableHead className="text-right">الأصناف</TableHead>
                                 <TableHead className="text-right">الإجمالي</TableHead>
+                                <TableHead className="text-right">الخصم</TableHead>
+                                <TableHead className="text-right">إجمالي الكلفة</TableHead>
                                 {currentUser && (currentUser.role === 'Admin' || currentUser?.permissions?.manage_sales_performance_period) && (
                                     <TableHead className="text-right">الربح</TableHead>
                                 )}
@@ -507,6 +531,8 @@ export default function ReportsPage() {
                                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
                                     {currentUser && (currentUser.role === 'Admin' || currentUser?.permissions?.manage_sales_performance_period) && (
                                         <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
                                     )}
@@ -520,9 +546,18 @@ export default function ReportsPage() {
                                         <TableCell className="text-right font-medium font-mono">{sale.id}</TableCell>
                                         <TableCell className="text-right font-mono">{new Date(sale.date).toLocaleString('en-US', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric' })}</TableCell>
                                         <TableCell className="text-right font-mono">{(sale.items || []).length}</TableCell>
-                                        <TableCell className="text-right font-mono">{sale.total.toLocaleString()}</TableCell>
-                                        {currentUser && (currentUser.role === 'Admin' || currentUser?.permissions?.manage_sales_performance_period) && (
-                                            <TableCell className="text-right font-mono text-green-600">{((sale.profit || 0) - (sale.discount || 0)).toLocaleString()}</TableCell>
+                                        <TableCell className="text-right font-mono">{(Number(sale.total || 0)).toLocaleString()}</TableCell>
+                                        <TableCell className="text-right font-mono">{(Number(sale.discount || 0)).toLocaleString()}</TableCell>
+                                        <TableCell className="text-right font-mono">{
+                                            (sale.items || []).reduce((acc, item) => {
+                                                const price = Number(item.purchase_price || 0);
+                                                const qty = Number(item.quantity || 0);
+                                                const line = price * qty;
+                                                return item.is_return ? acc - line : acc + line;
+                                            }, 0).toLocaleString()
+                                        }</TableCell>
+                                        {showProfitColumn && (
+                                            <TableCell className="text-right font-mono text-green-600">{(Number(sale.profit || 0)).toLocaleString()}</TableCell>
                                         )}
                                         <TableCell className="text-right font-mono">
                                             {sale.items.some(item => item.is_return) ? (
@@ -575,7 +610,7 @@ export default function ReportsPage() {
                                     </TableRow>
                                     {expandedRows.has(sale.id) && (
                                         <TableRow>
-                                            <TableCell colSpan={currentUser?.role === 'Admin' || currentUser?.permissions?.manage_sales_performance_period ? 8 : 7} className="p-0">
+                                            <TableCell colSpan={showProfitColumn ? 10 : 9} className="p-0">
                                                 <div className="p-4 bg-muted/50">
                                                     <h4 className="mb-2 font-semibold">أصناف الفاتورة:</h4>
                                                     <Table>
@@ -583,7 +618,8 @@ export default function ReportsPage() {
                                                             <TableRow>
                                                                 <TableHead>المنتج</TableHead>
                                                                 <TableHead>الكمية</TableHead>
-                                                                <TableHead>السعر</TableHead>
+                                                                <TableHead>سعر الشراء</TableHead>
+                                                                <TableHead>سعر البيع</TableHead>
                                                                 <TableHead>الإجمالي</TableHead>
                                                                 <TableHead>النوع</TableHead>
                                                             </TableRow>
@@ -593,6 +629,7 @@ export default function ReportsPage() {
                                                                 <TableRow key={`${sale.id}-${item.medication_id}-${index}`} className={cn(item.is_return && "text-destructive")}>
                                                                     <TableCell>{item.name} {item.dosage_form && <span className="text-xs text-muted-foreground">({item.dosage_form})</span>}</TableCell>
                                                                     <TableCell className="font-mono">{item.quantity}</TableCell>
+                                                                    <TableCell className="font-mono">{item.purchase_price.toLocaleString()}</TableCell>
                                                                     <TableCell className="font-mono">{item.price.toLocaleString()}</TableCell>
                                                                     <TableCell className="font-mono">{(item.quantity * item.price).toLocaleString()}</TableCell>
                                                                     <TableCell>
@@ -609,7 +646,7 @@ export default function ReportsPage() {
                                 </React.Fragment>
                             )) : (
                                 <TableRow>
-                                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                                    <TableCell colSpan={showProfitColumn ? 10 : 9} className="text-center py-8 text-muted-foreground">
                                         {(filterDosageForm !== 'all' || filterItemName) ? 'لا توجد فواتير تحتوي على هذا الصنف أو الشكل الدوائي.' : 'لم يتم العثور على فواتير مطابقة.'}
                                     </TableCell>
                                 </TableRow>

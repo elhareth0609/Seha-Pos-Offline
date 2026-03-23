@@ -78,7 +78,7 @@ interface AuthContextType {
     addSale: (saleData: any) => Promise<Sale | null>;
     updateSale: (saleData: any) => Promise<Sale | null>;
     deleteSale: (saleId: string) => Promise<boolean>;
-    getPaginatedSales: (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string, invoiceType?: string, dosageForm?: string, itemName?: string) => Promise<PaginatedResponse<Sale> & { totals?: { total_sales: number, total_profit: number } }>;
+    getPaginatedSales: (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string, invoiceType?: string, dosageForm?: string, itemName?: string, discountFilter?: string) => Promise<PaginatedResponse<Sale> & { totals?: { total_sales: number, total_profit: number } }>;
     searchAllSales: (search?: string) => Promise<Sale[]>;
 
     // Patients
@@ -111,7 +111,7 @@ interface AuthContextType {
     refreshData: () => Promise<void>;
 
     // Export
-    exportSales: (search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string, dosageForm?: string, itemName?: string) => Promise<void>;
+    exportSales: (search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string, dosageForm?: string, itemName?: string, discountFilter?: string) => Promise<void>;
 }
 export interface ScopedDataContextType {
     inventory: [Medication[], React.Dispatch<React.SetStateAction<Medication[]>>];
@@ -929,7 +929,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [isOnline]);
 
-    const getPaginatedSales = React.useCallback(async (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string, invoiceType?: string, dosageForm?: string, itemName?: string) => {
+    const getPaginatedSales = React.useCallback(async (page: number, perPage: number, search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string, invoiceType?: string, dosageForm?: string, itemName?: string, discountFilter?: string) => {
         // Use a more robust check for online status
         const isActuallyOnline = navigator.onLine && isOnline;
 
@@ -964,11 +964,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (paymentMethod && paymentMethod !== 'all') {
                 allSales = allSales.filter(s => s.payment_method === paymentMethod);
             }
-
             if (invoiceType && invoiceType !== 'all') {
                 allSales = allSales.filter(sale => {
                     const isReturnInvoice = sale.items.every(item => item.is_return);
                     return invoiceType === 'returns' ? isReturnInvoice : !isReturnInvoice;
+                });
+            }
+            if (discountFilter && discountFilter !== 'all') {
+                allSales = allSales.filter(sale => {
+                    const discount = Number(sale.discount || 0);
+                    if (discountFilter === 'has_discount') return discount > 0;
+                    if (discountFilter === 'no_discount') return discount === 0;
+                    return true;
                 });
             }
 
@@ -1043,10 +1050,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 payment_method: paymentMethod || "all",
                 doctor_id: doctorId || "all",
                 patient_id: patientId || "all",
-                invoice_type: invoiceType || "all",
-                dosage_form: dosageForm || "all",
-                item_name: itemName || ""
+                invoice_type: invoiceType || 'all'
             });
+            if (dosageForm && dosageForm !== 'all') params.append('dosage_form', dosageForm);
+            if (itemName && itemName.trim()) params.append('item_name', itemName.trim());
+            if (discountFilter && discountFilter !== 'all') params.append('discount_filter', discountFilter);
             const data = await apiRequest(`/sales?${params.toString()}`);
             return data;
         } catch (e) {
@@ -1080,11 +1088,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (paymentMethod && paymentMethod !== 'all') {
                 allSales = allSales.filter(s => s.payment_method === paymentMethod);
             }
-
             if (invoiceType && invoiceType !== 'all') {
                 allSales = allSales.filter(sale => {
                     const isReturnInvoice = sale.items.every(item => item.is_return);
                     return invoiceType === 'returns' ? isReturnInvoice : !isReturnInvoice;
+                });
+            }
+            if (discountFilter && discountFilter !== 'all') {
+                allSales = allSales.filter(sale => {
+                    const discount = Number(sale.discount || 0);
+                    if (discountFilter === 'has_discount') return discount > 0;
+                    if (discountFilter === 'no_discount') return discount === 0;
+                    return true;
                 });
             }
 
@@ -1533,7 +1548,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }
 
-    const exportSales = async (search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string, dosageForm?: string, itemName?: string) => {
+    const exportSales = async (search: string, dateFrom: string, dateTo: string, employeeId: string, paymentMethod: string, doctorId: string, patientId: string, dosageForm?: string, itemName?: string, discountFilter?: string) => {
         if (!isOnline) {
             toast({
                 title: "غير متصل",
@@ -1554,6 +1569,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
             if (dosageForm && dosageForm !== 'all') params.append('dosage_form', dosageForm);
             if (itemName && itemName.trim()) params.append('item_name', itemName.trim());
+            if (discountFilter && discountFilter !== 'all') params.append('discount_filter', discountFilter);
 
             const token = localStorage.getItem('authToken');
             const response = await fetch(`${API_URL}/sales/export?${params.toString()}`, {

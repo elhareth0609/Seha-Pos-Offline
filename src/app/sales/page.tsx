@@ -349,8 +349,8 @@ export default function SalesPage() {
                     quantity: 1,
                     price: itemPrice,
                     purchase_price: resolvedUnitType === 'box'
-                        ? (medication.average_purchase_price || 0)
-                        : ((medication.average_purchase_price || 0) / (medication.strips_per_box || 1)),
+                        ? (medication.box_purchase_price || 0)
+                        : ((medication.box_purchase_price || 0) / (medication.strips_per_box || 1)),
                     expiration_date: medication.expiration_date,
                     is_return: mode === 'return',
                     dosage_form: medication.dosage_form,
@@ -537,8 +537,8 @@ export default function SalesPage() {
                         : (medication.strip_sell_price || 0);
 
                     const newPurchasePrice = newUnitType === 'box'
-                        ? (medication.average_purchase_price || 0)
-                        : ((medication.average_purchase_price || 0) / (medication.strips_per_box || 1));
+                        ? (medication.box_purchase_price || 0)
+                        : ((medication.box_purchase_price || 0) / (medication.strips_per_box || 1));
 
                     return { ...item, unit_type: newUnitType, price: newPrice, purchase_price: newPurchasePrice };
                 }
@@ -843,7 +843,7 @@ export default function SalesPage() {
                     }}
                 />
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:h-[calc(100vh-6rem)]">
-                    <div className="lg:col-span-2 flex flex-col gap-4">
+                    <div className="lg:col-span-2 flex flex-col gap-4 min-h-0">
                         <div className="flex gap-2 flex-col md:flex-row">
                             <div className="relative flex-[2]">
                                 <Input
@@ -869,7 +869,7 @@ export default function SalesPage() {
                                                         }}
                                                     >
                                                         <div className="flex items-center gap-3">
-                                                            {typeof med.image_url === 'string' && med.image_url !== "" && isOnline ? (
+                                                            {/* {typeof med.image_url === 'string' && med.image_url !== "" && isOnline ? (
                                                                 <img
                                                                     src={med.image_url}
                                                                     alt={med.name || ''}
@@ -881,7 +881,7 @@ export default function SalesPage() {
                                                                 <div className="h-8 w-8 flex items-center justify-center rounded-sm bg-muted text-muted-foreground group-hover:text-white">
                                                                     <Package className="h-4 w-4" />
                                                                 </div>
-                                                            )}
+                                                            )} */}
                                                             <div>
                                                                 <div className="font-medium group-hover:text-white">{med.name}</div>
                                                                 <div className="text-xs text-muted-foreground group-hover:text-white">
@@ -931,7 +931,7 @@ export default function SalesPage() {
                             </Button>
                         </div>
 
-                        <Card className="flex-1 flex flex-col">
+                        <Card className="flex-1 flex flex-col min-h-0">
                             <CardHeader className="py-4 border-b">
                                 <div className="flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-2 overflow-x-auto pb-2">
@@ -966,7 +966,7 @@ export default function SalesPage() {
                                     </ToggleGroup>
                                 </div>
                             </CardHeader>
-                            <CardContent className="p-0 flex-1 flex flex-col">
+                            <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
                                 {alternativeExpiryAlert && (
                                     <Alert variant="default" className="m-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 border-yellow-400">
                                         <AlertDescription className="text-yellow-700 dark:text-yellow-400 flex items-center justify-between">
@@ -978,7 +978,7 @@ export default function SalesPage() {
                                         </AlertDescription>
                                     </Alert>
                                 )}
-                                <ScrollArea className="h-full" >
+                                <ScrollArea className="flex-1" scrollbarClassName="w-1.5">
                                     {cart.length > 0 ? (
                                         <>
                                             <div className="md:hidden divide-y divide-border" dir="rtl">
@@ -1104,7 +1104,7 @@ export default function SalesPage() {
                                                                                     </div>
                                                                                 </TooltipTrigger>
                                                                                 <TooltipContent>
-                                                                                    <p>السعر أقل من الكلفة!</p>
+                                                                                    <p>السعر قد يكون أقل من التكلفة الفعلية (يتم حساب التكلفة الدقيقة عند الحفظ)</p>
                                                                                 </TooltipContent>
                                                                             </Tooltip>
                                                                         )}
@@ -1114,7 +1114,7 @@ export default function SalesPage() {
                                                             <div className="text-xs text-muted-foreground mt-1 flex gap-2">
                                                                 <span>الرصيد: {effectiveStock}</span>
                                                                 {!item.is_return && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
-                                                                <span>| الشراء (متوسط): <span className="font-mono">{Number(displayPurchasePrice || 0).toFixed(2)}</span></span>
+                                                                <span>| الشراء: <span className="font-mono">{Number(displayPurchasePrice || 0).toFixed(2)}</span></span>
                                                             </div>
                                                         </div>
                                                     )
@@ -1209,7 +1209,7 @@ export default function SalesPage() {
                                                                     <div className="text-xs text-muted-foreground flex gap-2">
                                                                         <span>الرصيد: {effectiveStock}</span>
                                                                         {!item.is_return && <span>| المتبقي: <span className={remainingStock < 0 ? "text-destructive font-bold" : ""}>{remainingStock}</span></span>}
-                                                                        <span>| الشراء (متوسط): <span className="font-mono">{Number(displayPurchasePrice || 0).toFixed(2)}</span></span>
+                                                                        <span>| الشراء: <span className="font-mono">{Number(displayPurchasePrice || 0).toFixed(2)}</span></span>
                                                                     </div>
                                                                 </TableCell>
                                                                 <TableCell>
@@ -1253,12 +1253,12 @@ export default function SalesPage() {
                                                                         {isBelowCost && !item.is_return && (
                                                                             <Tooltip>
                                                                                 <TooltipTrigger asChild>
-                                                                                    <div className="absolute -top-2 -left-2 text-destructive" title="السعر أقل من الكلفة!">
+                                                                                    <div className="absolute -top-2 -left-2 text-destructive" title="السعر قد يكون أقل من التكلفة الفعلية (يتم حساب التكلفة الدقيقة عند الحفظ)">
                                                                                         <AlertTriangle className="h-4 w-4" />
-                                                                                    </div>
+                                                                                    </div> 
                                                                                 </TooltipTrigger>
                                                                                 <TooltipContent>
-                                                                                    <p>السعر أقل من الكلفة!</p>
+                                                                                    <p>السعر قد يكون أقل من التكلفة الفعلية (يتم حساب التكلفة الدقيقة عند الحفظ)</p>
                                                                                 </TooltipContent>
                                                                             </Tooltip>
                                                                         )}
@@ -1457,12 +1457,12 @@ export default function SalesPage() {
                                             </Button>
                                         </AlertDialogTrigger>
                                         <AlertDialogContent>
-                                            <DialogHeader>
-                                                <DialogTitle>هل أنت متأكد من حذف الفاتورة؟</DialogTitle>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>هل أنت متأكد من حذف الفاتورة؟</AlertDialogTitle>
                                                 <AlertDialogDescription>
                                                     لا يمكن التراجع عن هذا الإجراء. سيتم إعادة كميات الأصناف المباعة إلى المخزون.
                                                 </AlertDialogDescription>
-                                            </DialogHeader>
+                                            </AlertDialogHeader>
                                             <AlertDialogFooter className='sm:space-x-reverse'>
                                                 <AlertDialogCancel>تراجع</AlertDialogCancel>
                                                 <AlertDialogAction onClick={handleDeleteCurrentSale} className={buttonVariants({ variant: "destructive" })}>نعم، قم بالحذف</AlertDialogAction>
