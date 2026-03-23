@@ -1024,8 +1024,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const data = allSales.slice(start, start + perPage);
 
             // Calculate aggregate totals for the filtered results (matches online behavior)
-            const total_sales = allSales.reduce((sum, s) => sum + s.total, 0);
-            const total_profit = allSales.reduce((sum, s) => sum + s.profit, 0);
+            const total_sales = allSales.reduce((sum, sale) => {
+                const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
+                return sum + (isNaN(total) ? 0 : total);
+            }, 0);
+            const total_profit = allSales.reduce((sum, sale) => {
+                const profit = typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0));
+                return sum + (isNaN(profit) ? 0 : profit);
+            }, 0);
 
             return {
                 data,
@@ -1148,8 +1154,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const data = allSales.slice(start, start + perPage);
 
             // Calculate aggregate totals for the filtered results
-            const total_sales = allSales.reduce((sum, s) => sum + s.total, 0);
-            const total_profit = allSales.reduce((sum, s) => sum + s.profit, 0);
+            const total_sales = allSales.reduce((sum, sale) => {
+                const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
+                return sum + (isNaN(total) ? 0 : total);
+            }, 0);
+            const total_profit = allSales.reduce((sum, sale) => {
+                const profit = typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0));
+                return sum + (isNaN(profit) ? 0 : profit);
+            }, 0);
 
             return {
                 data,
