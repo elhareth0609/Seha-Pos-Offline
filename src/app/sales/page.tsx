@@ -684,7 +684,7 @@ export default function SalesPage() {
             const saleData = {
                 id: saleIdToUpdate, // Pass ID if updating
                 items: cart,
-                total: finalTotal,
+                total: subtotal,
                 profit: totalProfit,
                 discount: discountAmount,
                 patient_id: selectedPatient?.id || null,

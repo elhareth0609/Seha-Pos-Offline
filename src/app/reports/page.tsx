@@ -121,7 +121,8 @@ export default function ReportsPage() {
             } else {
                 const pageSales = filteredData.reduce((acc, sale) => {
                     const total = typeof sale.total === 'number' ? sale.total : parseFloat(String(sale.total || 0));
-                    return acc + (isNaN(total) ? 0 : total);
+                    const discount = typeof sale.discount === 'number' ? sale.discount : parseFloat(String(sale.discount || 0));
+                    return acc + (total - discount);
                 }, 0);
                 const pageProfit = filteredData.reduce((acc, sale) => {
                     const total = typeof sale.profit === 'number' ? sale.profit : parseFloat(String(sale.profit || 0));
