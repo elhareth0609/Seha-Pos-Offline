@@ -10,6 +10,7 @@ import {
   LogOut,
   Users,
   RefreshCw,
+  ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +43,7 @@ import { useOnlineStatus } from "@/hooks/use-online-status";
 const allNavItems = [
   { href: "/sales", icon: ShoppingCart, label: "المبيعات", group: 'main' },
   { href: "/reports", icon: FileText, label: "الفواتير", group: 'main' },
+  { href: "/transaction-log", icon: ClipboardList, label: "سجل المعاملات", group: 'main', adminOnly: true },
   // { href: "/patients", icon: Users, label: "أصدقاء الصيدلية", group: 'tools' },
 ];
 
@@ -80,7 +82,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       // '/patients': 'manage_patients',
     };
 
+    // Filter out adminOnly items for non-admins
     return allNavItems.filter(item => {
+      if ((item as any).adminOnly) return false;
       if (item.href === '/dashboard') return true;
       const permissionKey = permissionMap[item.href];
       if (!permissionKey) return true;

@@ -47,6 +47,23 @@ export function useSync(refreshData: () => Promise<void>) {
                     });
 
                     if (response.ok) {
+                        // Try to update the transactionLog entry to 'synced'
+                        const localId = req.body?._localId;
+                        if (localId) {
+                            try {
+                                const responseData = await response.clone().json().catch(() => null);
+                                const serverId = responseData?.data?.sale?.id ?? responseData?.sale?.id;
+                                await db.transactionLog
+                                    .where('localId').equals(localId)
+                                    .modify({
+                                        status: 'synced',
+                                        serverId: serverId ? String(serverId) : undefined,
+                                        syncedAt: new Date().toISOString(),
+                                    });
+                            } catch (e) {
+                                console.warn('[Sync] Could not update transactionLog for localId:', localId, e);
+                            }
+                        }
                         await db.offlineRequests.delete(req.id!);
                         successCount++;
                     } else {
@@ -68,6 +85,18 @@ export function useSync(refreshData: () => Promise<void>) {
                                 }
                             } catch (e) {
                                 // Use default message if parsing fails
+                            }
+
+                            // Mark the matching transactionLog entry as failed
+                            const localId = req.body?._localId;
+                            if (localId) {
+                                try {
+                                    await db.transactionLog
+                                        .where('localId').equals(localId)
+                                        .modify({ status: 'failed', errorMessage });
+                                } catch (e) {
+                                    console.warn('[Sync] Could not mark transactionLog as failed for localId:', localId, e);
+                                }
                             }
 
                             toast({ 

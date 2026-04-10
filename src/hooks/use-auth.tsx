@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import type { User, TimeLog, AppSettings, Medication, Sale, Patient, Advertisement, SaleItem, PaginatedResponse, Expense, PharmacyGroup, BranchInventory, Doctor, PatientMedication } from '@/lib/types';
 import { toast } from './use-toast';
 import { db } from '@/lib/db';
+import type { TransactionLogEntry } from '@/lib/db';
 import { useSync } from './use-sync';
 import { electronStorage } from '@/lib/electron-storage';
 import { useOnlineStatus } from './use-online-status-electron';
@@ -1325,11 +1326,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // DEBUG: Check online status explicitly
         console.log(`[Sales] Adding sale. Online status: ${isOnline ? 'Online' : 'Offline'}`);
 
+        // Generate a unique local ID for this sale attempt
+        const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+        // --- STEP 1: Write a pending entry to the transaction log FIRST ---
+        // This table is NEVER cleared, so even if db.sales gets wiped during sync
+        // the client can always see this sale attempt happened.
+        const logEntry: TransactionLogEntry = {
+            localId,
+            status: 'pending',
+            saleData,
+            createdAt: new Date().toISOString(),
+            employeeName: currentUser?.name,
+        };
+        let logId: number | undefined;
+        try {
+            logId = await db.transactionLog.add(logEntry);
+        } catch (logErr) {
+            console.error('[TransactionLog] Failed to create log entry:', logErr);
+        }
+
+        // Helper to update the log entry status
+        const updateLog = async (patch: Partial<TransactionLogEntry>) => {
+            if (logId == null) return;
+            try {
+                await db.transactionLog.update(logId, patch);
+            } catch (e) {
+                console.error('[TransactionLog] Failed to update log entry:', e);
+            }
+        };
+
+        // --- STEP 2: Offline path ---
         if (!isOnline) {
             try {
                 const newSale = {
                     ...saleData,
-                    id: `local-${Date.now()}`,
+                    id: localId,
                     date: new Date().toISOString(),
                     items: saleData.items.map((item: any) => ({ ...item, name: item.name || 'Unknown' })) // Ensure name exists
                 };
@@ -1339,7 +1371,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 await db.offlineRequests.add({
                     url: '/sales',
                     method: 'POST',
-                    body: saleData,
+                    // Embed _localId so the sync hook can update transactionLog on success
+                    body: { ...saleData, _localId: localId },
                     timestamp: Date.now()
                 });
 
@@ -1360,16 +1393,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     });
                     return newInventory;
                 });
+                // Log stays 'pending' — sync will mark it synced
                 return newSale;
             } catch (error) {
                 console.error('[Sales] Failed to save offline sale:', error);
+                await updateLog({ status: 'failed', errorMessage: String(error) });
                 toast({ variant: 'destructive', title: 'خطأ في الحفظ', description: 'فشل حفظ الفاتورة محلياً.' });
                 return null;
             }
         }
 
+        // --- STEP 3: Online path ---
         try {
             const { sale: newSale, updated_inventory } = await apiRequest('/sales', 'POST', saleData);
+            // Mark as synced with the server's real ID
+            await updateLog({
+                status: 'synced',
+                serverId: String(newSale.id),
+                syncedAt: new Date().toISOString(),
+            });
             setSales(prev => [newSale, ...prev]);
             if (updated_inventory && Array.isArray(updated_inventory)) {
                 setInventory(prev => {
@@ -1378,7 +1420,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 });
             }
             return newSale;
-        } catch (e) { return null; }
+        } catch (e: any) {
+            await updateLog({ status: 'failed', errorMessage: String(e?.message ?? e) });
+            return null;
+        }
     }
 
     const updateSale = async (saleData: any) => {

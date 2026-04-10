@@ -15,6 +15,7 @@ import LoginPage from './app/login/page';
 import WelcomePage from './app/welcome/page';
 import SalesPage from './app/sales/page';
 import ReportsPage from './app/reports/page';
+import TransactionLogPage from './app/transaction-log/page';
 // import PatientsPage from './app/patients/page';
 
 const allNavItems = [
@@ -149,6 +150,7 @@ function App() {
                         <Route path="/welcome" element={<WelcomePage />} />
                         <Route path="/sales" element={<SalesPage />} />
                         <Route path="/reports" element={<ReportsPage />} />
+                        <Route path="/transaction-log" element={<TransactionLogPage />} />
                         {/* <Route path="/patients" element={<PatientsPage />} /> */}
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

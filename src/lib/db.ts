@@ -1,6 +1,19 @@
 import Dexie, { type EntityTable } from 'dexie';
 import type { Sale, Medication, Patient, AppSettings, Expense, Task, TimeLog, Advertisement, PharmacyGroup, PatientMedication, Doctor } from './types';
 
+export type TransactionLogEntry = {
+    id?: number;
+    localId: string;         // e.g. `local-${Date.now()}`
+    serverId?: string;       // filled after successful sync
+    status: 'pending' | 'synced' | 'failed';
+    saleData: any;           // full sale snapshot
+    errorMessage?: string;
+    createdAt: string;
+    syncedAt?: string;
+    pharmacyId?: string;
+    employeeName?: string;
+};
+
 interface OfflineRequest {
     id?: number;
     url: string;
@@ -24,6 +37,9 @@ const db = new Dexie('SehaPosOfflineDB') as Dexie & {
     advertisements: EntityTable<Advertisement, 'id'>;
     pharmacyGroups: EntityTable<PharmacyGroup, 'id'>;
     doctors: EntityTable<Doctor, 'id'>;
+
+    // Append-only transaction log — NEVER cleared by saveToLocalDB
+    transactionLog: EntityTable<TransactionLogEntry, 'id'>;
 };
 
 // Schema definition
@@ -42,6 +58,26 @@ db.version(2).stores({
     advertisements: 'id, created_at',
     pharmacyGroups: 'id',
     doctors: 'id, name'
+});
+
+// Version 3: add append-only transactionLog table
+db.version(3).stores({
+    sales: 'id, date, patient_id, employee_id, payment_method',
+    inventory: 'id, name, *barcodes, *scientific_names',
+    patientMedications: 'id, patient_id, medication_id',
+    patients: 'id, name, phone',
+    settings: '++id',
+
+    offlineRequests: '++id, timestamp',
+
+    timeLogs: 'id, user_id, pharmacy_id, clock_in',
+    expenses: 'id, created_at, user_id',
+    tasks: 'id, user_id, completed',
+    advertisements: 'id, created_at',
+    pharmacyGroups: 'id',
+    doctors: 'id, name',
+
+    transactionLog: '++id, localId, status, createdAt'
 });
 
 export { db };
