@@ -596,16 +596,25 @@ export default function SalesPage() {
     const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
     React.useEffect(() => {
         async function getPatient() {
-            if (patientId) {
-                const results = await searchAllPatients(patientId);
-                const patient = results.find(p => p.id == patientId);
-                setSelectedPatient(patient || null);
-            } else {
+            if (!patientId) {
                 setSelectedPatient(null);
+                return;
             }
+            
+            // 1. ابحث في القائمة المحلية أولاً (بدون طلب سيرفر)
+            const localPatient = patientSuggestions.find(p => p.id == patientId);
+            if (localPatient) {
+                setSelectedPatient(localPatient);
+                return;
+            }
+            
+            // 2. فقط إذا لم يوجد محلياً، اطلب من السيرفر
+            const results = await searchAllPatients(patientId);
+            const patient = results.find(p => p.id == patientId);
+            setSelectedPatient(patient || null);
         }
         getPatient();
-    }, [patientId, searchAllPatients]);
+    }, [patientId, patientSuggestions]); // أضف patientSuggestions كـ dependency
 
     const handleCheckout = async () => {
         if (cart.length === 0) {
@@ -675,29 +684,60 @@ export default function SalesPage() {
         }
     }
 
-    const handleFinalizeSale = async () => {
+    const handleFinalizeSale = async (invoiceIndex?: number) => {
         if (!currentUser || isProcessingSale) return;
+        
+        // استخدم الـ index المُمرَّر أو الحالي
+        const targetIndex = invoiceIndex ?? currentInvoiceIndex;
+        const targetInvoice = activeInvoices[targetIndex];
+        
+        if (!targetInvoice) return;
+        
         setIsProcessingSale(true);
 
-        try {
+        // احسب القيم من الفاتورة المستهدفة مباشرة
+        const targetCart = targetInvoice.cart;
+        const targetSubtotal = targetCart.reduce((total, item) => {
+            const itemTotal = (item.price || 0) * (item.quantity || 0);
+            return item.is_return ? total - itemTotal : total + itemTotal;
+        }, 0);
+        
+        const targetTotalProfit = targetCart.reduce((acc, item) => {
+            const itemProfit = ((item.price || 0) - (item.purchase_price || 0)) * (item.quantity || 0);
+            return item.is_return ? acc - itemProfit : acc + itemProfit;
+        }, 0);
 
+        const targetDiscountValue = parseFloat(String(targetInvoice.discountValue));
+        let targetDiscountAmount = 0;
+        if (!isNaN(targetDiscountValue) && targetDiscountValue > 0) {
+            targetDiscountAmount = targetInvoice.discountType === 'percentage'
+                ? (targetSubtotal * targetDiscountValue) / 100
+                : targetDiscountValue;
+        }
+
+        try {
             const saleData = {
-                id: saleIdToUpdate, // Pass ID if updating
-                items: cart,
-                total: subtotal,
-                profit: totalProfit,
-                discount: discountAmount,
+                id: targetInvoice.saleIdToUpdate,
+                items: targetCart,
+                total: targetSubtotal,
+                profit: targetTotalProfit,
+                discount: targetDiscountAmount,
                 patient_id: selectedPatient?.id || null,
                 patient_name: selectedPatient?.name,
                 employee_id: currentUser.id,
                 employee_name: currentUser.name,
-                payment_method: paymentMethod,
+                payment_method: targetInvoice.paymentMethod,
             };
 
-            const resultSale = saleIdToUpdate ? await updateSale(saleData) : await addSale(saleData);
+            const resultSale = targetInvoice.saleIdToUpdate 
+                ? await updateSale(saleData) 
+                : await addSale(saleData);
 
             if (resultSale) {
-                toast({ title: saleIdToUpdate ? "تم تحديث الفاتورة بنجاح" : "تمت العملية بنجاح", description: `تم تسجيل الفاتورة رقم ${resultSale.id}` });
+                toast({ 
+                    title: targetInvoice.saleIdToUpdate ? "تم تحديث الفاتورة بنجاح" : "تمت العملية بنجاح", 
+                    description: `تم تسجيل الفاتورة رقم ${resultSale.id}` 
+                });
 
                 setSaleToPrint(resultSale);
                 fetchMyTodaySales();
