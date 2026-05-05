@@ -347,7 +347,7 @@ export default function SalesPage() {
 
             return {
                 ...invoice,
-                cart: [...invoice.cart, {
+                cart: [{
                     id: medication.id,
                     medication_id: medication.id,
                     name: medication.name,
@@ -361,7 +361,7 @@ export default function SalesPage() {
                     is_return: mode === 'return',
                     dosage_form: medication.dosage_form,
                     unit_type: resolvedUnitType,
-                }]
+                }, ...invoice.cart]
             }
         });
 
@@ -407,7 +407,7 @@ export default function SalesPage() {
             }
 
             const matchingMeds = fullInventory.filter(med =>
-                med.barcodes && Array.isArray(med.barcodes) && med.barcodes.some(bc => bc && bc.toLowerCase() === barcode.toLowerCase())
+                med.barcodes && Array.isArray(med.barcodes) && med.barcodes.some(bc => bc && bc.toLowerCase() === barcode.toLowerCase())  && (med.stock || 0) > 0
             );
 
             if (matchingMeds.length === 1) {
